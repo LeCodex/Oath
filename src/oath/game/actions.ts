@@ -4,7 +4,7 @@ import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEf
 import { OathResource, OathSuit, OathSuitName } from "./enums";
 import { OathGameObject } from "./game";
 import { OathPlayer } from "./player";
-import { ActionModifier } from "./power";
+import { ActionModifier, ActivePower } from "./power";
 import { PeoplesFavor, ResourceCost } from "./resources";
 
 
@@ -933,5 +933,28 @@ export class PeoplesFavorWakeAction extends OathAction {
             new MoveBankResourcesEffect(this.game, this.player, this.banner, bank, 1).do();
         else
             new PutResourcesIntoBankEffect(this.game, this.player, this.banner, 1).do();
+    }
+}
+
+
+export class UsePowerAction extends ModifiableAction {
+    readonly selects: { power: SelectNOf<ActivePower<any>> }
+    readonly parameters: { modifiers: ActionModifier<any>[], power: ActivePower<any>[] };
+
+    power: ActivePower<any>
+
+    constructor(player: OathPlayer) {
+        super(player);
+
+        const choices = new Map<string, ActivePower<any>>();
+        for (const power of this.game.getActivePowers(ActivePower<any>))
+            if (power.canUse(this)) choices.set(power.name, power);
+    }
+
+    modifiedExecution(): void {
+        if (!new PayCostToTargetEffect(this.game, this.player, this.power.cost, this.power.source).do())
+            throw new InvalidActionResolution("Cannot pay the resource cost.");
+
+        this.power.usePower(this.player);
     }
 }

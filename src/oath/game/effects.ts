@@ -6,7 +6,7 @@ import { ResourceBank, ResourceCost, ResourcesAndWarbands } from "./resources";
 import { OwnableObject } from "./player";
 import { OathGame, OathGameObject } from "./game";
 import { InvalidActionResolution } from "./actions";
-import { CardDeck, Discard, SearchableDeck } from "./decks";
+import { CardDeck, SearchableDeck } from "./decks";
 
 
 //////////////////////////////////////////////////
@@ -606,6 +606,7 @@ export class RollDiceEffect extends OathEffect<number[]> {
     }
 
     revert(): void {
-        // This effect SHOULD NOT, and in fact CANNOT be reverted
+        // This is a "read" effect, and so cannot be reverted (and should not need to)
+        // In this case, a dice roll should not get reverted
     }
 }

@@ -79,8 +79,6 @@ export class OathGame {
         return powers;
     }
 
-
-
     continueAction(values: any) {
         const action = this.actionStack.pop();
         if (!action) return;
@@ -90,7 +88,7 @@ export class OathGame {
         try {
             action.execute();
         } catch (e) {
-            // Revert all effects that have been done, put the action back on the stack, then pass it on
+            // Revert all effects that have been done, put the action back on the stack, then pass the error on
             this.revert();
             this.actionStack.push(action);
             throw e;

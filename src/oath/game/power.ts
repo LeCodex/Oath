@@ -36,7 +36,7 @@ export abstract class ActivePower<T extends OwnableCard> extends ActionPower<T> 
         return this.source.accessibleBy(action.player) && this.source.empty;
     }
 
-    abstract usePower(): boolean;
+    abstract usePower(player: OathPlayer): void;
 }
 
 export abstract class ActionModifier<T extends OathGameObject> extends ActionPower<T> {
@@ -44,8 +44,7 @@ export abstract class ActionModifier<T extends OathGameObject> extends ActionPow
     mustUse = false;
 
     canUse(action: OathAction): boolean {
-        if (!(action instanceof this.modifiedAction)) return false;
-        return true;
+        return (action instanceof this.modifiedAction);
     }
 
     applyBefore(action: OathAction): boolean { return true; }  // Applied before the action's choices are made. If returns false, the execution will be interrupted
@@ -246,6 +245,15 @@ export class LostTongueCampaign extends EnemyActionModifier<Denizen> {
     }
 }
 
+export class Elders extends ActivePower<Denizen> {
+    name = "Elders";
+    cost = new ResourceCost([[OathResource.Favor, 2]]);
+
+    usePower(player: OathPlayer): void {
+        new PutResourcesOnTargetEffect(this.game, player, OathResource.Secret, 1).do();
+    }
+}
+
 
 // ------------------ DISCORD ------------------- //
 export class RelicThief extends EnemyEffectModifier<Denizen> {
@@ -267,10 +275,22 @@ export class KeyToTheCity extends WhenPlayed<Denizen> {
     whenPlayed(player: OathPlayer): void {
         if (!this.source.site) return;
         
-        for (const [player, amount] of this.source.site.warbands)
-            new TakeWarbandsIntoBagEffect(player, amount, this.source.site).do();
+        if (this.source.site.ruler?.site !== this.source.site)
+            for (const [player, amount] of this.source.site.warbands)
+                new TakeWarbandsIntoBagEffect(player, amount, this.source.site).do();
 
         new PutWarbandsFromBagEffect(player, 1, this.source.site).do();
+    }
+}
+
+
+export class MaxTwoAdvisers extends ActionModifier<Denizen> {
+    name = "Max Two Advisers";
+    modifiedAction = SearchPlayAction;
+    mustUse = true;
+
+    applyDuring(action: SearchPlayAction): void {
+        if (!action.site) action.capacity = Math.min(action.capacity, 2);
     }
 }
 
@@ -353,7 +373,7 @@ export class DeepWoods extends HomelandSitePower {
     suit = OathSuit.Beast;
 
     giveReward(player: OathPlayer): void {
-        new TakeResourcesFromBankEffect(this.game, player, this.game.favorBanks.get(this.suit), 1).do();
+        for (const relic of this.source.relics) return new TakeOwnableObjectEffect(this.game, player, relic).do();
     }
 }
 
