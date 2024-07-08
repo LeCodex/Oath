@@ -5,7 +5,7 @@ import { OathResource, OathSuit, OathSuitName } from "./enums";
 import { OathGameObject } from "./game";
 import { OathPlayer } from "./player";
 import { ActionModifier, ActivePower } from "./power";
-import { PeoplesFavor, ResourceCost } from "./resources";
+import { Banner, PeoplesFavor, ResourceCost } from "./resources";
 
 
 
@@ -327,8 +327,22 @@ export class RecoverAction extends MajorAction {
 }
 
 export class RecoverBannerPitchAction extends OathAction {
-    execute(): boolean {
-        return true;
+    readonly selects: { amount: SelectValue<number> };
+    readonly parameters: { amount: number };
+
+    banner: Banner;
+
+    constructor(player: OathPlayer, banner: Banner) {
+        super(player);
+        this.banner = banner;
+
+        const values: number[] = [];
+        for (let i = banner.amount + 1; i <= player.getResources(banner.type); i++) values.push(i);
+        this.selects.amount = new SelectValue(values);
+    }
+
+    execute() {
+        new PutResourcesIntoBankEffect(this.game, this.player, this.banner, this.parameters.amount).do();
     }
 }
 
