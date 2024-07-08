@@ -1,7 +1,7 @@
 import { CampaignAction, CampaignActionTarget, CampaignBanishPlayerAction, ChooseModifiers, MusterAction, RecoverAction, SearchAction, TradeAction, TravelAction } from "./actions";
 import { Denizen, OwnableCard, Relic, Site, Vision, WorldCard } from "./cards";
 import { Discard } from "./decks";
-import { DiscardCardEffect, MoveResourcesToTargetEffect } from "./effects";
+import { AddActionToStackEffect, DiscardCardEffect, MoveResourcesToTargetEffect } from "./effects";
 import { OathResource, OathSuit } from "./enums";
 import { OathGame, OathGameObject } from "./game";
 import { Brutal, Careless, Decadent, Greedy } from "./power";
@@ -130,12 +130,13 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
     seize(player: OathPlayer) {
         // TODO: Move burnt favor to supply
         new MoveResourcesToTargetEffect(this.game, this, OathResource.Favor, Math.floor(this.getResources(OathResource.Favor) / 2), undefined).do();
-        this.game.actionStack.push(new CampaignBanishPlayerAction(player, this));
+        new AddActionToStackEffect(this.game, new CampaignBanishPlayerAction(player, this)).do();
     }
 
     ////////////////////////////////////////////
     //              MAJOR ACTIONS             //
     ////////////////////////////////////////////
+    // TODO: Should those functions add to the stack directly, or use the appropriate effect?
     startSearch() {
         this.game.actionStack.push(new ChooseModifiers(this, new SearchAction(this)));
     }

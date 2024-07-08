@@ -1,5 +1,5 @@
 import { CampaignActionTarget, FavorReturnAction, RecoverAction, RecoverActionTarget, RecoverBannerPitchAction } from "./actions";
-import { TakeOwnableObjectEffect } from "./effects";
+import { AddActionToStackEffect, TakeOwnableObjectEffect } from "./effects";
 import { OathResource } from "./enums"
 import { OathGameObject } from "./game";
 import { OwnableObject } from "./player";
@@ -55,7 +55,7 @@ export abstract class Banner extends ResourceBank implements OwnableObject, Reco
 
     recover(player: OathPlayer): void {
         new TakeOwnableObjectEffect(this.game, player, this).do();
-        this.game.actionStack.push(new RecoverBannerPitchAction(player));
+        new AddActionToStackEffect(this.game, new RecoverBannerPitchAction(player)).do();
     }
     
     finishRecovery(amount: number): void {
@@ -81,7 +81,7 @@ export class PeoplesFavor extends Banner {
 
     handleRecovery(player: OathPlayer) {
         this.isMob = false;
-        this.game.actionStack.push(new FavorReturnAction(player, this.take()));
+        new AddActionToStackEffect(this.game, new FavorReturnAction(player, this.take())).do();
     }
 }
 

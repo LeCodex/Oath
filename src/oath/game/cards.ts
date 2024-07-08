@@ -1,6 +1,6 @@
 import { CampaignActionTarget, CampaignSeizeSiteAction, InvalidActionResolution, RecoverAction, RecoverActionTarget } from "./actions";
 import { Region } from "./board";
-import { MoveOwnWarbandsEffect, PayCostToBankEffect, TakeOwnableObjectEffect } from "./effects";
+import { AddActionToStackEffect, MoveOwnWarbandsEffect, PayCostToBankEffect, TakeOwnableObjectEffect } from "./effects";
 import { CardRestriction, Oath, OathResource, OathSuit, RegionName } from "./enums";
 import { OathPlayer, OwnableObject } from "./player";
 import { OathPower } from "./power";
@@ -92,7 +92,7 @@ export class Site extends OathCard implements CampaignActionTarget {
 
     seize(player: OathPlayer) {
         if (this.ruler) new MoveOwnWarbandsEffect(this.ruler, this, this.ruler).do();
-        this.game.actionStack.push(new CampaignSeizeSiteAction(player, this));
+        new AddActionToStackEffect(this.game, new CampaignSeizeSiteAction(player, this)).do();
     }
 }
 

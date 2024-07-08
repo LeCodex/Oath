@@ -5,7 +5,7 @@ import { EffectModifier, WhenPlayed } from "./power";
 import { ResourceBank, ResourceCost, ResourcesAndWarbands } from "./resources";
 import { OwnableObject } from "./player";
 import { OathGame, OathGameObject } from "./game";
-import { InvalidActionResolution } from "./actions";
+import { InvalidActionResolution, OathAction } from "./actions";
 import { CardDeck, SearchableDeck } from "./decks";
 
 
@@ -62,6 +62,23 @@ export abstract class PlayerEffect<T> extends OathEffect<T> {
 //////////////////////////////////////////////////
 //                   EFFECTS                    //
 //////////////////////////////////////////////////
+export class AddActionToStackEffect extends OathEffect<void> {
+    action: OathAction;
+
+    constructor(game: OathGame, action: OathAction) {
+        super(game, undefined);
+        this.action = action;
+    }
+
+    resolve(): void {
+        this.game.actionStack.push(this.action);
+    }
+
+    revert(): void {
+        this.game.actionStack.pop();
+    }
+}
+
 export class PutResourcesOnTargetEffect extends OathEffect<number> {
     resource: OathResource;
     amount: number;

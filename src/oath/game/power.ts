@@ -2,7 +2,7 @@ import { CampaignAction, CampaignAtttackAction, CampaignDefenseAction, InvalidAc
 import { Denizen, OwnableCard, Relic, Site, WorldCard } from "./cards";
 import { BannerName, OathResource, OathSuit, RegionName } from "./enums";
 import { Banner, DarkestSecret, PeoplesFavor, ResourceCost } from "./resources";
-import { OathEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesOnTargetEffect, PutWarbandsFromBagEffect, TakeOwnableObjectEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect } from "./effects";
+import { AddActionToStackEffect, OathEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesOnTargetEffect, PutWarbandsFromBagEffect, TakeOwnableObjectEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect } from "./effects";
 import { OathPlayer, OwnableObject, Reliquary, isOwnable } from "./player";
 import { OathGameObject } from "./game";
 
@@ -179,7 +179,7 @@ export class HeartsAndMinds extends DefenderBattlePlan<Denizen> {
 
     applyBefore(action: CampaignDefenseAction): boolean {
         action.campaignResult.successful = false;
-        this.game.actionStack.push(action.next);
+        new AddActionToStackEffect(this.game, action.next).do();
 
         if (this.game.banners.get(BannerName.PeoplesFavor)?.owner !== action.player)
             action.campaignResult.discardAtEnd.add(this.source);
@@ -451,7 +451,7 @@ export class PeoplesFavorSearch extends BannerActionModifier<PeoplesFavor> {
         }
 
         // TODO: Putting things onto the action should be an effect so it can be cleanly reverted
-        this.game.actionStack.push(new PeoplesFavorDiscardAction(action.player, action.discardOptions));
+        new AddActionToStackEffect(this.game, new PeoplesFavorDiscardAction(action.player, action.discardOptions)).do();
         return true;
     }
 }
@@ -461,8 +461,8 @@ export class PeoplesFavorWake extends BannerActionModifier<PeoplesFavor> {
 
     applyBefore(action: WakeAction): boolean {
         if (this.source.owner) {
-            this.game.actionStack.push(new PeoplesFavorWakeAction(this.source.owner, this.source));
-            if (this.source.isMob) this.game.actionStack.push(new PeoplesFavorWakeAction(this.source.owner, this.source));
+            new AddActionToStackEffect(this.game, new PeoplesFavorWakeAction(this.source.owner, this.source)).do();
+            if (this.source.isMob) new AddActionToStackEffect(this.game, new PeoplesFavorWakeAction(this.source.owner, this.source)).do();
         }
 
         return true;

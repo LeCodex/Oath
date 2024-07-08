@@ -1,6 +1,6 @@
 import { Denizen, Site, WorldCard } from "./cards";
 import { SearchableDeck } from "./decks";
-import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect, DiscardCardEffect, MoveOwnWarbandsEffect } from "./effects";
+import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect, DiscardCardEffect, MoveOwnWarbandsEffect, AddActionToStackEffect } from "./effects";
 import { OathResource, OathSuit, OathSuitName } from "./enums";
 import { OathGameObject } from "./game";
 import { OathPlayer } from "./player";
@@ -86,7 +86,7 @@ export class ChooseModifiers extends OathAction {
         if (this.executeImmediately) {
             this.next.execute();
         } else {
-            this.game.actionStack.push(this.next);
+            new AddActionToStackEffect(this.game, this.next).do();
         }
     }
 }
@@ -385,7 +385,7 @@ export class SearchAction extends MajorAction {
     modifiedExecution() {
         super.modifiedExecution();
         const cards = new DrawFromDeckEffect(this.player, this.deck, this.amount, this.fromBottom).do();
-        this.game.actionStack.push(new ChooseModifiers(this.player, new SearchChooseAction(this.player, cards, this.discardOptions)));
+        new AddActionToStackEffect(this.game, new ChooseModifiers(this.player, new SearchChooseAction(this.player, cards, this.discardOptions))).do();
     }
 }
 
@@ -427,12 +427,12 @@ export class SearchChooseAction extends ModifiableAction {
 
     modifiedExecution(): void {
         for (const card of this.playing.reverse()) {  // Reversing so the stack order follows the expected order
-            this.game.actionStack.push(new SearchPlayAction(this.player, card, this.discardOptions));
+            new AddActionToStackEffect(this.game, new SearchPlayAction(this.player, card, this.discardOptions)).do();
             this.cards.delete(card);
         }
 
         // The action stack is FIFO, so the discards will be done first
-        this.game.actionStack.push(new SearchDiscardAction(this.player, this.cards, this.discardOptions));
+        new AddActionToStackEffect(this.game, new SearchDiscardAction(this.player, this.cards, this.discardOptions)).do();
     }
 }
 
@@ -474,7 +474,7 @@ export class SearchPlayAction extends ModifiableAction {
         this.excess = (this.site ? this.site.denizens.size : this.player.advisers.size) - this.capacity + 1;
         if (this.excess)
             if (this.canReplace)
-                this.game.actionStack.push(new SearchReplaceAction(this.player, this.card, this.facedown, this.excess, this.site, this.discardOptions));
+                new AddActionToStackEffect(this.game, new SearchReplaceAction(this.player, this.card, this.facedown, this.excess, this.site, this.discardOptions)).do();
             else
                 throw new InvalidActionResolution("Target is full, cannot play a card to it.");
         else
@@ -600,7 +600,7 @@ export class CampaignAction extends MajorAction {
     modifiedExecution() {
         super.modifiedExecution();
         const next = new CampaignAtttackAction(this.player, this.defender);
-        this.game.actionStack.push(new ChooseModifiers(this.player, next));
+        new AddActionToStackEffect(this.game, new ChooseModifiers(this.player, next)).do();
     }
 }
 
@@ -660,7 +660,7 @@ export class CampaignAtttackAction extends ModifiableAction {
 
     modifiedExecution() {
         if (this.campaignResult.defender) {
-            this.game.actionStack.push(new ChooseModifiers(this.campaignResult.defender, this.next, true));
+            new AddActionToStackEffect(this.game, new ChooseModifiers(this.campaignResult.defender, this.next, true)).do();
             return;
         }
 
@@ -692,7 +692,7 @@ export class CampaignDefenseAction extends ModifiableAction {
 
         const modifiersChoice = new ChooseModifiers(this.player, this.next, true);
         if (this.campaignResult.couldSacrifice) {
-            this.game.actionStack.push(modifiersChoice);
+            new AddActionToStackEffect(this.game, modifiersChoice).do();
             return;
         };
 
