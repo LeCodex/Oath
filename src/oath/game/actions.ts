@@ -66,7 +66,7 @@ export class ChooseModifiers extends OathAction {
 
         const choices = new Map<string, ActionModifier<any>>();
         for (const modifier of this.game.getActivePowers(ActionModifier<any>)) {
-            if (modifier.canUse(this.next)) {
+            if (modifier.canUse(next)) {
                 if (modifier.mustUse)
                     this.parameters.modifiers.push(modifier);
                 else
@@ -102,8 +102,7 @@ export abstract class ModifiableAction extends OathAction {
             if (!new PayCostToTargetEffect(this.game, this.player, modifier.cost, modifier.source).do())
                 throw new InvalidActionResolution("Cannot pay the resource cost of all the modifiers.");
 
-            if (!modifier.applyBefore(this))
-                interrupt = true;
+            if (!modifier.applyBefore(this)) interrupt = true;
         }
         if (interrupt) return false;
 

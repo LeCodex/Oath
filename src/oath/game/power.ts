@@ -1,4 +1,4 @@
-import { CampaignAction, CampaignAtttackAction, CampaignDefenseAction, InvalidActionResolution, OathAction, PeoplesFavorDiscardAction, PeoplesFavorWakeAction, SearchAction, SearchPlayAction, TradeAction, TravelAction, WakeAction } from "./actions";
+import { CampaignAction, CampaignAtttackAction, CampaignDefenseAction, InvalidActionResolution, OathAction, PeoplesFavorDiscardAction, PeoplesFavorWakeAction, SearchAction, SearchPlayAction, TradeAction, TravelAction, UsePowerAction, WakeAction } from "./actions";
 import { Denizen, OwnableCard, Relic, Site, WorldCard } from "./cards";
 import { BannerName, OathResource, OathSuit, RegionName } from "./enums";
 import { Banner, DarkestSecret, PeoplesFavor, ResourceCost } from "./resources";
@@ -40,16 +40,16 @@ export abstract class ActivePower<T extends OwnableCard> extends ActionPower<T> 
 }
 
 export abstract class ActionModifier<T extends OathGameObject> extends ActionPower<T> {
-    modifiedAction: new (...args: any) => OathAction;
+    modifiedAction: abstract new (...args: any) => OathAction;
     mustUse = false;
 
     canUse(action: OathAction): boolean {
         return (action instanceof this.modifiedAction);
     }
 
-    applyBefore(action: OathAction): boolean { return true; }  // Applied before the action's choices are made. If returns false, the execution will be interrupted
-    applyDuring(action: OathAction): void { }                  // Applied right before the execution of the action
-    applyAfter(action: OathAction): void { }                   // Applied after the execution of the action
+    applyBefore(action: OathAction): boolean { return true; }   // Applied before the action's choices are made. If returns false, the execution will be interrupted
+    applyDuring(action: OathAction): void { }                   // Applied right before the execution of the action
+    applyAfter(action: OathAction): void { }                    // Applied after the execution of the action
 }
 
 export abstract class EnemyActionModifier<T extends OwnableCard> extends ActionModifier<T> {
@@ -274,12 +274,36 @@ export class LostTongueCampaign extends EnemyActionModifier<Denizen> {
     }
 }
 
+
 export class Elders extends ActivePower<Denizen> {
     name = "Elders";
     cost = new ResourceCost([[OathResource.Favor, 2]]);
 
     usePower(player: OathPlayer): void {
         new PutResourcesOnTargetEffect(this.game, player, OathResource.Secret, 1).do();
+    }
+}
+
+
+export class SpellBreaker extends EnemyActionModifier<Denizen> {
+    name = "Spell Breaker"
+    modifiedAction = OathAction;
+
+    applyBefore(action: OathAction): boolean {
+        for (const modifier of action.parameters.modifiers)
+            if (modifier.cost.totalResources.get(OathResource.Secret))
+                throw new InvalidActionResolution("Cannot use powers that cost Secrets under the Spell Breaker");
+
+        return true;
+    }
+}
+export class SpellBreakerActive extends EnemyActionModifier<Denizen> {
+    name = "Spell Breaker"
+    modifiedAction = UsePowerAction;
+
+    applyDuring(action: UsePowerAction): void {
+        if (action.power.cost.totalResources.get(OathResource.Secret))
+            throw new InvalidActionResolution("Cannot use powers that cost Secrets under the Spell Breaker");
     }
 }
 
