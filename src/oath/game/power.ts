@@ -310,6 +310,13 @@ export class Bracken extends AccessedActionModifier<Denizen> {
 //////////////////////////////////////////////////
 //                    SITES                     //
 //////////////////////////////////////////////////
+export abstract class SiteActionModifier extends ActionModifier<Site> {
+    canUse(action: OathAction): boolean {
+        return action.player.site === this.source;
+    }
+}
+
+
 export abstract class HomelandSitePower extends EffectModifier<Site> {
     modifiedEffect = PlayWorldCardEffect;
     abstract suit: OathSuit;
@@ -374,6 +381,33 @@ export class DeepWoods extends HomelandSitePower {
 
     giveReward(player: OathPlayer): void {
         for (const relic of this.source.relics) return new TakeOwnableObjectEffect(this.game, player, relic).do();
+    }
+}
+
+
+export class CoastalSite extends SiteActionModifier {
+    name = "Coastal Site";
+    modifiedAction = TravelAction;
+    mustUse = true;
+
+    applyDuring(action: TravelAction): void {
+        for (const power of action.site.powers) {
+            if (power instanceof CoastalSite) {
+                action.supplyCost = 1;  // TODO: Handle multiple Supply changing effects (maybe remember original Supply cost? Store Supply change?)
+                return;
+            }
+        }
+    }
+}
+
+
+export class CharmingValley extends SiteActionModifier {
+    name = "Charming Valley";
+    modifiedAction = TravelAction;
+    mustUse = true;
+
+    applyDuring(action: TravelAction): void {
+        action.supplyCost += 1;
     }
 }
 
@@ -450,7 +484,6 @@ export class PeoplesFavorSearch extends BannerActionModifier<PeoplesFavor> {
             action.selects.site.choices.set(site.name, site);
         }
 
-        // TODO: Putting things onto the action should be an effect so it can be cleanly reverted
         new AddActionToStackEffect(this.game, new PeoplesFavorDiscardAction(action.player, action.discardOptions)).do();
         return true;
     }

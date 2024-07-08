@@ -97,7 +97,6 @@ export abstract class ModifiableAction extends OathAction {
     applyModifiers(modifiers: ActionModifier<any>[]): boolean {
         this.parameters.modifiers = modifiers;
 
-        // TODO: Handle modifiers price correctly
         let interrupt = false;
         for (const modifier of modifiers) {
             if (!new PayCostToTargetEffect(this.game, this.player, modifier.cost, modifier.source).do())
@@ -167,7 +166,7 @@ export class SelectNOf<T> implements Select {
     }
 }
 
-// TODO: Supprimer cette classe et juste utiliser SelectNOf
+// TODO: Supprimer cette classe et juste utiliser SelectNOf (?)
 export class SelectValue<T> implements Select {
     values: Set<T>;
 
