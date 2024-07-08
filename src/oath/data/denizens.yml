@@ -1,0 +1,1696 @@
+- name: Wrestlers
+  image: Wrestlers
+  suit: order
+  text: + {diceb} if you sacrifice one warband in your force.
+  set:
+    - Standard Deck
+    - Order
+
+- name: Battle Honors
+  image: Battle Honors
+  suit: order
+  text: If you're victorious, gain {favor} {favor} from the `suit:order` bank.
+  set:
+    - Standard Deck
+    - Order
+
+- name: Bear Traps
+  image: Bear Traps
+  suit: order
+  text: "- {dicer} Kill one warband on the attacker's board."
+  set:
+    - Standard Deck
+    - Order
+
+- name: Longbows
+  image: Longbows
+  suit: order
+  text: ± {dicer}
+  set:
+    - Standard Deck
+    - Order
+
+- name: Keep
+  image: Keep
+  suit: order
+  text: +2 {diceb} if this site is targeted.
+  set:
+    - Standard Deck
+    - Order
+
+- name: Pressgangs
+  image: Pressgangs
+  suit: order
+  text: You can muster on cards that have {favor} or {secret} on them.
+  set:
+    - Standard Deck
+    - Order
+
+- name: Garrison
+  image: Garrison
+  suit: order
+  text: "**When Played**, gain one warband per site you rule, and put one warband from your board on each site you rule."
+  set:
+    - Standard Deck
+    - Order
+
+- name: Scouts
+  image: Scouts
+  suit: order
+  text: Gain 1 Supply.
+  set:
+    - Standard Deck
+    - Order
+
+- name: Alchemist
+  image: Alchemist
+  suit: arcane
+  text: "**Action**: Gain {favor} {favor} {favor} {favor} from any favor bank or banks."
+  powerCost: "{secret} {secretb}"
+  set:
+    - Standard Deck
+    - Arcane
+
+- name: Martial Culture
+  image: Martial Culture
+  suit: order
+  text: If you're an Exile and defeat another Exile, you may become a Citizen- take no relic, end your Act Phase, and refresh supply to full _(leftmost)_.
+  set:
+    - Standard Deck
+    - Order
+
+- name: Errand Boy
+  image: Errand Boy
+  suit: beast
+  text: You may draw from a discard pile in a different region instead of yours.
+  powerCost: "{favor}"
+  set:
+    - Standard Deck
+    - Beast
+
+- name: Mercenaries
+  image: Mercenaries
+  suit: discord
+  text: ±3 {dicer} If you're defeated while using this power, discard Mercenaries.
+  powerCost: "{favor}"
+  set:
+    - Standard Deck
+    - Discord
+
+- name: Tinker's Fair
+  image: Tinker's Fair
+  suit: hearth
+  text: "**Action**: Negotiate a binding exchange of {favor}, {secret}, and relics with any player."
+  set:
+    - Standard Deck
+    - Hearth
+
+- name: Rain Boots
+  image: Rain Boots
+  suit: nomad
+  text: "Ignore all your enemy's rolls of single shields {shield}. At end, discard Rain Boots."
+  set:
+    - Standard Deck
+    - Nomad
+
+- name: A Small Favor
+  image: A Small Favor
+  suit: discord
+  text: "**When Played**, Gain four warbands."
+  set:
+    - Standard Deck
+    - Discord
+
+- name: Second Wind
+  image: Second Wind
+  suit: discord
+  text: "After you're victorious, you may travel and then may campaign, spending no Supply for either."
+  powerCost: "{secret} {favorb}"
+  set:
+    - Standard Deck
+    - Discord
+
+- name: Sleight of Hand
+  image: Sleight of Hand
+  suit: discord
+  text: "**Action**: Take {secret} from a player whose pawn is at your site. You cannot take their last {secret}."
+  powerCost: "{favor}"
+  set:
+    - Standard Deck
+    - Discord
+
+- name: Key to the City
+  image: Key to the City
+  suit: discord
+  text: "**When Played**, if the ruler's pawn is not at this site, kill any warbands at this site, then gain a warband and place it here."
+  set:
+    - Standard Deck
+    - Discord
+
+- name: Scryer
+  image: Scryer
+  suit: discord
+  text: "**Action**: Peek at any one discard pile."
+  powerCost: "{secret}"
+  set:
+    - Standard Deck
+    - Discord
+
+- name: Disgraced Captain
+  image: Disgraced Captain
+  suit: discord
+  text: "+4 {dicer} if targeting a site that has an `suit:order` card."
+  powerCost: "{favor} {favorb}"
+  set:
+    - Standard Deck
+    - Discord
+
+- name: Naysayers
+  image: Naysayers
+  suit: discord
+  text: "**Rest**: If any Exile is the Oathkeeper or Usurper, take {favor} from the Chancellor."
+  set:
+    - Standard Deck
+    - Discord
+
+- name: Book Burning
+  image: Book Burning
+  suit: discord
+  text: "**Action**: If you're victorious and targeted the defender's pawn, they also burn all of the {secret} on their board except their last."
+  set:
+    - Standard Deck
+    - Discord
+
+- name: Ancient Binding
+  image: Ancient Binding
+  suit: nomad
+  text: "**Action**: Each player burns all their {secret} except their last. _(The only {secret} you keep is the one here.)_"
+  powerCost: "{secret} {secretb}"
+  set:
+    - Standard Deck
+    - Nomad
+
+- name: Horse Archers
+  image: Horse Archers
+  suit: nomad
+  text: "±3 {dicer} At end, discard Horse Archers."
+  set:
+    - Standard Deck
+    - Nomad
+
+- name: Warning Signals
+  image: Warning Signals
+  suit: nomad
+  text: "Move any warbands to and from your board and any sites you rule _(except the last warband from a site)_. At end, discard Warning Signals."
+  set:
+    - Standard Deck
+    - Nomad
+
+- name: Elders
+  image: Elders
+  suit: nomad
+  text: "**Action**: Gain {favor}."
+  powerCost: "{favor} {favor}"
+  set:
+    - Standard Deck
+    - Nomad
+
+- name: The Gathering
+  image: The Gathering
+  suit: nomad
+  text: "**When Played**, any players in turn order may put their pawn on this site. Then, players with pawns here may negotiate binding exchanges of {favor}, {secret}, relics, and advisers."
+  set:
+    - Standard Deck
+    - Nomad
+
+- name: Faithful Friend
+  image: Faithful Friend
+  suit: nomad
+  text: "**When Played**, gain 4 Supply."
+  set:
+    - Standard Deck
+    - Nomad
+
+- name: Tents
+  image: Tents
+  suit: nomad
+  text: "Spend no Supply if you're traveling to a site in your region."
+  powerCost: "{favor}"
+  set:
+    - Standard Deck
+    - Nomad
+
+- name: Great Herd
+  image: Great Herd
+  suit: nomad
+  text: "**When Played**, you may swap Great Herd with a `suit:nomad` card at any site."
+  set:
+    - Standard Deck
+    - Nomad
+
+- name: Fire Talkers
+  image: Fire Talkers
+  suit: arcane
+  text: "±3 {dicer} if you hold the Darkest Secret."
+  powerCost: "{secret}"
+  set:
+    - Standard Deck
+    - Arcane
+
+- name: Magician's Code
+  image: Magician's Code
+  suit: arcane
+  text: "If recovering the Darkest Secret, gain {secret} {secret} and add them to any other {secret} you're paying to recover it _(even none)_."
+  powerCost: "{favor} {favor}"
+  set:
+    - Standard Deck
+    - Arcane
+
+- name: Spirit Snare
+  image: Spirit Snare
+  suit: arcane
+  text: "**Action**: Take {favor} from any one favor bank."
+  powerCost: "{secret}"
+  set:
+    - Standard Deck
+    - Arcane
+
+- name: Wizard School
+  image: Wizard School
+  suit: arcane
+  text: "**Action**: Gain {secret}, then end your Act Phase."
+  powerCost: "{favor}"
+  set:
+    - Standard Deck
+    - Arcane
+
+- name: Dazzle
+  image: Dazzle
+  suit: arcane
+  text: "**When Played**, discard all `suit:hearth` and `suit:order` cards at sites in your region."
+  set:
+    - Standard Deck
+    - Arcane
+
+- name: Acting Troupe
+  image: Acting Troupe
+  suit: arcane
+  text: "Act as if the Acting Troupe is a `suit:beast` or `suit:order` card instead."
+  set:
+    - Standard Deck
+    - Arcane
+
+- name: Taming Charm
+  image: Taming Charm
+  suit: arcane
+  text: "**Action**: Discard a `suit:beast` or `suit:nomad` card at your site to gain {favor} {favor} from the matching favor bank."
+  powerCost: "{secret}"
+  set:
+    - Standard Deck
+    - Arcane
+
+- name: Inquisitor
+  image: Inquisitor
+  suit: arcane
+  text: "**Action**: Peek at an adviser of a player whose pawn is at your site. If it is the Conspiracy, you play it or discard it. If it is not, give them the {favor} here."
+  powerCost: "{favor}"
+  set:
+    - Standard Deck
+    - Arcane
+
+- name: Wolves
+  image: Wolves
+  suit: beast
+  text: "**Action**: Kill one warband _(even yours)_ on any one board."
+  powerCost: "{secret}"
+  set:
+    - Standard Deck
+    - Beast
+
+- name: Animal Playmates
+  image: Animal Playmates
+  suit: beast
+  text: "Spend no Supply if you're mustering on a `suit:beast` card."
+  set:
+    - Standard Deck
+    - Beast
+
+- name: True Names
+  image: True Names
+  suit: beast
+  text: "Your enemy **cannot** use battle plans that match any of your advisers against you."
+  set:
+    - Standard Deck
+    - Beast
+
+- name: The Old Oak
+  image: The Old Oak
+  suit: beast
+  text: "If trading with The Old Oak for {secret}, gain one more {secret} if you have any `suit:beast` advisers."
+  set:
+    - Standard Deck
+    - Beast
+
+- name: Forest Paths
+  image: Forest Paths
+  suit: beast
+  text: "Spend no Supply and ignore the powers of sites if you're traveling to a site with a `suit:beast` card."
+  powerCost: "{favor}"
+  set:
+    - Standard Deck
+    - Beast
+
+- name: Long-Lost Heir
+  image: Long-Lost Heir
+  suit: beast
+  text: "**When Played**, if you're an Exile, you may become a Citizen- take no relic, end your Act Phase, and refresh Supply to full _(leftmost)_."
+  set:
+    - Standard Deck
+    - Beast
+
+- name: Rangers
+  image: Rangers
+  suit: beast
+  text: "Ignore all skulls {skull} you roll. +2 {dicer} if the defense pool has 4+ {diceb}."
+  powerCost: "{favor}"
+  set:
+    - Standard Deck
+    - Beast
+
+- name: Roving Terror
+  image: Roving Terror
+  suit: beast
+  text: "**Action**: Discard a denizen card at any other site and move this card there."
+  powerCost: "{secret}"
+  set:
+    - Standard Deck
+    - Beast
+
+- name: Wayside Inn
+  image: Wayside Inn
+  suit: hearth
+  text: "**Action**: Gain 2 Supply."
+  powerCost: "{favor}"
+  set:
+    - Standard Deck
+    - Hearth
+
+- name: Extra Provisions
+  image: Extra Provisions
+  suit: hearth
+  text: "+2 {diceb}"
+  powerCost: "{favor}"
+  set:
+    - Standard Deck
+    - Hearth
+
+- name: Memory of Home
+  image: Memory of Home
+  suit: hearth
+  text: "**Action**: Move all {favor} from any one favor bank to the `suit:hearth` bank."
+  powerCost: "{secretb}"
+  set:
+    - Standard Deck
+    - Hearth
+
+- name: Welcoming Party
+  image: Welcoming Party
+  suit: hearth
+  text: "If you play a denizen card that was not a facedown adviser, gain {favor} from the `suit:hearth` bank."
+  set:
+    - Standard Deck
+    - Hearth
+
+- name: Traveling Doctor
+  image: Traveling Doctor
+  suit: hearth
+  text: "If you're defeated, kill no warbands in your force and discard Traveling Doctor. **Ignore** powers that kill all of your force."
+  set:
+    - Standard Deck
+    - Hearth
+
+- name: Storyteller
+  image: Storyteller
+  suit: hearth
+  text: "**Action**: Place {secret} from the shared bank on the Darkest Secret."
+  powerCost: "{favor}"
+  set:
+    - Standard Deck
+    - Hearth
+
+- name: Armed Mob
+  image: Armed Mob
+  suit: hearth
+  text: "**Action**: Discard a faceup adviser from a player who holds the Darkest Secret but not the People's Favor."
+  powerCost: "{favor}"
+  set:
+    - Standard Deck
+    - Hearth
+
+- name: Tavern Songs
+  image: Tavern Songs
+  suit: hearth
+  text: "**Action**: Peek at the top three cards of your region's discard pile."
+  set:
+    - Standard Deck
+    - Hearth
+
+- name: Secret Signal
+  image: Secret Signal
+  suit: arcane
+  text: "If you gain only one {favor}, gain one more {favor}."
+  set:
+    - Standard Deck
+    - Arcane
+
+- name: Augury
+  image: Augury
+  suit: arcane
+  text: "**Action**: Draw one more card. _(Stop after a Vision as normal.)_"
+  set:
+    - Standard Deck
+    - Arcane
+
+- name: Rusting Ray
+  image: Rusting Ray
+  suit: arcane
+  text: "If you hold the Darkest Secret, **ignore** all your enemy's rolls of hollow swords {swordh}."
+  powerCost: "{secret}"
+  set:
+    - Standard Deck
+    - Arcane
+
+- name: Portal
+  image: Portal
+  suit: arcane
+  text: "Spend no Supply and **ignore** the powers of sites if you're traveling to or from this site."
+  powerCost: "{secret}"
+  set:
+    - Standard Deck
+    - Arcane
+
+- name: Billowing Fog
+  image: Billowing Fog
+  suit: arcane
+  text: "If you're defeated, kill no warbands in your force. **Ignore** powers that kill all of your force."
+  powerCost: "{secret}"
+  set:
+    - Standard Deck
+    - Arcane
+
+- name: Kindred Warriors
+  image: Kindred Warriors
+  suit: arcane
+  text: "Ignore all skills {skull} you roll. ±X {dicer} up to the number of other suits you rule."
+  powerCost: "{secret}"
+  set:
+    - Standard Deck
+    - Arcane
+
+- name: Terror Spells
+  image: Terror Spells
+  suit: arcane
+  text: "**Action**: Kill any two warbands in your region _(at sites or on boards, even yours)_ if you hold the Darkest Secret."
+  powerCost: "{secret}"
+  set:
+    - Standard Deck
+    - Arcane
+
+- name: Blood Pact
+  image: Blood Pact
+  suit: arcane
+  text: "**Action**: Sacrifice an even number of warbands on your board. For every two you sacrifice, gain {secret}."
+  powerCost: "{secret}"
+  set:
+    - Standard Deck
+    - Arcane
+
+- name: Revelation
+  image: Revelation
+  suit: arcane
+  text: "**When Played**, each player, following turn order, may burn any number of {favor} to gain an equal number of {secret}."
+  set:
+    - Standard Deck
+    - Arcane
+
+- name: Observatory
+  image: Observatory
+  suit: arcane
+  text: "While your pawn is here, you may draw from any one discard pile."
+  set:
+    - Standard Deck
+    - Arcane
+
+- name: Plague Engines
+  image: Plague Engines
+  suit: arcane
+  text: "**Action**: Each player _(even you)_ places one {favor} per site they rule into the `suit:arcane` bank."
+  powerCost: "{secret} {secretb}"
+  set:
+    - Standard Deck
+    - Arcane
+
+- name: Gleaming Armor
+  image: Gleaming Armor
+  suit: arcane
+  text: "Your enemy's battle plans have an added cost of {secret}."
+  set:
+    - Standard Deck
+    - Arcane
+
+- name: Bewitch
+  image: Bewitch
+  suit: arcane
+  text: "**When Played**, if you're an Exile and have more {secret} _(even on cards)_ than the Chancellor, you may become a Citizen- take no relic, end your Act Phase, and refresh Supply to full."
+  set:
+    - Standard Deck
+    - Arcane
+
+- name: Jinx
+  image: Jinx
+  suit: arcane
+  text: "If you rule Jinx, after you roll {dicer} or {diceb} for any reason, you may use this power to reroll all those dice once. _(This is not a battle plan!)_"
+  powerCost: "{secret}"
+  set:
+    - Standard Deck
+    - Arcane
+
+- name: Tutor
+  image: Tutor
+  suit: arcane
+  text: "**Action**: Gain {secret}"
+  powerCost: "{favor} {secret}"
+  set:
+    - Standard Deck
+    - Arcane
+
+- name: Dream Thief
+  image: Dream Thief
+  suit: arcane
+  text: "**Action**: Swap any two facedown advisers."
+  powerCost: "{favor} {favor}"
+  set:
+    - Standard Deck
+    - Arcane
+
+- name: Cracking Ground
+  image: Cracking Ground
+  suit: arcane
+  text: "± {dicer} per site targeted."
+  powerCost: "{secretb}"
+  set:
+    - Standard Deck
+    - Arcane
+
+- name: Sealing Ward
+  image: Sealing Ward
+  suit: arcane
+  text: "Your relics add one more {diceb} when targeted."
+  set:
+    - Standard Deck
+    - Arcane
+
+- name: Initiation Rite
+  image: Initiation Rite
+  suit: arcane
+  text: "To muster, you **must** place {secret} instead of {favor}."
+  set:
+    - Standard Deck
+    - Arcane
+
+- name: Vow of Silence
+  image: Vow of Silence
+  suit: arcane
+  text: "You **cannot** recover the Darkest Secret or give anyone {secret}. Whenever a player recovers it, you gain X {secret} equal to the number of {secret} they placed."
+  set:
+    - Standard Deck
+    - Arcane
+
+- name: Forgotten Vault
+  image: Forgotten Vault
+  suit: arcane
+  text: "**Action**: Place {secret} from the shared bank on the Darkest Secret, or burn {secret} from the Darkest Secret _(not last {secret})_."
+  powerCost: "{favor}"
+  set:
+    - Standard Deck
+    - Arcane
+
+- name: Map Library
+  image: Map Library
+  suit: arcane
+  text: "While your pawn is at this site, you may trade with a card at any site in your region."
+  set:
+    - Standard Deck
+    - Arcane
+
+- name: Witch's Bargain
+  image: Witch's Bargain
+  suit: arcane
+  text: "**Action**: Give {secret} to a player whose pawn is at your site to take {favor} {favor} from them, or give {favor} {favor} for {secret}, any number of times."
+  powerCost: "{secret}"
+  set:
+    - Standard Deck
+    - Arcane
+
+- name: Master of Disguise
+  image: Master of Disguise
+  suit: arcane
+  text: "Act as if you had another player's advisers instead. _(You can't use your other advisers.)_"
+  powerCost: "{secret}"
+  set:
+    - Standard Deck
+    - Arcane
+
+- name: Charlatan
+  image: Charlatan
+  suit: discord
+  text: "**When Played**, burn all {secret} but one from the Darkest Secret."
+  set:
+    - Standard Deck
+    - Discord
+
+- name: Assassin
+  image: Assassin
+  suit: discord
+  text: "You can only have two advisers. **Action**: Discard a faceup adviser of a player whose pawn is at your site."
+  powerCost: "{favor}"
+  set:
+    - Standard Deck
+    - Discord
+
+- name: Downtrodden
+  image: Downtrodden
+  suit: discord
+  text: "Gain two more warbands if mustering on a card whose favor bank has the least {favor} _(not tied)_."
+  set:
+    - Standard Deck
+    - Discord
+
+- name: Blackmail
+  image: Blackmail
+  suit: discord
+  text: "**When Played**, choose a relic held by a player whose pawn is at your site. You take the relic unless they give you {favor} {favor} {favor}."
+  set:
+    - Standard Deck
+    - Discord
+
+- name: Cracked Sage
+  image: Cracked Sage
+  suit: discord
+  text: "±4 {dicer} if your enemy has an `suit:arcane` adviser."
+  powerCost: "{secret} {favorb}"
+  set:
+    - Standard Deck
+    - Discord
+
+- name: Dissent
+  image: Dissent
+  suit: discord
+  text: "**When Played**, each player, except the holder of the People's Favor, places one {favor} on this card for each suit of card they rule."
+  set:
+    - Standard Deck
+    - Discord
+
+- name: False Prophet
+  image: False Prophet
+  suit: discord
+  text: "**When Played**, if you're an Exile, gain one warband and put it on any revealed Vision. You now also have it revealed. If it is ever discarded, kill the warband and play or discard the Vision as if you had searched."
+  set:
+    - Standard Deck
+    - Discord
+
+- name: Vow of Renewal
+  image: Vow of Renewal
+  suit: discord
+  text: "You **cannot** recover the People's Favor. Whenever any player burns {favor}, you take the {favor} instead."
+  set:
+    - Standard Deck
+    - Discord
+
+- name: Zealots
+  image: Zealots
+  suit: discord
+  text: "If the defending force is larger than your force, each warband you sacrifice will add three _(not one)_ to your attack."
+  powerCost: "{favor}"
+  set:
+    - Standard Deck
+    - Discord
+
+- name: Royal Ambitions
+  image: Royal Ambitions
+  suit: discord
+  text: "**When Played**, if you're an Exile and rule more sites than the Chancellor, you may become a Citizen- take any one Reliquary relic without peeking, end your Act Phase, and refresh Supply to full."
+  set:
+    - Standard Deck
+    - Discord
+
+- name: Salt the Earth
+  image: Salt the Earth
+  suit: discord
+  text: "You **cannot** play Salt the Earth to a site with any locked cards. **When Played**, ignore this site's capacity. Discard all other denizens at this site. This site's capacity is now 1."
+  set:
+    - Standard Deck
+    - Discord
+
+- name: Beast Tamer
+  image: Beast Tamer
+  suit: discord
+  text: "Enemies cannot use `suit:beast` or `suit:nomad` battle plans against you."
+  set:
+    - Standard Deck
+    - Discord
+
+- name: Riots
+  image: Riots
+  suit: discord
+  text: "**When Played**, if the People's Favor is on the Mob side, discard all other cards of the most common suit on the map. If there is a tie, you choose among the tied suits."
+  set:
+    - Standard Deck
+    - Discord
+
+- name: Silver Tongue
+  image: Silver Tongue
+  suit: discord
+  text: "You can only have two advisers. **Rest**: Take {favor} from a favor bank matching a card at your site."
+  set:
+    - Standard Deck
+    - Discord
+
+- name: Gambling Hall
+  image: Gambling Hall
+  suit: discord
+  text: "**Action**: Roll 4 {diceb} and take X {favor} equal to the total {shield} result from any one favor bank."
+  powerCost: "{favor} {favor}"
+  set:
+    - Standard Deck
+    - Discord
+
+- name: Boiling Lake
+  image: Boiling Lake
+  suit: discord
+  text: "If you travel to this site and do not rule this card, you **must** kill two warbands on your board if able."
+  set:
+    - Standard Deck
+    - Discord
+
+- name: Relic Thief
+  image: Relic Thief
+  suit: discord
+  text: "After a player takes any relics and their pawn is in your region, you may use this power to roll one {diceb} per relic taken. If you roll no {shield} / {shield} {shield}, take the relics."
+  powerCost: "{favor} {secret}"
+  set:
+    - Standard Deck
+    - Discord
+
+- name: Enchantress
+  image: Enchantress
+  suit: discord
+  text: "**Action**: Swap this card with any faceup adviser."
+  powerCost: "{secretb}"
+  set:
+    - Standard Deck
+    - Discord
+
+- name: Insomnia
+  image: Insomnia
+  suit: discord
+  text: "You can only have two advisers. **Rest**: Gain {secret}."
+  set:
+    - Standard Deck
+    - Discord
+
+- name: Sneak Attack
+  image: Sneak Attack
+  suit: discord
+  text: "After another player's campaign, you may campaign, spending no Supply, if you declare them as the defender."
+  set:
+    - Standard Deck
+    - Discord
+
+- name: Gossip
+  image: Gossip
+  suit: discord
+  text: "Enemies of Gossip's ruler **cannot** play cards as facedown advisers."
+  set:
+    - Standard Deck
+    - Discord
+
+- name: Bandit Chief
+  image: Bandit Chief
+  suit: discord
+  text: "**When Played**, kill one warband at each site. While Bandit Chief is faceup, each site has two more bandits."
+  set:
+    - Standard Deck
+    - Discord
+
+- name: Chaos Cult
+  image: Chaos Cult
+  suit: discord
+  text: "After another player takes the Oathkeeper title, you take {favor} from them."
+  set:
+    - Standard Deck
+    - Discord
+
+- name: Slander
+  image: Slander
+  suit: discord
+  text: "If you're victorious and targeted the defender's pawn, they burn all of the {favor} on their board _(not half)_."
+  powerCost: "{favor}"
+  set:
+    - Standard Deck
+    - Discord
+
+- name: Code of Honor
+  image: Code of Honor
+  suit: order
+  text: "±2 {dicer} but you **cannot** use other battle plans."
+  set:
+    - Standard Deck
+    - Order
+
+- name: Outriders
+  image: Outriders
+  suit: order
+  text: "Ignore all skulls {skull} you roll."
+  set:
+    - Standard Deck
+    - Order
+
+- name: Messenger
+  image: Messenger
+  suit: order
+  text: "**Action**: Move any warbands to and from your board and any sites you rule _(except the last warband from a site)_."
+  powerCost: "{favor}"
+  set:
+    - Standard Deck
+    - Order
+
+- name: Field Promotion
+  image: Field Promotion
+  suit: order
+  text: "If you're victorious, gain three warbands."
+  powerCost: "{favor}"
+  set:
+    - Standard Deck
+    - Order
+
+- name: Palanquin
+  image: Palanquin
+  suit: order
+  text: "**Action**: Choose a player whose pawn is at your site. Put your pawn on a site that they can travel to. Make them travel to that site, spending no Supply."
+  powerCost: "{favor}"
+  set:
+    - Standard Deck
+    - Order
+
+- name: Shield Wall
+  image: Shield Wall
+  suit: order
+  text: "+2 {diceb} If you're defeated, **kill** all of your force."
+  powerCost: "{favor}"
+  set:
+    - Standard Deck
+    - Order
+
+- name: Military Parade
+  image: Military Parade
+  suit: order
+  text: "If you're victorious, gain {favor} from the favor banks matching each adviser of your enemy _(including Imperial Allies)_."
+  set:
+    - Standard Deck
+    - Order
+
+- name: Tome Guardians
+  image: Tome Guardians
+  suit: order
+  text: "Enemies of Tome Guardians' ruler **cannot** target or take the Darkest Secret in any way."
+  set:
+    - Standard Deck
+    - Order
+
+- name: Tyrant
+  image: Tyrant
+  suit: order
+  text: "You **must** kill a warband _(even your own)_ at the site you travel to, if able."
+  set:
+    - Standard Deck
+    - Order
+
+- name: Forced Labor
+  image: Forced Labor
+  suit: order
+  text: "Enemies **cannot** search if their pawn is at any site ruled by Forced Labor's ruler unless they give {favor} to its ruler. _(Give it to Chancellor if Empire, burn it if bandits.)_"
+  set:
+    - Standard Deck
+    - Order
+
+- name: Secret Police
+  image: Secret Police
+  suit: order
+  text: "Enemies **cannot** play Visions faceup while their pawn is at any site ruled by Secret Police's ruler."
+  set:
+    - Standard Deck
+    - Order
+
+- name: Specialist
+  image: Specialist
+  suit: order
+  text: "The defender **cannot** use battle plans."
+  powerCost: "{favor} {favor}"
+  set:
+    - Standard Deck
+    - Order
+
+- name: Captains
+  image: Captains
+  suit: order
+  text: "**Action**: Campaign at any site you rule. Act as if your pawn is there. Spend no Supply and add your warbands there to your force."
+  powerCost: "{favor}"
+  set:
+    - Standard Deck
+    - Order
+
+- name: Siege Engines
+  image: Siege Engines
+  suit: order
+  text: "**Action**: Kill two warbands _(even yours)_ at any one site in your region."
+  powerCost: "{favor}"
+  set:
+    - Standard Deck
+    - Order
+
+- name: Royal Tax
+  image: Royal Tax
+  suit: order
+  text: "**When Played**: take {favor} {favor} from each player whose pawn is at a site you rule in your pawn's region."
+  set:
+    - Standard Deck
+    - Order
+
+- name: Toll Roads
+  image: Toll Roads
+  suit: order
+  text: "Enemies **cannot** travel to sites ruled by Toll Roads' ruler unless they give {favor} to its ruler. _(Give it to Chancellor if Empire, burn it if bandits.)_"
+  set:
+    - Standard Deck
+    - Order
+
+- name: Curfew
+  image: Curfew
+  suit: order
+  text: "Enemies **cannot** trade with cards ruled by Curfew's ruler unless they give {favor} to its ruler. _(Give it to Chancellor if Empire, burn it if bandits.)_"
+  set:
+    - Standard Deck
+    - Order
+
+- name: Knights Errant
+  image: Knights Errant
+  suit: order
+  text: "After mustering, you may campaign, spending no Supply."
+  set:
+    - Standard Deck
+    - Order
+
+- name: Vow of Obedience
+  image: Vow of Obedience
+  suit: order
+  text: "You **cannot** play Visions faceup. **Rest**: Take {favor} from any one favor bank."
+  set:
+    - Standard Deck
+    - Order
+
+- name: Hunting Party
+  image: Hunting Party
+  suit: order
+  text: "After searching the world deck, you may campaign, spending no Supply."
+  set:
+    - Standard Deck
+    - Order
+
+- name: Council Seat
+  image: Council Seat
+  suit: order
+  text: "If you're a Citizen, you **cannot** be exiled, even by yourself."
+  set:
+    - Standard Deck
+    - Order
+
+- name: Encirclement
+  image: Encirclement
+  suit: order
+  text: "±2 {dicer} if your force is larger than your enemy's."
+  powerCost: "{favor}"
+  set:
+    - Standard Deck
+    - Order
+
+- name: Peace Envoy
+  image: Peace Envoy
+  suit: order
+  text: "You **cannot** use other battle plans. If your enemy's pawn is at your site, give them one {favor} per {diceb} in the pool. You're victorious now. **Ignore** killing warbands."
+  powerCost: "{favor}"
+  set:
+    - Standard Deck
+    - Order
+
+- name: Relic Hunter
+  image: Relic Hunter
+  suit: order
+  text: "You may target facedown relics at targeted sites, adding 1 {diceb} per relic. You may put any relics you take on the bottom of the relic deck."
+  set:
+    - Standard Deck
+    - Order
+
+- name: Homesteaders
+  image: Homesteaders
+  suit: hearth
+  text: "**Action**: Move one of your faceup advisers to your site."
+  set:
+    - Standard Deck
+    - Hearth
+
+- name: Crop Rotation
+  image: Crop Rotation
+  suit: hearth
+  text: "If playing to a site, you may discard a denizen there first."
+  set:
+    - Standard Deck
+    - Hearth
+
+- name: A Round of Ale
+  image: A Round of Ale
+  suit: hearth
+  text: "**Action**: Return all {favor} and {secret}, and flip your {secret}, as in the Rest Phase, except for the {favor} here."
+  powerCost: "{favor}"
+  set:
+    - Standard Deck
+    - Hearth
+
+- name: Land Warden
+  image: Land Warden
+  suit: hearth
+  text: "You may play two cards you draw _(instead of one)_ if you play at least one card to a site."
+  powerCost: "{favor}"
+  set:
+    - Standard Deck
+    - Hearth
+
+- name: Charming Friend
+  image: Charming Friend
+  suit: hearth
+  text: "**Action**: Take {favor} from a player whose pawn is at your site."
+  powerCost: "{secret}"
+  set:
+    - Standard Deck
+    - Hearth
+
+- name: Village Constable
+  image: Village Constable
+  suit: hearth
+  text: "±2 {dicer} unless your enemy has the People's Favor."
+  set:
+    - Standard Deck
+    - Hearth
+
+- name: Family Heirloom
+  image: Family Heirloom
+  suit: hearth
+  text: "**When Played**, draw a relic. Take it or put it on the bottom of the relic deck."
+  set:
+    - Standard Deck
+    - Hearth
+
+- name: News from Afar
+  image: News from Afar
+  suit: hearth
+  text: "Spend no Supply."
+  powerCost: "{favor} {favor}"
+  set:
+    - Standard Deck
+    - Hearth
+
+- name: Levelers
+  image: Levelers
+  suit: hearth
+  text: "**Action**: Move {favor} {favor} from the favor bank from the most {favor} to that with the least {favor}. You decide ties."
+  powerCost: "{secret}"
+  set:
+    - Standard Deck
+    - Hearth
+
+- name: Fabled Feast
+  image: Fabled Feast
+  suit: hearth
+  text: "**When Played**, take X {favor} equal to the number of `suit:hearth` cards you rule _(including Fabled Feast)_ from any one favor bank."
+  set:
+    - Standard Deck
+    - Hearth
+
+- name: The Great Levy
+  image: The Great Levy
+  suit: hearth
+  text: "±3 {dicer} and **ignore** all skulls {skull} you roll, unless your enemy has the People's Favor."
+  powerCost: "{favor} {favor}"
+  set:
+    - Standard Deck
+    - Hearth
+
+- name: Hearts and Minds
+  image: Hearts and Minds
+  suit: hearth
+  text: "As defender, you're victorious now. At end, discard Hearts and Minds unless you hold the People's Favor."
+  powerCost: "{favor} {favor} {favor}"
+  set:
+    - Standard Deck
+    - Hearth
+
+- name: Relic Breaker
+  image: Relic Breaker
+  suit: hearth
+  text: "**Action**: Put a facedown relic at your site on the bottom of the relic deck to gain three warbands."
+  powerCost: "{favor}"
+  set:
+    - Standard Deck
+    - Hearth
+
+- name: Book Binders
+  image: Book Binders
+  suit: hearth
+  text: "After another player plays a Vision faceup, you gain {favor} {favor} from any one favor bank."
+  set:
+    - Standard Deck
+    - Hearth
+
+- name: Ballot Box
+  image: Ballot Box
+  suit: hearth
+  text: "**Action**: If you're an Exile and have the People's Favor, become a Citizen- take no relic, end your Act Phase, and refresh Supply to full."
+  set:
+    - Standard Deck
+    - Hearth
+
+- name: Saddle Makers
+  image: Saddle Makers
+  suit: hearth
+  text: "After another player plays a `suit:nomad` or `suit:order` card, you gain {favor} {favor} from the matching favor bank."
+  set:
+    - Standard Deck
+    - Hearth
+
+- name: Herald
+  image: Herald
+  suit: hearth
+  text: "After another player campaigns against a player _(not bandits)_, you gain {favor} from any favor bank."
+  set:
+    - Standard Deck
+    - Hearth
+
+- name: Rowdy Pub
+  image: Rowdy Pub
+  suit: hearth
+  text: "Gain one more warband if mustering from Rowdy Pub."
+  set:
+    - Standard Deck
+    - Hearth
+
+- name: Vow of Peace
+  image: Vow of Peace
+  suit: hearth
+  text: "You **cannot** campaign. Attackers **cannot** sacrifice warbands to increase their attack against you."
+  set:
+    - Standard Deck
+    - Hearth
+
+- name: Deed Writer
+  image: Deed Writer
+  suit: hearth
+  text: "**Action**: Negotiate a binding exchange of {favor}, {secret}, and ruled sites with any player. Old ruler moves warbands to board, and new ruler moves warbands from board."
+  set:
+    - Standard Deck
+    - Hearth
+
+- name: Salad Days
+  image: Salad Days
+  suit: hearth
+  text: "**When Played**, gain {favor} {favor} {favor}- one each from three different favor banks."
+  set:
+    - Standard Deck
+    - Hearth
+
+- name: Marriage
+  image: Marriage
+  suit: hearth
+  text: "Marriage counts as two `suit:hearth` advisers, but only counts as one toward your adviser limit."
+  set:
+    - Standard Deck
+    - Hearth
+
+- name: Hospital
+  image: Hospital
+  suit: hearth
+  text: "If any of your warbands would be killed, place them on Hospital's site instead if you still rule it."
+  set:
+    - Standard Deck
+    - Hearth
+
+- name: Awaited Return
+  image: Awaited Return
+  suit: hearth
+  text: "Spend no Supply if you sacrifice one warband from your board."
+  set:
+    - Standard Deck
+    - Hearth
+
+- name: Convoys
+  image: Convoys
+  suit: nomad
+  text: "**Action**: Take another region's discard pile and put it on top of your region's discard pile _(even if empty)_."
+  set:
+    - Standard Deck
+    - Nomad
+
+- name: Vow of Kinship
+  image: Vow of Kinship
+  suit: nomad
+  text: "Move all of your {favor} to the `suit:nomad` bank. Any {favor} you gain or take is put in the `suit:nomad` bank. You can use {favor} in the `suit:nomad` bank as if it is on your board."
+  set:
+    - Standard Deck
+    - Nomad
+
+- name: Wild Mounts
+  image: Wild Mounts
+  suit: nomad
+  text: "If you would discard any number of `suit:nomad` battle plans, you may instead discard any one `suit:beast` you rule."
+  set:
+    - Standard Deck
+    - Nomad
+
+- name: Lancers
+  image: Lancers
+  suit: nomad
+  text: "Double your total attack roll. At end, discard Lancers."
+  set:
+    - Standard Deck
+    - Nomad
+
+- name: Mountain Giant
+  image: Mountain Giant
+  suit: nomad
+  text: "±1 {dicer} or ±3. At end, discard."
+  powerCost: "{secret}"
+  set:
+    - Standard Deck
+    - Nomad
+
+- name: Rival Khan
+  image: Rival Khan
+  suit: nomad
+  text: "±4 {dicer} if your enemy has a `suit:nomad` adviser. At end, discard Rival Khan."
+  set:
+    - Standard Deck
+    - Nomad
+
+- name: Lost Tongue
+  image: Lost Tongue
+  suit: nomad
+  text: "Other players **cannot** target or take your relics or banners in any way unless they rule a `suit:nomad` card."
+  set:
+    - Standard Deck
+    - Nomad
+
+- name: Special Envoy
+  image: Special Envoy
+  suit: nomad
+  text: "Spend no Supply. After traveling, end your Act Phase."
+  set:
+    - Standard Deck
+    - Nomad
+
+- name: Resettle
+  image: Resettle
+  suit: nomad
+  text: "**Action**: Move a faceup `suit:nomad` card from any player's advisers to any site."
+  set:
+    - Standard Deck
+    - Nomad
+
+- name: Oracle
+  image: Oracle
+  suit: nomad
+  text: "**Action**: Draw the Vision closest to the top of the world deck. Play or discard it as if you searched."
+  powerCost: "{secret} {secret}"
+  set:
+    - Standard Deck
+    - Nomad
+
+- name: Pilgrimage
+  image: Pilgrimage
+  suit: nomad
+  text: "**When Played**, move all denizens at your site to the Dispossessed. Shuffle and draw denizens from the Dispossessed equal to the number you moved. Peek at them and put them on your region's discard pile."
+  set:
+    - Standard Deck
+    - Nomad
+
+- name: Spell Breaker
+  image: Spell Breaker
+  suit: nomad
+  text: "Enemies of Spell Breaker's ruler **cannot** use powers that cost any {secret} or {secretb}."
+  set:
+    - Standard Deck
+    - Nomad
+
+- name: Mounted Patrol
+  image: Mounted Patrol
+  suit: nomad
+  text: "The attacker rolls only half the {dicer} in their attack pool, rounded down. At end, discard Mounted Patrol."
+  set:
+    - Standard Deck
+    - Nomad
+
+- name: Great Crusade
+  image: Great Crusade
+  suit: nomad
+  text: "± {dicer} per `suit:nomad` card you rule. At end, discard Great Crusade."
+  set:
+    - Standard Deck
+    - Nomad
+
+- name: Ancient Bloodline
+  image: Ancient Bloodline
+  suit: nomad
+  text: "Your enemies act as if denizens and relics at sites you rule are **locked**."
+  set:
+    - Standard Deck
+    - Nomad
+
+- name: Ancient Pact
+  image: Ancient Pact
+  suit: nomad
+  text: "**When Played**, you may give the Chancellor the Darkest Secret to become a Citizen- take any one Reliquary relic without peeking, end your Act Phase, and refresh Supply to full."
+  set:
+    - Standard Deck
+    - Nomad
+
+- name: Storm Caller
+  image: Storm Caller
+  suit: nomad
+  text: "+2 {diceb} At end, discard Storm Caller."
+  set:
+    - Standard Deck
+    - Nomad
+
+- name: Family Wagon
+  image: Family Wagon
+  suit: nomad
+  text: "You can only have one adviser that is not a `suit:nomad`. You can have any number of `suit:nomad` advisers- they **ignore** your adviser limit."
+  set:
+    - Standard Deck
+    - Nomad
+
+- name: Way Station
+  image: Way Station
+  suit: nomad
+  text: "Spend no Supply if you're traveling to this site and either rule Way Station or choose to give {favor} to its ruler. _(Give it to Chancellor if Empire, burn it if bandits.)_"
+  set:
+    - Standard Deck
+    - Nomad
+
+- name: Twin Brother
+  image: Twin Brother
+  suit: nomad
+  text: "**When Played**, you may swap this card with a faceup `suit:nomad` adviser of another player."
+  set:
+    - Standard Deck
+    - Nomad
+
+- name: Hospitality
+  image: Hospitality
+  suit: nomad
+  text: "After traveling, gain {favor} from one favor bank that matches both a card at your site and one of your advisers."
+  set:
+    - Standard Deck
+    - Nomad
+
+- name: A Fast Steed
+  image: A Fast Steed
+  suit: nomad
+  text: "Spend no Supply if you have three or fewer warbands on your board."
+  powerCost: "{favor}"
+  set:
+    - Standard Deck
+    - Nomad
+
+- name: Relic Worship
+  image: Relic Worship
+  suit: nomad
+  text: "After you recover a relic, gain 3 Supply."
+  set:
+    - Standard Deck
+    - Nomad
+
+- name: Sacred Ground
+  image: Sacred Ground
+  suit: nomad
+  text: "Players **cannot** play Visions, except the Conspiracy, faceup, unless their pawn is at this site."
+  set:
+    - Standard Deck
+    - Nomad
+
+- name: Nature Worship
+  image: Nature Worship
+  suit: beast
+  text: "± {dicer} per `suit:beast` adviser you have."
+  powerCost: "{secret}"
+  set:
+    - Standard Deck
+    - Beast
+
+- name: Birdsong
+  image: Birdsong
+  suit: beast
+  text: "Spend no Supply if you're trading with a `suit:beast` or `suit:nomad` card."
+  set:
+    - Standard Deck
+    - Beast
+
+- name: Small Friends
+  image: Small Friends
+  suit: beast
+  text: "Act as if your pawn is at any site with a `suit:beast` card. _(You may use Trade modifiers there.)_"
+  set:
+    - Standard Deck
+    - Beast
+
+- name: Grasping Vines
+  image: Grasping Vines
+  suit: beast
+  text: "Enemies traveling from any site ruled by Grasping Vines' ruler **must** kill one warband on their board if able."
+  set:
+    - Standard Deck
+    - Beast
+
+- name: Threatening Roar
+  image: Threatening Roar
+  suit: beast
+  text: "**When Played**, discard all `suit:nomad` and `suit:beast` cards at sites in your region."
+  set:
+    - Standard Deck
+    - Beast
+
+- name: Fae Merchant
+  image: Fae Merchant
+  suit: beast
+  text: "**Action**: Draw a relic and take it. Put any relic you hold except the Grand Scepter on the bottom of the relic deck."
+  set:
+    - Standard Deck
+    - Beast
+
+- name: Second Chance
+  image: Second Chance
+  suit: beast
+  text: "**Action**: Kill one warband on the board of a player who has an `suit:order` or `suit:discord` adviser to gain one warband."
+  powerCost: "{secret}"
+  set:
+    - Standard Deck
+    - Beast
+
+- name: Pied Piper
+  image: Pied Piper
+  suit: beast
+  text: "This card ignores the adviser limit. **Action**: Move this card to any other player's advisers. Take {favor} {favor} from them."
+  powerCost: "{secret}"
+  set:
+    - Standard Deck
+    - Beast
+
+- name: Mushrooms
+  image: Mushrooms
+  suit: beast
+  text: "Spend no Supply, but draw only one card _(not three)_ from the bottom of your region's discard pile."
+  powerCost: "{secret}"
+  set:
+    - Standard Deck
+    - Beast
+
+- name: Insect Swarm
+  image: Insect Swarm
+  suit: beast
+  text: "Your enemy's battle plans each have an added cost of {favorb}."
+  set:
+    - Standard Deck
+    - Beast
+
+- name: Vow of Union
+  image: Vow of Union
+  suit: beast
+  text: "In campaigns, warbands at sites you rule add to your attacking force. You **cannot** travel from a site you rule if any warbands are on your board."
+  set:
+    - Standard Deck
+    - Beast
+
+- name: Giant Python
+  image: Giant Python
+  suit: beast
+  text: "Whenever a player attacks you, they **must** declare targets that add an even total _(2, 4, etc)_ of {diceb} to your defense pool."
+  set:
+    - Standard Deck
+    - Beast
+
+- name: War Tortoise
+  image: War Tortoise
+  suit: beast
+  text: "**Ignore** all attack or defense added by your enemy's rolls of {sword} {sword} {skull} or {shield} {shield}. _(Any {skull} they roll still kill their warbands.)_"
+  set:
+    - Standard Deck
+    - Beast
+
+- name: New Growth
+  image: New Growth
+  suit: beast
+  text: "You may play `suit:beast` and `suit:hearth` cards to any site _(that has space)_."
+  set:
+    - Standard Deck
+    - Beast
+
+- name: Wild Cry
+  image: Wild Cry
+  suit: beast
+  text: "If you play a `suit:beast` card, gain 1 Supply and 2 warbands."
+  set:
+    - Standard Deck
+    - Beast
+
+- name: Animal Host
+  image: Animal Host
+  suit: beast
+  text: "**When Played**, gain warbands equal to the total number of `suit:beast` cards _(including Animal Host)_ at any sites _(regardless of rule)_."
+  set:
+    - Standard Deck
+    - Beast
+
+- name: Memory of Nature
+  image: Memory of Nature
+  suit: beast
+  text: "**Action**: Move a total of X {favor} from any favor banks to the `suit:beast` bank. X is the number of `suit:beast` cards on the map."
+  powerCost: "{secret}"
+  set:
+    - Standard Deck
+    - Beast
+
+- name: Marsh Spirit
+  image: Marsh Spirit
+  suit: beast
+  text: "Players who target this site **cannot** use battle plans."
+  set:
+    - Standard Deck
+    - Beast
+
+- name: Vow of Poverty
+  image: Vow of Poverty
+  suit: beast
+  text: "You **cannot** gain {favor} from Trade. **Rest**: If you have no {favor}, take {favor} {favor} from any one favor bank."
+  set:
+    - Standard Deck
+    - Beast
+
+- name: Forest Council
+  image: Forest Council
+  suit: beast
+  text: "Enemies of Forest Council's rule **cannot** trade with or must from `suit:beast` cards."
+  set:
+    - Standard Deck
+    - Beast
+
+- name: Walled Garden
+  image: Walled Garden
+  suit: beast
+  text: "± {diceb} per `suit:beast` at any sites if this site is targeted."
+  set:
+    - Standard Deck
+    - Beast
+
+- name: Vow of Beastkin
+  image: Vow of Beastkin
+  suit: beast
+  text: "You **must** muster on a card that matching any of your advisers, but you gain one more warband."
+  set:
+    - Standard Deck
+    - Beast
+
+- name: Bracken
+  image: Bracken
+  suit: beast
+  text: "You may put all the cards you discard on the top or bottom of any one discard pile _(even your region's)_."
+  set:
+    - Standard Deck
+    - Beast
+
+- name: Wild Allies
+  image: Wild Allies
+  suit: beast
+  text: "**Action**: Campaign at any site with a `suit:beast` card. Act as if your pawn is there. Spend no Supply and add your warbands there to your force."
+  powerCost: "{secret}"
+  set:
+    - Standard Deck
+    - Beast
+
+# Visions
+- name: Conspiracy
+  image: Conspiracy
+  text: "_If drawn from the world deck, increase Visions Drawn. **Anyone** can play his face up._ **When Played**: You may burn {secret} to take one relic or banner from a player whose pawn is at your site. If it's a banner, it burns {favor} {favor} / {secret} {secret}. To do so, you **must** have at least two advisers whose suits match any of their adviers. Return this card to the box."
+  imageClass: rotated
+  set:
+    - Standard Deck
+    - Vision
+
+- name: Vision of Faith
+  image: Vision of Faith
+  text: "_If drawn from the world deck, increase Visions Drawn. **Exiles** can play this face up on their Revealed Vision space._ **Wake**: You win if you hold the Darkest Secret and at least three visions have been drawn from the deck."
+  imageClass: rotated
+  set:
+    - Standard Deck
+    - Vision
+
+- name: Vision of Rebellion
+  image: Vision of Rebellion
+  text: "_If drawn from the world deck, increase Visions Drawn. **Exiles** can play this face up on their Revealed Vision space._ **Wake**: You win if you hold the People's Favor and at least three visions have been drawn from the deck."
+  imageClass: rotated
+  set:
+    - Standard Deck
+    - Vision
+
+- name: Vision of Sanctuary
+  image: Vision of Sanctuary
+  text: "_If drawn from the world deck, increase Visions Drawn. **Exiles** can play this face up on their Revealed Vision space._ **Wake**: You win if you hold the most relics and banners, and at least three visions have been drawn from the deck."
+  imageClass: rotated
+  set:
+    - Standard Deck
+    - Vision
+
+- name: Vision of Conquest
+  image: Vision of Conquest
+  text: "_If drawn from the world deck, increase Visions Drawn. **Exiles** can play this face up on their Revealed Vision space._ **Wake**: You win if you rule the most sites and at least three visions have been drawn from the deck."
+  imageClass: rotated
+  set:
+    - Standard Deck
+    - Vision
