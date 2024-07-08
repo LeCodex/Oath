@@ -59,8 +59,8 @@ export class ChooseModifiers extends OathAction {
     readonly next: ModifiableAction;
     readonly executeImmediately: boolean;
 
-    constructor(player: OathPlayer, next: ModifiableAction, executeImmediately: boolean = false) {
-        super(player);
+    constructor(next: ModifiableAction, executeImmediately: boolean = false) {
+        super(next.player);
         this.next = next;
         this.executeImmediately = executeImmediately;
 
@@ -120,9 +120,10 @@ export abstract class ModifiableAction extends OathAction {
 }
 
 export abstract class MajorAction extends ModifiableAction {
-    supplyCost: number;
+    supplyCost: number;         // You may set the Supply cost if the effect replaces it. Multiple instances will just be tie-broken with timestamps
+    supplyCostModifier = 0;     // Use this for linear modifications to the Supply cost
     noSupplyCost: boolean;
-    get actualSupplyCost() { return this.noSupplyCost ? 0 : this.supplyCost; }
+    get actualSupplyCost() { return this.noSupplyCost ? 0 : this.supplyCost + this.supplyCostModifier; }
 
     modifiedExecution() {
         if (!this.player.paySupply(this.actualSupplyCost)) throw new InvalidActionResolution(`Cannot pay Supply cost (${this.actualSupplyCost}).`);
@@ -252,7 +253,7 @@ export class TradeAction extends MajorAction {
 
     modifiedExecution() {
         super.modifiedExecution();        
-        // TODO: Make costs easily printable
+        // TODO: Make costs easily printable. Potentially get the error from the ResourceCost class?
         if (!new PayCostToTargetEffect(this.game, this.player, new ResourceCost(this.paying), this.card).do())
             throw new InvalidActionResolution("Cannot pay resource cost.");
 
@@ -398,7 +399,7 @@ export class SearchAction extends MajorAction {
     modifiedExecution() {
         super.modifiedExecution();
         const cards = new DrawFromDeckEffect(this.player, this.deck, this.amount, this.fromBottom).do();
-        new AddActionToStackEffect(this.game, new ChooseModifiers(this.player, new SearchChooseAction(this.player, cards, this.discardOptions))).do();
+        new AddActionToStackEffect(this.game, new ChooseModifiers(new SearchChooseAction(this.player, cards, this.discardOptions))).do();
     }
 }
 
@@ -613,7 +614,7 @@ export class CampaignAction extends MajorAction {
     modifiedExecution() {
         super.modifiedExecution();
         const next = new CampaignAtttackAction(this.player, this.defender);
-        new AddActionToStackEffect(this.game, new ChooseModifiers(this.player, next)).do();
+        new AddActionToStackEffect(this.game, new ChooseModifiers(next)).do();
     }
 }
 
@@ -673,7 +674,7 @@ export class CampaignAtttackAction extends ModifiableAction {
 
     modifiedExecution() {
         if (this.campaignResult.defender) {
-            new AddActionToStackEffect(this.game, new ChooseModifiers(this.campaignResult.defender, this.next, true)).do();
+            new AddActionToStackEffect(this.game, new ChooseModifiers(this.next, true)).do();
             return;
         }
 
@@ -703,7 +704,7 @@ export class CampaignDefenseAction extends ModifiableAction {
         super.execute();
         this.campaignResult.successful = this.campaignResult.atk > this.campaignResult.def;
 
-        const modifiersChoice = new ChooseModifiers(this.player, this.next, true);
+        const modifiersChoice = new ChooseModifiers(this.next, true);
         if (this.campaignResult.couldSacrifice) {
             new AddActionToStackEffect(this.game, modifiersChoice).do();
             return;

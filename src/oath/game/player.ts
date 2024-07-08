@@ -138,27 +138,27 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
     ////////////////////////////////////////////
     // TODO: Should those functions add to the stack directly, or use the appropriate effect?
     startSearch() {
-        this.game.actionStack.push(new ChooseModifiers(this, new SearchAction(this)));
+        this.game.actionStack.push(new ChooseModifiers(new SearchAction(this)));
     }
 
     startMuster() {
-        this.game.actionStack.push(new ChooseModifiers(this, new MusterAction(this)));
+        this.game.actionStack.push(new ChooseModifiers(new MusterAction(this)));
     }
 
     startTrade(forFavor: boolean) {
-        this.game.actionStack.push(new ChooseModifiers(this, new TradeAction(this)));
+        this.game.actionStack.push(new ChooseModifiers(new TradeAction(this)));
     }
 
     startTravel() {
-        this.game.actionStack.push(new ChooseModifiers(this, new TravelAction(this)));
+        this.game.actionStack.push(new ChooseModifiers(new TravelAction(this)));
     }
 
     startRecover() {
-        this.game.actionStack.push(new ChooseModifiers(this, new RecoverAction(this)));
+        this.game.actionStack.push(new ChooseModifiers(new RecoverAction(this)));
     }
 
     startCampaign() {
-        this.game.actionStack.push(new ChooseModifiers(this, new CampaignAction(this)));
+        this.game.actionStack.push(new ChooseModifiers(new CampaignAction(this)));
     }
 
     abstract rest(): void;

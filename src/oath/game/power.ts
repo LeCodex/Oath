@@ -54,7 +54,7 @@ export abstract class ActionModifier<T extends OathGameObject> extends ActionPow
 
 export abstract class EnemyActionModifier<T extends OwnableCard> extends ActionModifier<T> {
     canUse(action: OathAction): boolean {
-        return super.canUse(action) && this.source.ruler !== undefined && this.source.ruler?.enemyWith(action.player);
+        return super.canUse(action) && (this.source.ruler === undefined || this.source.ruler.enemyWith(action.player));
     }
 }
 
@@ -91,7 +91,7 @@ export abstract class EffectModifier<T extends OathGameObject> extends OathPower
 
 export abstract class EnemyEffectModifier<T extends OwnableCard> extends EffectModifier<T> {
     canUse(effect: OathEffect<any>): boolean {
-        return super.canUse(effect) && this.source.ruler !== undefined && this.source.ruler.enemyWith(effect.player);
+        return super.canUse(effect) && (this.source.ruler === undefined || this.source.ruler.enemyWith(effect.player));
     }
 }
 
@@ -168,6 +168,35 @@ export class ForcedLabor extends EnemyActionModifier<Denizen> {
             if (!new PayCostToTargetEffect(this.game, action.player, new ResourceCost([[OathResource.Favor, 1]]), this.source.ruler).do())
                 throw new InvalidActionResolution("Cannot pay the Forced Labor.");
         }
+    }
+}
+
+
+// ------------------ ARCANE ------------------- //
+function additionalCostCheck(action: OathAction, cost: ResourceCost, name: string) {
+    for (const modifier of action.parameters.modifiers)
+        if (modifier instanceof AttackerBattlePlan)
+            if (!new PayCostToTargetEffect(this.game, action.player, cost, modifier.source).do())
+                throw new InvalidActionResolution(`Cannot pay for the ${name}.`);
+}
+export class GleamingArmorAttack extends EnemyActionModifier<Denizen> {
+    name = "Gleaming Armor"
+    modifiedAction = CampaignAtttackAction;
+    mustUse = true;
+
+    applyBefore(action: CampaignAtttackAction): boolean {
+        additionalCostCheck(action, new ResourceCost([[OathResource.Secret, 1]]), this.name);
+        return true;
+    }
+}
+export class GleamingArmorDefense extends EnemyActionModifier<Denizen> {
+    name = "Gleaming Armor"
+    modifiedAction = CampaignDefenseAction;
+    mustUse = true;
+
+    applyBefore(action: CampaignDefenseAction): boolean {
+        additionalCostCheck(action, new ResourceCost([[OathResource.Secret, 1]]), this.name);
+        return true;
     }
 }
 
@@ -295,13 +324,35 @@ export class MaxTwoAdvisers extends ActionModifier<Denizen> {
 }
 
 
-// ------------------ HEARTH ------------------- //
+// ------------------ BEAST ------------------- //
 export class Bracken extends AccessedActionModifier<Denizen> {
     name = "Bracken"
     modifiedAction = SearchAction;
 
     applyDuring(action: SearchAction): void {
         // Action to change the discard options
+    }
+}
+
+
+export class InsectSwarmAttack extends EnemyActionModifier<Denizen> {
+    name = "Insect Swarm"
+    modifiedAction = CampaignAtttackAction;
+    mustUse = true;
+
+    applyBefore(action: CampaignAtttackAction): boolean {
+        additionalCostCheck(action, new ResourceCost([], [[OathResource.Favor, 1]]), this.name);
+        return true;
+    }
+}
+export class InsectSwarmDefense extends EnemyActionModifier<Denizen> {
+    name = "Insect Swarm"
+    modifiedAction = CampaignDefenseAction;
+    mustUse = true;
+
+    applyBefore(action: CampaignDefenseAction): boolean {
+        additionalCostCheck(action, new ResourceCost([], [[OathResource.Favor, 1]]), this.name);
+        return true;
     }
 }
 
@@ -393,7 +444,7 @@ export class CoastalSite extends SiteActionModifier {
     applyDuring(action: TravelAction): void {
         for (const power of action.site.powers) {
             if (power instanceof CoastalSite) {
-                action.supplyCost = 1;  // TODO: Handle multiple Supply changing effects (maybe remember original Supply cost? Store Supply change?)
+                action.supplyCost = 1;
                 return;
             }
         }
@@ -407,7 +458,7 @@ export class CharmingValley extends SiteActionModifier {
     mustUse = true;
 
     applyDuring(action: TravelAction): void {
-        action.supplyCost += 1;
+        action.supplyCostModifier += 1;
     }
 }
 
@@ -478,6 +529,7 @@ export abstract class BannerActionModifier<T extends Banner> extends ActionModif
 export class PeoplesFavorSearch extends BannerActionModifier<PeoplesFavor> {
     name = "People's Favor";
     modifiedAction = SearchPlayAction;
+    mustUse = true;  // Not strictly true, but it involves a choice either way, so it's better to alwyas include it
 
     applyBefore(action: SearchPlayAction): boolean {
         for (const site of action.player.site.region.sites) {
@@ -491,6 +543,7 @@ export class PeoplesFavorSearch extends BannerActionModifier<PeoplesFavor> {
 export class PeoplesFavorWake extends BannerActionModifier<PeoplesFavor> {
     name = "People's Favor";
     modifiedAction = WakeAction;
+    mustUse = true;
 
     applyBefore(action: WakeAction): boolean {
         if (this.source.owner) {
@@ -506,6 +559,7 @@ export class PeoplesFavorWake extends BannerActionModifier<PeoplesFavor> {
 export class DarkestSecretPower extends BannerActionModifier<DarkestSecret> {
     name = "Darkest Secret";
     modifiedAction = SearchAction;
+    mustUse = true;
 
     applyDuring(action: SearchAction): void {
         action.supplyCost = 2;
@@ -561,6 +615,6 @@ export class Decadent extends ReliquaryModifier {
 
     applyDuring(action: TravelAction): void {
         if (action.site.inRegion(RegionName.Cradle) && !action.player.site.inRegion(RegionName.Cradle)) action.noSupplyCost = true;
-        if (action.site.inRegion(RegionName.Hinterland)) action.supplyCost += 1;
+        if (action.site.inRegion(RegionName.Hinterland)) action.supplyCostModifier += 1;
     }
 }
