@@ -4,7 +4,7 @@ import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEf
 import { OathResource, OathSuit, OathSuitName } from "./enums";
 import { OathGame, OathGameObject } from "./game";
 import { OathPlayer } from "./player";
-import { ActionModifier, ActivePower } from "./power";
+import { ActionModifier, ActivePower, OathPower, SearchPlayActionModifier } from "./power";
 import { Banner, PeoplesFavor, ResourceCost } from "./resources";
 
 
@@ -356,31 +356,6 @@ export class RecoverBannerPitchAction extends OathAction {
     }
 }
 
-export class FavorReturnAction extends OathAction {
-    readonly selects: { suit: SelectValue<OathSuit> };
-    readonly parameters: { suit: OathSuit };
-    
-    amount: number;
-
-    constructor(player: OathPlayer, amount: number, values?: OathSuit[]) {
-        super(player);
-        this.amount = amount;
-        
-        if (!values) values = [OathSuit.Discord, OathSuit.Arcane, OathSuit.Order, OathSuit.Hearth, OathSuit.Beast, OathSuit.Nomad];
-        this.selects.suit = new SelectValue(values);
-    }
-
-    execute() {
-        let suit = this.parameters.suit;
-        let amount = this.amount;
-        while (amount) {
-            new PutResourcesIntoBankEffect(this.game, this.player, this.game.favorBanks.get(suit), 1, undefined).do();
-            amount--;
-            if (suit++ == OathSuit.None) suit = OathSuit.Discord;
-        }
-    }
-}
-
 
 export class SearchAction extends MajorAction {
     readonly selects: { deck: SelectNOf<SearchableDeck> };
@@ -456,13 +431,13 @@ export class SearchChooseAction extends ModifiableAction {
         }
 
         // The action stack is FIFO, so the discards will be done first
-        new AddActionToStackEffect(new SearchDiscardAction(this.player, this.cards, this.discardOptions)).do();
+        new AddActionToStackEffect(new SearchDiscardAction(this.player, this.cards, Infinity, this.discardOptions)).do();
     }
 }
 
 export class SearchPlayAction extends ModifiableAction {
     readonly selects: { site: SelectNOf<Site | undefined>, facedown: SelectBoolean }
-    readonly parameters: { modifiers: ActionModifier<any>[], sites: (Site | undefined)[], facedown: boolean }
+    readonly parameters: { modifiers: SearchPlayActionModifier<any>[], sites: (Site | undefined)[], facedown: boolean }
     
     card: WorldCard;
     site: Site | undefined;
@@ -495,6 +470,9 @@ export class SearchPlayAction extends ModifiableAction {
     }
 
     modifiedExecution() {
+        for (const power of this.card.powers)
+            if (isExtended(power, SearchPlayActionModifier)) new power(this.card, this).applyOnPlay();
+
         this.excess = (this.site ? this.site.denizens.size : this.player.advisers.size) - this.capacity + 1;
         if (this.excess)
             if (this.canReplace)
@@ -514,7 +492,7 @@ export class SearchDiscardAction extends ModifiableAction {
     amount: number;
     discardOptions: SearchDiscardOptions;
 
-    constructor(player: OathPlayer, cards: Iterable<WorldCard>, discardOptions?: SearchDiscardOptions, amount?: number) {
+    constructor(player: OathPlayer, cards: Iterable<WorldCard>, amount?: number, discardOptions?: SearchDiscardOptions) {
         super(player);
         this.discardOptions = discardOptions || new SearchDiscardOptions(player.discard, false);
 
@@ -918,6 +896,45 @@ export class RestAction extends ModifiableAction {
 ////////////////////////////////////////////
 //              OTHER ACTIONS             //
 ////////////////////////////////////////////
+export abstract class ChooseSuit extends OathAction {
+    readonly selects: { suit: SelectValue<OathSuit> };
+    readonly parameters: { suit: OathSuit };
+
+    constructor(player: OathPlayer, values?: Iterable<OathSuit>) {
+        super(player);
+        
+        if (!values) values = [OathSuit.Discord, OathSuit.Arcane, OathSuit.Order, OathSuit.Hearth, OathSuit.Beast, OathSuit.Nomad];
+        this.selects.suit = new SelectValue(values);
+    }
+}
+
+export class FavorReturnAction extends ChooseSuit {    
+    amount: number;
+
+    constructor(player: OathPlayer, amount: number, values?: Iterable<OathSuit>) {
+        super(player, values);
+        this.amount = amount;
+    }
+
+    execute() {
+        let suit = this.parameters.suit;
+        let amount = this.amount;
+        while (amount) {
+            new PutResourcesIntoBankEffect(this.game, this.player, this.game.favorBanks.get(suit), 1, undefined).do();
+            amount--;
+            if (suit++ == OathSuit.None) suit = OathSuit.Discord;
+        }
+    }
+}
+
+export class SilverTongueAction extends ChooseSuit {
+    execute() {
+        let suit = this.parameters.suit;
+        new TakeResourcesFromBankEffect(this.game, this.player, this.game.favorBanks.get(suit), 1).do();
+    }
+}
+
+
 export class PeoplesFavorWakeAction extends OathAction {
     readonly selects: { suit: SelectNOf<OathSuit | undefined> };
     readonly parameters: { suit: (OathSuit | undefined)[] };

@@ -487,9 +487,9 @@ export class PlayWorldCardEffect extends PlayerEffect<void> {
 
             new PlayWorldCardToAdviserEffect(this.player, this.card, this.facedown).do();
         }
-
+        
         for (const power of this.card.powers)
-            if (power instanceof WhenPlayed) power.whenPlayed(this.player);
+            if (isExtended(power, WhenPlayed)) new power(this.card).whenPlayed(this);
     }
 
     revert(): void {

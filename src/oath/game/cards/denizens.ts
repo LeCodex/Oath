@@ -1,5 +1,5 @@
 import { CardRestriction } from "../enums";
-import { AwaitedReturn, Bracken, Curfew, Elders, ForcedLabor, GleamingArmorAttack, GleamingArmorDefense, HeartsAndMinds, InsectSwarmAttack, InsectSwarmDefense, KeyToTheCity, LongbowArchersAttack, LongbowArchersDefense, LostTongue, LostTongueCampaign, OathPower, RelicThief, ShieldWall, SpellBreaker, SpellBreakerActive, TollRoads, WayStation } from "../power";
+import { Assassin, AwaitedReturn, Bracken, Curfew, Elders, ForcedLabor, GleamingArmorAttack, GleamingArmorDefense, HeartsAndMinds, InsectSwarmAttack, InsectSwarmDefense, Insomnia, KeyToTheCity, LongbowArchersAttack, LongbowArchersDefense, LostTongue, LostTongueCampaign, OathPower, OnlyTwoAdvisers, RelicThief, ShieldWall, SilverTongue, SpellBreaker, SpellBreakerActive, TollRoads, WayStation } from "../power";
 import { Denizen } from "./cards";
 
 export const denizenData: StringObject<[string, Constructor<OathPower<Denizen>>[], CardRestriction?, boolean?]> = {
@@ -21,6 +21,9 @@ export const denizenData: StringObject<[string, Constructor<OathPower<Denizen>>[
 
     "RelicThief":       ["Relic Thief",         [RelicThief]],
     "KeyToTheCity":     ["Key to the City",     [KeyToTheCity], CardRestriction.Site],
+    "Assassin":         ["Assassin",            [OnlyTwoAdvisers, Assassin], CardRestriction.Adviser, true],
+    "Insomina":         ["Insomnia",            [OnlyTwoAdvisers, Insomnia], CardRestriction.Adviser, true],
+    "SilverTongue":     ["Silver Tongue",       [OnlyTwoAdvisers, SilverTongue], CardRestriction.Adviser, true],
 
     "Bracken":          ["Bracken",             [Bracken]],
     "InsectSwarm":      ["Insect Swarm",        [InsectSwarmAttack, InsectSwarmDefense]]

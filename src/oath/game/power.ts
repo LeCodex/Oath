@@ -1,4 +1,4 @@
-import { CampaignAction, CampaignAtttackAction, CampaignDefenseAction, InvalidActionResolution, ModifiableAction, OathAction, PeoplesFavorDiscardAction, PeoplesFavorWakeAction, SearchAction, SearchPlayAction, TradeAction, TravelAction, UsePowerAction, WakeAction } from "./actions";
+import { CampaignAtttackAction, CampaignDefenseAction, InvalidActionResolution, ModifiableAction, OathAction, PeoplesFavorDiscardAction, PeoplesFavorWakeAction, RestAction, SearchAction, SearchDiscardAction, SearchPlayAction, SilverTongueAction, TradeAction, TravelAction, UsePowerAction, WakeAction } from "./actions";
 import { Denizen, OwnableCard, Relic, Site, WorldCard } from "./cards/cards";
 import { BannerName, OathResource, OathSuit, RegionName } from "./enums";
 import { Banner, DarkestSecret, PeoplesFavor, ResourceCost } from "./resources";
@@ -24,7 +24,7 @@ export abstract class OathPower<T extends OathGameObject> extends OathGameObject
 export abstract class WhenPlayed<T extends WorldCard> extends OathPower<T> {
     static modifiedEffect = PlayWorldCardEffect;
 
-    abstract whenPlayed(player: OathPlayer): void;
+    abstract whenPlayed(effect: PlayWorldCardEffect): void;
 }
 
 export abstract class ActionPower<T extends OathGameObject> extends OathPower<T> {
@@ -89,6 +89,13 @@ export abstract class AttackerBattlePlan<T extends OwnableCard> extends BattlePl
 export abstract class DefenderBattlePlan<T extends OwnableCard> extends BattlePlan<T> {
     static modifiedAction = CampaignDefenseAction;
     action: CampaignDefenseAction;
+}
+
+export abstract class SearchPlayActionModifier<T extends OwnableCard> extends ActionModifier<T> {
+    static modifiedAction = SearchPlayAction;
+    action: SearchPlayAction;
+
+    applyOnPlay(): void {  }    // Applied right before the card is played
 }
 
 export abstract class EffectModifier<T extends OathGameObject> extends OathPower<T> {
@@ -351,26 +358,60 @@ export class RelicThief extends EnemyEffectModifier<Denizen> {
 export class KeyToTheCity extends WhenPlayed<Denizen> {
     name = "Key to the City";
 
-    whenPlayed(player: OathPlayer): void {
+    whenPlayed(effect: PlayWorldCardEffect): void {
         if (!this.source.site) return;
         
         if (this.source.site.ruler?.site !== this.source.site)
             for (const [player, amount] of this.source.site.warbands)
                 new TakeWarbandsIntoBagEffect(player, amount, this.source.site).do();
 
-        new PutWarbandsFromBagEffect(player, 1, this.source.site).do();
+        new PutWarbandsFromBagEffect(effect.player, 1, this.source.site).do();
     }
 }
 
 
-export class MaxTwoAdvisers extends ActionModifier<Denizen> {
-    name = "Max Two Advisers";
-    static modifiedAction = SearchPlayAction;
-    action: SearchPlayAction;
+export class OnlyTwoAdvisers extends SearchPlayActionModifier<Denizen> {
+    name = "Only Two Advisers";
     mustUse = true;
 
     applyDuring(): void {
         if (!this.action.site) this.action.capacity = Math.min(this.action.capacity, 2);
+    }
+
+    applyOnPlay(): void {
+        this.applyDuring();
+    }
+}
+
+export class Assassin extends ActivePower<Denizen> {
+    name = "Assassin";
+    cost = new ResourceCost([[OathResource.Favor, 1]]);
+
+    usePower(player: OathPlayer): void {
+        // Action to choose a player to discard from
+    }
+}
+
+export class Insomnia extends AccessedActionModifier<Denizen> {
+    name = "Insomnia";
+    static modifiedAction = RestAction;
+    action: RestAction;
+
+    applyDuring(): void {
+        new PutResourcesOnTargetEffect(this.game, this.action.player, OathResource.Secret, 1).do();
+    }
+}
+
+export class SilverTongue extends AccessedActionModifier<Denizen> {
+    name = "Silver Tongue";
+    static modifiedAction = RestAction;
+    action: RestAction;
+
+    applyBefore(): boolean {
+        const suits: Set<OathSuit> = new Set();
+        for (const denizen of this.action.player.site.denizens) suits.add(denizen.suit);
+        new AddActionToStackEffect(new SilverTongueAction(this.action.player, suits));
+        return true;
     }
 }
 
@@ -599,7 +640,7 @@ export class BookOfRecords extends AccessedEffectModifier<Relic> {
     effect: PlayDenizenAtSiteEffect;
 
     applyDuring(): void {
-        this.effect.getting = new Map([[OathResource.Secret, this.effect.getting.get(OathResource.Favor) || 0]]);
+        this.effect.getting.set(OathResource.Secret, this.effect.getting.get(OathResource.Favor) || 0);
         this.effect.getting.delete(OathResource.Favor);
     }
 }

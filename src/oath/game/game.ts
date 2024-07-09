@@ -36,7 +36,6 @@ export class OathGame {
     get currentPlayer(): OathPlayer { return this.turnOrder[this.turn]; }
 
     getPowers<T extends OathPower<any>>(type: AbstractConstructor<T>): Map<any, Constructor<T>> {
-        const isType = (power: AbstractConstructor<OathPower<any>>): power is Constructor<T> => { return power.prototype instanceof type };
         const powers = new Map<any, Constructor<T>>();
 
         for (const region of this.board.regions.values()) {
@@ -44,7 +43,7 @@ export class OathGame {
                 for (const denizen of site.denizens) {
                     if (denizen.facedown) continue;
                     for (const power of denizen.powers) {
-                        if (isType(power)) powers.set(denizen, power);
+                        if (isExtended(power, type)) powers.set(denizen, power);
                     }
                 }
             }
@@ -54,27 +53,27 @@ export class OathGame {
             for (const adviser of player.advisers) {
                 if (adviser.facedown) continue;
                 for (const power of adviser.powers) {
-                    if (isType(power)) powers.set(adviser, power);
+                    if (isExtended(power, type)) powers.set(adviser, power);
                 }
             }
 
             for (const relic of player.relics) {
                 if (relic.facedown) continue;
                 for (const power of relic.powers) {
-                    if (isType(power)) powers.set(relic, power);
+                    if (isExtended(power, type)) powers.set(relic, power);
                 }
             }
         }
 
         for (const banner of this.banners.values()) {
             for (const power of banner.powers) {
-                if (isType(power)) powers.set(banner, power);
+                if (isExtended(power, type)) powers.set(banner, power);
             }
         }
 
         const reliquary = this.chancellor.reliquary;
         for (const [i, power] of reliquary.powers.entries()) {
-            if (!reliquary.relics[i] && isType(power)) powers.set(reliquary, power);
+            if (!reliquary.relics[i] && isExtended(power, type)) powers.set(reliquary, power);
         }
 
         return powers;
