@@ -4,7 +4,7 @@ import { OathResource } from "./enums"
 import { OathGameObject } from "./game";
 import { OwnableObject } from "./player";
 import { OathPlayer } from "./player";
-import { OathPower } from "./power";
+import { DarkestSecretPower as DarkestSecretSearch, OathPower, PeoplesFavorSearch } from "./power";
 
 export abstract class ResourceBank extends OathGameObject {
     type: OathResource;
@@ -37,7 +37,7 @@ export class FavorBank extends ResourceBank {
 export abstract class Banner extends ResourceBank implements OwnableObject, RecoverActionTarget, CampaignActionTarget {
     name: string
     owner?: OathPlayer;
-    powers: Set<Constructor<OathPower<typeof this>>>;
+    powers: Constructor<OathPower<Banner>>[];
 
     get defense() { return this.amount; }
     takenFromPlayer = true;
@@ -77,6 +77,7 @@ export abstract class Banner extends ResourceBank implements OwnableObject, Reco
 export class PeoplesFavor extends Banner {
     name = "People's Favor";
     type = OathResource.Favor;
+    powers = [PeoplesFavorSearch, PeoplesFavorSearch];
     isMob: boolean;
 
     handleRecovery(player: OathPlayer) {
@@ -88,6 +89,7 @@ export class PeoplesFavor extends Banner {
 export class DarkestSecret extends Banner {
     name = "Darkest Secret";
     type = OathResource.Secret;
+    powers = [DarkestSecretSearch];
 
     canRecover(action: RecoverAction): boolean {
         if (!super.canRecover(action)) return false;

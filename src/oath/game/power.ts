@@ -540,7 +540,7 @@ export class ResourceSite extends SiteActionModifier {
 //////////////////////////////////////////////////
 //                   RELICS                     //
 //////////////////////////////////////////////////
-export abstract class CupOfPlenty extends AccessedActionModifier<Relic> {
+export class CupOfPlenty extends AccessedActionModifier<Relic> {
     name = "Cup of Plenty"
     static modifiedAction = TradeAction;
     action: TradeAction;
