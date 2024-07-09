@@ -49,7 +49,7 @@ export abstract class ActivePower<T extends OwnableCard> extends ActionPower<T> 
 }
 
 export abstract class ActionModifier<T extends OathGameObject> extends ActionPower<T> {
-    static modifiedAction: Constructor<ModifiableAction>;
+    static modifiedAction: AbstractConstructor<ModifiableAction>;
     action: ModifiableAction;
     mustUse = false;
 
@@ -57,7 +57,7 @@ export abstract class ActionModifier<T extends OathGameObject> extends ActionPow
         return true;
     }
 
-    applyImmediately(modifiers: ActionModifier<any>[]) { }  // Applied right after all the possible modifiers are collected                    
+    applyImmediately(modifiers: ActionModifier<any>[]) { }  // Applied right after all the possible modifiers are collected
     applyBefore(): boolean { return true; }                 // Applied before the action's choices are made. If returns false, the execution will be interrupted
     applyDuring(): void { }                                 // Applied right before the execution of the action
     applyAfter(): void { }                                  // Applied after the execution of the action
@@ -522,7 +522,8 @@ export class CharmingValley extends SiteActionModifier {
 }
 
 
-export abstract class ResourceSite extends SiteActionModifier {
+export class ResourceSite extends SiteActionModifier {
+    name = "Resource Site";
     static modifiedAction = WakeAction;
     action: WakeAction;
 

@@ -51,8 +51,9 @@ export class Site extends OathCard implements CampaignActionTarget {
     takenFromPlayer = false;
 
     constructor(
-        game: OathGame, name: string, powers: Iterable<Constructor<OathPower<Site>>>,
-        region: Region,
+        game: OathGame, region: Region,
+        name: string, 
+        powers: Iterable<Constructor<OathPower<Site>>>,
         capacity: number,
         startingRelics: number = 0,
         recoverCost: ResourceCost = new ResourceCost(),

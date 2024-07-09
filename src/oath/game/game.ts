@@ -35,9 +35,9 @@ export class OathGame {
 
     get currentPlayer(): OathPlayer { return this.turnOrder[this.turn]; }
 
-    getPowers<T extends OathPower<any>>(type: Constructor<T>): Map<any, ConcreteConstructor<T>> {
-        const isType = (power: Constructor<OathPower<any>>): power is ConcreteConstructor<T> => { return power.prototype instanceof type };
-        const powers = new Map<any, ConcreteConstructor<T>>();
+    getPowers<T extends OathPower<any>>(type: AbstractConstructor<T>): Map<any, Constructor<T>> {
+        const isType = (power: AbstractConstructor<OathPower<any>>): power is Constructor<T> => { return power.prototype instanceof type };
+        const powers = new Map<any, Constructor<T>>();
 
         for (const region of this.board.regions.values()) {
             for (const site of region.sites) {

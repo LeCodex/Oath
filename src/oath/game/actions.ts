@@ -8,12 +8,9 @@ import { ActionModifier, ActivePower } from "./power";
 import { Banner, PeoplesFavor, ResourceCost } from "./resources";
 
 
-
 //////////////////////////////////////////////////
 //                BASE CLASSES                  //
 //////////////////////////////////////////////////
-export interface StringObject<T> { [key: string]: T };
-
 export class InvalidActionResolution extends Error {
     constructor(message: string) {
         super(message);

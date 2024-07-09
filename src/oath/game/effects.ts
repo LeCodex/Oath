@@ -616,6 +616,8 @@ export class RollDiceEffect extends OathEffect<number[]> {
     }
 
     resolve(): number[] {
+        // Side note: Because of powers like Jinx and Squalid District, the result of this should NOT be processed in its current action,
+        // but in a consecutive one, so a new action can be slotted in-between
         const result: number[] = [];
         for (let i = 0; i < this.amount; i++) {
             result.push(this.die[Math.floor(Math.random() * this.die.length)]);
