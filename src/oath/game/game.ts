@@ -1,6 +1,6 @@
 import { OathAction } from "./actions";
 import { OathBoard } from "./board";
-import { RelicDeck, WorldDeck } from "./decks";
+import { RelicDeck, WorldDeck } from "./cards/decks";
 import { OathEffect } from "./effects";
 import { BannerName, Oath, OathPhase, OathSuit } from "./enums";
 import { Chancellor, OathPlayer } from "./player";
@@ -35,16 +35,16 @@ export class OathGame {
 
     get currentPlayer(): OathPlayer { return this.turnOrder[this.turn]; }
 
-    getActivePowers<T extends OathPower<any>>(type: abstract new (...args: any) => T): Set<T> {
-        const isType = (power: OathPower<any>): power is T => { return power instanceof type };
-        const powers = new Set<T>();
+    getPowers<T extends OathPower<any>>(type: Constructor<T>): Map<any, ConcreteConstructor<T>> {
+        const isType = (power: Constructor<OathPower<any>>): power is ConcreteConstructor<T> => { return power.prototype instanceof type };
+        const powers = new Map<any, ConcreteConstructor<T>>();
 
         for (const region of this.board.regions.values()) {
             for (const site of region.sites) {
                 for (const denizen of site.denizens) {
                     if (denizen.facedown) continue;
                     for (const power of denizen.powers) {
-                        if (isType(power)) powers.add(power);
+                        if (isType(power)) powers.set(denizen, power);
                     }
                 }
             }
@@ -54,29 +54,34 @@ export class OathGame {
             for (const adviser of player.advisers) {
                 if (adviser.facedown) continue;
                 for (const power of adviser.powers) {
-                    if (isType(power)) powers.add(power);
+                    if (isType(power)) powers.set(adviser, power);
                 }
             }
 
             for (const relic of player.relics) {
                 if (relic.facedown) continue;
                 for (const power of relic.powers) {
-                    if (isType(power)) powers.add(power);
+                    if (isType(power)) powers.set(relic, power);
                 }
             }
         }
 
         for (const banner of this.banners.values()) {
             for (const power of banner.powers) {
-                if (isType(power)) powers.add(power);
+                if (isType(power)) powers.set(banner, power);
             }
         }
 
-        for (const [i, power] of this.chancellor.reliquary.powers.entries()) {
-            if (!this.chancellor.reliquary.relics[i] && isType(power)) powers.add(power);
+        const reliquary = this.chancellor.reliquary;
+        for (const [i, power] of reliquary.powers.entries()) {
+            if (!reliquary.relics[i] && isType(power)) powers.set(reliquary, power);
         }
 
         return powers;
+    }
+
+    checkForNextAction() {
+        
     }
 
     continueAction(values: any) {
@@ -92,7 +97,13 @@ export class OathGame {
             this.revert();
             this.actionStack.push(action);
             throw e;
+        } finally {
+            this.checkForNextAction();
         }
+    }
+
+    cancelAction() {
+
     }
 
     revert() {

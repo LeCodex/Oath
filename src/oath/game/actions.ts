@@ -1,8 +1,8 @@
-import { Denizen, Site, WorldCard } from "./cards";
-import { SearchableDeck } from "./decks";
+import { Denizen, Site, WorldCard } from "./cards/cards";
+import { SearchableDeck } from "./cards/decks";
 import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect, DiscardCardEffect, MoveOwnWarbandsEffect, AddActionToStackEffect } from "./effects";
 import { OathResource, OathSuit, OathSuitName } from "./enums";
-import { OathGameObject } from "./game";
+import { OathGame, OathGameObject } from "./game";
 import { OathPlayer } from "./player";
 import { ActionModifier, ActivePower } from "./power";
 import { Banner, PeoplesFavor, ResourceCost } from "./resources";
@@ -65,18 +65,32 @@ export class ChooseModifiers extends OathAction {
         this.executeImmediately = executeImmediately;
 
         const choices = new Map<string, ActionModifier<any>>();
-        for (const modifier of this.game.getActivePowers(ActionModifier<any>)) {
-            if (modifier.canUse(next)) {
-                if (modifier.mustUse)
-                    this.parameters.modifiers.push(modifier);
-                else
-                    choices.set(modifier.name, modifier);
-            }
-        };
+        for (const modifier of ChooseModifiers.gatherModifiers(this.game, next)) {
+            if (modifier.mustUse)
+                this.parameters.modifiers.push(modifier);
+            else
+                choices.set(modifier.name, modifier);
+        }
         this.selects.modifiers = new SelectNOf<ActionModifier<any>>(choices);
+
+        for (const modifier of choices.values())
+            modifier.applyImmediately([...choices.values()])
 
         // If there are no modifiers to choose (or only persistent modifiers), skip to the action
         if (choices.size === 0) this.game.continueAction({ modifiers: [] });
+    }
+
+    static gatherModifiers(game: OathGame, action: ModifiableAction): ActionModifier<any>[] {
+        const instances: ActionModifier<any>[] = [];
+
+        for (const [source, modifier] of game.getPowers(ActionModifier<any>)) {
+            if (!(action instanceof modifier.prototype.modifiedAction)) continue;
+
+            const instance = new modifier(source, action);
+            if (instance.canUse()) instances.push(instance);
+        };
+
+        return instances;
     }
 
     execute() {
@@ -86,7 +100,7 @@ export class ChooseModifiers extends OathAction {
         if (this.executeImmediately) {
             this.next.execute();
         } else {
-            new AddActionToStackEffect(this.game, this.next).do();
+            new AddActionToStackEffect(this.next).do();
         }
     }
 }
@@ -102,7 +116,7 @@ export abstract class ModifiableAction extends OathAction {
             if (!new PayCostToTargetEffect(this.game, this.player, modifier.cost, modifier.source).do())
                 throw new InvalidActionResolution("Cannot pay the resource cost of all the modifiers.");
 
-            if (!modifier.applyBefore(this)) interrupt = true;
+            if (!modifier.applyBefore()) interrupt = true;
         }
         if (interrupt) return false;
 
@@ -110,9 +124,9 @@ export abstract class ModifiableAction extends OathAction {
     }
 
     execute() {
-        for (const modifier of this.parameters.modifiers) modifier.applyDuring(this);
+        for (const modifier of this.parameters.modifiers) modifier.applyDuring();
         this.modifiedExecution();
-        for (const modifier of this.parameters.modifiers) modifier.applyAfter(this);
+        for (const modifier of this.parameters.modifiers) modifier.applyAfter();
     }
 
     abstract modifiedExecution(): void;
@@ -398,7 +412,7 @@ export class SearchAction extends MajorAction {
     modifiedExecution() {
         super.modifiedExecution();
         const cards = new DrawFromDeckEffect(this.player, this.deck, this.amount, this.fromBottom).do();
-        new AddActionToStackEffect(this.game, new ChooseModifiers(new SearchChooseAction(this.player, cards, this.discardOptions))).do();
+        new AddActionToStackEffect(new ChooseModifiers(new SearchChooseAction(this.player, cards, this.discardOptions))).do();
     }
 }
 
@@ -440,12 +454,12 @@ export class SearchChooseAction extends ModifiableAction {
 
     modifiedExecution(): void {
         for (const card of this.playing.reverse()) {  // Reversing so the stack order follows the expected order
-            new AddActionToStackEffect(this.game, new SearchPlayAction(this.player, card, this.discardOptions)).do();
+            new AddActionToStackEffect(new SearchPlayAction(this.player, card, this.discardOptions)).do();
             this.cards.delete(card);
         }
 
         // The action stack is FIFO, so the discards will be done first
-        new AddActionToStackEffect(this.game, new SearchDiscardAction(this.player, this.cards, this.discardOptions)).do();
+        new AddActionToStackEffect(new SearchDiscardAction(this.player, this.cards, this.discardOptions)).do();
     }
 }
 
@@ -487,7 +501,7 @@ export class SearchPlayAction extends ModifiableAction {
         this.excess = (this.site ? this.site.denizens.size : this.player.advisers.size) - this.capacity + 1;
         if (this.excess)
             if (this.canReplace)
-                new AddActionToStackEffect(this.game, new SearchReplaceAction(this.player, this.card, this.facedown, this.excess, this.site, this.discardOptions)).do();
+                new AddActionToStackEffect(new SearchReplaceAction(this.player, this.card, this.facedown, this.excess, this.site, this.discardOptions)).do();
             else
                 throw new InvalidActionResolution("Target is full, cannot play a card to it.");
         else
@@ -613,7 +627,7 @@ export class CampaignAction extends MajorAction {
     modifiedExecution() {
         super.modifiedExecution();
         const next = new CampaignAtttackAction(this.player, this.defender);
-        new AddActionToStackEffect(this.game, new ChooseModifiers(next)).do();
+        new AddActionToStackEffect(new ChooseModifiers(next)).do();
     }
 }
 
@@ -673,19 +687,15 @@ export class CampaignAtttackAction extends ModifiableAction {
 
     modifiedExecution() {
         if (this.campaignResult.defender) {
-            new AddActionToStackEffect(this.game, new ChooseModifiers(this.next, true)).do();
+            new AddActionToStackEffect(new ChooseModifiers(this.next, true)).do();
             return;
         }
 
         // Bandits use all battle plans that are free
-        // TODO: See if this can be factored out
         const modifiers: ActionModifier<any>[] = [];
-        for (const modifier of this.game.getActivePowers(ActionModifier<any>)) {
-            if (modifier.canUse(this.next)) {
-                if (modifier.mustUse || modifier.cost.free) {
-                    modifiers.push(modifier);
-                }
-            }
+        for (const modifier of ChooseModifiers.gatherModifiers(this.game, this)) {
+            if (modifier.mustUse || modifier.cost.free)
+                modifiers.push(modifier);
         };
 
         if (this.next.applyModifiers(modifiers)) {
@@ -705,7 +715,7 @@ export class CampaignDefenseAction extends ModifiableAction {
 
         const modifiersChoice = new ChooseModifiers(this.next, true);
         if (this.campaignResult.couldSacrifice) {
-            new AddActionToStackEffect(this.game, modifiersChoice).do();
+            new AddActionToStackEffect(modifiersChoice).do();
             return;
         };
 
@@ -960,8 +970,10 @@ export class UsePowerAction extends ModifiableAction {
         super(player);
 
         const choices = new Map<string, ActivePower<any>>();
-        for (const power of this.game.getActivePowers(ActivePower<any>))
-            if (power.canUse(this)) choices.set(power.name, power);
+        for (const [source, power] of this.game.getPowers(ActivePower<any>)) {
+            const instance = new power(source, this);
+            if (instance.canUse()) choices.set(instance.name, instance);
+        }
     }
 
     modifiedExecution(): void {

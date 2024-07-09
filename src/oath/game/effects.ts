@@ -1,4 +1,4 @@
-import { Denizen, OwnableCard, Site, Vision, WorldCard } from "./cards";
+import { Denizen, OwnableCard, Site, Vision, WorldCard } from "./cards/cards";
 import { CardRestriction, OathResource, OathSuit } from "./enums";
 import { Exile, OathPlayer } from "./player";
 import { EffectModifier, WhenPlayed } from "./power";
@@ -6,7 +6,7 @@ import { ResourceBank, ResourceCost, ResourcesAndWarbands } from "./resources";
 import { OwnableObject } from "./player";
 import { OathGame, OathGameObject } from "./game";
 import { InvalidActionResolution, OathAction } from "./actions";
-import { CardDeck, SearchableDeck } from "./decks";
+import { CardDeck, SearchableDeck } from "./cards/decks";
 
 
 //////////////////////////////////////////////////
@@ -33,10 +33,11 @@ export abstract class OathEffect<T> extends OathGameObject {
     }
 
     applyModifiers() {
-        for (const modifier of this.game.getActivePowers(EffectModifier<any>)) {
-            if (modifier.canUse(this)) {  // All Effect Modifiers are must-use
-                this.modifiers.push(modifier);
-                modifier.applyDuring(this);
+        for (const [source, modifier] of this.game.getPowers(EffectModifier<any>)) {
+            const instance = new modifier(source, this);
+            if (instance.canUse()) {  // All Effect Modifiers are must-use
+                this.modifiers.push(instance);
+                instance.applyDuring();
             }
         };
     }
@@ -44,7 +45,7 @@ export abstract class OathEffect<T> extends OathGameObject {
     abstract resolve(): T;
     
     afterResolution() {
-        for (const modifier of this.modifiers) modifier.applyAfter(this);
+        for (const modifier of this.modifiers) modifier.applyAfter();
     };
 
     abstract revert(): void;
@@ -65,8 +66,8 @@ export abstract class PlayerEffect<T> extends OathEffect<T> {
 export class AddActionToStackEffect extends OathEffect<void> {
     action: OathAction;
 
-    constructor(game: OathGame, action: OathAction) {
-        super(game, undefined);
+    constructor(action: OathAction) {
+        super(action.game, undefined);
         this.action = action;
     }
 

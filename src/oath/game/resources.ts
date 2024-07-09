@@ -37,7 +37,7 @@ export class FavorBank extends ResourceBank {
 export abstract class Banner extends ResourceBank implements OwnableObject, RecoverActionTarget, CampaignActionTarget {
     name: string
     owner?: OathPlayer;
-    powers: OathPower<typeof this>[];
+    powers: Set<Constructor<OathPower<typeof this>>>;
 
     get defense() { return this.amount; }
     takenFromPlayer = true;
@@ -55,7 +55,7 @@ export abstract class Banner extends ResourceBank implements OwnableObject, Reco
 
     recover(player: OathPlayer): void {
         new TakeOwnableObjectEffect(this.game, player, this).do();
-        new AddActionToStackEffect(this.game, new RecoverBannerPitchAction(player, this)).do();
+        new AddActionToStackEffect(new RecoverBannerPitchAction(player, this)).do();
     }
     
     finishRecovery(amount: number): void {
@@ -81,7 +81,7 @@ export class PeoplesFavor extends Banner {
 
     handleRecovery(player: OathPlayer) {
         this.isMob = false;
-        new AddActionToStackEffect(this.game, new FavorReturnAction(player, this.take())).do();
+        new AddActionToStackEffect(new FavorReturnAction(player, this.take())).do();
     }
 }
 
@@ -203,14 +203,7 @@ export class ResourceCost {
     }
 
     add(other: ResourceCost) {
-        const placedResources = new Map<OathResource, number>();
-        for (const [resource, amount] of this.placedResources) placedResources.set(resource, amount);
-        for (const [resource, amount] of other.placedResources) placedResources.set(resource, (placedResources.get(resource) || 0) + amount);
-        
-        const burntResources = new Map<OathResource, number>();
-        for (const [resource, amount] of this.burntResources) burntResources.set(resource, amount);
-        for (const [resource, amount] of other.burntResources) burntResources.set(resource, (burntResources.get(resource) || 0) + amount);
-
-        return new ResourceCost(placedResources, burntResources);
+        for (const [resource, amount] of other.placedResources) this.placedResources.set(resource, (this.placedResources.get(resource) || 0) + amount);
+        for (const [resource, amount] of other.burntResources) this.burntResources.set(resource, (this.burntResources.get(resource) || 0) + amount);
     }
 }

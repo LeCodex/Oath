@@ -1,5 +1,5 @@
-import { Site, WorldCard } from "./cards";
-import { Discard } from "./decks";
+import { Site, WorldCard } from "./cards/cards";
+import { Discard } from "./cards/decks";
 import { RegionName } from "./enums";
 import { OathGameObject } from "./game";
 

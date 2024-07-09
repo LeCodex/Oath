@@ -1,5 +1,5 @@
-import { CampaignAction, CampaignAtttackAction, CampaignDefenseAction, InvalidActionResolution, OathAction, PeoplesFavorDiscardAction, PeoplesFavorWakeAction, SearchAction, SearchPlayAction, TradeAction, TravelAction, UsePowerAction, WakeAction } from "./actions";
-import { Denizen, OwnableCard, Relic, Site, WorldCard } from "./cards";
+import { CampaignAction, CampaignAtttackAction, CampaignDefenseAction, InvalidActionResolution, ModifiableAction, OathAction, PeoplesFavorDiscardAction, PeoplesFavorWakeAction, SearchAction, SearchPlayAction, TradeAction, TravelAction, UsePowerAction, WakeAction } from "./actions";
+import { Denizen, OwnableCard, Relic, Site, WorldCard } from "./cards/cards";
 import { BannerName, OathResource, OathSuit, RegionName } from "./enums";
 import { Banner, DarkestSecret, PeoplesFavor, ResourceCost } from "./resources";
 import { AddActionToStackEffect, OathEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesOnTargetEffect, PutWarbandsFromBagEffect, TakeOwnableObjectEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect } from "./effects";
@@ -22,82 +22,101 @@ export abstract class OathPower<T extends OathGameObject> extends OathGameObject
 }
 
 export abstract class WhenPlayed<T extends WorldCard> extends OathPower<T> {
-    modifiedEffect = PlayWorldCardEffect;
+    static modifiedEffect = PlayWorldCardEffect;
 
     abstract whenPlayed(player: OathPlayer): void;
 }
 
 export abstract class ActionPower<T extends OathGameObject> extends OathPower<T> {
-    abstract canUse(action: OathAction): boolean;
+    action: OathAction;
+
+    constructor(source: T, action: OathAction) {
+        super(source);
+        this.action = action;
+    }
+
+    abstract canUse(): boolean;
 }
 
 export abstract class ActivePower<T extends OwnableCard> extends ActionPower<T> {
-    canUse(action: OathAction): boolean {
-        return this.source.accessibleBy(action.player) && this.source.empty;
+    action: UsePowerAction;
+
+    canUse(): boolean {
+        return this.source.accessibleBy(this.action.player) && this.source.empty;
     }
 
     abstract usePower(player: OathPlayer): void;
 }
 
 export abstract class ActionModifier<T extends OathGameObject> extends ActionPower<T> {
-    modifiedAction: abstract new (...args: any) => OathAction;
+    static modifiedAction: Constructor<ModifiableAction>;
+    action: ModifiableAction;
     mustUse = false;
 
-    canUse(action: OathAction): boolean {
-        return (action instanceof this.modifiedAction);
+    canUse(): boolean {
+        return true;
     }
 
-    applyBefore(action: OathAction): boolean { return true; }   // Applied before the action's choices are made. If returns false, the execution will be interrupted
-    applyDuring(action: OathAction): void { }                   // Applied right before the execution of the action
-    applyAfter(action: OathAction): void { }                    // Applied after the execution of the action
+    applyImmediately(modifiers: ActionModifier<any>[]) { }  // Applied right after all the possible modifiers are collected                    
+    applyBefore(): boolean { return true; }                 // Applied before the action's choices are made. If returns false, the execution will be interrupted
+    applyDuring(): void { }                                 // Applied right before the execution of the action
+    applyAfter(): void { }                                  // Applied after the execution of the action
 }
 
 export abstract class EnemyActionModifier<T extends OwnableCard> extends ActionModifier<T> {
-    canUse(action: OathAction): boolean {
-        return super.canUse(action) && (this.source.ruler === undefined || this.source.ruler.enemyWith(action.player));
+    canUse(): boolean {
+        return this.source.ruler === undefined || this.source.ruler.enemyWith(this.action.player);
     }
 }
 
 export abstract class AccessedActionModifier<T extends OwnableCard> extends ActionModifier<T> {
-    canUse(action: OathAction): boolean {
-        return super.canUse(action) && this.source.accessibleBy(action.player) && this.source.empty;
+    canUse(): boolean {
+        return this.source.accessibleBy(this.action.player) && this.source.empty;
     }
 }
 
 export abstract class BattlePlan<T extends OwnableCard> extends ActionModifier<T> {
-    canUse(action: CampaignAction): boolean {
-        return super.canUse(action) && action.player.rules(this.source);
+    canUse(): boolean {
+        return this.action.player.rules(this.source);
     }
 }
 
 export abstract class AttackerBattlePlan<T extends OwnableCard> extends BattlePlan<T> {
-    majorAction = CampaignAtttackAction;
+    static modifiedAction = CampaignAtttackAction;
+    action: CampaignAtttackAction;
 }
 
 export abstract class DefenderBattlePlan<T extends OwnableCard> extends BattlePlan<T> {
-    majorAction = CampaignDefenseAction;
+    static modifiedAction = CampaignDefenseAction;
+    action: CampaignDefenseAction;
 }
 
 export abstract class EffectModifier<T extends OathGameObject> extends OathPower<T> {
-    modifiedEffect: new (...args: any) => OathEffect<any>;
+    static modifiedEffect: new (...args: any) => OathEffect<any>;
+    effect: OathEffect<any>
 
-    canUse(effect: OathEffect<any>): boolean {
-        return effect instanceof this.modifiedEffect;
+    constructor(source: T, effect: OathEffect<any>) {
+        super(source);
+        this.effect = effect;
     }
 
-    applyDuring(effect: OathEffect<any>): void { }  // Applied right before the resolution of the effect
-    applyAfter(effect: OathEffect<any>): void { }   // Applied after the resolution of the effect
+    canUse(): boolean {
+        return true;
+    }
+
+    applyDuring(): void { }     // Applied right before the resolution of the effect
+    applyAfter(): void { }      // Applied after the resolution of the effect
 }
 
 export abstract class EnemyEffectModifier<T extends OwnableCard> extends EffectModifier<T> {
-    canUse(effect: OathEffect<any>): boolean {
-        return super.canUse(effect) && (this.source.ruler === undefined || this.source.ruler.enemyWith(effect.player));
+    canUse(): boolean {
+        return this.source.ruler === undefined || this.source.ruler.enemyWith(this.effect.player);
     }
 }
 
 export abstract class AccessedEffectModifier<T extends OwnableCard> extends EffectModifier<T> {
-    canUse(effect: OathEffect<any>): boolean {
-        return super.canUse(effect) && this.source.accessibleBy(effect.player);
+    canUse(): boolean {
+        return this.source.accessibleBy(this.effect.player);
     }
 }
 
@@ -109,15 +128,15 @@ export abstract class AccessedEffectModifier<T extends OwnableCard> extends Effe
 export class LongbowArchersAttack extends AttackerBattlePlan<Denizen> {
     name = "Longbow Archers";
 
-    applyDuring(action: CampaignAtttackAction): void {
-        action.campaignResult.atkPool++;
+    applyDuring(): void {
+        this.action.campaignResult.atkPool++;
     }
 }
 export class LongbowArchersDefense extends DefenderBattlePlan<Denizen> {
     name = "Longbow Archers";
 
-    applyDuring(action: CampaignDefenseAction): void {
-        action.campaignResult.atkPool--;
+    applyDuring(): void {
+        this.action.campaignResult.atkPool--;
     }
 }
 
@@ -126,21 +145,22 @@ export class ShieldWall extends DefenderBattlePlan<Denizen> {
     name = "Shield Wall";
     cost = new ResourceCost([[OathResource.Favor, 1]]);
 
-    applyDuring(action: CampaignDefenseAction): void {
-        action.campaignResult.defPool += 2;
-        action.campaignResult.defenderKillsEntireForce = true;
+    applyDuring(): void {
+        this.action.campaignResult.defPool += 2;
+        this.action.campaignResult.defenderKillsEntireForce = true;
     }
 }
 
 
 export class Curfew extends EnemyActionModifier<Denizen> {
     name = "Curfew";
-    modifiedAction = TradeAction;
+    static modifiedAction = TradeAction;
+    action: TradeAction;
     mustUse = true;
 
-    applyDuring(action: TradeAction): void {
-        if (action.card.site?.ruler === this.source.ruler) {
-            if (!new PayCostToTargetEffect(this.game, action.player, new ResourceCost([[OathResource.Favor, 1]]), this.source.ruler).do())
+    applyDuring(): void {
+        if (this.action.player.site?.ruler === this.source.ruler) {
+            if (!new PayCostToTargetEffect(this.game, this.action.player, new ResourceCost([[OathResource.Favor, 1]]), this.source.ruler).do())
                 throw new InvalidActionResolution("Cannot pay the Curfew.");
         }
     }
@@ -148,11 +168,12 @@ export class Curfew extends EnemyActionModifier<Denizen> {
 
 export class TollRoads extends EnemyEffectModifier<Denizen> {
     name = "Toll Roads";
-    modifiedEffect = TravelEffect;
+    static modifiedEffect = TravelEffect;
+    effect: TravelEffect;
 
-    applyDuring(effect: TravelEffect): void {
-        if (effect.site.ruler === this.source.ruler) {
-            if (!new PayCostToTargetEffect(this.game, effect.player, new ResourceCost([[OathResource.Favor, 1]]), this.source.ruler).do())
+    applyDuring(): void {
+        if (this.effect.site.ruler === this.source.ruler) {
+            if (!new PayCostToTargetEffect(this.game, this.effect.player, new ResourceCost([[OathResource.Favor, 1]]), this.source.ruler).do())
                 throw new InvalidActionResolution("Cannot pay the Toll Roads.");
         }
     }
@@ -160,12 +181,13 @@ export class TollRoads extends EnemyEffectModifier<Denizen> {
 
 export class ForcedLabor extends EnemyActionModifier<Denizen> {
     name = "Forced Labor";
-    modifiedAction = SearchAction;
+    static modifiedAction = SearchAction;
+    action: SearchAction;
     mustUse = true;
 
-    applyDuring(action: TradeAction): void {
-        if (action.card.site?.ruler === this.source.ruler) {
-            if (!new PayCostToTargetEffect(this.game, action.player, new ResourceCost([[OathResource.Favor, 1]]), this.source.ruler).do())
+    applyDuring(): void {
+        if (this.action.player.site?.ruler === this.source.ruler) {
+            if (!new PayCostToTargetEffect(this.game, this.action.player, new ResourceCost([[OathResource.Favor, 1]]), this.source.ruler).do())
                 throw new InvalidActionResolution("Cannot pay the Forced Labor.");
         }
     }
@@ -173,30 +195,28 @@ export class ForcedLabor extends EnemyActionModifier<Denizen> {
 
 
 // ------------------ ARCANE ------------------- //
-function additionalCostCheck(action: OathAction, cost: ResourceCost, name: string) {
-    for (const modifier of action.parameters.modifiers)
-        if (modifier instanceof AttackerBattlePlan)
-            if (!new PayCostToTargetEffect(this.game, action.player, cost, modifier.source).do())
-                throw new InvalidActionResolution(`Cannot pay for the ${name}.`);
-}
 export class GleamingArmorAttack extends EnemyActionModifier<Denizen> {
     name = "Gleaming Armor"
-    modifiedAction = CampaignAtttackAction;
+    static modifiedAction = CampaignAtttackAction;
+    action: CampaignAtttackAction;
     mustUse = true;
 
-    applyBefore(action: CampaignAtttackAction): boolean {
-        additionalCostCheck(action, new ResourceCost([[OathResource.Secret, 1]]), this.name);
-        return true;
+    applyImmediately(modifiers: ActionModifier<any>[]): void {
+        for (const modifier of modifiers) 
+            if (modifier instanceof AttackerBattlePlan)
+                modifier.cost.add(new ResourceCost([[OathResource.Secret, 1]]));
     }
 }
 export class GleamingArmorDefense extends EnemyActionModifier<Denizen> {
     name = "Gleaming Armor"
-    modifiedAction = CampaignDefenseAction;
+    static modifiedAction = CampaignDefenseAction;
+    action: CampaignDefenseAction;
     mustUse = true;
 
-    applyBefore(action: CampaignDefenseAction): boolean {
-        additionalCostCheck(action, new ResourceCost([[OathResource.Secret, 1]]), this.name);
-        return true;
+    applyImmediately(modifiers: ActionModifier<any>[]): void {
+        for (const modifier of modifiers) 
+            if (modifier instanceof DefenderBattlePlan)
+                modifier.cost.add(new ResourceCost([[OathResource.Secret, 1]]));
     }
 }
 
@@ -206,12 +226,12 @@ export class HeartsAndMinds extends DefenderBattlePlan<Denizen> {
     name = "Hearts and Minds";
     cost = new ResourceCost([[OathResource.Favor, 3]]);
 
-    applyBefore(action: CampaignDefenseAction): boolean {
-        action.campaignResult.successful = false;
-        new AddActionToStackEffect(this.game, action.next).do();
+    applyBefore(): boolean {
+        this.action.campaignResult.successful = false;
+        new AddActionToStackEffect(this.action.next).do();
 
-        if (this.game.banners.get(BannerName.PeoplesFavor)?.owner !== action.player)
-            action.campaignResult.discardAtEnd.add(this.source);
+        if (this.game.banners.get(BannerName.PeoplesFavor)?.owner !== this.action.player)
+            this.action.campaignResult.discardAtEnd.add(this.source);
 
         return false;
     }
@@ -220,12 +240,13 @@ export class HeartsAndMinds extends DefenderBattlePlan<Denizen> {
 
 export class AwaitedReturn extends AccessedActionModifier<Denizen> {
     name = "Awaited Return";
-    modifiedAction = TradeAction;
+    static modifiedAction = TradeAction;
+    action: TradeAction;
 
-    applyDuring(action: TradeAction): void {
-        if (action.player.ownWarbands > 0) {
-            new TakeWarbandsIntoBagEffect(action.player, 1).do();
-            action.noSupplyCost = true;
+    applyDuring(): void {
+        if (this.action.player.ownWarbands > 0) {
+            new TakeWarbandsIntoBagEffect(this.action.player, 1).do();
+            this.action.noSupplyCost = true;
         }
     }
 }
@@ -234,15 +255,16 @@ export class AwaitedReturn extends AccessedActionModifier<Denizen> {
 // ------------------ NOMAD ------------------- //
 export class WayStation extends ActionModifier<Denizen> {
     name = "Way Station";
-    modifiedAction = TravelAction;
+    static modifiedAction = TravelAction;
+    action: TravelAction;
 
-    applyDuring(action: TravelAction): void {
+    applyDuring(): void {
         if (!this.source.site) return;
-        if (action.site === this.source.site) {
-            if (this.source.ruler !== action.player && !new PayCostToTargetEffect(this.game, action.player, new ResourceCost([[OathResource.Favor, 1]]), this.source.ruler).do())
+        if (this.action.site === this.source.site) {
+            if (this.source.ruler !== this.action.player && !new PayCostToTargetEffect(this.game, this.action.player, new ResourceCost([[OathResource.Favor, 1]]), this.source.ruler).do())
                 return;
 
-            action.noSupplyCost = true;
+            this.action.noSupplyCost = true;
         }
     }
 }
@@ -258,19 +280,21 @@ function lostTongueCheckOwnable(source: Denizen, target: OwnableObject, by: Oath
 }
 export class LostTongue extends EnemyEffectModifier<Denizen> {
     name = "Lost Tongue";
-    modifiedEffect = TakeOwnableObjectEffect;
+    static modifiedEffect = TakeOwnableObjectEffect;
+    effect: TakeOwnableObjectEffect;
 
-    applyDuring(effect: TakeOwnableObjectEffect): void {
-        lostTongueCheckOwnable(this.source, effect.target, effect.player);
+    applyDuring(): void {
+        lostTongueCheckOwnable(this.source, this.effect.target, this.effect.player);
     }
 }
 export class LostTongueCampaign extends EnemyActionModifier<Denizen> {
     name = "Lost Tongue";
-    modifiedAction = CampaignAtttackAction;
+    static modifiedAction = CampaignAtttackAction;
+    action: CampaignAtttackAction;
     
-    applyDuring(action: CampaignAtttackAction): void {
-        for (const target of action.campaignResult.targets)
-            if (isOwnable(target)) lostTongueCheckOwnable(this.source, target, action.player);
+    applyDuring(): void {
+        for (const target of this.action.campaignResult.targets)
+            if (isOwnable(target)) lostTongueCheckOwnable(this.source, target, this.action.player);
     }
 }
 
@@ -287,10 +311,10 @@ export class Elders extends ActivePower<Denizen> {
 
 export class SpellBreaker extends EnemyActionModifier<Denizen> {
     name = "Spell Breaker"
-    modifiedAction = OathAction;
+    static modifiedAction = ModifiableAction;
 
-    applyBefore(action: OathAction): boolean {
-        for (const modifier of action.parameters.modifiers)
+    applyBefore(): boolean {
+        for (const modifier of this.action.parameters.modifiers)
             if (modifier.cost.totalResources.get(OathResource.Secret))
                 throw new InvalidActionResolution("Cannot use powers that cost Secrets under the Spell Breaker");
 
@@ -299,10 +323,11 @@ export class SpellBreaker extends EnemyActionModifier<Denizen> {
 }
 export class SpellBreakerActive extends EnemyActionModifier<Denizen> {
     name = "Spell Breaker"
-    modifiedAction = UsePowerAction;
+    static modifiedAction = UsePowerAction;
+    action: UsePowerAction;
 
-    applyDuring(action: UsePowerAction): void {
-        if (action.power.cost.totalResources.get(OathResource.Secret))
+    applyDuring(): void {
+        if (this.action.power.cost.totalResources.get(OathResource.Secret))
             throw new InvalidActionResolution("Cannot use powers that cost Secrets under the Spell Breaker");
     }
 }
@@ -311,11 +336,12 @@ export class SpellBreakerActive extends EnemyActionModifier<Denizen> {
 // ------------------ DISCORD ------------------- //
 export class RelicThief extends EnemyEffectModifier<Denizen> {
     name = "Relic Thief";
-    modifiedEffect = TakeOwnableObjectEffect;
+    static modifiedEffect = TakeOwnableObjectEffect;
+    effect: TakeOwnableObjectEffect;
 
-    applyAfter(effect: TakeOwnableObjectEffect): void {
+    applyAfter(): void {
         if (!this.source.ruler) return;
-        if (effect.target instanceof Relic && effect.player?.site.region === this.source.ruler.site.region) {
+        if (this.effect.target instanceof Relic && this.effect.player?.site.region === this.source.ruler.site.region) {
             // Roll dice and do stuff, probably after an action to pay the cost
         }
     }
@@ -339,11 +365,12 @@ export class KeyToTheCity extends WhenPlayed<Denizen> {
 
 export class MaxTwoAdvisers extends ActionModifier<Denizen> {
     name = "Max Two Advisers";
-    modifiedAction = SearchPlayAction;
+    static modifiedAction = SearchPlayAction;
+    action: SearchPlayAction;
     mustUse = true;
 
-    applyDuring(action: SearchPlayAction): void {
-        if (!action.site) action.capacity = Math.min(action.capacity, 2);
+    applyDuring(): void {
+        if (!this.action.site) this.action.capacity = Math.min(this.action.capacity, 2);
     }
 }
 
@@ -351,9 +378,10 @@ export class MaxTwoAdvisers extends ActionModifier<Denizen> {
 // ------------------ BEAST ------------------- //
 export class Bracken extends AccessedActionModifier<Denizen> {
     name = "Bracken"
-    modifiedAction = SearchAction;
+    static modifiedAction = SearchAction;
+    action: SearchAction;
 
-    applyDuring(action: SearchAction): void {
+    applyDuring(): void {
         // Action to change the discard options
     }
 }
@@ -361,22 +389,26 @@ export class Bracken extends AccessedActionModifier<Denizen> {
 
 export class InsectSwarmAttack extends EnemyActionModifier<Denizen> {
     name = "Insect Swarm"
-    modifiedAction = CampaignAtttackAction;
+    static modifiedAction = CampaignAtttackAction;
+    action: CampaignAtttackAction;
     mustUse = true;
 
-    applyBefore(action: CampaignAtttackAction): boolean {
-        additionalCostCheck(action, new ResourceCost([], [[OathResource.Favor, 1]]), this.name);
-        return true;
+    applyImmediately(modifiers: ActionModifier<any>[]): void {
+        for (const modifier of modifiers) 
+            if (modifier instanceof AttackerBattlePlan)
+                modifier.cost.add(new ResourceCost([], [[OathResource.Favor, 1]]));
     }
 }
 export class InsectSwarmDefense extends EnemyActionModifier<Denizen> {
     name = "Insect Swarm"
-    modifiedAction = CampaignDefenseAction;
+    static modifiedAction = CampaignDefenseAction;
+    action: CampaignDefenseAction;
     mustUse = true;
 
-    applyBefore(action: CampaignDefenseAction): boolean {
-        additionalCostCheck(action, new ResourceCost([], [[OathResource.Favor, 1]]), this.name);
-        return true;
+    applyImmediately(modifiers: ActionModifier<any>[]): void {
+        for (const modifier of modifiers) 
+            if (modifier instanceof DefenderBattlePlan)
+                modifier.cost.add(new ResourceCost([], [[OathResource.Favor, 1]]));
     }
 }
 
@@ -386,20 +418,21 @@ export class InsectSwarmDefense extends EnemyActionModifier<Denizen> {
 //                    SITES                     //
 //////////////////////////////////////////////////
 export abstract class SiteActionModifier extends ActionModifier<Site> {
-    canUse(action: OathAction): boolean {
-        return action.player.site === this.source;
+    canUse(): boolean {
+        return this.action.player.site === this.source;
     }
 }
 
 
 export abstract class HomelandSitePower extends EffectModifier<Site> {
-    modifiedEffect = PlayWorldCardEffect;
+    static modifiedEffect = PlayWorldCardEffect;
+    effect: PlayWorldCardEffect;
     abstract suit: OathSuit;
 
-    applyAfter(effect: PlayWorldCardEffect): void {
+    applyAfter(): void {
         // TODO: "and if you have not discarded a <suit> card here during this turn"
-        if (effect.site === this.source && effect.card instanceof Denizen && effect.card.suit === this.suit)
-            this.giveReward(effect.player);
+        if (this.effect.site === this.source && this.effect.card instanceof Denizen && this.effect.card.suit === this.suit)
+            this.giveReward(this.effect.player);
     }
 
     abstract giveReward(player: OathPlayer): void;
@@ -462,13 +495,14 @@ export class DeepWoods extends HomelandSitePower {
 
 export class CoastalSite extends SiteActionModifier {
     name = "Coastal Site";
-    modifiedAction = TravelAction;
+    static modifiedAction = TravelAction;
+    action: TravelAction;
     mustUse = true;
 
-    applyDuring(action: TravelAction): void {
-        for (const power of action.site.powers) {
+    applyDuring(): void {
+        for (const power of this.action.site.powers) {
             if (power instanceof CoastalSite) {
-                action.supplyCost = 1;
+                this.action.supplyCost = 1;
                 return;
             }
         }
@@ -478,11 +512,25 @@ export class CoastalSite extends SiteActionModifier {
 
 export class CharmingValley extends SiteActionModifier {
     name = "Charming Valley";
-    modifiedAction = TravelAction;
+    static modifiedAction = TravelAction;
+    action: TravelAction;
     mustUse = true;
 
-    applyDuring(action: TravelAction): void {
-        action.supplyCostModifier += 1;
+    applyDuring(): void {
+        this.action.supplyCostModifier += 1;
+    }
+}
+
+
+export abstract class ResourceSite extends SiteActionModifier {
+    static modifiedAction = WakeAction;
+    action: WakeAction;
+
+    applyBefore(): boolean {
+        const resourceTypes: OathResource[] = [];
+        for (const [resource, value] of this.source.resources) if (value > 0) resourceTypes.push(resource);
+        // Action to pickup one of the resources
+        return true;
     }
 }
 
@@ -493,10 +541,11 @@ export class CharmingValley extends SiteActionModifier {
 //////////////////////////////////////////////////
 export abstract class CupOfPlenty extends AccessedActionModifier<Relic> {
     name = "Cup of Plenty"
-    modifiedAction = TradeAction;
+    static modifiedAction = TradeAction;
+    action: TradeAction;
 
-    applyDuring(action: TradeAction): void {
-        if (action.player.adviserSuitCount(action.card.suit) > 0) action.noSupplyCost = true;
+    applyDuring(): void {
+        if (this.action.player.adviserSuitCount(this.action.card.suit) > 0) this.action.noSupplyCost = true;
     }
 }
 
@@ -511,20 +560,22 @@ function circletOfCommandCheckOwnable(source: Relic, target: OwnableObject, by: 
 }
 export class CircletOfCommand extends EnemyEffectModifier<Relic> {
     name = "Circlet of Command";
-    modifiedEffect = TakeOwnableObjectEffect;
+    static modifiedEffect = TakeOwnableObjectEffect;
+    effect: TakeOwnableObjectEffect
 
-    applyDuring(effect: TakeOwnableObjectEffect): void {
-        circletOfCommandCheckOwnable(this.source, effect.target, effect.player);
+    applyDuring(): void {
+        circletOfCommandCheckOwnable(this.source, this.effect.target, this.effect.player);
     }
 }
 export class CircletOfCommandCampaign extends EnemyActionModifier<Relic> {
     name = "Circlet of Command";
-    modifiedAction = CampaignAtttackAction;
+    static modifiedAction = CampaignAtttackAction;
+    action: CampaignAtttackAction;
     
-    applyDuring(action: CampaignAtttackAction): void {
-        for (const target of action.campaignResult.targets) {
-            if (isOwnable(target)) circletOfCommandCheckOwnable(this.source, target, action.player);
-            if (target === this.source.ruler) action.campaignResult.defPool += 1;
+    applyDuring(): void {
+        for (const target of this.action.campaignResult.targets) {
+            if (isOwnable(target)) circletOfCommandCheckOwnable(this.source, target, this.action.player);
+            if (target === this.source.ruler) this.action.campaignResult.defPool += 1;
         }
     }
 }
@@ -532,10 +583,11 @@ export class CircletOfCommandCampaign extends EnemyActionModifier<Relic> {
 
 export class DragonskinWardrum extends AccessedEffectModifier<Relic> {
     name = "Dragonskin Wardrum"
-    modifiedEffect = TravelEffect;
+    static modifiedEffect = TravelEffect;
+    effect: TravelEffect;
 
-    applyAfter(effect: TravelEffect): void {
-        new PutWarbandsFromBagEffect(effect.player, 1).do();
+    applyAfter(): void {
+        new PutWarbandsFromBagEffect(this.effect.player, 1).do();
     }
 }
 
@@ -545,34 +597,36 @@ export class DragonskinWardrum extends AccessedEffectModifier<Relic> {
 //                   BANNERS                    //
 //////////////////////////////////////////////////
 export abstract class BannerActionModifier<T extends Banner> extends ActionModifier<T> {
-    canUse(action: OathAction): boolean {
-        return super.canUse(action) && action.player === this.source.owner;
+    canUse(): boolean {
+        return super.canUse() && this.action.player === this.source.owner;
     }
 }
 
 export class PeoplesFavorSearch extends BannerActionModifier<PeoplesFavor> {
     name = "People's Favor";
-    modifiedAction = SearchPlayAction;
+    static modifiedAction = SearchPlayAction;
+    action: SearchPlayAction;
     mustUse = true;  // Not strictly true, but it involves a choice either way, so it's better to alwyas include it
 
-    applyBefore(action: SearchPlayAction): boolean {
-        for (const site of action.player.site.region.sites) {
-            action.selects.site.choices.set(site.name, site);
+    applyBefore(): boolean {
+        for (const site of this.action.player.site.region.sites) {
+            this.action.selects.site.choices.set(site.name, site);
         }
 
-        new AddActionToStackEffect(this.game, new PeoplesFavorDiscardAction(action.player, action.discardOptions)).do();
+        new AddActionToStackEffect(new PeoplesFavorDiscardAction(this.action.player, this.action.discardOptions)).do();
         return true;
     }
 }
 export class PeoplesFavorWake extends BannerActionModifier<PeoplesFavor> {
     name = "People's Favor";
-    modifiedAction = WakeAction;
+    static modifiedAction = WakeAction;
+    action: WakeAction;
     mustUse = true;
 
-    applyBefore(action: WakeAction): boolean {
+    applyBefore(): boolean {
         if (this.source.owner) {
-            new AddActionToStackEffect(this.game, new PeoplesFavorWakeAction(this.source.owner, this.source)).do();
-            if (this.source.isMob) new AddActionToStackEffect(this.game, new PeoplesFavorWakeAction(this.source.owner, this.source)).do();
+            new AddActionToStackEffect(new PeoplesFavorWakeAction(this.source.owner, this.source)).do();
+            if (this.source.isMob) new AddActionToStackEffect(new PeoplesFavorWakeAction(this.source.owner, this.source)).do();
         }
 
         return true;
@@ -582,11 +636,12 @@ export class PeoplesFavorWake extends BannerActionModifier<PeoplesFavor> {
 
 export class DarkestSecretPower extends BannerActionModifier<DarkestSecret> {
     name = "Darkest Secret";
-    modifiedAction = SearchAction;
+    static modifiedAction = SearchAction;
+    action: SearchAction;
     mustUse = true;
 
-    applyDuring(action: SearchAction): void {
-        action.supplyCost = 2;
+    applyDuring(): void {
+        this.action.supplyCost = 2;
     }
 }
 
@@ -598,47 +653,51 @@ export class DarkestSecretPower extends BannerActionModifier<DarkestSecret> {
 export abstract class ReliquaryModifier extends ActionModifier<Reliquary> {
     mustUse = true;
 
-    canUse(action: OathAction): boolean {
-        return super.canUse(action) && action.player === this.game.chancellor;
+    canUse(): boolean {
+        return super.canUse() && this.action.player === this.game.chancellor;
     }
 }
 
 export class Brutal extends ReliquaryModifier {
     name = "Brutal";
-    modifiedAction = CampaignAtttackAction;
+    static modifiedAction = CampaignAtttackAction;
+    action: CampaignAtttackAction;
 
-    applyDuring(action: CampaignAtttackAction) {
-        action.campaignResult.attackerKillsEntireForce = true;
-        action.campaignResult.defenderKillsEntireForce = true;
+    applyDuring() {
+        this.action.campaignResult.attackerKillsEntireForce = true;
+        this.action.campaignResult.defenderKillsEntireForce = true;
     }
 }
 
 export class Greedy extends ReliquaryModifier {
     name = "Greedy";
-    modifiedAction = SearchAction;
+    static modifiedAction = SearchAction;
+    action: SearchAction;
 
-    applyDuring(action: SearchAction): void {
-        if (action.actualSupplyCost > 2) throw new InvalidActionResolution("Cannot do a Greedy Search for more than 2 Supply.");
-        action.amount += 2;
+    applyDuring(): void {
+        if (this.action.actualSupplyCost > 2) throw new InvalidActionResolution("Cannot do a Greedy Search for more than 2 Supply.");
+        this.action.amount += 2;
     }
 }
 
 export class Careless extends ReliquaryModifier {
     name = "Careless";
-    modifiedAction = TradeAction;
+    static modifiedAction = TradeAction;
+    action: TradeAction;
 
-    applyDuring(action: TradeAction): void {
-        action.getting.set(OathResource.Secret, Math.max(0, (action.getting.get(OathResource.Secret) || 0) - 1));
-        action.getting.set(OathResource.Favor, (action.getting.get(OathResource.Favor) || 0) + 1);
+    applyDuring(): void {
+        this.action.getting.set(OathResource.Secret, Math.max(0, (this.action.getting.get(OathResource.Secret) || 0) - 1));
+        this.action.getting.set(OathResource.Favor, (this.action.getting.get(OathResource.Favor) || 0) + 1);
     }
 }
 
 export class Decadent extends ReliquaryModifier {
     name = "Decadent";
-    modifiedAction = TravelAction;
+    static modifiedAction = TravelAction;
+    action: TravelAction;
 
-    applyDuring(action: TravelAction): void {
-        if (action.site.inRegion(RegionName.Cradle) && !action.player.site.inRegion(RegionName.Cradle)) action.noSupplyCost = true;
-        if (action.site.inRegion(RegionName.Hinterland)) action.supplyCostModifier += 1;
+    applyDuring(): void {
+        if (this.action.site.inRegion(RegionName.Cradle) && !this.action.player.site.inRegion(RegionName.Cradle)) this.action.noSupplyCost = true;
+        if (this.action.site.inRegion(RegionName.Hinterland)) this.action.supplyCostModifier += 1;
     }
 }

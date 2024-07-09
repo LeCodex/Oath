@@ -1,4 +1,4 @@
-import { OathGameObject } from "./game";
+import { OathGameObject } from "../game";
 import { OwnableCard, WorldCard, VisionBack, Relic } from "./cards";
 
 

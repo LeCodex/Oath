@@ -1,17 +1,25 @@
-import { CampaignActionTarget, CampaignSeizeSiteAction, InvalidActionResolution, RecoverAction, RecoverActionTarget } from "./actions";
-import { Region } from "./board";
-import { AddActionToStackEffect, MoveOwnWarbandsEffect, PayCostToBankEffect, TakeOwnableObjectEffect } from "./effects";
-import { CardRestriction, Oath, OathResource, OathSuit, RegionName } from "./enums";
-import { OathPlayer, OwnableObject } from "./player";
-import { OathPower } from "./power";
-import { ResourceCost, ResourcesAndWarbands } from "./resources";
+import { CampaignActionTarget, CampaignSeizeSiteAction, InvalidActionResolution, RecoverAction, RecoverActionTarget } from "../actions";
+import { Region } from "../board";
+import { AddActionToStackEffect, MoveOwnWarbandsEffect, PayCostToBankEffect, TakeOwnableObjectEffect } from "../effects";
+import { CardRestriction, Oath, OathResource, OathSuit, RegionName } from "../enums";
+import { OathGame } from "../game";
+import { OathPlayer, OwnableObject } from "../player";
+import { OathPower } from "../power";
+import { ResourceCost, ResourcesAndWarbands } from "../resources";
 
 
 export abstract class OathCard extends ResourcesAndWarbands {
     name: string;
-    facedown: boolean;
-    seenBy: Set<OathPlayer>;
-    powers: OathPower<typeof this>[];
+    facedown: boolean = true;
+    seenBy: Set<OathPlayer> = new Set();
+    powers: Set<Constructor<OathPower<OathCard>>>;
+
+    constructor(game: OathGame, name: string, powers: Iterable<Constructor<OathPower<OathCard>>>) {
+        super(game);
+        this.name = name;
+        this.powers = new Set<Constructor<OathPower<OathCard>>>();
+        for (const power of powers) this.powers.add(power);
+    }
 
     reveal() {
         this.facedown = false;
@@ -30,18 +38,36 @@ export class Site extends OathCard implements CampaignActionTarget {
     region: Region;
     capacity: number;
     startingRelics: number;
-    startingResources: Map<OathResource,number>;
+    startingResources: Map<OathResource, number>;
     bandits = 1;
-    
+
     recoverCost: ResourceCost;
     recoverSuit: OathSuit;
 
     denizens: Set<Denizen>;
     relics: Set<Relic>;
-    
+
     defense = 1;
     takenFromPlayer = false;
-    
+
+    constructor(
+        game: OathGame, name: string, powers: Iterable<Constructor<OathPower<Site>>>,
+        region: Region,
+        capacity: number,
+        startingRelics: number = 0,
+        recoverCost: ResourceCost = new ResourceCost(),
+        recoverSuit: OathSuit = OathSuit.None,
+        startingResources: Iterable<[OathResource, number]> = []
+    ) {
+        super(game, name, powers);
+        this.region = region;
+        this.capacity = capacity;
+        this.startingRelics = startingRelics;
+        this.recoverCost = recoverCost;
+        this.recoverSuit = recoverSuit;
+        this.startingResources = new Map<OathResource, number>(startingResources);
+    }
+
     get ruler(): OathPlayer | undefined {
         let max = 0, ruler = undefined;
         for (const [player, number] of this.warbands) {
@@ -50,7 +76,7 @@ export class Site extends OathCard implements CampaignActionTarget {
                 ruler = player;
             } else if (number === max) {
                 ruler = undefined;
-            } 
+            }
         }
 
         return ruler;
@@ -92,7 +118,7 @@ export class Site extends OathCard implements CampaignActionTarget {
 
     seize(player: OathPlayer) {
         if (this.ruler) new MoveOwnWarbandsEffect(this.ruler, this, this.ruler).do();
-        new AddActionToStackEffect(this.game, new CampaignSeizeSiteAction(player, this)).do();
+        new AddActionToStackEffect(new CampaignSeizeSiteAction(player, this)).do();
     }
 }
 
@@ -113,6 +139,11 @@ export class Relic extends OwnableCard implements RecoverActionTarget, CampaignA
 
     defense: number;
     takenFromPlayer = true;
+
+    constructor(game: OathGame, name: string, powers: Iterable<Constructor<OathPower<Relic>>>, defense: number) {
+        super(game, name, powers);
+        this.defense = defense;
+    }
 
     setOwner(newOwner?: OathPlayer) {
         if (this.owner) this.owner.removeRelic(this);
@@ -165,11 +196,17 @@ export class Denizen extends WorldCard {
     site?: Site;
     restriction: CardRestriction;
     locked: boolean;
-    
+
     protected _suit: OathSuit;
     get suit() { return this._suit; }
     get ruler() { return super.ruler || this.site?.ruler; }
     get activelyLocked() { return this.locked && !this.facedown; }
+
+    constructor(game: OathGame, name: string, powers: Iterable<Constructor<OathPower<Denizen>>>, restriction: CardRestriction = CardRestriction.None, locked: boolean = false) {
+        super(game, name, powers);
+        this.restriction = restriction;
+        this.locked = locked;
+    }
 
     accessibleBy(player: OathPlayer): boolean {
         return super.accessibleBy(player) || this.site === player.site;

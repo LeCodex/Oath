@@ -1,6 +1,6 @@
 import { CampaignAction, CampaignActionTarget, CampaignBanishPlayerAction, ChooseModifiers, MusterAction, RecoverAction, SearchAction, TradeAction, TravelAction } from "./actions";
-import { Denizen, OwnableCard, Relic, Site, Vision, WorldCard } from "./cards";
-import { Discard } from "./decks";
+import { Denizen, OwnableCard, Relic, Site, Vision, WorldCard } from "./cards/cards";
+import { Discard } from "./cards/decks";
 import { AddActionToStackEffect, DiscardCardEffect, MoveResourcesToTargetEffect } from "./effects";
 import { OathResource, OathSuit } from "./enums";
 import { OathGame, OathGameObject } from "./game";
@@ -130,7 +130,7 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
     seize(player: OathPlayer) {
         // TODO: Move burnt favor to supply
         new MoveResourcesToTargetEffect(this.game, this, OathResource.Favor, Math.floor(this.getResources(OathResource.Favor) / 2), undefined).do();
-        new AddActionToStackEffect(this.game, new CampaignBanishPlayerAction(player, this)).do();
+        new AddActionToStackEffect(new CampaignBanishPlayerAction(player, this)).do();
     }
 
     ////////////////////////////////////////////
@@ -181,7 +181,7 @@ export class Chancellor extends OathPlayer {
 
 export class Reliquary extends OathGameObject {
     relics: [Relic?, Relic?, Relic?, Relic?];
-    powers = [new Brutal(this), new Greedy(this), new Careless(this), new Decadent(this)];
+    powers = [Brutal, Greedy, Careless, Decadent];
 
     constructor(game: OathGame) {
         super(game);
