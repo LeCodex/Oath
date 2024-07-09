@@ -897,14 +897,23 @@ export class RestAction extends ModifiableAction {
 //              OTHER ACTIONS             //
 ////////////////////////////////////////////
 export abstract class ChooseSuit extends OathAction {
-    readonly selects: { suit: SelectValue<OathSuit> };
-    readonly parameters: { suit: OathSuit };
+    readonly selects: { suit: SelectNOf<OathSuit | undefined> };
+    readonly parameters: { suit: (OathSuit | undefined)[] };
 
-    constructor(player: OathPlayer, values?: Iterable<OathSuit>) {
+    suit: OathSuit | undefined;
+
+    constructor(player: OathPlayer, values?: Iterable<OathSuit>, none?: string) {
         super(player);
-        
         if (!values) values = [OathSuit.Discord, OathSuit.Arcane, OathSuit.Order, OathSuit.Hearth, OathSuit.Beast, OathSuit.Nomad];
-        this.selects.suit = new SelectValue(values);
+
+        const choices = new Map<string, OathSuit | undefined>();
+        for (const suit of values) choices.set(OathSuitName[suit], suit);
+        if (none) choices.set(none, undefined);
+        this.selects.suit = new SelectNOf(choices, 1);
+    }
+
+    execute(): void {
+        this.suit = this.parameters.suit[0];
     }
 }
 
@@ -917,54 +926,42 @@ export class FavorReturnAction extends ChooseSuit {
     }
 
     execute() {
-        let suit = this.parameters.suit;
+        super.execute();
+        if (!this.suit) return;
+
         let amount = this.amount;
         while (amount) {
-            new PutResourcesIntoBankEffect(this.game, this.player, this.game.favorBanks.get(suit), 1, undefined).do();
+            new PutResourcesIntoBankEffect(this.game, this.player, this.game.favorBanks.get(this.suit), 1, undefined).do();
             amount--;
-            if (suit++ == OathSuit.None) suit = OathSuit.Discord;
+            if (this.suit++ == OathSuit.None) this.suit = OathSuit.Discord;
         }
     }
 }
 
 export class SilverTongueAction extends ChooseSuit {
     execute() {
-        let suit = this.parameters.suit;
-        new TakeResourcesFromBankEffect(this.game, this.player, this.game.favorBanks.get(suit), 1).do();
+        super.execute();
+        if (!this.suit) return;
+        new TakeResourcesFromBankEffect(this.game, this.player, this.game.favorBanks.get(this.suit), 1).do();
     }
 }
 
-
-export class PeoplesFavorWakeAction extends OathAction {
-    readonly selects: { suit: SelectNOf<OathSuit | undefined> };
-    readonly parameters: { suit: (OathSuit | undefined)[] };
+export class PeoplesFavorWakeAction extends ChooseSuit {
     readonly banner: PeoplesFavor;
 
     constructor(player: OathPlayer, banner: PeoplesFavor) {
-        super(player);
+        const suits = new Set<OathSuit>();
+        let min = Infinity;
+        for (const bank of player.game.favorBanks.values()) if (bank.amount < min) min = bank.amount;
+        for (const [suit, bank] of player.game.favorBanks) if (bank.amount === min) suits.add(suit);
+        super(player, suits, "Put favor");
+
         this.banner = banner;
-
-        // TODO: Those checks don't work if on the mob side, because it gets checked from the initial state
-        // Maybe handle the mob side in this action?
-        const choices = new Map<string, OathSuit | undefined>();
-
-        // TODO: Make that check into an effect OR go full forgiveness and remove this check
-        if (player.getResources(OathResource.Favor)) {
-            choices.set("Put favor", undefined);
-        }
-
-        if (this.banner.amount > 1) {
-            let min = Infinity;
-            for (const bank of this.game.favorBanks.values()) if (bank.amount < min) min = bank.amount;
-            for (const [suit, bank] of this.game.favorBanks) if (bank.amount === min) choices.set("Return favor to " + OathSuitName[suit], suit);
-        }
-
-        this.selects.suit = new SelectNOf(choices, 1);
     }
 
     execute(): void {
-        const suit = this.parameters.suit[0];
-        const bank = suit && this.game.favorBanks.get(suit);
+        super.execute()
+        const bank = this.suit && this.game.favorBanks.get(this.suit);
 
         if (bank)
             new MoveBankResourcesEffect(this.game, this.player, this.banner, bank, 1).do();

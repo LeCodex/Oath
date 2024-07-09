@@ -91,7 +91,7 @@ export abstract class DefenderBattlePlan<T extends OwnableCard> extends BattlePl
     action: CampaignDefenseAction;
 }
 
-export abstract class SearchPlayActionModifier<T extends OwnableCard> extends ActionModifier<T> {
+export abstract class SearchPlayActionModifier<T extends WorldCard> extends ActionModifier<T> {
     static modifiedAction = SearchPlayAction;
     action: SearchPlayAction;
 
@@ -660,7 +660,7 @@ export class PeoplesFavorSearch extends BannerActionModifier<PeoplesFavor> {
     name = "People's Favor";
     static modifiedAction = SearchPlayAction;
     action: SearchPlayAction;
-    mustUse = true;  // Not strictly true, but it involves a choice either way, so it's better to alwyas include it
+    mustUse = true;  // Not strictly true, but it involves a choice either way, so it's better to always include it
 
     applyBefore(): boolean {
         for (const site of this.action.player.site.region.sites) {
