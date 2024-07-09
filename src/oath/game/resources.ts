@@ -187,8 +187,8 @@ export class ResourceCost {
     burntResources: Map<OathResource, number>;
 
     constructor(placedResources: Iterable<[OathResource, number]> = [], burntResources: Iterable<[OathResource, number]> = []) {
-        this.placedResources = new Map<OathResource, number>(placedResources);
-        this.burntResources = new Map<OathResource, number>(burntResources);
+        this.placedResources = new Map(placedResources);
+        this.burntResources = new Map(burntResources);
     }
 
     get totalResources(): Map<OathResource, number> {

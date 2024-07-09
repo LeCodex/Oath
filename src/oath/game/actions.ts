@@ -68,7 +68,7 @@ export class ChooseModifiers extends OathAction {
             else
                 choices.set(modifier.name, modifier);
         }
-        this.selects.modifiers = new SelectNOf<ActionModifier<any>>(choices);
+        this.selects.modifiers = new SelectNOf(choices);
 
         for (const modifier of choices.values())
             modifier.applyImmediately([...choices.values()])
@@ -182,7 +182,7 @@ export class SelectValue<T> implements Select {
     values: Set<T>;
 
     constructor(values: Iterable<T>) {
-        this.values = new Set<T>(values);
+        this.values = new Set(values);
     }
 
     parse(input: T): T | undefined {
@@ -256,8 +256,8 @@ export class TradeAction extends MajorAction {
     execute() {
         this.card = this.parameters.cards[0];
         this.forFavor = this.parameters.forFavor;
-        this.paying = new Map<OathResource, number>([[this.forFavor ? OathResource.Secret : OathResource.Favor, this.forFavor ? 1 : 2]]);
-        this.getting = new Map<OathResource, number>([[this.forFavor ? OathResource.Favor : OathResource.Secret, (this.forFavor ? 1 : 0) + this.player.adviserSuitCount(this.card.suit)]]);;
+        this.paying = new Map([[this.forFavor ? OathResource.Secret : OathResource.Favor, this.forFavor ? 1 : 2]]);
+        this.getting = new Map([[this.forFavor ? OathResource.Favor : OathResource.Secret, (this.forFavor ? 1 : 0) + this.player.adviserSuitCount(this.card.suit)]]);;
         super.execute();
     }
 
@@ -436,7 +436,7 @@ export class SearchChooseAction extends ModifiableAction {
         super(player);
         this.discardOptions = discardOptions || new SearchDiscardOptions(player.discard, false);
         
-        this.cards = new Set<WorldCard>(cards);
+        this.cards = new Set(cards);
         const cardsChoice = new Map<string, WorldCard>();
         for (const card of cards) cardsChoice.set(card.name, card);
         

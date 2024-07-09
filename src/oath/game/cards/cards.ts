@@ -66,7 +66,7 @@ export class Site extends OathCard implements CampaignActionTarget {
         this.startingRelics = startingRelics;
         this.recoverCost = recoverCost;
         this.recoverSuit = recoverSuit;
-        this.startingResources = new Map<OathResource, number>(startingResources);
+        this.startingResources = new Map(startingResources);
     }
 
     get ruler(): OathPlayer | undefined {

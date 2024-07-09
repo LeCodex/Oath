@@ -501,7 +501,7 @@ export class PlayDenizenAtSiteEffect extends PlayerEffect<void> {
     card: Denizen;
     site: Site;
 
-    getting = new Map<OathResource, number>([[OathResource.Favor, 1]]);
+    getting = new Map([[OathResource.Favor, 1]]);
 
     constructor(player: OathPlayer, card: Denizen, site: Site) {
         super(player);
