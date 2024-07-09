@@ -497,9 +497,11 @@ export class PlayWorldCardEffect extends PlayerEffect<void> {
     }
 }
 
-class PlayDenizenAtSiteEffect extends PlayerEffect<void> {
+export class PlayDenizenAtSiteEffect extends PlayerEffect<void> {
     card: Denizen;
     site: Site;
+
+    getting = new Map<OathResource, number>([[OathResource.Favor, 1]]);
 
     constructor(player: OathPlayer, card: Denizen, site: Site) {
         super(player);
@@ -510,16 +512,25 @@ class PlayDenizenAtSiteEffect extends PlayerEffect<void> {
     resolve(): void {
         this.card.putAtSite(this.site);
         this.card.reveal();
-        new TakeResourcesFromBankEffect(this.game, this.player, this.game.favorBanks.get(this.card.suit), 1).do();
+        
+        // TODO: Put this in an effect?
+        const bank = this.game.favorBanks.get(this.card.suit);
+        for (const [resource, amount] of this.getting) {
+            if (bank && resource === bank.type)
+                new TakeResourcesFromBankEffect(this.game, this.player, bank, amount).do();
+            else
+                new PutResourcesOnTargetEffect(this.game, this.player, resource, amount).do();
+        }
     }
 
     revert(): void {
         // The thing that calls this effect is in charge of putting the card back where it was
         // It should, if it calls setOwner, revert the placement at the site
+        // TODO: Revert facedown (?)
     }
 }
 
-class PlayWorldCardToAdviserEffect extends PlayerEffect<void> {
+export class PlayWorldCardToAdviserEffect extends PlayerEffect<void> {
     card: WorldCard;
     facedown: boolean;
 
@@ -540,7 +551,7 @@ class PlayWorldCardToAdviserEffect extends PlayerEffect<void> {
     }
 }
 
-class PlayVisionEffect extends PlayerEffect<void> {
+export class PlayVisionEffect extends PlayerEffect<void> {
     player: Exile;
     card: Vision;
     oldVision: Vision | undefined;

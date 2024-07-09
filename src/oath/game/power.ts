@@ -2,7 +2,7 @@ import { CampaignAction, CampaignAtttackAction, CampaignDefenseAction, InvalidAc
 import { Denizen, OwnableCard, Relic, Site, WorldCard } from "./cards/cards";
 import { BannerName, OathResource, OathSuit, RegionName } from "./enums";
 import { Banner, DarkestSecret, PeoplesFavor, ResourceCost } from "./resources";
-import { AddActionToStackEffect, OathEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesOnTargetEffect, PutWarbandsFromBagEffect, TakeOwnableObjectEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect } from "./effects";
+import { AddActionToStackEffect, OathEffect, PayCostToTargetEffect, PlayDenizenAtSiteEffect, PlayWorldCardEffect, PutResourcesOnTargetEffect, PutWarbandsFromBagEffect, TakeOwnableObjectEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect } from "./effects";
 import { OathPlayer, OwnableObject, Reliquary, isOwnable } from "./player";
 import { OathGameObject } from "./game";
 
@@ -589,6 +589,18 @@ export class DragonskinWardrum extends AccessedEffectModifier<Relic> {
 
     applyAfter(): void {
         new PutWarbandsFromBagEffect(this.effect.player, 1).do();
+    }
+}
+
+
+export class BookOfRecords extends AccessedEffectModifier<Relic> {
+    name = "Book of Records";
+    static modifiedEffect = PlayDenizenAtSiteEffect;
+    effect: PlayDenizenAtSiteEffect;
+
+    applyDuring(): void {
+        this.effect.getting = new Map([[OathResource.Secret, this.effect.getting.get(OathResource.Favor) || 0]]);
+        this.effect.getting.delete(OathResource.Favor);
     }
 }
 

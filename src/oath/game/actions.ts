@@ -209,7 +209,7 @@ export class MusterAction extends MajorAction {
     supplyCost = 1;
     card: Denizen;
     using = OathResource.Favor;
-    amount = 2;
+    amount = 1;
 
     constructor(player: OathPlayer) {
         super(player);
