@@ -1,8 +1,8 @@
-import { CampaignAtttackAction, CampaignDefenseAction, InvalidActionResolution, ModifiableAction, OathAction, PeoplesFavorDiscardAction, PeoplesFavorWakeAction, RestAction, SearchAction, SearchDiscardAction, SearchPlayAction, SilverTongueAction as TakeFavorFromBankAction, TradeAction, TravelAction, UsePowerAction, WakeAction } from "./actions";
+import { CampaignAtttackAction, CampaignDefenseAction, InvalidActionResolution, ModifiableAction, OathAction, PeoplesFavorDiscardAction, PeoplesFavorWakeAction, RestAction, SearchAction, SearchPlayAction, TakeFavorFromBankAction, TakeResourceFromSourceAction, TradeAction, TravelAction, UsePowerAction, WakeAction } from "./actions";
 import { Denizen, OwnableCard, Relic, Site, WorldCard } from "./cards/cards";
 import { BannerName, OathResource, OathSuit, RegionName } from "./enums";
 import { Banner, DarkestSecret, PeoplesFavor, ResourceCost } from "./resources";
-import { AddActionToStackEffect, DiscardCardEffect, OathEffect, PayCostToTargetEffect, PlayDenizenAtSiteEffect, PlayWorldCardEffect, PutResourcesOnTargetEffect, PutWarbandsFromBagEffect, RegionDiscardEffect, TakeOwnableObjectEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect } from "./effects";
+import { AddActionToStackEffect, OathEffect, PayCostToTargetEffect, PlayDenizenAtSiteEffect, PlayWorldCardEffect, PutResourcesOnTargetEffect, PutWarbandsFromBagEffect, RegionDiscardEffect, TakeOwnableObjectEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect } from "./effects";
 import { OathPlayer, OwnableObject, Reliquary, isOwnable } from "./player";
 import { OathGameObject } from "./game";
 
@@ -203,7 +203,7 @@ export class ForcedLabor extends EnemyActionModifier<Denizen> {
 
 // ------------------ ARCANE ------------------- //
 export class GleamingArmorAttack extends EnemyActionModifier<Denizen> {
-    name = "Gleaming Armor"
+    name = "Gleaming Armor";
     static modifiedAction = CampaignAtttackAction;
     action: CampaignAtttackAction;
     mustUse = true;
@@ -215,7 +215,7 @@ export class GleamingArmorAttack extends EnemyActionModifier<Denizen> {
     }
 }
 export class GleamingArmorDefense extends EnemyActionModifier<Denizen> {
-    name = "Gleaming Armor"
+    name = "Gleaming Armor";
     static modifiedAction = CampaignDefenseAction;
     action: CampaignDefenseAction;
     mustUse = true;
@@ -229,7 +229,7 @@ export class GleamingArmorDefense extends EnemyActionModifier<Denizen> {
 
 
 export class SpiritSnare extends ActivePower<Denizen> {
-    name = "Spirit Snare"
+    name = "Spirit Snare";
     cost = new ResourceCost([[OathResource.Secret, 1]]);
 
     usePower(player: OathPlayer): void {
@@ -239,10 +239,30 @@ export class SpiritSnare extends ActivePower<Denizen> {
 
 
 export class Dazzle extends WhenPlayed<Denizen> {
-    name = "Dazzle"
+    name = "Dazzle";
 
     whenPlayed(effect: PlayWorldCardEffect): void {
         new RegionDiscardEffect(effect.player, [OathSuit.Hearth, OathSuit.Order]).do();
+    }
+}
+
+
+export class Tutor extends ActivePower<Denizen> {
+    name = "Tutor";
+    cost = new ResourceCost([[OathResource.Favor, 1], [OathResource.Secret, 1]]);
+
+    usePower(player: OathPlayer): void {
+        new PutResourcesOnTargetEffect(this.game, player, OathResource.Secret, 1).do();
+    }
+}
+
+
+export class Alchemist extends ActivePower<Denizen> {
+    name = "Alchemist";
+    cost = new ResourceCost([[OathResource.Secret, 1]], [[OathResource.Secret, 1]]);
+
+    usePower(player: OathPlayer): void {
+        for (let i = 0; i < 4; i++) new AddActionToStackEffect(new TakeFavorFromBankAction(player)).do();
     }
 }
 
@@ -336,7 +356,7 @@ export class Elders extends ActivePower<Denizen> {
 
 
 export class SpellBreaker extends EnemyActionModifier<Denizen> {
-    name = "Spell Breaker"
+    name = "Spell Breaker";
     static modifiedAction = ModifiableAction;
 
     applyBefore(): boolean {
@@ -348,7 +368,7 @@ export class SpellBreaker extends EnemyActionModifier<Denizen> {
     }
 }
 export class SpellBreakerActive extends EnemyActionModifier<Denizen> {
-    name = "Spell Breaker"
+    name = "Spell Breaker";
     static modifiedAction = UsePowerAction;
     action: UsePowerAction;
 
@@ -429,7 +449,7 @@ export class SilverTongue extends AccessedActionModifier<Denizen> {
     applyBefore(): boolean {
         const suits: Set<OathSuit> = new Set();
         for (const denizen of this.action.player.site.denizens) suits.add(denizen.suit);
-        new AddActionToStackEffect(new TakeFavorFromBankAction(this.action.player, suits));
+        new AddActionToStackEffect(new TakeFavorFromBankAction(this.action.player, 1, suits)).do();
         return true;
     }
 }
@@ -448,7 +468,7 @@ export class Bracken extends AccessedActionModifier<Denizen> {
 
 
 export class InsectSwarmAttack extends EnemyActionModifier<Denizen> {
-    name = "Insect Swarm"
+    name = "Insect Swarm";
     static modifiedAction = CampaignAtttackAction;
     action: CampaignAtttackAction;
     mustUse = true;
@@ -460,7 +480,7 @@ export class InsectSwarmAttack extends EnemyActionModifier<Denizen> {
     }
 }
 export class InsectSwarmDefense extends EnemyActionModifier<Denizen> {
-    name = "Insect Swarm"
+    name = "Insect Swarm";
     static modifiedAction = CampaignDefenseAction;
     action: CampaignDefenseAction;
     mustUse = true;
@@ -474,10 +494,32 @@ export class InsectSwarmDefense extends EnemyActionModifier<Denizen> {
 
 
 export class ThreateningRoar extends WhenPlayed<Denizen> {
-    name = "Threatening Roar"
+    name = "Threatening Roar";
 
     whenPlayed(effect: PlayWorldCardEffect): void {
         new RegionDiscardEffect(effect.player, [OathSuit.Beast, OathSuit.Nomad]).do();
+    }
+}
+
+
+export class VowOfPoverty extends AccessedActionModifier<Denizen> {
+    name = "Vow of Poverty";
+    static modifiedAction = TradeAction;
+    action: TradeAction;
+    mustUse = true;
+
+    applyDuring(): void {
+        this.action.getting.delete(OathResource.Favor);
+    }
+}
+export class VowOfPovertyRest extends AccessedActionModifier<Denizen> {
+    name = "Vow of Poverty";
+    static modifiedAction = RestAction;
+    action: RestAction;
+
+    applyBefore(): boolean {
+        new AddActionToStackEffect(new TakeFavorFromBankAction(this.action.player, 2)).do();
+        return true;
     }
 }
 
@@ -597,9 +639,7 @@ export class ResourceSite extends SiteActionModifier {
     action: WakeAction;
 
     applyBefore(): boolean {
-        const resourceTypes: OathResource[] = [];
-        for (const [resource, value] of this.source.resources) if (value > 0) resourceTypes.push(resource);
-        // Action to pickup one of the resources
+        new AddActionToStackEffect(new TakeResourceFromSourceAction(this.action.player, this.source)).do();
         return true;
     }
 }

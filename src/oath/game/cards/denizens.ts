@@ -1,5 +1,5 @@
 import { CardRestriction } from "../enums";
-import { Assassin, AwaitedReturn, Bracken, Curfew, Dazzle, Elders, ForcedLabor, GleamingArmorAttack, GleamingArmorDefense, HeartsAndMinds, InsectSwarmAttack, InsectSwarmDefense, Insomnia, KeyToTheCity, LongbowArchersAttack, LongbowArchersDefense, LostTongue, LostTongueCampaign, OathPower, OnlyTwoAdvisers, RelicThief, ShieldWall, SilverTongue, SpellBreaker, SpellBreakerActive, SpiritSnare, ThreateningRoar, TollRoads, WayStation } from "../power";
+import { Alchemist, Assassin, AwaitedReturn, Bracken, Curfew, Dazzle, Elders, ForcedLabor, GleamingArmorAttack, GleamingArmorDefense, HeartsAndMinds, InsectSwarmAttack, InsectSwarmDefense, Insomnia, KeyToTheCity, LongbowArchersAttack, LongbowArchersDefense, LostTongue, LostTongueCampaign, OathPower, OnlyTwoAdvisers, RelicThief, ShieldWall, SilverTongue, SpellBreaker, SpellBreakerActive, SpiritSnare, ThreateningRoar, TollRoads, Tutor, WayStation } from "../power";
 import { Denizen } from "./cards";
 
 export const denizenData: StringObject<[string, Constructor<OathPower<Denizen>>[], CardRestriction?, boolean?]> = {
@@ -12,6 +12,8 @@ export const denizenData: StringObject<[string, Constructor<OathPower<Denizen>>[
     "GleamingArmor":    ["Gleaming Armor",      [GleamingArmorAttack, GleamingArmorDefense]],
     "SpiritSnare":      ["Spirit Snare",        [SpiritSnare]],
     "Dazzle":           ["Dazzle",              [Dazzle]],
+    "Tutor":            ["Tutor",               [Tutor], CardRestriction.Adviser],
+    "Alchemist":        ["Alchemist",           [Alchemist]],
 
     "HeartsAndMinds":   ["Hearts and Minds",    [HeartsAndMinds], CardRestriction.Site],
     "AwaitedReturn":    ["AwaitedReturn",       [AwaitedReturn]],

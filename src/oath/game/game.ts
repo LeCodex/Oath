@@ -38,6 +38,11 @@ export class OathGame {
     getPowers<T extends OathPower<any>>(type: AbstractConstructor<T>): [any, Constructor<T>][] {
         const powers: [any, Constructor<T>][] = [];
 
+        const reliquary = this.chancellor.reliquary;
+        for (const [i, power] of reliquary.powers.entries()) {
+            if (!reliquary.relics[i] && isExtended(power, type)) powers.push([reliquary, power]);
+        }
+
         for (const region of this.board.regions.values()) {
             for (const site of region.sites) {
                 for (const denizen of site.denizens) {
@@ -69,11 +74,6 @@ export class OathGame {
             for (const power of banner.powers) {
                 if (isExtended(power, type)) powers.push([banner, power]);
             }
-        }
-
-        const reliquary = this.chancellor.reliquary;
-        for (const [i, power] of reliquary.powers.entries()) {
-            if (!reliquary.relics[i] && isExtended(power, type)) powers.push([reliquary, power]);
         }
 
         return powers;

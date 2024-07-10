@@ -24,6 +24,13 @@ export enum OathResource {
     FlippedSecret
 }
 
+export const OathResourceName: { [key: number]: string } = {
+    [OathResource.Favor]: "Favor",
+    [OathResource.Secret]: "Secret",
+    [OathResource.FlippedSecret]: "Flipped Secret",
+}
+
+
 export enum Oath {
     Supremacy,
     Protection,

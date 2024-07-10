@@ -1,11 +1,11 @@
 import { Denizen, Site, WorldCard } from "./cards/cards";
 import { SearchableDeck } from "./cards/decks";
 import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect, DiscardCardEffect, MoveOwnWarbandsEffect, AddActionToStackEffect } from "./effects";
-import { OathResource, OathSuit, OathSuitName } from "./enums";
+import { OathResource, OathResourceName, OathSuit, OathSuitName } from "./enums";
 import { OathGame, OathGameObject } from "./game";
 import { OathPlayer } from "./player";
 import { ActionModifier, ActivePower, SearchPlayActionModifier } from "./power";
-import { Banner, PeoplesFavor, ResourceCost } from "./resources";
+import { Banner, PeoplesFavor, ResourceCost, ResourcesAndWarbands } from "./resources";
 
 
 
@@ -155,13 +155,9 @@ export class ChooseModifiers extends OathAction {
 
     execute() {
         const modifiers = this.parameters.modifiers;
+        if (!this.executeImmediately) new AddActionToStackEffect(this.next).do();
         if (!this.next.applyModifiers(modifiers)) return;
-
-        if (this.executeImmediately) {
-            this.next.execute();
-        } else {
-            new AddActionToStackEffect(this.next).do();
-        }
+        if (this.executeImmediately) this.next.execute();
     }
 }
 
@@ -928,6 +924,33 @@ export class RestAction extends ModifiableAction {
 }
 
 
+////////////////////////////////////////////
+//              MINOR ACTIONS             //
+////////////////////////////////////////////
+export class UsePowerAction extends ModifiableAction {
+    readonly selects: { power: SelectNOf<ActivePower<any>> }
+    readonly parameters: { modifiers: ActionModifier<any>[], power: ActivePower<any>[] };
+
+    power: ActivePower<any>
+
+    start() {
+        const choices = new Map<string, ActivePower<any>>();
+        for (const [source, power] of this.game.getPowers(ActivePower<any>)) {
+            const instance = new power(source, this);
+            if (instance.canUse()) choices.set(instance.name, instance);
+        }
+        super.start();
+    }
+
+    modifiedExecution(): void {
+        if (!new PayCostToTargetEffect(this.game, this.player, this.power.cost, this.power.source).do())
+            throw new InvalidActionResolution("Cannot pay the resource cost.");
+
+        this.power.usePower(this.player);
+    }
+}
+
+
 
 ////////////////////////////////////////////
 //              OTHER ACTIONS             //
@@ -936,19 +959,19 @@ export abstract class ChooseSuit extends OathAction {
     readonly selects: { suit: SelectNOf<OathSuit | undefined> };
     readonly parameters: { suit: (OathSuit | undefined)[] };
 
-    values: Set<OathSuit>;
+    suits: Set<OathSuit>;
     suit: OathSuit | undefined;
 
-    constructor(player: OathPlayer, values?: Iterable<OathSuit>) {
+    constructor(player: OathPlayer, suits?: Iterable<OathSuit>) {
         super(player);
-        this.values = new Set(values);
+        this.suits = new Set(suits);
     }
 
     start(none?: string) {
-        if (!this.values.size) this.values = new Set([OathSuit.Discord, OathSuit.Arcane, OathSuit.Order, OathSuit.Hearth, OathSuit.Beast, OathSuit.Nomad]);
+        if (!this.suits.size) this.suits = new Set([OathSuit.Discord, OathSuit.Arcane, OathSuit.Order, OathSuit.Hearth, OathSuit.Beast, OathSuit.Nomad]);
 
         const choices = new Map<string, OathSuit | undefined>();
-        for (const suit of this.values) choices.set(OathSuitName[suit], suit);
+        for (const suit of this.suits) choices.set(OathSuitName[suit], suit);
         if (none) choices.set(none, undefined);
         this.selects.suit = new SelectNOf(choices, 1);
 
@@ -981,7 +1004,22 @@ export class PeoplesFavorReturnAction extends ChooseSuit {
     }
 }
 
-export class SilverTongueAction extends ChooseSuit {
+export class TakeFavorFromBankAction extends ChooseSuit {
+    amount: number;
+
+    constructor(player: OathPlayer, amount?: number, suits?: Iterable<OathSuit>) {
+        super(player, suits)
+        this.amount = amount || 1;
+    }
+
+    start(none?: string): void {
+        for (const suit of this.suits) {
+            const bank = this.game.favorBanks.get(suit);
+            if (bank && bank.amount) this.suits.delete(suit);
+        }
+        super.start(none);
+    }
+
     execute() {
         super.execute();
         if (!this.suit) return;
@@ -1000,13 +1038,13 @@ export class PeoplesFavorWakeAction extends ChooseSuit {
     start() {
         let min = Infinity;
         for (const bank of this.game.favorBanks.values()) if (bank.amount < min) min = bank.amount;
-        for (const [suit, bank] of this.game.favorBanks) if (bank.amount === min) this.values.add(suit);
+        for (const [suit, bank] of this.game.favorBanks) if (bank.amount === min) this.suits.add(suit);
         
         super.start("Put favor");
     }
 
     execute(): void {
-        super.execute()
+        super.execute();
         const bank = this.suit && this.game.favorBanks.get(this.suit);
 
         if (bank)
@@ -1016,26 +1054,28 @@ export class PeoplesFavorWakeAction extends ChooseSuit {
     }
 }
 
+export class TakeResourceFromSourceAction extends OathAction {
+    readonly selects: { resource: SelectNOf<OathResource> };
+    readonly parameters: { resource: OathResource[] };
 
-export class UsePowerAction extends ModifiableAction {
-    readonly selects: { power: SelectNOf<ActivePower<any>> }
-    readonly parameters: { modifiers: ActionModifier<any>[], power: ActivePower<any>[] };
+    source: ResourcesAndWarbands;
 
-    power: ActivePower<any>
+    constructor(player: OathPlayer, source: ResourcesAndWarbands) {
+        super(player);
+        this.source = source;
+    }
 
     start() {
-        const choices = new Map<string, ActivePower<any>>();
-        for (const [source, power] of this.game.getPowers(ActivePower<any>)) {
-            const instance = new power(source, this);
-            if (instance.canUse()) choices.set(instance.name, instance);
-        }
+        const choices = new Map<string, OathResource>();
+        for (const [resource, value] of this.source.resources)
+            if (value > 0) choices.set(OathResourceName[resource], resource);
+        this.selects.resource = new SelectNOf(choices, 1);
         super.start();
     }
 
-    modifiedExecution(): void {
-        if (!new PayCostToTargetEffect(this.game, this.player, this.power.cost, this.power.source).do())
-            throw new InvalidActionResolution("Cannot pay the resource cost.");
-
-        this.power.usePower(this.player);
+    execute(): void {
+        const resource = this.parameters.resource[0];
+        if (!resource) return;
+        new MoveResourcesToTargetEffect(this.game, this.player, resource, 1, this.player, this.source).do();   
     }
 }
