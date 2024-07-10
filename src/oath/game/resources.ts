@@ -1,4 +1,4 @@
-import { CampaignActionTarget, FavorReturnAction, RecoverAction, RecoverActionTarget, RecoverBannerPitchAction } from "./actions";
+import { CampaignActionTarget, PeoplesFavorReturnAction, RecoverAction, RecoverActionTarget, RecoverBannerPitchAction } from "./actions";
 import { AddActionToStackEffect, TakeOwnableObjectEffect } from "./effects";
 import { OathResource } from "./enums"
 import { OathGameObject } from "./game";
@@ -82,7 +82,7 @@ export class PeoplesFavor extends Banner {
 
     handleRecovery(player: OathPlayer) {
         this.isMob = false;
-        new AddActionToStackEffect(new FavorReturnAction(player, this.take())).do();
+        new AddActionToStackEffect(new PeoplesFavorReturnAction(player, this.take())).do();
     }
 }
 

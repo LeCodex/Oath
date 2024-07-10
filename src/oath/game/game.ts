@@ -80,10 +80,10 @@ export class OathGame {
     }
 
     checkForNextAction() {
-        
+        this.actionStack[this.actionStack.length - 1].start();
     }
 
-    continueAction(values: any) {
+    continueAction(values: StringObject<string[]>) {
         const action = this.actionStack.pop();
         if (!action) return;
 
