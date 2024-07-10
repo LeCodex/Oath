@@ -707,3 +707,16 @@ export class RollDiceEffect extends OathEffect<number[]> {
         // In this case, a dice roll should not get reverted
     }
 }
+
+export class SetNewOathkeeperEffect extends PlayerEffect<void> {
+    oldOathkeeper: OathPlayer;
+
+    resolve(): void {
+        this.oldOathkeeper = this.game.oathkeeper;
+        this.game.oathkeeper = this.player;
+    }
+
+    revert(): void {
+        this.game.oathkeeper = this.oldOathkeeper;
+    }
+}

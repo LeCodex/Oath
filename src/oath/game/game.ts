@@ -1,8 +1,8 @@
-import { OathAction } from "./actions";
+import { ChooseNewOathkeeper, OathAction } from "./actions";
 import { OathBoard } from "./board";
 import { RelicDeck, WorldDeck } from "./cards/decks";
-import { OathEffect } from "./effects";
-import { BannerName, Oath, OathPhase, OathSuit } from "./enums";
+import { AddActionToStackEffect, OathEffect } from "./effects";
+import { BannerName, Oath as OathType, OathPhase, OathSuit } from "./enums";
 import { Chancellor, OathPlayer } from "./player";
 import { OathPower } from "./power";
 import { Banner, FavorBank } from "./resources";
@@ -80,7 +80,10 @@ export class OathGame {
     }
 
     checkForNextAction() {
-        this.actionStack[this.actionStack.length - 1].start();
+        if (this.actionStack.length)
+            this.actionStack[this.actionStack.length - 1].start();
+        else
+            this.checkForOathkeeper();
     }
 
     continueAction(values: StringObject<string[]>) {
@@ -109,6 +112,27 @@ export class OathGame {
         for (const effect of this.currentEffects) effect.revert();
     }
 
+    checkForOathkeeper() {
+        let max = 0, newOathkeepers = new Set<OathPlayer>();
+        for (const player of this.players) {
+            const score = this.oath.scorePlayer(player);
+            if (score > max) {
+                newOathkeepers.clear();
+                newOathkeepers.add(player);
+                max = score;
+            } else if (score === max) {
+                newOathkeepers.add(player);
+            }
+        }
+
+        if (newOathkeepers.has(this.oathkeeper)) return;
+        if (newOathkeepers.size) {
+            // TODO: Can this be added to the stack directly?
+            new AddActionToStackEffect(new ChooseNewOathkeeper(this.oathkeeper, newOathkeepers)).do();
+            this.checkForNextAction();
+        }
+    }
+
     endTurn() {
 
     }
@@ -119,5 +143,67 @@ export abstract class OathGameObject {
 
     constructor(game: OathGame) {
         this.game = game;
+    }
+}
+
+
+export abstract class Oath extends OathGameObject{
+    type: OathType;
+
+    abstract scorePlayer(player: OathPlayer): number;
+    abstract isSuccessor(player: OathPlayer): boolean;
+}
+
+export class OathOfSupremacy extends Oath {
+    type = OathType.Supremacy;
+
+    scorePlayer(player: OathPlayer): number {
+        let total = 0;
+        for (const region of this.game.board.regions.values())
+            for (const site of region.sites)
+                if (site.ruler === player) total++;
+
+        return total
+    }
+
+    isSuccessor(player: OathPlayer): boolean {
+        return player.relics.size + player.banners.size > this.game.chancellor.relics.size + this.game.chancellor.banners.size;
+    }
+}
+
+export class OathOfProtection extends Oath {
+    type = OathType.Protection;
+
+    scorePlayer(player: OathPlayer): number {
+        return player.relics.size + player.banners.size;
+    }
+
+    isSuccessor(player: OathPlayer): boolean {
+        return this.game.banners.get(BannerName.PeoplesFavor)?.owner === player;
+    }
+}
+
+export class OathOfThePeople extends Oath {
+    type = OathType.ThePeople;
+
+    scorePlayer(player: OathPlayer): number {
+        return this.game.banners.get(BannerName.PeoplesFavor)?.owner === player ? 1 : 0;
+    }
+
+    isSuccessor(player: OathPlayer): boolean {
+        return this.game.banners.get(BannerName.DarkestSecret)?.owner === player;
+    }
+}
+
+export class OathOfDevotion extends Oath {
+    type = OathType.Devotion;
+
+    scorePlayer(player: OathPlayer): number {
+        return this.game.banners.get(BannerName.DarkestSecret)?.owner === player ? 1 : 0;
+    }
+
+    isSuccessor(player: OathPlayer): boolean {
+        // TODO: Make this successor goal
+        return false;
     }
 }

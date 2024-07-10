@@ -1,6 +1,6 @@
 import { Denizen, Site, WorldCard } from "./cards/cards";
 import { SearchableDeck } from "./cards/decks";
-import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect, DiscardCardEffect, MoveOwnWarbandsEffect, AddActionToStackEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect } from "./effects";
+import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect, DiscardCardEffect, MoveOwnWarbandsEffect, AddActionToStackEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect, SetNewOathkeeperEffect } from "./effects";
 import { OathResource, OathResourceName, OathSuit, OathSuitName } from "./enums";
 import { OathGame, OathGameObject } from "./game";
 import { OathPlayer } from "./player";
@@ -1143,5 +1143,13 @@ export class PiedPiperAction extends TakeResourceFromPlayerAction {
         if (!this.target) return;
         const adviser = new MoveAdviserEffect(this.player, this.card).do();
         new MoveWorldCardToAdvisersEffect(this.game, this.player, adviser, this.target).do()
+    }
+}
+
+export class ChooseNewOathkeeper extends ChoosePlayer {
+    execute(): void {
+        super.execute();
+        if (!this.target) return;
+        new SetNewOathkeeperEffect(this.target).do();
     }
 }
