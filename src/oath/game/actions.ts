@@ -936,13 +936,19 @@ export abstract class ChooseSuit extends OathAction {
     readonly selects: { suit: SelectNOf<OathSuit | undefined> };
     readonly parameters: { suit: (OathSuit | undefined)[] };
 
+    values: Set<OathSuit>;
     suit: OathSuit | undefined;
 
-    start(values?: Iterable<OathSuit>, none?: string) {
-        if (!values) values = [OathSuit.Discord, OathSuit.Arcane, OathSuit.Order, OathSuit.Hearth, OathSuit.Beast, OathSuit.Nomad];
+    constructor(player: OathPlayer, values?: Iterable<OathSuit>) {
+        super(player);
+        this.values = new Set(values);
+    }
+
+    start(none?: string) {
+        if (!this.values.size) this.values = new Set([OathSuit.Discord, OathSuit.Arcane, OathSuit.Order, OathSuit.Hearth, OathSuit.Beast, OathSuit.Nomad]);
 
         const choices = new Map<string, OathSuit | undefined>();
-        for (const suit of values) choices.set(OathSuitName[suit], suit);
+        for (const suit of this.values) choices.set(OathSuitName[suit], suit);
         if (none) choices.set(none, undefined);
         this.selects.suit = new SelectNOf(choices, 1);
 
@@ -992,11 +998,11 @@ export class PeoplesFavorWakeAction extends ChooseSuit {
     }
 
     start() {
-        const suits = new Set<OathSuit>();
         let min = Infinity;
         for (const bank of this.game.favorBanks.values()) if (bank.amount < min) min = bank.amount;
-        for (const [suit, bank] of this.game.favorBanks) if (bank.amount === min) suits.add(suit);
-        super.start(suits, "Put favor");
+        for (const [suit, bank] of this.game.favorBanks) if (bank.amount === min) this.values.add(suit);
+        
+        super.start("Put favor");
     }
 
     execute(): void {
