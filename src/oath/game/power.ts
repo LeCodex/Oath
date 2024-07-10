@@ -1,8 +1,8 @@
-import { CampaignAtttackAction, CampaignDefenseAction, InvalidActionResolution, ModifiableAction, OathAction, PeoplesFavorDiscardAction, PeoplesFavorWakeAction, RestAction, SearchAction, SearchPlayAction, TakeFavorFromBankAction, ChooseResourceToTakeAction, TradeAction, TravelAction, UsePowerAction, WakeAction, TakeResourceFromPlayerAction, PiedPiperAction } from "./actions";
+import { CampaignAtttackAction, CampaignDefenseAction, InvalidActionResolution, ModifiableAction, OathAction, PeoplesFavorDiscardAction, PeoplesFavorWakeAction, RestAction, SearchAction, SearchPlayAction, TakeFavorFromBankAction, ChooseResourceToTakeAction, TradeAction, TravelAction, UsePowerAction, WakeAction, TakeResourceFromPlayerAction, PiedPiperAction, CampaignAction, CampaignEndAction } from "./actions";
 import { Denizen, OwnableCard, Relic, Site, Vision, WorldCard } from "./cards/cards";
 import { BannerName, OathResource, OathSuit, RegionName } from "./enums";
 import { Banner, DarkestSecret, PeoplesFavor, ResourceCost } from "./resources";
-import { AddActionToStackEffect, MoveResourcesToTargetEffect, OathEffect, PayCostToTargetEffect, PlayDenizenAtSiteEffect, PlayWorldCardEffect, PutResourcesOnTargetEffect, PutWarbandsFromBagEffect, RegionDiscardEffect, SetNewOathkeeperEffect, TakeOwnableObjectEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect } from "./effects";
+import { AddActionToStackEffect, MoveResourcesToTargetEffect, OathEffect, PayCostToTargetEffect, PlayDenizenAtSiteEffect, PlayVisionEffect, PlayWorldCardEffect, PutResourcesOnTargetEffect, PutWarbandsFromBagEffect, RegionDiscardEffect, RollDiceEffect, SetNewOathkeeperEffect, TakeOwnableObjectEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect } from "./effects";
 import { OathPlayer, OwnableObject, Reliquary, isOwnable } from "./player";
 import { OathGameObject } from "./game";
 
@@ -359,6 +359,44 @@ export class FabledFeast extends WhenPlayed<Denizen> {
 }
 
 
+export class BookBinders extends EnemyEffectModifier<Denizen> {
+    name = "Book Binders";
+    static modifiedEffect = PlayVisionEffect;
+    effect: PlayVisionEffect;
+
+    applyAfter(): void {
+        if (!this.source.ruler) return;
+        new AddActionToStackEffect(new TakeFavorFromBankAction(this.source.ruler, 2)).do();
+    }
+}
+
+export class SaddleMakers extends EnemyEffectModifier<Denizen> {
+    name = "Saddle Makers";
+    static modifiedEffect = PlayWorldCardEffect;
+    effect: PlayWorldCardEffect;
+
+    applyAfter(): void {
+        if (!this.source.ruler) return;
+        if (this.effect.facedown || !(this.effect.card instanceof Denizen)) return;
+        if (this.effect.card.suit !== OathSuit.Nomad && this.effect.card.suit !== OathSuit.Discord) return;
+        new TakeResourcesFromBankEffect(this.game, this.source.ruler, this.game.favorBanks.get(this.effect.card.suit), 2).do();
+    }
+}
+
+export class Herald extends EnemyActionModifier<Denizen> {
+    name = "Herald";
+    static modifiedAction = CampaignEndAction;
+    action: CampaignEndAction;
+    mustUse = true;
+
+    applyAfter(): void {
+        if (!this.source.ruler) return;
+        if (!this.action.campaignResult.defender) return;
+        new AddActionToStackEffect(new TakeFavorFromBankAction(this.source.ruler, 1)).do();
+    }
+}
+
+
 // ------------------ NOMAD ------------------- //
 export class WayStation extends ActionModifier<Denizen> {
     name = "Way Station";
@@ -545,6 +583,28 @@ export class ChaosCult extends EnemyEffectModifier<Denizen> {
 
     applyAfter(): void {
         new MoveResourcesToTargetEffect(this.game, this.source.ruler, OathResource.Favor, 1, this.source.ruler, this.effect.player).do();
+    }
+}
+
+
+export class GamblingHall extends ActivePower<Denizen> {
+    name = "Gambling Hall";
+    cost = new ResourceCost([[OathResource.Favor, 2]]);
+
+    usePower(player: OathPlayer): void {
+        const result = new RollDiceEffect(this.game, player, [0, 0, 1, 1, 2, -1], 4).do();
+        
+        // TODO: Factor this out, probably in a Die class
+        let total = 0, mult = 1;
+        for (const roll of result) {
+            if (roll == -1)
+                mult *= 2;
+            else
+                total += roll
+        }
+        const amount = total * mult;
+
+        new AddActionToStackEffect(new TakeFavorFromBankAction(player, amount));
     }
 }
 

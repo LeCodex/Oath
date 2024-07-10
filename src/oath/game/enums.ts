@@ -9,13 +9,14 @@ export enum OathSuit {
     None
 }
 
-export const OathSuitName: { [key: number]: string } = {
+export const OathSuitName = {
     [OathSuit.Discord]: "Discord",
     [OathSuit.Arcane]: "Arcane",
     [OathSuit.Order]: "Order",
     [OathSuit.Hearth]: "Hearth",
     [OathSuit.Beast]: "Beast",
     [OathSuit.Nomad]: "Nomad",
+    [OathSuit.None]: "None",
 }
 
 export enum OathResource {
@@ -24,14 +25,14 @@ export enum OathResource {
     FlippedSecret
 }
 
-export const OathResourceName: { [key: number]: string } = {
+export const OathResourceName = {
     [OathResource.Favor]: "Favor",
     [OathResource.Secret]: "Secret",
     [OathResource.FlippedSecret]: "Flipped Secret",
 }
 
 
-export enum Oath {
+export enum OathType {
     Supremacy,
     Protection,
     ThePeople,

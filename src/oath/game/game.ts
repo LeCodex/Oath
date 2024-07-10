@@ -2,7 +2,7 @@ import { ChooseNewOathkeeper, OathAction } from "./actions";
 import { OathBoard } from "./board";
 import { RelicDeck, WorldDeck } from "./cards/decks";
 import { AddActionToStackEffect, OathEffect } from "./effects";
-import { BannerName, Oath as OathType, OathPhase, OathSuit } from "./enums";
+import { BannerName, OathType, OathPhase, OathSuit } from "./enums";
 import { Chancellor, OathPlayer } from "./player";
 import { OathPower } from "./power";
 import { Banner, FavorBank } from "./resources";
@@ -10,9 +10,9 @@ import { Banner, FavorBank } from "./resources";
 export class OathGame {
     board: OathBoard;
     banners: Map<BannerName, Banner>;
-    favorBanks: Map<OathSuit,FavorBank>
-    worldDeck: WorldDeck
-    relicDeck: RelicDeck
+    favorBanks: Map<OathSuit,FavorBank>;
+    worldDeck: WorldDeck;
+    relicDeck: RelicDeck;
     
     players: OathPlayer[];
     chancellor: Chancellor;
@@ -80,10 +80,13 @@ export class OathGame {
     }
 
     checkForNextAction() {
-        if (this.actionStack.length)
+        if (this.actionStack.length) {
             this.actionStack[this.actionStack.length - 1].start();
-        else
+        } else {
             this.checkForOathkeeper();
+            // TODO: Clear and save the effects stack
+        }
+
     }
 
     continueAction(values: StringObject<string[]>) {
@@ -206,4 +209,11 @@ export class OathOfDevotion extends Oath {
         // TODO: Make this successor goal
         return false;
     }
+}
+
+export const OathTypeToOath = {
+    [OathType.Supremacy]: OathOfSupremacy,
+    [OathType.Protection]: OathOfProtection,
+    [OathType.ThePeople]: OathOfThePeople,
+    [OathType.Devotion]: OathOfDevotion,
 }

@@ -1,7 +1,7 @@
 import { CampaignActionTarget, CampaignSeizeSiteAction, InvalidActionResolution, RecoverAction, RecoverActionTarget } from "../actions";
 import { Region } from "../board";
 import { AddActionToStackEffect, MoveOwnWarbandsEffect, PayCostToBankEffect, TakeOwnableObjectEffect } from "../effects";
-import { CardRestriction, Oath, OathResource, OathSuit, RegionName } from "../enums";
+import { CardRestriction, OathType, OathResource, OathSuit, RegionName } from "../enums";
 import { OathGame } from "../game";
 import { OathPlayer, OwnableObject } from "../player";
 import { OathPower } from "../power";
@@ -244,7 +244,7 @@ export abstract class VisionBack extends WorldCard {
 }
 
 export class Vision extends VisionBack {
-    oath: Oath;
+    oath: OathType;
 }
 
 export class Conspiracy extends VisionBack {

@@ -1,5 +1,5 @@
 import { CardRestriction } from "../enums";
-import { Alchemist, Assassin, AwaitedReturn, Bracken, ChaosCult, CharmingFriend, Curfew, Dazzle, Elders, FabledFeast, ForcedLabor, GleamingArmorAttack, GleamingArmorDefense, HeartsAndMinds, InsectSwarmAttack, InsectSwarmDefense, Insomnia, KeyToTheCity, LongbowArchersAttack, LongbowArchersDefense, LostTongue, LostTongueCampaign, Naysayers, OathPower, OnlyTwoAdvisers, PiedPiper, PiedPiperActive, RelicThief, RoyalTax, ShieldWall, SilverTongue, SleightOfHand, SpellBreaker, SpellBreakerActive, SpiritSnare, ThreateningRoar, TollRoads, Tutor, VowOfObedience, VowOfPoverty, VowOfPovertyRest, WayStation } from "../power";
+import { Alchemist, Assassin, AwaitedReturn, BookBinders, Bracken, ChaosCult, CharmingFriend, Curfew, Dazzle, Elders, FabledFeast, ForcedLabor, GamblingHall, GleamingArmorAttack, GleamingArmorDefense, HeartsAndMinds, Herald, InsectSwarmAttack, InsectSwarmDefense, Insomnia, KeyToTheCity, LongbowArchersAttack, LongbowArchersDefense, LostTongue, LostTongueCampaign, Naysayers, OathPower, OnlyTwoAdvisers, PiedPiper, PiedPiperActive, RelicThief, RoyalTax, SaddleMakers, ShieldWall, SilverTongue, SleightOfHand, SpellBreaker, SpellBreakerActive, SpiritSnare, ThreateningRoar, TollRoads, Tutor, VowOfObedience, VowOfPoverty, VowOfPovertyRest, WayStation } from "../power";
 import { Denizen } from "./cards";
 
 export const denizenData: StringObject<[string, Constructor<OathPower<Denizen>>[], CardRestriction?, boolean?]> = {
@@ -11,6 +11,7 @@ export const denizenData: StringObject<[string, Constructor<OathPower<Denizen>>[
     "SleightOfHand":    ["Sleight of Hand",     [SleightOfHand], CardRestriction.Adviser],
     "Naysayers":        ["Naysayers",           [Naysayers], CardRestriction.Adviser],
     "ChaosCult":        ["Chaos Cult",          [ChaosCult], CardRestriction.Adviser],
+    "GamblingHall":     ["Gambling Hall",       [GamblingHall], CardRestriction.Site],
 
     "GleamingArmor":    ["Gleaming Armor",      [GleamingArmorAttack, GleamingArmorDefense]],
     "SpiritSnare":      ["Spirit Snare",        [SpiritSnare]],
@@ -30,6 +31,9 @@ export const denizenData: StringObject<[string, Constructor<OathPower<Denizen>>[
     "AwaitedReturn":    ["AwaitedReturn",       [AwaitedReturn]],
     "CharmingFriend":   ["Charming Friend",     [CharmingFriend], CardRestriction.Adviser],
     "FabledFeast":      ["Fabled Feast",        [FabledFeast]],
+    "BookBinders":      ["Book Binders",        [BookBinders], CardRestriction.Adviser],
+    "SaddleMakers":     ["Saddle Makers",       [SaddleMakers], CardRestriction.Adviser],
+    "Herald":           ["Herald",              [Herald], CardRestriction.Adviser],
 
     "WayStation":       ["Way Station",         [WayStation], CardRestriction.Site],
     "LostTongue":       ["Lost Tongue",         [LostTongue, LostTongueCampaign], CardRestriction.Adviser],
