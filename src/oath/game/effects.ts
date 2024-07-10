@@ -597,6 +597,33 @@ export class DiscardCardEffect extends PlayerEffect<void> {
     }
 }
 
+export class RegionDiscardEffect extends PlayerEffect<void> {
+    suits: OathSuit[];
+    cards: Map<Denizen, Site>;
+
+    constructor(player: OathPlayer, suits: OathSuit[]) {
+        super(player);
+        this.suits = suits;
+    }
+
+    resolve(): void {
+        for (const site of this.player.site.region.sites) {
+            for (const denizen of site.denizens) {
+                if (this.suits.includes(denizen.suit)) {
+                    this.cards.set(denizen, site);
+                    new DiscardCardEffect(this.player, denizen).do();
+                }
+            }
+        }
+    }
+
+    revert(): void {
+        for (const [denizen, site] of this.cards) {
+            denizen.putAtSite(site);
+        }
+    }
+}
+
 export class TakeOwnableObjectEffect extends OathEffect<void> {
     target: OwnableObject;
     oldOwner: OathPlayer | undefined;

@@ -1,5 +1,5 @@
 import { CardRestriction } from "../enums";
-import { Assassin, AwaitedReturn, Bracken, Curfew, Elders, ForcedLabor, GleamingArmorAttack, GleamingArmorDefense, HeartsAndMinds, InsectSwarmAttack, InsectSwarmDefense, Insomnia, KeyToTheCity, LongbowArchersAttack, LongbowArchersDefense, LostTongue, LostTongueCampaign, OathPower, OnlyTwoAdvisers, RelicThief, ShieldWall, SilverTongue, SpellBreaker, SpellBreakerActive, TollRoads, WayStation } from "../power";
+import { Assassin, AwaitedReturn, Bracken, Curfew, Dazzle, Elders, ForcedLabor, GleamingArmorAttack, GleamingArmorDefense, HeartsAndMinds, InsectSwarmAttack, InsectSwarmDefense, Insomnia, KeyToTheCity, LongbowArchersAttack, LongbowArchersDefense, LostTongue, LostTongueCampaign, OathPower, OnlyTwoAdvisers, RelicThief, ShieldWall, SilverTongue, SpellBreaker, SpellBreakerActive, SpiritSnare, ThreateningRoar, TollRoads, WayStation } from "../power";
 import { Denizen } from "./cards";
 
 export const denizenData: StringObject<[string, Constructor<OathPower<Denizen>>[], CardRestriction?, boolean?]> = {
@@ -10,6 +10,8 @@ export const denizenData: StringObject<[string, Constructor<OathPower<Denizen>>[
     "ForcedLabor":      ["Forced Labor",        [ForcedLabor], CardRestriction.Site],
 
     "GleamingArmor":    ["Gleaming Armor",      [GleamingArmorAttack, GleamingArmorDefense]],
+    "SpiritSnare":      ["Spirit Snare",        [SpiritSnare]],
+    "Dazzle":           ["Dazzle",              [Dazzle]],
 
     "HeartsAndMinds":   ["Hearts and Minds",    [HeartsAndMinds], CardRestriction.Site],
     "AwaitedReturn":    ["AwaitedReturn",       [AwaitedReturn]],
@@ -26,5 +28,6 @@ export const denizenData: StringObject<[string, Constructor<OathPower<Denizen>>[
     "SilverTongue":     ["Silver Tongue",       [OnlyTwoAdvisers, SilverTongue], CardRestriction.Adviser, true],
 
     "Bracken":          ["Bracken",             [Bracken]],
-    "InsectSwarm":      ["Insect Swarm",        [InsectSwarmAttack, InsectSwarmDefense]]
+    "InsectSwarm":      ["Insect Swarm",        [InsectSwarmAttack, InsectSwarmDefense]],
+    "ThreateningRoar":  ["Threatening Roar",    [ThreateningRoar]]
 }

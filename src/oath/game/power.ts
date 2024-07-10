@@ -1,8 +1,8 @@
-import { CampaignAtttackAction, CampaignDefenseAction, InvalidActionResolution, ModifiableAction, OathAction, PeoplesFavorDiscardAction, PeoplesFavorWakeAction, RestAction, SearchAction, SearchDiscardAction, SearchPlayAction, SilverTongueAction, TradeAction, TravelAction, UsePowerAction, WakeAction } from "./actions";
+import { CampaignAtttackAction, CampaignDefenseAction, InvalidActionResolution, ModifiableAction, OathAction, PeoplesFavorDiscardAction, PeoplesFavorWakeAction, RestAction, SearchAction, SearchDiscardAction, SearchPlayAction, SilverTongueAction as TakeFavorFromBankAction, TradeAction, TravelAction, UsePowerAction, WakeAction } from "./actions";
 import { Denizen, OwnableCard, Relic, Site, WorldCard } from "./cards/cards";
 import { BannerName, OathResource, OathSuit, RegionName } from "./enums";
 import { Banner, DarkestSecret, PeoplesFavor, ResourceCost } from "./resources";
-import { AddActionToStackEffect, OathEffect, PayCostToTargetEffect, PlayDenizenAtSiteEffect, PlayWorldCardEffect, PutResourcesOnTargetEffect, PutWarbandsFromBagEffect, TakeOwnableObjectEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect } from "./effects";
+import { AddActionToStackEffect, DiscardCardEffect, OathEffect, PayCostToTargetEffect, PlayDenizenAtSiteEffect, PlayWorldCardEffect, PutResourcesOnTargetEffect, PutWarbandsFromBagEffect, RegionDiscardEffect, TakeOwnableObjectEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect } from "./effects";
 import { OathPlayer, OwnableObject, Reliquary, isOwnable } from "./player";
 import { OathGameObject } from "./game";
 
@@ -228,6 +228,25 @@ export class GleamingArmorDefense extends EnemyActionModifier<Denizen> {
 }
 
 
+export class SpiritSnare extends ActivePower<Denizen> {
+    name = "Spirit Snare"
+    cost = new ResourceCost([[OathResource.Secret, 1]]);
+
+    usePower(player: OathPlayer): void {
+        new AddActionToStackEffect(new TakeFavorFromBankAction(player)).do();
+    }
+}
+
+
+export class Dazzle extends WhenPlayed<Denizen> {
+    name = "Dazzle"
+
+    whenPlayed(effect: PlayWorldCardEffect): void {
+        new RegionDiscardEffect(effect.player, [OathSuit.Hearth, OathSuit.Order]).do();
+    }
+}
+
+
 // ------------------ HEARTH ------------------- //
 export class HeartsAndMinds extends DefenderBattlePlan<Denizen> {
     name = "Hearts and Minds";
@@ -410,7 +429,7 @@ export class SilverTongue extends AccessedActionModifier<Denizen> {
     applyBefore(): boolean {
         const suits: Set<OathSuit> = new Set();
         for (const denizen of this.action.player.site.denizens) suits.add(denizen.suit);
-        new AddActionToStackEffect(new SilverTongueAction(this.action.player, suits));
+        new AddActionToStackEffect(new TakeFavorFromBankAction(this.action.player, suits));
         return true;
     }
 }
@@ -450,6 +469,15 @@ export class InsectSwarmDefense extends EnemyActionModifier<Denizen> {
         for (const modifier of modifiers) 
             if (modifier instanceof DefenderBattlePlan)
                 modifier.cost.add(new ResourceCost([], [[OathResource.Favor, 1]]));
+    }
+}
+
+
+export class ThreateningRoar extends WhenPlayed<Denizen> {
+    name = "Threatening Roar"
+
+    whenPlayed(effect: PlayWorldCardEffect): void {
+        new RegionDiscardEffect(effect.player, [OathSuit.Beast, OathSuit.Nomad]).do();
     }
 }
 
