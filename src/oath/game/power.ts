@@ -2,7 +2,7 @@ import { CampaignAtttackAction, CampaignDefenseAction, InvalidActionResolution, 
 import { Denizen, OwnableCard, Relic, Site, Vision, WorldCard } from "./cards/cards";
 import { BannerName, OathResource, OathSuit, RegionName } from "./enums";
 import { Banner, DarkestSecret, PeoplesFavor, ResourceCost } from "./resources";
-import { AddActionToStackEffect, MoveResourcesToTargetEffect, OathEffect, PayCostToTargetEffect, PlayDenizenAtSiteEffect, PlayWorldCardEffect, PutResourcesOnTargetEffect, PutWarbandsFromBagEffect, RegionDiscardEffect, TakeOwnableObjectEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect } from "./effects";
+import { AddActionToStackEffect, MoveResourcesToTargetEffect, OathEffect, PayCostToTargetEffect, PlayDenizenAtSiteEffect, PlayWorldCardEffect, PutResourcesOnTargetEffect, PutWarbandsFromBagEffect, RegionDiscardEffect, SetNewOathkeeperEffect, TakeOwnableObjectEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect } from "./effects";
 import { OathPlayer, OwnableObject, Reliquary, isOwnable } from "./player";
 import { OathGameObject } from "./game";
 
@@ -99,7 +99,7 @@ export abstract class SearchPlayActionModifier<T extends WorldCard> extends Acti
 }
 
 export abstract class EffectModifier<T extends OathGameObject> extends OathPower<T> {
-    static modifiedEffect: new (...args: any) => OathEffect<any>;
+    static modifiedEffect: AbstractConstructor<OathEffect<any>>;
     effect: OathEffect<any>
 
     constructor(source: T, effect: OathEffect<any>) {
@@ -534,6 +534,17 @@ export class Naysayers extends AccessedActionModifier<Denizen> {
     applyDuring(): void {
         if (!this.game.oathkeeper.isImperial)
             new MoveResourcesToTargetEffect(this.game, this.action.player, OathResource.Favor, 1, this.action.player, this.game.chancellor).do();
+    }
+}
+
+
+export class ChaosCult extends EnemyEffectModifier<Denizen> {
+    name = "Chaos Cult";
+    static modifiedEffect = SetNewOathkeeperEffect;
+    effect: SetNewOathkeeperEffect;
+
+    applyAfter(): void {
+        new MoveResourcesToTargetEffect(this.game, this.source.ruler, OathResource.Favor, 1, this.source.ruler, this.effect.player).do();
     }
 }
 
