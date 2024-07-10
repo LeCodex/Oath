@@ -573,6 +573,45 @@ export class PlayVisionEffect extends PlayerEffect<void> {
     }
 }
 
+export class MoveAdviserEffect extends PlayerEffect<WorldCard> {
+    card: WorldCard;
+
+    constructor(player: OathPlayer, card: WorldCard) {
+        super(player)
+        this.card = card;
+    }
+
+    resolve(): WorldCard {
+        if (!this.player.advisers.has(this.card)) throw new InvalidActionResolution("Trying to move an adviser you don't have.")
+        return this.card;
+    }
+
+    revert(): void {
+        this.card.setOwner(this.player);
+    }
+}
+
+export class MoveWorldCardToAdvisersEffect extends OathEffect<void> {
+    card: WorldCard;
+    target: OathPlayer | undefined;
+    oldOwner: OathPlayer | undefined;
+
+    constructor(game: OathGame, player: OathPlayer | undefined, card: WorldCard, target?: OathPlayer) {
+        super(game, player);
+        this.card = card;
+        this.target = target || player;
+    }
+
+    resolve(): void {
+        if (!this.target) return;
+        this.card.setOwner(this.target);
+    }
+
+    revert(): void {
+        // The thing that calls this effect is in charge of putting the card back where it was
+    }
+}
+
 export class DiscardCardEffect extends PlayerEffect<void> {
     card: WorldCard;
     discard: SearchableDeck;

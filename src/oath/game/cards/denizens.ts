@@ -1,35 +1,43 @@
 import { CardRestriction } from "../enums";
-import { Alchemist, Assassin, AwaitedReturn, Bracken, Curfew, Dazzle, Elders, ForcedLabor, GleamingArmorAttack, GleamingArmorDefense, HeartsAndMinds, InsectSwarmAttack, InsectSwarmDefense, Insomnia, KeyToTheCity, LongbowArchersAttack, LongbowArchersDefense, LostTongue, LostTongueCampaign, OathPower, OnlyTwoAdvisers, RelicThief, ShieldWall, SilverTongue, SpellBreaker, SpellBreakerActive, SpiritSnare, ThreateningRoar, TollRoads, Tutor, WayStation } from "../power";
+import { Alchemist, Assassin, AwaitedReturn, Bracken, CharmingFriend, Curfew, Dazzle, Elders, FabledFeast, ForcedLabor, GleamingArmorAttack, GleamingArmorDefense, HeartsAndMinds, InsectSwarmAttack, InsectSwarmDefense, Insomnia, KeyToTheCity, LongbowArchersAttack, LongbowArchersDefense, LostTongue, LostTongueCampaign, Naysayers, OathPower, OnlyTwoAdvisers, PiedPiper, PiedPiperActive, RelicThief, RoyalTax, ShieldWall, SilverTongue, SleightOfHand, SpellBreaker, SpellBreakerActive, SpiritSnare, ThreateningRoar, TollRoads, Tutor, VowOfObedience, VowOfPoverty, VowOfPovertyRest, WayStation } from "../power";
 import { Denizen } from "./cards";
 
 export const denizenData: StringObject<[string, Constructor<OathPower<Denizen>>[], CardRestriction?, boolean?]> = {
-    "LongbowArchers":   ["Longbow Archers",     [LongbowArchersAttack, LongbowArchersDefense]],
-    "ShieldWall":       ["Shield Wall",         [ShieldWall]],
-    "Curfew":           ["Curfew",              [Curfew], CardRestriction.Site],
-    "TollRoads":        ["Toll Roads",          [TollRoads], CardRestriction.Site],
-    "ForcedLabor":      ["Forced Labor",        [ForcedLabor], CardRestriction.Site],
+    "RelicThief":       ["Relic Thief",         [RelicThief]],
+    "KeyToTheCity":     ["Key to the City",     [KeyToTheCity], CardRestriction.Site],
+    "Assassin":         ["Assassin",            [OnlyTwoAdvisers, Assassin], CardRestriction.Adviser, true],
+    "Insomina":         ["Insomnia",            [OnlyTwoAdvisers, Insomnia], CardRestriction.Adviser, true],
+    "SilverTongue":     ["Silver Tongue",       [OnlyTwoAdvisers, SilverTongue], CardRestriction.Adviser, true],
+    "SleightOfHand":    ["Sleight of Hand",     [SleightOfHand], CardRestriction.Adviser],
+    "Naysayers":        ["Naysayers",           [Naysayers], CardRestriction.Adviser],
 
     "GleamingArmor":    ["Gleaming Armor",      [GleamingArmorAttack, GleamingArmorDefense]],
     "SpiritSnare":      ["Spirit Snare",        [SpiritSnare]],
     "Dazzle":           ["Dazzle",              [Dazzle]],
     "Tutor":            ["Tutor",               [Tutor], CardRestriction.Adviser],
     "Alchemist":        ["Alchemist",           [Alchemist]],
+    
+    "LongbowArchers":   ["Longbow Archers",     [LongbowArchersAttack, LongbowArchersDefense]],
+    "ShieldWall":       ["Shield Wall",         [ShieldWall]],
+    "Curfew":           ["Curfew",              [Curfew], CardRestriction.Site],
+    "TollRoads":        ["Toll Roads",          [TollRoads], CardRestriction.Site],
+    "ForcedLabor":      ["Forced Labor",        [ForcedLabor], CardRestriction.Site],
+    "RoyalTax":         ["Royal Tax",           [RoyalTax]],
+    "VowOfObedience":   ["Vow of Obedience",    [VowOfObedience, VowOfPovertyRest], CardRestriction.Adviser, true],
 
     "HeartsAndMinds":   ["Hearts and Minds",    [HeartsAndMinds], CardRestriction.Site],
     "AwaitedReturn":    ["AwaitedReturn",       [AwaitedReturn]],
+    "CharmingFriend":   ["Charming Friend",     [CharmingFriend], CardRestriction.Adviser],
+    "FabledFeast":      ["Fabled Feast",        [FabledFeast]],
 
     "WayStation":       ["Way Station",         [WayStation], CardRestriction.Site],
     "LostTongue":       ["Lost Tongue",         [LostTongue, LostTongueCampaign], CardRestriction.Adviser],
     "Elders":           ["Elders",              [Elders]],
     "SpellBreaker":     ["Spell Breaker",       [SpellBreaker, SpellBreakerActive], CardRestriction.Site],
 
-    "RelicThief":       ["Relic Thief",         [RelicThief]],
-    "KeyToTheCity":     ["Key to the City",     [KeyToTheCity], CardRestriction.Site],
-    "Assassin":         ["Assassin",            [OnlyTwoAdvisers, Assassin], CardRestriction.Adviser, true],
-    "Insomina":         ["Insomnia",            [OnlyTwoAdvisers, Insomnia], CardRestriction.Adviser, true],
-    "SilverTongue":     ["Silver Tongue",       [OnlyTwoAdvisers, SilverTongue], CardRestriction.Adviser, true],
-
     "Bracken":          ["Bracken",             [Bracken]],
     "InsectSwarm":      ["Insect Swarm",        [InsectSwarmAttack, InsectSwarmDefense]],
-    "ThreateningRoar":  ["Threatening Roar",    [ThreateningRoar]]
+    "ThreateningRoar":  ["Threatening Roar",    [ThreateningRoar]],
+    "VowOfPoverty":     ["Vow of Poverty",      [VowOfPoverty, VowOfPovertyRest], CardRestriction.Adviser, true],
+    "PiedPiper":        ["PiedPiper",           [PiedPiper, PiedPiperActive], CardRestriction.Adviser],
 }

@@ -1,6 +1,6 @@
 import { Denizen, Site, WorldCard } from "./cards/cards";
 import { SearchableDeck } from "./cards/decks";
-import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect, DiscardCardEffect, MoveOwnWarbandsEffect, AddActionToStackEffect } from "./effects";
+import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect, DiscardCardEffect, MoveOwnWarbandsEffect, AddActionToStackEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect } from "./effects";
 import { OathResource, OathResourceName, OathSuit, OathSuitName } from "./enums";
 import { OathGame, OathGameObject } from "./game";
 import { OathPlayer } from "./player";
@@ -789,7 +789,7 @@ class CampaignResult extends OathGameObject {
             
             // TODO: Make that modular
             if (target instanceof Site) {
-                total += this.defender ? target.warbands.get(this.defender) || 0 : target.bandits;
+                total += this.defender ? target.getWarbands(this.defender) : target.bandits;
                 continue;
             }
         }
@@ -1008,7 +1008,7 @@ export class TakeFavorFromBankAction extends ChooseSuit {
     amount: number;
 
     constructor(player: OathPlayer, amount?: number, suits?: Iterable<OathSuit>) {
-        super(player, suits)
+        super(player, suits);
         this.amount = amount || 1;
     }
 
@@ -1054,7 +1054,7 @@ export class PeoplesFavorWakeAction extends ChooseSuit {
     }
 }
 
-export class TakeResourceFromSourceAction extends OathAction {
+export class ChooseResourceToTakeAction extends OathAction {
     readonly selects: { resource: SelectNOf<OathResource> };
     readonly parameters: { resource: OathResource[] };
 
@@ -1077,5 +1077,71 @@ export class TakeResourceFromSourceAction extends OathAction {
         const resource = this.parameters.resource[0];
         if (!resource) return;
         new MoveResourcesToTargetEffect(this.game, this.player, resource, 1, this.player, this.source).do();   
+    }
+}
+
+
+export abstract class ChoosePlayer extends OathAction {
+    readonly selects: { player: SelectNOf<OathPlayer | undefined> };
+    readonly parameters: { player: (OathPlayer | undefined)[] };
+    readonly canChooseSelf = false;
+
+    players: Set<OathPlayer>;
+    target: OathPlayer | undefined;
+
+    constructor(player: OathPlayer, players?: Iterable<OathPlayer>) {
+        super(player);
+        this.players = new Set(players);
+    }
+
+    start(none?: string) {
+        if (!this.players.size) this.players = new Set(this.game.players);
+
+        const choices = new Map<string, OathPlayer | undefined>();
+        for (const player of this.players)
+            if (!(player === this.player && !this.canChooseSelf)) choices.set(player.name, player);
+        if (none) choices.set(none, undefined);
+        this.selects.player = new SelectNOf(choices, 1);
+
+        super.start();
+    }
+
+    execute(): void {
+        this.target = this.parameters.player[0];
+    }
+}
+
+export class TakeResourceFromPlayerAction extends ChoosePlayer {
+    resource: OathResource;
+    amount: number;
+
+    constructor(player: OathPlayer, resource: OathResource, amount: number, players?: Iterable<OathPlayer>) {
+        super(player, players);
+        this.resource = resource;
+        this.amount = amount || 1;
+    }
+    execute() {
+        super.execute();
+        if (!this.target) return;
+
+        // TODO: Where should this check be?
+        if (this.resource === OathResource.Secret && this.target.getResources(OathResource.Secret) <= 1) return;
+        new MoveResourcesToTargetEffect(this.game, this.player, this.resource, 1, this.player, this.target).do();
+    }
+}
+
+export class PiedPiperAction extends TakeResourceFromPlayerAction {
+    card: Denizen;
+
+    constructor(player: OathPlayer, card: Denizen, players?: Iterable<OathPlayer>) {
+        super(player, OathResource.Favor, 2, players);
+        this.card = card;
+    }
+    
+    execute() {
+        super.execute();
+        if (!this.target) return;
+        const adviser = new MoveAdviserEffect(this.player, this.card).do();
+        new MoveWorldCardToAdvisersEffect(this.game, this.player, adviser, this.target).do()
     }
 }

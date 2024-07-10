@@ -1,8 +1,8 @@
-import { CampaignAtttackAction, CampaignDefenseAction, InvalidActionResolution, ModifiableAction, OathAction, PeoplesFavorDiscardAction, PeoplesFavorWakeAction, RestAction, SearchAction, SearchPlayAction, TakeFavorFromBankAction, TakeResourceFromSourceAction, TradeAction, TravelAction, UsePowerAction, WakeAction } from "./actions";
-import { Denizen, OwnableCard, Relic, Site, WorldCard } from "./cards/cards";
+import { CampaignAtttackAction, CampaignDefenseAction, InvalidActionResolution, ModifiableAction, OathAction, PeoplesFavorDiscardAction, PeoplesFavorWakeAction, RestAction, SearchAction, SearchPlayAction, TakeFavorFromBankAction, ChooseResourceToTakeAction, TradeAction, TravelAction, UsePowerAction, WakeAction, TakeResourceFromPlayerAction, PiedPiperAction } from "./actions";
+import { Denizen, OwnableCard, Relic, Site, Vision, WorldCard } from "./cards/cards";
 import { BannerName, OathResource, OathSuit, RegionName } from "./enums";
 import { Banner, DarkestSecret, PeoplesFavor, ResourceCost } from "./resources";
-import { AddActionToStackEffect, OathEffect, PayCostToTargetEffect, PlayDenizenAtSiteEffect, PlayWorldCardEffect, PutResourcesOnTargetEffect, PutWarbandsFromBagEffect, RegionDiscardEffect, TakeOwnableObjectEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect } from "./effects";
+import { AddActionToStackEffect, MoveResourcesToTargetEffect, OathEffect, PayCostToTargetEffect, PlayDenizenAtSiteEffect, PlayWorldCardEffect, PutResourcesOnTargetEffect, PutWarbandsFromBagEffect, RegionDiscardEffect, TakeOwnableObjectEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect } from "./effects";
 import { OathPlayer, OwnableObject, Reliquary, isOwnable } from "./player";
 import { OathGameObject } from "./game";
 
@@ -201,6 +201,39 @@ export class ForcedLabor extends EnemyActionModifier<Denizen> {
 }
 
 
+export class RoyalTax extends WhenPlayed<Denizen> {
+    name = "Royal Tax";
+
+    whenPlayed(effect: PlayWorldCardEffect): void {
+        for (const player of this.game.players) {
+            if (player.site.ruler === effect.player)
+                new MoveResourcesToTargetEffect(this.game, effect.player, OathResource.Favor, 2, effect.player, player).do();
+        }
+    }
+}
+
+
+export class VowOfObedience extends SearchPlayActionModifier<Denizen> {
+    name = "Vow of Obedience";
+    mustUse = true;
+
+    applyDuring(): void {
+        if (!this.action.facedown && this.action.card instanceof Vision)
+            throw new InvalidActionResolution("Playing a Vision faceup is disobedience.");
+    }
+}
+export class VowOfObedienceRest extends AccessedActionModifier<Denizen> {
+    name = "Vow of Obedience";
+    static modifiedAction = RestAction;
+    action: RestAction;
+
+    applyBefore(): boolean {
+        new AddActionToStackEffect(new TakeFavorFromBankAction(this.action.player)).do();
+        return true;
+    }
+}
+
+
 // ------------------ ARCANE ------------------- //
 export class GleamingArmorAttack extends EnemyActionModifier<Denizen> {
     name = "Gleaming Armor";
@@ -294,6 +327,34 @@ export class AwaitedReturn extends AccessedActionModifier<Denizen> {
             new TakeWarbandsIntoBagEffect(this.action.player, 1).do();
             this.action.noSupplyCost = true;
         }
+    }
+}
+
+
+export class CharmingFriend extends ActivePower<Denizen> {
+    name = "Charming Friend";
+    cost = new ResourceCost([[OathResource.Secret, 1]]);
+
+    usePower(player: OathPlayer): void {
+        new AddActionToStackEffect(new TakeResourceFromPlayerAction(player, OathResource.Favor, 1)).do();
+    }
+}
+
+
+export class FabledFeast extends WhenPlayed<Denizen> {
+    name = "FabledFeast";
+
+    whenPlayed(effect: PlayWorldCardEffect): void {
+        let total = 0;
+        for (const region of this.game.board.regions.values())
+            for (const site of region.sites)
+                for (const denizen of site.denizens)
+                    if (denizen.ruler === effect.player) total++;
+
+        for (const adviser of effect.player.advisers)
+            if (adviser.ruler === effect.player) total++;
+
+        new TakeResourcesFromBankEffect(this.game, effect.player, this.game.favorBanks.get(OathSuit.Hearth), total).do();
     }
 }
 
@@ -455,6 +516,28 @@ export class SilverTongue extends AccessedActionModifier<Denizen> {
 }
 
 
+export class SleightOfHand extends ActivePower<Denizen> {
+    name = "Sleight of Hand";
+    cost = new ResourceCost([[OathResource.Favor, 1]]);
+
+    usePower(player: OathPlayer): void {
+        new AddActionToStackEffect(new TakeResourceFromPlayerAction(player, OathResource.Secret, 1)).do()
+    }
+}
+
+
+export class Naysayers extends AccessedActionModifier<Denizen> {
+    name = "Naysayers";
+    static modifiedAction = RestAction;
+    action: RestAction;
+
+    applyDuring(): void {
+        if (!this.game.oathkeeper.isImperial)
+            new MoveResourcesToTargetEffect(this.game, this.action.player, OathResource.Favor, 1, this.action.player, this.game.chancellor).do();
+    }
+}
+
+
 // ------------------ BEAST ------------------- //
 export class Bracken extends AccessedActionModifier<Denizen> {
     name = "Bracken"
@@ -520,6 +603,25 @@ export class VowOfPovertyRest extends AccessedActionModifier<Denizen> {
     applyBefore(): boolean {
         new AddActionToStackEffect(new TakeFavorFromBankAction(this.action.player, 2)).do();
         return true;
+    }
+}
+
+
+export class PiedPiper extends SearchPlayActionModifier<Denizen> {
+    name = "Pied Piper";
+
+    canUse(): boolean { return false; }
+
+    applyOnPlay(): void {
+        if (!this.action.site) this.action.capacity = Infinity;
+    }
+}
+export class PiedPiperActive extends ActivePower<Denizen> {
+    name = "Pied Piper";
+    cost = new ResourceCost([[OathResource.Secret, 1]]);
+
+    usePower(player: OathPlayer): void {
+        new AddActionToStackEffect(new PiedPiperAction(player, this.source)).do();
     }
 }
 
@@ -639,7 +741,7 @@ export class ResourceSite extends SiteActionModifier {
     action: WakeAction;
 
     applyBefore(): boolean {
-        new AddActionToStackEffect(new TakeResourceFromSourceAction(this.action.player, this.source)).do();
+        new AddActionToStackEffect(new ChooseResourceToTakeAction(this.action.player, this.source)).do();
         return true;
     }
 }
