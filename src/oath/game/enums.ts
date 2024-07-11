@@ -19,6 +19,7 @@ export const OathSuitName = {
     [OathSuit.None]: "None",
 }
 
+
 export enum OathResource {
     Favor,
     Secret,
@@ -38,6 +39,22 @@ export enum OathType {
     ThePeople,
     Devotion
 }
+
+export const OathTypeName = {
+    [OathType.Supremacy]: "Supremacy",
+    [OathType.Protection]: "Protection",
+    [OathType.ThePeople]: "The People",
+    [OathType.Devotion]: "Devotion",
+}
+
+export const OathTypeVisionName = {
+    [OathType.Supremacy]: "Conquest",
+    [OathType.Protection]: "Sanctuary",
+    [OathType.ThePeople]: "Rebellion",
+    [OathType.Devotion]: "Faith",
+}
+
+
 
 export enum BannerName {
     PeoplesFavor,

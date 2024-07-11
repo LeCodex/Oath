@@ -620,7 +620,7 @@ export class DiscardCardEffect extends PlayerEffect<void> {
     constructor(player: OathPlayer, card: WorldCard, discard?: SearchableDeck, onBottom: boolean = false) {
         super(player);
         this.card = card;
-        this.discard = discard || (card.owner ? card.owner.discard : card instanceof Denizen && card.site ? card.site.region.nextRegion.discard : player.discard);
+        this.discard = discard || (card.owner ? card.owner.discard : card instanceof Denizen && card.site ? this.game.board.nextRegion(card.site.region).discard : player.discard);
         this.onBottom = onBottom;
     }
 

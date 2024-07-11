@@ -346,10 +346,9 @@ export class FabledFeast extends WhenPlayed<Denizen> {
 
     whenPlayed(effect: PlayWorldCardEffect): void {
         let total = 0;
-        for (const region of this.game.board.regions.values())
-            for (const site of region.sites)
-                for (const denizen of site.denizens)
-                    if (denizen.ruler === effect.player) total++;
+        for (const site of this.game.board.sites())
+            for (const denizen of site.denizens)
+                if (denizen.ruler === effect.player) total++;
 
         for (const adviser of effect.player.advisers)
             if (adviser.ruler === effect.player) total++;
@@ -592,6 +591,7 @@ export class GamblingHall extends ActivePower<Denizen> {
     cost = new ResourceCost([[OathResource.Favor, 2]]);
 
     usePower(player: OathPlayer): void {
+        // TODO: This doesn't work with Jinx, and I don't know how to solve it in a clean way
         const result = new RollDiceEffect(this.game, player, [0, 0, 1, 1, 2, -1], 4).do();
         
         // TODO: Factor this out, probably in a Die class
@@ -604,7 +604,7 @@ export class GamblingHall extends ActivePower<Denizen> {
         }
         const amount = total * mult;
 
-        new AddActionToStackEffect(new TakeFavorFromBankAction(player, amount));
+        new AddActionToStackEffect(new TakeFavorFromBankAction(player, amount)).do();
     }
 }
 

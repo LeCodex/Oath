@@ -17,17 +17,16 @@ export function isOwnable(obj: object): obj is OwnableObject {
     return "owner" in obj;
 }
 
-export abstract class OathPlayer extends ResourcesAndWarbands implements CampaignActionTarget {
+export abstract class OathPlayer  extends ResourcesAndWarbands implements CampaignActionTarget {
     name: string;
     warbandsInBag: number;
     supply: number = 7;
-
+    
     site: Site;
-    hand = new Set<WorldCard>();
     advisers = new Set<WorldCard>();
     relics = new Set<Relic>();
     banners = new Set<Banner>();
-
+    
     defense = 2;
     takenFromPlayer = true;
 
@@ -38,7 +37,7 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
 
     get isImperial(): boolean { return false; }
     get ownWarbands(): number { return this.warbands.get(this.isImperial ? this : this.game.chancellor) || 0; }
-    get discard(): Discard { return this.site.region.nextRegion.discard; }
+    get discard(): Discard { return this.game.board.nextRegion(this.site.region).discard; }
 
     rules(card: OwnableCard) {
         return card.ruler === (this.isImperial ? this.game.chancellor : this);
@@ -88,11 +87,9 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
 
     ruledSuitCount(suit: OathSuit): number {
         let total = 0;
-        for (const region of this.game.board.regions.values()) {
-            for (const site of region.sites) {
-                for (const denizen of site.denizens) {
-                    if (denizen.ruler === this) total++;
-                }
+        for (const site of this.game.board.sites()) {
+            for (const denizen of site.denizens) {
+                if (denizen.ruler === this) total++;
             }
         }
 
@@ -133,9 +130,7 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
         new AddActionToStackEffect(new CampaignBanishPlayerAction(player, this)).do();
     }
 
-    ////////////////////////////////////////////
-    //              MAJOR ACTIONS             //
-    ////////////////////////////////////////////
+    // -------------- MAJOR ACTIONS ------------- //
     // TODO: Should those functions add to the stack directly, or use the appropriate effect?
     startSearch() {
         this.game.actionStack.push(new ChooseModifiers(new SearchAction(this)));
@@ -216,11 +211,9 @@ export class Exile extends OathPlayer {
     }
 
     becomeCitizen() {
-        for (const region of this.game.board.regions.values()) {
-            for (const site of region.sites) {
-                this.game.chancellor.moveWarbandsFromBagOnto(site, this.moveWarbandsIntoBagFrom(site));
-            }
-        }
+        // TODO: Use effects for all of this
+        for (const site of this.game.board.sites())
+            this.game.chancellor.moveWarbandsFromBagOnto(site, this.moveWarbandsIntoBagFrom(site));
         this.game.chancellor.moveWarbandsFromBagOnto(this, this.moveWarbandsIntoBagFrom(this));
 
         this.isCitizen = true;

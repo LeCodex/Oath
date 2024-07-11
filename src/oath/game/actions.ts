@@ -282,18 +282,15 @@ export class TravelAction extends MajorAction {
 
     start() {
         const choices = new Map<string, Site>();
-        for (const region of this.game.board.regions.values()) {
-            for (const site of region.sites) {
-                choices.set(site.name, site);
-            }
-        }
+        for (const site of this.game.board.sites()) 
+            choices.set(site.name, site);
         this.selects.site = new SelectNOf(choices, 1);
         super.start();
     }
 
     execute() {
         this.site = this.parameters.sites[0];
-        this.supplyCost = this.player.site.region.travelCosts.get(this.site.region) || 2;
+        this.supplyCost = this.game.board.travelCosts.get(this.player.site.region.regionName)?.get(this.site.region.regionName) || 2;
         super.execute();
     }
 
@@ -643,15 +640,13 @@ export class CampaignAtttackAction extends ModifiableAction {
 
         let targetingOwnSite = false
         const choices = new Map<string, CampaignActionTarget>();
-        for (const region of this.game.board.regions.values()) {
-            for (const site of region.sites) {
-                if (site.ruler === defender) {
-                    if (this.player.site === site) {
-                        this.parameters.targets.push(site);
-                        targetingOwnSite = true;
-                    } else {
-                        choices.set(site.name, site);
-                    }
+        for (const site of this.game.board.sites()) { 
+            if (site.ruler === defender) {
+                if (this.player.site === site) {
+                    this.parameters.targets.push(site);
+                    targetingOwnSite = true;
+                } else {
+                    choices.set(site.name, site);
                 }
             }
         }
@@ -897,9 +892,8 @@ export class CampaignBanishPlayerAction extends OathAction {
 
     start() {
         const choices = new Map<string, Site>();
-        for (const region of this.game.board.regions.values())
-            for (const site of region.sites)
-                choices.set(site.name, site);
+        for (const site of this.game.board.sites())
+            choices.set(site.name, site);
         
         this.selects.site = new SelectNOf(choices, 1);
         super.start();

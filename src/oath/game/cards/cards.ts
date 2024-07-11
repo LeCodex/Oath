@@ -1,8 +1,8 @@
 import { CampaignActionTarget, CampaignSeizeSiteAction, InvalidActionResolution, RecoverAction, RecoverActionTarget } from "../actions";
 import { Region } from "../board";
 import { AddActionToStackEffect, MoveOwnWarbandsEffect, PayCostToBankEffect, TakeOwnableObjectEffect } from "../effects";
-import { CardRestriction, OathType, OathResource, OathSuit, RegionName } from "../enums";
-import { OathGame } from "../game";
+import { CardRestriction, OathResource, OathSuit, OathTypeVisionName, RegionName } from "../enums";
+import { OathGame, Oath } from "../game";
 import { OathPlayer, OwnableObject } from "../player";
 import { OathPower } from "../power";
 import { ResourceCost, ResourcesAndWarbands } from "../resources";
@@ -51,7 +51,7 @@ export class Site extends OathCard implements CampaignActionTarget {
     takenFromPlayer = false;
 
     constructor(
-        game: OathGame, region: Region,
+        game: OathGame,
         name: string, 
         powers: Iterable<Constructor<OathPower<Site>>>,
         capacity: number,
@@ -61,7 +61,6 @@ export class Site extends OathCard implements CampaignActionTarget {
         startingResources: Iterable<[OathResource, number]> = []
     ) {
         super(game, name, powers);
-        this.region = region;
         this.capacity = capacity;
         this.startingRelics = startingRelics;
         this.recoverCost = recoverCost;
@@ -95,8 +94,8 @@ export class Site extends OathCard implements CampaignActionTarget {
         for (const [resource, amount] of this.resources) this.takeResources(resource, amount);
     }
 
-    inRegion(region: RegionName) {
-        return this.region === this.game.board.regions.get(region);
+    inRegion(regionName: RegionName) {
+        return this.region.regionName = regionName;
     }
 
     addDenizen(card: Denizen) {
@@ -239,14 +238,19 @@ export abstract class Edifice extends Denizen {
     get suit(): OathSuit { return this.ruined ? OathSuit.None : this._suit; }
 }
 
-export abstract class VisionBack extends WorldCard {
-
-}
+export abstract class VisionBack extends WorldCard { }
 
 export class Vision extends VisionBack {
-    oath: OathType;
+    oath: Oath;
+
+    constructor(oath: Oath) {
+        super(oath.game, `Vision of ${OathTypeVisionName[oath.type]}`, []);
+        this.oath = oath;
+    }
 }
 
 export class Conspiracy extends VisionBack {
-
+    constructor(game: OathGame) {
+        super(game, "Conspiracy", []);
+    }
 }

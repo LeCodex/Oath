@@ -1,7 +1,7 @@
 import { CampaignActionTarget, PeoplesFavorReturnAction, RecoverAction, RecoverActionTarget, RecoverBannerPitchAction } from "./actions";
 import { AddActionToStackEffect, TakeOwnableObjectEffect } from "./effects";
 import { OathResource } from "./enums"
-import { OathGameObject } from "./game";
+import { OathGame, OathGameObject } from "./game";
 import { OwnableObject } from "./player";
 import { OathPlayer } from "./player";
 import { DarkestSecretPower as DarkestSecretSearch, OathPower, PeoplesFavorSearch } from "./power";
@@ -9,6 +9,11 @@ import { DarkestSecretPower as DarkestSecretSearch, OathPower, PeoplesFavorSearc
 export abstract class ResourceBank extends OathGameObject {
     type: OathResource;
     amount: number;
+
+    constructor(game: OathGame, amount: number = 0) {
+        super(game);
+        this.amount = amount;
+    }
 
     put(amount: number): number {
         return this.amount += amount;

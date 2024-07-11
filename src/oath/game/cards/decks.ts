@@ -1,12 +1,11 @@
 import { OathGameObject } from "../game";
-import { OwnableCard, WorldCard, VisionBack, Relic } from "./cards";
+import { WorldCard, VisionBack, Relic, OathCard } from "./cards";
 
 
-export abstract class CardDeck<T extends OwnableCard> extends OathGameObject {
+export class CardDeck<T extends OathCard> extends OathGameObject {
     cards: T[];
 
     putCard(card: T, onBottom: boolean = false) {
-        card.setOwner(undefined);
         card.hide();
 
         if (!this.cards.includes(card))
@@ -26,12 +25,22 @@ export abstract class CardDeck<T extends OwnableCard> extends OathGameObject {
     drawSingleCard(fromBottom: boolean = false): T | undefined {
         return fromBottom ? this.cards.pop() : this.cards.shift();
     }
+
+    shuffle() {
+        let currentIndex = this.cards.length;
+        while (currentIndex != 0) {
+            let randomIndex = Math.floor(Math.random() * currentIndex);
+            currentIndex--;
+            [this.cards[currentIndex], this.cards[randomIndex]] = [this.cards[randomIndex], this.cards[currentIndex]];
+        }
+    }
 }
 
 export abstract class SearchableDeck extends CardDeck<WorldCard> {
     get searchCost() { return 2; }
 
     putCard(card: WorldCard, onBottom?: boolean): void {
+        card.setOwner(undefined);
         card.returnResources();
         super.putCard(card, onBottom);
     }
