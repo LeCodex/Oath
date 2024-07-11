@@ -4,7 +4,7 @@ import { OathResource } from "./enums"
 import { OathGame, OathGameObject } from "./game";
 import { OwnableObject } from "./player";
 import { OathPlayer } from "./player";
-import { DarkestSecretPower as DarkestSecretSearch, OathPower, PeoplesFavorSearch } from "./power";
+import { DarkestSecretPower as DarkestSecretSearch, OathPower, PeoplesFavorSearch, PeoplesFavorWake } from "./power";
 
 export abstract class ResourceBank extends OathGameObject {
     type: OathResource;
@@ -82,7 +82,7 @@ export abstract class Banner extends ResourceBank implements OwnableObject, Reco
 export class PeoplesFavor extends Banner {
     name = "People's Favor";
     type = OathResource.Favor;
-    powers = [PeoplesFavorSearch, PeoplesFavorSearch];
+    powers = [PeoplesFavorSearch, PeoplesFavorWake];
     isMob: boolean;
 
     handleRecovery(player: OathPlayer) {

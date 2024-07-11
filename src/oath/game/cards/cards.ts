@@ -4,7 +4,7 @@ import { AddActionToStackEffect, MoveOwnWarbandsEffect, PayCostToBankEffect, Tak
 import { CardRestriction, OathResource, OathSuit, OathTypeVisionName, RegionName } from "../enums";
 import { OathGame, Oath } from "../game";
 import { OathPlayer, OwnableObject } from "../player";
-import { OathPower } from "../power";
+import { ConspiracyPower, OathPower, VisionPower } from "../power";
 import { ResourceCost, ResourcesAndWarbands } from "../resources";
 
 
@@ -244,13 +244,13 @@ export class Vision extends VisionBack {
     oath: Oath;
 
     constructor(oath: Oath) {
-        super(oath.game, `Vision of ${OathTypeVisionName[oath.type]}`, []);
+        super(oath.game, `Vision of ${OathTypeVisionName[oath.type]}`, [VisionPower]);
         this.oath = oath;
     }
 }
 
 export class Conspiracy extends VisionBack {
     constructor(game: OathGame) {
-        super(game, "Conspiracy", []);
+        super(game, "Conspiracy", [ConspiracyPower]);
     }
 }

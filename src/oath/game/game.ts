@@ -145,22 +145,11 @@ export class OathGame {
     }
 
     checkForOathkeeper() {
-        let max = 0, newOathkeepers = new Set<OathPlayer>();
-        for (const player of this.players) {
-            const score = this.oath.scorePlayer(player);
-            if (score > max) {
-                newOathkeepers.clear();
-                newOathkeepers.add(player);
-                max = score;
-            } else if (score === max) {
-                newOathkeepers.add(player);
-            }
-        }
-
-        if (newOathkeepers.has(this.oathkeeper)) return;
-        if (newOathkeepers.size) {
+        const candidates = this.oath.getCandidates();
+        if (candidates.has(this.oathkeeper)) return;
+        if (candidates.size) {
             // TODO: Can this be added to the stack directly?
-            new AddActionToStackEffect(new ChooseNewOathkeeper(this.oathkeeper, newOathkeepers)).do();
+            new AddActionToStackEffect(new ChooseNewOathkeeper(this.oathkeeper, candidates)).do();
             this.checkForNextAction();
         }
     }
@@ -186,6 +175,22 @@ export abstract class Oath extends OathGameObject{
     abstract setup(): void;
     abstract scorePlayer(player: OathPlayer): number;
     abstract isSuccessor(player: OathPlayer): boolean;
+
+    getCandidates(): Set<OathPlayer> {
+        let max = 0, candidates = new Set<OathPlayer>();
+        for (const player of this.game.players) {
+            const score = this.scorePlayer(player);
+            if (score > max) {
+                candidates.clear();
+                candidates.add(player);
+                max = score;
+            } else if (score === max) {
+                candidates.add(player);
+            }
+        }
+
+        return candidates;
+    }
 }
 
 export class OathOfSupremacy extends Oath {

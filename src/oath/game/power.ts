@@ -1,5 +1,5 @@
-import { CampaignAtttackAction, CampaignDefenseAction, InvalidActionResolution, ModifiableAction, OathAction, PeoplesFavorDiscardAction, PeoplesFavorWakeAction, RestAction, SearchAction, SearchPlayAction, TakeFavorFromBankAction, ChooseResourceToTakeAction, TradeAction, TravelAction, UsePowerAction, WakeAction, TakeResourceFromPlayerAction, PiedPiperAction, CampaignAction, CampaignEndAction } from "./actions";
-import { Denizen, OwnableCard, Relic, Site, Vision, WorldCard } from "./cards/cards";
+import { CampaignAtttackAction, CampaignDefenseAction, InvalidActionResolution, ModifiableAction, OathAction, PeoplesFavorDiscardAction, PeoplesFavorWakeAction, RestAction, SearchAction, SearchPlayAction, TakeFavorFromBankAction, ChooseResourceToTakeAction, TradeAction, TravelAction, UsePowerAction, WakeAction, TakeResourceFromPlayerAction, PiedPiperAction, CampaignAction, CampaignEndAction, ConspiracyAction } from "./actions";
+import { Conspiracy, Denizen, OwnableCard, Relic, Site, Vision, WorldCard } from "./cards/cards";
 import { BannerName, OathResource, OathSuit, RegionName } from "./enums";
 import { Banner, DarkestSecret, PeoplesFavor, ResourceCost } from "./resources";
 import { AddActionToStackEffect, MoveResourcesToTargetEffect, OathEffect, PayCostToTargetEffect, PlayDenizenAtSiteEffect, PlayVisionEffect, PlayWorldCardEffect, PutResourcesOnTargetEffect, PutWarbandsFromBagEffect, RegionDiscardEffect, RollDiceEffect, SetNewOathkeeperEffect, TakeOwnableObjectEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect } from "./effects";
@@ -73,6 +73,18 @@ export abstract class AccessedActionModifier<T extends OwnableCard> extends Acti
     canUse(): boolean {
         return this.source.accessibleBy(this.action.player) && this.source.empty;
     }
+}
+
+export abstract class WakePower<T extends OwnableCard> extends AccessedActionModifier<T> {
+    static modifiedAction = WakeAction;
+    action: WakeAction;
+    mustUse = true;
+}
+
+export abstract class RestPower<T extends OwnableCard> extends AccessedActionModifier<T> {
+    static modifiedAction = RestAction;
+    action: RestAction;
+    mustUse = true;
 }
 
 export abstract class BattlePlan<T extends OwnableCard> extends ActionModifier<T> {
@@ -222,10 +234,8 @@ export class VowOfObedience extends SearchPlayActionModifier<Denizen> {
             throw new InvalidActionResolution("Playing a Vision faceup is disobedience.");
     }
 }
-export class VowOfObedienceRest extends AccessedActionModifier<Denizen> {
+export class VowOfObedienceRest extends RestPower<Denizen> {
     name = "Vow of Obedience";
-    static modifiedAction = RestAction;
-    action: RestAction;
 
     applyBefore(): boolean {
         new AddActionToStackEffect(new TakeFavorFromBankAction(this.action.player)).do();
@@ -529,20 +539,16 @@ export class Assassin extends ActivePower<Denizen> {
     }
 }
 
-export class Insomnia extends AccessedActionModifier<Denizen> {
+export class Insomnia extends RestPower<Denizen> {
     name = "Insomnia";
-    static modifiedAction = RestAction;
-    action: RestAction;
 
     applyDuring(): void {
         new PutResourcesOnTargetEffect(this.game, this.action.player, OathResource.Secret, 1).do();
     }
 }
 
-export class SilverTongue extends AccessedActionModifier<Denizen> {
+export class SilverTongue extends RestPower<Denizen> {
     name = "Silver Tongue";
-    static modifiedAction = RestAction;
-    action: RestAction;
 
     applyBefore(): boolean {
         const suits: Set<OathSuit> = new Set();
@@ -563,10 +569,8 @@ export class SleightOfHand extends ActivePower<Denizen> {
 }
 
 
-export class Naysayers extends AccessedActionModifier<Denizen> {
+export class Naysayers extends RestPower<Denizen> {
     name = "Naysayers";
-    static modifiedAction = RestAction;
-    action: RestAction;
 
     applyDuring(): void {
         if (!this.game.oathkeeper.isImperial)
@@ -666,10 +670,8 @@ export class VowOfPoverty extends AccessedActionModifier<Denizen> {
         this.action.getting.delete(OathResource.Favor);
     }
 }
-export class VowOfPovertyRest extends AccessedActionModifier<Denizen> {
+export class VowOfPovertyRest extends RestPower<Denizen> {
     name = "Vow of Poverty";
-    static modifiedAction = RestAction;
-    action: RestAction;
 
     applyBefore(): boolean {
         new AddActionToStackEffect(new TakeFavorFromBankAction(this.action.player, 2)).do();
@@ -696,6 +698,46 @@ export class PiedPiperActive extends ActivePower<Denizen> {
     }
 }
 
+
+
+//////////////////////////////////////////////////
+//                   VISIONS                    //
+//////////////////////////////////////////////////
+export class VisionPower extends WakePower<Vision> {
+    name = "Vision Check";
+
+    applyBefore(): boolean {
+        const candidates = this.source.oath.getCandidates();
+        if (candidates.size === 1 && candidates.has(this.action.player)) {
+            // TODO: YOU WIN!
+            return false;
+        }
+
+        return true;
+    }
+}
+
+
+export class ConspiracyPower extends WhenPlayed<Conspiracy> {
+    name = "Conspiracy";
+
+    whenPlayed(effect: PlayWorldCardEffect): void {
+        const targets: OathPlayer[] = [];
+        for (const player of this.game.players) {
+            if (player.site === effect.player.site) {
+                let totalAdviserSuitCount = 0;
+                for (const adviser of player.advisers)
+                    if (!adviser.facedown && adviser instanceof Denizen)
+                        totalAdviserSuitCount += effect.player.adviserSuitCount(adviser.suit);
+                
+                if (totalAdviserSuitCount >= 2)
+                    targets.push(player);
+            }
+        }
+
+        new AddActionToStackEffect(new ConspiracyAction(effect.player, targets)).do();
+    }
+}
 
 
 //////////////////////////////////////////////////

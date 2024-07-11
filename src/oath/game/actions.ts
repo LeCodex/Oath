@@ -1,4 +1,4 @@
-import { Denizen, Site, WorldCard } from "./cards/cards";
+import { Denizen, Relic, Site, WorldCard } from "./cards/cards";
 import { SearchableDeck } from "./cards/decks";
 import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect, DiscardCardEffect, MoveOwnWarbandsEffect, AddActionToStackEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect, SetNewOathkeeperEffect } from "./effects";
 import { OathResource, OathResourceName, OathSuit, OathSuitName } from "./enums";
@@ -1030,9 +1030,11 @@ export class PeoplesFavorWakeAction extends ChooseSuit {
     }
 
     start() {
-        let min = Infinity;
-        for (const bank of this.game.favorBanks.values()) if (bank.amount < min) min = bank.amount;
-        for (const [suit, bank] of this.game.favorBanks) if (bank.amount === min) this.suits.add(suit);
+        if (this.banner.amount > 1) {
+            let min = Infinity;
+            for (const bank of this.game.favorBanks.values()) if (bank.amount < min) min = bank.amount;
+            for (const [suit, bank] of this.game.favorBanks) if (bank.amount === min) this.suits.add(suit);
+        }
         
         super.start("Put favor");
     }
@@ -1145,5 +1147,41 @@ export class ChooseNewOathkeeper extends ChoosePlayer {
         super.execute();
         if (!this.target) return;
         new SetNewOathkeeperEffect(this.target).do();
+    }
+}
+
+export class ConspiracyAction extends ChoosePlayer {
+    start(): void {
+        super.start("No one");
+    }
+
+    execute(): void {
+        super.execute();
+        if (!this.target) return;
+        // TODO: Relic or banner choice action
+    }
+}
+export class ConspiracyStealAction extends OathAction {
+    readonly selects: { taking: SelectNOf<Relic | Banner> };
+    parameters: { taking: (Relic | Banner)[] };
+
+    target: OathPlayer;
+
+    constructor(player: OathPlayer, target: OathPlayer) {
+        super(player);
+        this.target = target;
+    }
+
+    start(): void {
+        const choices = new Map<string, Relic | Banner>();
+        for (const relic of this.target.relics) choices.set(relic.name, relic);
+        for (const banner of this.target.banners) choices.set(banner.name, banner);
+        this.selects.taking = new SelectNOf(choices);
+        super.start();
+    }
+
+    execute(): void {
+        const taking = this.parameters.taking[0];
+        taking.seize(this.player);
     }
 }
