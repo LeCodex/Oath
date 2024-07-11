@@ -1163,7 +1163,7 @@ export class ConspiracyAction extends ChoosePlayer {
     execute(): void {
         super.execute();
         if (!this.target) return;
-        // TODO: Relic or banner choice action
+        new AddActionToStackEffect(new ConspiracyStealAction(this.data, this.target)).do();
     }
 }
 export class ConspiracyStealAction extends OathAction {
