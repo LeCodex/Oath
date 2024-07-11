@@ -406,6 +406,33 @@ export class Herald extends EnemyActionModifier<Denizen> {
 }
 
 
+export class MarriageAction extends AccessedActionModifier<Denizen> {
+    name = "Marriage"
+    static modifiedAction = ModifiableAction;
+    action: ModifiableAction;
+    mustUse = true;
+
+    applyDuring(): void {
+        this.action.data.adviserSuitCount = (suit: OathSuit): number => {
+            return this.action.data?.adviserSuitCount(suit) + (suit === OathSuit.Hearth ? 1 : 0);
+        }
+    }
+}
+export class MarriageEffect extends AccessedEffectModifier<Denizen> {
+    name = "Marriage"
+    static modifiedEffect = OathEffect;
+    effect: OathEffect<any>;
+    mustUse = true;
+
+    applyDuring(): void {
+        if (!this.effect.data) return;
+        this.effect.data.adviserSuitCount = (suit: OathSuit): number => {
+            return (this.effect.data?.adviserSuitCount(suit) || 0) + (suit === OathSuit.Hearth ? 1 : 0);
+        }
+    }
+}
+
+
 // ------------------ NOMAD ------------------- //
 export class WayStation extends ActionModifier<Denizen> {
     name = "Way Station";

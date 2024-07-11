@@ -36,6 +36,7 @@ export class OathPlayerData extends InternalData<OathPlayer> {
     proxy(): this {
         const proxy = super.proxy();
         proxy.isImperial = this.instance.isImperial;
+        proxy.adviserSuitCount = this.adviserSuitCount;
         return proxy;
     }
 }

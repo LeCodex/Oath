@@ -13,7 +13,7 @@ import { CardDeck, SearchableDeck } from "./cards/decks";
 //                BASE CLASSES                  //
 //////////////////////////////////////////////////
 export abstract class OathEffect<T> extends OathGameObject {
-    data: OathPlayerData | undefined;
+    readonly data: OathPlayerData | undefined;
     modifiers: EffectModifier<any>[];
 
     constructor(game: OathGame, data: OathPlayerData | undefined) {
@@ -54,7 +54,7 @@ export abstract class OathEffect<T> extends OathGameObject {
 }
 
 export abstract class PlayerEffect<T> extends OathEffect<T> {
-    data: OathPlayerData;
+    readonly data: OathPlayerData;
 
     constructor(data: OathPlayerData) {
         super(data.instance.game, data);
