@@ -3,7 +3,7 @@ import { Conspiracy, Denizen, OwnableCard, Relic, Site, Vision, WorldCard } from
 import { BannerName, OathResource, OathSuit, RegionName } from "./enums";
 import { Banner, DarkestSecret, PeoplesFavor, ResourceCost } from "./resources";
 import { AddActionToStackEffect, MoveResourcesToTargetEffect, OathEffect, PayCostToTargetEffect, PlayDenizenAtSiteEffect, PlayVisionEffect, PlayWorldCardEffect, PutResourcesOnTargetEffect, PutWarbandsFromBagEffect, RegionDiscardEffect, RollDiceEffect, SetNewOathkeeperEffect, TakeOwnableObjectEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect } from "./effects";
-import { OathPlayer, OwnableObject, Reliquary, isOwnable } from "./player";
+import { OathPlayer, OathPlayerData, OwnableObject, Reliquary, isOwnable } from "./player";
 import { OathGameObject } from "./game";
 
 
@@ -42,10 +42,10 @@ export abstract class ActivePower<T extends OwnableCard> extends ActionPower<T> 
     action: UsePowerAction;
 
     canUse(): boolean {
-        return this.source.accessibleBy(this.action.player) && this.source.empty;
+        return this.source.accessibleBy(this.action.data) && this.source.empty;
     }
 
-    abstract usePower(player: OathPlayer): void;
+    abstract usePower(data: OathPlayerData): void;
 }
 
 export abstract class ActionModifier<T extends OathGameObject> extends ActionPower<T> {
@@ -71,7 +71,7 @@ export abstract class EnemyActionModifier<T extends OwnableCard> extends ActionM
 
 export abstract class AccessedActionModifier<T extends OwnableCard> extends ActionModifier<T> {
     canUse(): boolean {
-        return this.source.accessibleBy(this.action.player) && this.source.empty;
+        return this.source.accessibleBy(this.action.data) && this.source.empty;
     }
 }
 
@@ -135,7 +135,7 @@ export abstract class EnemyEffectModifier<T extends OwnableCard> extends EffectM
 
 export abstract class AccessedEffectModifier<T extends OwnableCard> extends EffectModifier<T> {
     canUse(): boolean {
-        return this.source.accessibleBy(this.effect.player);
+        return this.source.accessibleBy(this.effect.data);
     }
 }
 
@@ -178,8 +178,8 @@ export class Curfew extends EnemyActionModifier<Denizen> {
     mustUse = true;
 
     applyDuring(): void {
-        if (this.action.player.site?.ruler === this.source.ruler) {
-            if (!new PayCostToTargetEffect(this.game, this.action.player, new ResourceCost([[OathResource.Favor, 1]]), this.source.ruler).do())
+        if (this.action.data.site?.ruler === this.source.ruler) {
+            if (!new PayCostToTargetEffect(this.game, this.action.data, new ResourceCost([[OathResource.Favor, 1]]), this.source.ruler).do())
                 throw new InvalidActionResolution("Cannot pay the Curfew.");
         }
     }
@@ -192,7 +192,7 @@ export class TollRoads extends EnemyEffectModifier<Denizen> {
 
     applyDuring(): void {
         if (this.effect.site.ruler === this.source.ruler) {
-            if (!new PayCostToTargetEffect(this.game, this.effect.player, new ResourceCost([[OathResource.Favor, 1]]), this.source.ruler).do())
+            if (!new PayCostToTargetEffect(this.game, this.effect.data, new ResourceCost([[OathResource.Favor, 1]]), this.source.ruler).do())
                 throw new InvalidActionResolution("Cannot pay the Toll Roads.");
         }
     }
@@ -205,8 +205,8 @@ export class ForcedLabor extends EnemyActionModifier<Denizen> {
     mustUse = true;
 
     applyDuring(): void {
-        if (this.action.player.site?.ruler === this.source.ruler) {
-            if (!new PayCostToTargetEffect(this.game, this.action.player, new ResourceCost([[OathResource.Favor, 1]]), this.source.ruler).do())
+        if (this.action.data.site?.ruler === this.source.ruler) {
+            if (!new PayCostToTargetEffect(this.game, this.action.data, new ResourceCost([[OathResource.Favor, 1]]), this.source.ruler).do())
                 throw new InvalidActionResolution("Cannot pay the Forced Labor.");
         }
     }
@@ -218,8 +218,8 @@ export class RoyalTax extends WhenPlayed<Denizen> {
 
     whenPlayed(effect: PlayWorldCardEffect): void {
         for (const player of this.game.players) {
-            if (player.site.ruler === effect.player)
-                new MoveResourcesToTargetEffect(this.game, effect.player, OathResource.Favor, 2, effect.player, player).do();
+            if (player.data.site.ruler === effect.player)
+                new MoveResourcesToTargetEffect(this.game, effect.data, OathResource.Favor, 2, effect.player, player).do();
         }
     }
 }
@@ -238,7 +238,7 @@ export class VowOfObedienceRest extends RestPower<Denizen> {
     name = "Vow of Obedience";
 
     applyBefore(): boolean {
-        new AddActionToStackEffect(new TakeFavorFromBankAction(this.action.player)).do();
+        new AddActionToStackEffect(new TakeFavorFromBankAction(this.action.data)).do();
         return true;
     }
 }
@@ -275,8 +275,8 @@ export class SpiritSnare extends ActivePower<Denizen> {
     name = "Spirit Snare";
     cost = new ResourceCost([[OathResource.Secret, 1]]);
 
-    usePower(player: OathPlayer): void {
-        new AddActionToStackEffect(new TakeFavorFromBankAction(player)).do();
+    usePower(data: OathPlayerData): void {
+        new AddActionToStackEffect(new TakeFavorFromBankAction(data)).do();
     }
 }
 
@@ -285,7 +285,7 @@ export class Dazzle extends WhenPlayed<Denizen> {
     name = "Dazzle";
 
     whenPlayed(effect: PlayWorldCardEffect): void {
-        new RegionDiscardEffect(effect.player, [OathSuit.Hearth, OathSuit.Order]).do();
+        new RegionDiscardEffect(effect.data, [OathSuit.Hearth, OathSuit.Order]).do();
     }
 }
 
@@ -294,8 +294,8 @@ export class Tutor extends ActivePower<Denizen> {
     name = "Tutor";
     cost = new ResourceCost([[OathResource.Favor, 1], [OathResource.Secret, 1]]);
 
-    usePower(player: OathPlayer): void {
-        new PutResourcesOnTargetEffect(this.game, player, OathResource.Secret, 1).do();
+    usePower(data: OathPlayerData): void {
+        new PutResourcesOnTargetEffect(this.game, data, OathResource.Secret, 1).do();
     }
 }
 
@@ -304,8 +304,8 @@ export class Alchemist extends ActivePower<Denizen> {
     name = "Alchemist";
     cost = new ResourceCost([[OathResource.Secret, 1]], [[OathResource.Secret, 1]]);
 
-    usePower(player: OathPlayer): void {
-        for (let i = 0; i < 4; i++) new AddActionToStackEffect(new TakeFavorFromBankAction(player)).do();
+    usePower(data: OathPlayerData): void {
+        for (let i = 0; i < 4; i++) new AddActionToStackEffect(new TakeFavorFromBankAction(data)).do();
     }
 }
 
@@ -334,7 +334,7 @@ export class AwaitedReturn extends AccessedActionModifier<Denizen> {
 
     applyDuring(): void {
         if (this.action.player.ownWarbands > 0) {
-            new TakeWarbandsIntoBagEffect(this.action.player, 1).do();
+            new TakeWarbandsIntoBagEffect(this.action.data, 1).do();
             this.action.noSupplyCost = true;
         }
     }
@@ -345,8 +345,8 @@ export class CharmingFriend extends ActivePower<Denizen> {
     name = "Charming Friend";
     cost = new ResourceCost([[OathResource.Secret, 1]]);
 
-    usePower(player: OathPlayer): void {
-        new AddActionToStackEffect(new TakeResourceFromPlayerAction(player, OathResource.Favor, 1)).do();
+    usePower(data: OathPlayerData): void {
+        new AddActionToStackEffect(new TakeResourceFromPlayerAction(data, OathResource.Favor, 1)).do();
     }
 }
 
@@ -360,10 +360,10 @@ export class FabledFeast extends WhenPlayed<Denizen> {
             for (const denizen of site.denizens)
                 if (denizen.ruler === effect.player) total++;
 
-        for (const adviser of effect.player.advisers)
+        for (const adviser of effect.data.advisers)
             if (adviser.ruler === effect.player) total++;
 
-        new TakeResourcesFromBankEffect(this.game, effect.player, this.game.favorBanks.get(OathSuit.Hearth), total).do();
+        new TakeResourcesFromBankEffect(this.game, effect.data, this.game.favorBanks.get(OathSuit.Hearth), total).do();
     }
 }
 
@@ -375,7 +375,7 @@ export class BookBinders extends EnemyEffectModifier<Denizen> {
 
     applyAfter(): void {
         if (!this.source.ruler) return;
-        new AddActionToStackEffect(new TakeFavorFromBankAction(this.source.ruler, 2)).do();
+        new AddActionToStackEffect(new TakeFavorFromBankAction(this.source.ruler.data, 2)).do();
     }
 }
 
@@ -388,7 +388,7 @@ export class SaddleMakers extends EnemyEffectModifier<Denizen> {
         if (!this.source.ruler) return;
         if (this.effect.facedown || !(this.effect.card instanceof Denizen)) return;
         if (this.effect.card.suit !== OathSuit.Nomad && this.effect.card.suit !== OathSuit.Discord) return;
-        new TakeResourcesFromBankEffect(this.game, this.source.ruler, this.game.favorBanks.get(this.effect.card.suit), 2).do();
+        new TakeResourcesFromBankEffect(this.game, this.source.ruler.data, this.game.favorBanks.get(this.effect.card.suit), 2).do();
     }
 }
 
@@ -401,7 +401,7 @@ export class Herald extends EnemyActionModifier<Denizen> {
     applyAfter(): void {
         if (!this.source.ruler) return;
         if (!this.action.campaignResult.defender) return;
-        new AddActionToStackEffect(new TakeFavorFromBankAction(this.source.ruler, 1)).do();
+        new AddActionToStackEffect(new TakeFavorFromBankAction(this.source.ruler.data, 1)).do();
     }
 }
 
@@ -415,7 +415,7 @@ export class WayStation extends ActionModifier<Denizen> {
     applyDuring(): void {
         if (!this.source.site) return;
         if (this.action.site === this.source.site) {
-            if (this.source.ruler !== this.action.player && !new PayCostToTargetEffect(this.game, this.action.player, new ResourceCost([[OathResource.Favor, 1]]), this.source.ruler).do())
+            if (this.source.ruler !== this.action.player && !new PayCostToTargetEffect(this.game, this.action.data, new ResourceCost([[OathResource.Favor, 1]]), this.source.ruler).do())
                 return;
 
             this.action.noSupplyCost = true;
@@ -457,8 +457,8 @@ export class Elders extends ActivePower<Denizen> {
     name = "Elders";
     cost = new ResourceCost([[OathResource.Favor, 2]]);
 
-    usePower(player: OathPlayer): void {
-        new PutResourcesOnTargetEffect(this.game, player, OathResource.Secret, 1).do();
+    usePower(data: OathPlayerData): void {
+        new PutResourcesOnTargetEffect(this.game, data, OathResource.Secret, 1).do();
     }
 }
 
@@ -495,7 +495,7 @@ export class RelicThief extends EnemyEffectModifier<Denizen> {
 
     applyAfter(): void {
         if (!this.source.ruler) return;
-        if (this.effect.target instanceof Relic && this.effect.player?.site.region === this.source.ruler.site.region) {
+        if (this.effect.target instanceof Relic && this.effect.data?.site.region === this.source.ruler.data.site.region) {
             // Roll dice and do stuff, probably after an action to pay the cost
         }
     }
@@ -508,11 +508,11 @@ export class KeyToTheCity extends WhenPlayed<Denizen> {
     whenPlayed(effect: PlayWorldCardEffect): void {
         if (!this.source.site) return;
         
-        if (this.source.site.ruler?.site !== this.source.site)
+        if (this.source.site.ruler?.data.site !== this.source.site)
             for (const [player, amount] of this.source.site.warbands)
-                new TakeWarbandsIntoBagEffect(player, amount, this.source.site).do();
+                new TakeWarbandsIntoBagEffect(player.data, amount, this.source.site).do();
 
-        new PutWarbandsFromBagEffect(effect.player, 1, this.source.site).do();
+        new PutWarbandsFromBagEffect(effect.data, 1, this.source.site).do();
     }
 }
 
@@ -534,7 +534,7 @@ export class Assassin extends ActivePower<Denizen> {
     name = "Assassin";
     cost = new ResourceCost([[OathResource.Favor, 1]]);
 
-    usePower(player: OathPlayer): void {
+    usePower(data: OathPlayerData): void {
         // Action to choose a player to discard from
     }
 }
@@ -543,7 +543,7 @@ export class Insomnia extends RestPower<Denizen> {
     name = "Insomnia";
 
     applyDuring(): void {
-        new PutResourcesOnTargetEffect(this.game, this.action.player, OathResource.Secret, 1).do();
+        new PutResourcesOnTargetEffect(this.game, this.action.data, OathResource.Secret, 1).do();
     }
 }
 
@@ -552,8 +552,8 @@ export class SilverTongue extends RestPower<Denizen> {
 
     applyBefore(): boolean {
         const suits: Set<OathSuit> = new Set();
-        for (const denizen of this.action.player.site.denizens) suits.add(denizen.suit);
-        new AddActionToStackEffect(new TakeFavorFromBankAction(this.action.player, 1, suits)).do();
+        for (const denizen of this.action.data.site.denizens) suits.add(denizen.suit);
+        new AddActionToStackEffect(new TakeFavorFromBankAction(this.action.data, 1, suits)).do();
         return true;
     }
 }
@@ -563,8 +563,8 @@ export class SleightOfHand extends ActivePower<Denizen> {
     name = "Sleight of Hand";
     cost = new ResourceCost([[OathResource.Favor, 1]]);
 
-    usePower(player: OathPlayer): void {
-        new AddActionToStackEffect(new TakeResourceFromPlayerAction(player, OathResource.Secret, 1)).do()
+    usePower(data: OathPlayerData): void {
+        new AddActionToStackEffect(new TakeResourceFromPlayerAction(data, OathResource.Secret, 1)).do()
     }
 }
 
@@ -574,7 +574,7 @@ export class Naysayers extends RestPower<Denizen> {
 
     applyDuring(): void {
         if (!this.game.oathkeeper.isImperial)
-            new MoveResourcesToTargetEffect(this.game, this.action.player, OathResource.Favor, 1, this.action.player, this.game.chancellor).do();
+            new MoveResourcesToTargetEffect(this.game, this.action.data, OathResource.Favor, 1, this.action.player, this.game.chancellor).do();
     }
 }
 
@@ -585,7 +585,7 @@ export class ChaosCult extends EnemyEffectModifier<Denizen> {
     effect: SetNewOathkeeperEffect;
 
     applyAfter(): void {
-        new MoveResourcesToTargetEffect(this.game, this.source.ruler, OathResource.Favor, 1, this.source.ruler, this.effect.player).do();
+        new MoveResourcesToTargetEffect(this.game, this.source.ruler?.data, OathResource.Favor, 1, this.source.ruler, this.effect.player).do();
     }
 }
 
@@ -594,9 +594,9 @@ export class GamblingHall extends ActivePower<Denizen> {
     name = "Gambling Hall";
     cost = new ResourceCost([[OathResource.Favor, 2]]);
 
-    usePower(player: OathPlayer): void {
+    usePower(data: OathPlayerData): void {
         // TODO: This doesn't work with Jinx, and I don't know how to solve it in a clean way
-        const result = new RollDiceEffect(this.game, player, [0, 0, 1, 1, 2, -1], 4).do();
+        const result = new RollDiceEffect(this.game, data, [0, 0, 1, 1, 2, -1], 4).do();
         
         // TODO: Factor this out, probably in a Die class
         let total = 0, mult = 1;
@@ -608,7 +608,7 @@ export class GamblingHall extends ActivePower<Denizen> {
         }
         const amount = total * mult;
 
-        new AddActionToStackEffect(new TakeFavorFromBankAction(player, amount)).do();
+        new AddActionToStackEffect(new TakeFavorFromBankAction(data, amount)).do();
     }
 }
 
@@ -655,7 +655,7 @@ export class ThreateningRoar extends WhenPlayed<Denizen> {
     name = "Threatening Roar";
 
     whenPlayed(effect: PlayWorldCardEffect): void {
-        new RegionDiscardEffect(effect.player, [OathSuit.Beast, OathSuit.Nomad]).do();
+        new RegionDiscardEffect(effect.data, [OathSuit.Beast, OathSuit.Nomad]).do();
     }
 }
 
@@ -674,7 +674,7 @@ export class VowOfPovertyRest extends RestPower<Denizen> {
     name = "Vow of Poverty";
 
     applyBefore(): boolean {
-        new AddActionToStackEffect(new TakeFavorFromBankAction(this.action.player, 2)).do();
+        new AddActionToStackEffect(new TakeFavorFromBankAction(this.action.data, 2)).do();
         return true;
     }
 }
@@ -693,8 +693,8 @@ export class PiedPiperActive extends ActivePower<Denizen> {
     name = "Pied Piper";
     cost = new ResourceCost([[OathResource.Secret, 1]]);
 
-    usePower(player: OathPlayer): void {
-        new AddActionToStackEffect(new PiedPiperAction(player, this.source)).do();
+    usePower(data: OathPlayerData): void {
+        new AddActionToStackEffect(new PiedPiperAction(data, this.source)).do();
     }
 }
 
@@ -724,18 +724,18 @@ export class ConspiracyPower extends WhenPlayed<Conspiracy> {
     whenPlayed(effect: PlayWorldCardEffect): void {
         const targets: OathPlayer[] = [];
         for (const player of this.game.players) {
-            if (player.site === effect.player.site) {
+            if (player.data.site === effect.data.site) {
                 let totalAdviserSuitCount = 0;
-                for (const adviser of player.advisers)
+                for (const adviser of player.data.advisers)
                     if (!adviser.facedown && adviser instanceof Denizen)
-                        totalAdviserSuitCount += effect.player.adviserSuitCount(adviser.suit);
+                        totalAdviserSuitCount += effect.data.adviserSuitCount(adviser.suit);
                 
                 if (totalAdviserSuitCount >= 2)
                     targets.push(player);
             }
         }
 
-        new AddActionToStackEffect(new ConspiracyAction(effect.player, targets)).do();
+        new AddActionToStackEffect(new ConspiracyAction(effect.data, targets)).do();
     }
 }
 
@@ -745,7 +745,7 @@ export class ConspiracyPower extends WhenPlayed<Conspiracy> {
 //////////////////////////////////////////////////
 export abstract class SiteActionModifier extends ActionModifier<Site> {
     canUse(): boolean {
-        return this.action.player.site === this.source;
+        return this.action.data.site === this.source;
     }
 }
 
@@ -758,18 +758,18 @@ export abstract class HomelandSitePower extends EffectModifier<Site> {
     applyAfter(): void {
         // TODO: "and if you have not discarded a <suit> card here during this turn"
         if (this.effect.site === this.source && this.effect.card instanceof Denizen && this.effect.card.suit === this.suit)
-            this.giveReward(this.effect.player);
+            this.giveReward(this.effect.data);
     }
 
-    abstract giveReward(player: OathPlayer): void;
+    abstract giveReward(data: OathPlayerData): void;
 }
 
 export class Wastes extends HomelandSitePower {
     name = "Wastes";
     suit = OathSuit.Discord;
 
-    giveReward(player: OathPlayer): void {
-        for (const relic of this.source.relics) return new TakeOwnableObjectEffect(this.game, player, relic).do();
+    giveReward(data: OathPlayerData): void {
+        for (const relic of this.source.relics) return new TakeOwnableObjectEffect(this.game, data, relic).do();
     }
 }
 
@@ -777,8 +777,8 @@ export class StandingStones extends HomelandSitePower {
     name = "Standing Stones";
     suit = OathSuit.Arcane;
 
-    giveReward(player: OathPlayer): void {
-        new PutResourcesOnTargetEffect(this.game, player, OathResource.Secret, 1).do();
+    giveReward(data: OathPlayerData): void {
+        new PutResourcesOnTargetEffect(this.game, data, OathResource.Secret, 1).do();
     }
 }
 
@@ -786,8 +786,8 @@ export class AncientCity extends HomelandSitePower {
     name = "Ancient City";
     suit = OathSuit.Order;
 
-    giveReward(player: OathPlayer): void {
-        new PutWarbandsFromBagEffect(player, 2).do();
+    giveReward(data: OathPlayerData): void {
+        new PutWarbandsFromBagEffect(data, 2).do();
     }
 }
 
@@ -795,8 +795,8 @@ export class FertileValley extends HomelandSitePower {
     name = "Fertile Valley";
     suit = OathSuit.Hearth;
 
-    giveReward(player: OathPlayer): void {
-        new TakeResourcesFromBankEffect(this.game, player, this.game.favorBanks.get(this.suit), 1).do();
+    giveReward(data: OathPlayerData): void {
+        new TakeResourcesFromBankEffect(this.game, data, this.game.favorBanks.get(this.suit), 1).do();
     }
 }
 
@@ -804,8 +804,8 @@ export class Steppe extends HomelandSitePower {
     name = "Steppe";
     suit = OathSuit.Nomad;
 
-    giveReward(player: OathPlayer): void {
-        new PutResourcesOnTargetEffect(this.game, player, OathResource.Secret, 1).do();
+    giveReward(data: OathPlayerData): void {
+        new PutResourcesOnTargetEffect(this.game, data, OathResource.Secret, 1).do();
     }
 }
 
@@ -813,8 +813,8 @@ export class DeepWoods extends HomelandSitePower {
     name = "Deep Woods";
     suit = OathSuit.Beast;
 
-    giveReward(player: OathPlayer): void {
-        for (const relic of this.source.relics) return new TakeOwnableObjectEffect(this.game, player, relic).do();
+    giveReward(data: OathPlayerData): void {
+        for (const relic of this.source.relics) return new TakeOwnableObjectEffect(this.game, data, relic).do();
     }
 }
 
@@ -854,7 +854,7 @@ export class ResourceSite extends SiteActionModifier {
     action: WakeAction;
 
     applyBefore(): boolean {
-        new AddActionToStackEffect(new ChooseResourceToTakeAction(this.action.player, this.source)).do();
+        new AddActionToStackEffect(new ChooseResourceToTakeAction(this.action.data, this.source)).do();
         return true;
     }
 }
@@ -870,7 +870,7 @@ export class CupOfPlenty extends AccessedActionModifier<Relic> {
     action: TradeAction;
 
     applyDuring(): void {
-        if (this.action.player.adviserSuitCount(this.action.card.suit) > 0) this.action.noSupplyCost = true;
+        if (this.action.data.adviserSuitCount(this.action.card.suit) > 0) this.action.noSupplyCost = true;
     }
 }
 
@@ -912,7 +912,7 @@ export class DragonskinWardrum extends AccessedEffectModifier<Relic> {
     effect: TravelEffect;
 
     applyAfter(): void {
-        new PutWarbandsFromBagEffect(this.effect.player, 1).do();
+        new PutWarbandsFromBagEffect(this.effect.data, 1).do();
     }
 }
 
@@ -946,11 +946,11 @@ export class PeoplesFavorSearch extends BannerActionModifier<PeoplesFavor> {
     mustUse = true;  // Not strictly true, but it involves a choice either way, so it's better to always include it
 
     applyBefore(): boolean {
-        for (const site of this.action.player.site.region.sites) {
+        for (const site of this.action.data.site.region.sites) {
             this.action.selects.site.choices.set(site.name, site);
         }
 
-        new AddActionToStackEffect(new PeoplesFavorDiscardAction(this.action.player, this.action.discardOptions)).do();
+        new AddActionToStackEffect(new PeoplesFavorDiscardAction(this.action.data, this.action.discardOptions)).do();
         return true;
     }
 }
@@ -962,8 +962,8 @@ export class PeoplesFavorWake extends BannerActionModifier<PeoplesFavor> {
 
     applyBefore(): boolean {
         if (this.source.owner) {
-            new AddActionToStackEffect(new PeoplesFavorWakeAction(this.source.owner, this.source)).do();
-            if (this.source.isMob) new AddActionToStackEffect(new PeoplesFavorWakeAction(this.source.owner, this.source)).do();
+            new AddActionToStackEffect(new PeoplesFavorWakeAction(this.source.owner.data, this.source)).do();
+            if (this.source.isMob) new AddActionToStackEffect(new PeoplesFavorWakeAction(this.source.owner.data, this.source)).do();
         }
 
         return true;
@@ -1034,7 +1034,7 @@ export class Decadent extends ReliquaryModifier {
     action: TravelAction;
 
     applyDuring(): void {
-        if (this.action.site.inRegion(RegionName.Cradle) && !this.action.player.site.inRegion(RegionName.Cradle)) this.action.noSupplyCost = true;
+        if (this.action.site.inRegion(RegionName.Cradle) && !this.action.data.site.inRegion(RegionName.Cradle)) this.action.noSupplyCost = true;
         if (this.action.site.inRegion(RegionName.Hinterland)) this.action.supplyCostModifier += 1;
     }
 }

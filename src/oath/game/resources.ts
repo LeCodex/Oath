@@ -59,8 +59,8 @@ export abstract class Banner extends ResourceBank implements OwnableObject, Reco
     }
 
     recover(player: OathPlayer): void {
-        new TakeOwnableObjectEffect(this.game, player, this).do();
-        new AddActionToStackEffect(new RecoverBannerPitchAction(player, this)).do();
+        new TakeOwnableObjectEffect(this.game, player.data, this).do();
+        new AddActionToStackEffect(new RecoverBannerPitchAction(player.data, this)).do();
     }
     
     finishRecovery(amount: number): void {
@@ -72,7 +72,7 @@ export abstract class Banner extends ResourceBank implements OwnableObject, Reco
     }
 
     seize(player: OathPlayer) {
-        new TakeOwnableObjectEffect(this.game, player, this).do();
+        new TakeOwnableObjectEffect(this.game, player.data, this).do();
         this.amount = Math.max(1, this.amount - 2);
     }
 
@@ -87,7 +87,7 @@ export class PeoplesFavor extends Banner {
 
     handleRecovery(player: OathPlayer) {
         this.isMob = false;
-        new AddActionToStackEffect(new PeoplesFavorReturnAction(player, this.take())).do();
+        new AddActionToStackEffect(new PeoplesFavorReturnAction(player.data, this.take())).do();
     }
 }
 
@@ -100,8 +100,8 @@ export class DarkestSecret extends Banner {
         if (!super.canRecover(action)) return false;
         if (!this.owner || this.owner === action.player) return true;
 
-        for (const denizen of this.owner.site.denizens) {
-            if (this.owner.adviserSuitCount(denizen.suit) === 0) {
+        for (const denizen of this.owner.data.site.denizens) {
+            if (this.owner.data.adviserSuitCount(denizen.suit) === 0) {
                 return true;
             }
         }

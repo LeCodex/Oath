@@ -77,33 +77,34 @@ export class OathGame {
         for (const site of this.board.sites()) {
             for (const denizen of site.denizens) {
                 if (denizen.facedown) continue;
-                for (const power of denizen.powers) {
+                for (const power of denizen.powers)
                     if (isExtended(power, type)) powers.push([denizen, power]);
-                }
             }
         }
 
         for (const player of this.players) {
-            for (const adviser of player.advisers) {
+            for (const adviser of player.data.advisers) {
                 if (adviser.facedown) continue;
-                for (const power of adviser.powers) {
+                for (const power of adviser.powers)
                     if (isExtended(power, type)) powers.push([adviser, power]);
-                }
             }
 
-            for (const relic of player.relics) {
+            for (const relic of player.data.relics) {
                 if (relic.facedown) continue;
                 for (const power of relic.powers) {
                     if (isExtended(power, type)) powers.push([relic, power]);
                 }
             }
-        }
 
-        for (const banner of this.banners.values()) {
-            for (const power of banner.powers) {
-                if (isExtended(power, type)) powers.push([banner, power]);
+            if (player instanceof Exile && player.vision) {
+                for (const power of player.vision.powers)
+                    if (isExtended(power, type)) powers.push([player.vision, power]);
             }
         }
+
+        for (const banner of this.banners.values())
+            for (const power of banner.powers)
+                if (isExtended(power, type)) powers.push([banner, power]);
 
         return powers;
     }
@@ -149,7 +150,7 @@ export class OathGame {
         if (candidates.has(this.oathkeeper)) return;
         if (candidates.size) {
             // TODO: Can this be added to the stack directly?
-            new AddActionToStackEffect(new ChooseNewOathkeeper(this.oathkeeper, candidates)).do();
+            new AddActionToStackEffect(new ChooseNewOathkeeper(this.oathkeeper.data, candidates)).do();
             this.checkForNextAction();
         }
     }
@@ -209,7 +210,7 @@ export class OathOfSupremacy extends Oath {
     }
 
     isSuccessor(player: OathPlayer): boolean {
-        return player.relics.size + player.banners.size > this.game.chancellor.relics.size + this.game.chancellor.banners.size;
+        return player.data.relics.size + player.data.banners.size > this.game.chancellor.data.relics.size + this.game.chancellor.data.banners.size;
     }
 }
 
@@ -221,7 +222,7 @@ export class OathOfProtection extends Oath {
     }
 
     scorePlayer(player: OathPlayer): number {
-        return player.relics.size + player.banners.size;
+        return player.data.relics.size + player.data.banners.size;
     }
 
     isSuccessor(player: OathPlayer): boolean {

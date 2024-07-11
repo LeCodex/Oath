@@ -17,27 +17,46 @@ export function isOwnable(obj: object): obj is OwnableObject {
     return "owner" in obj;
 }
 
-export abstract class OathPlayer  extends ResourcesAndWarbands implements CampaignActionTarget {
-    name: string;
-    warbandsInBag: number;
-    supply: number = 7;
-    
+
+export class OathPlayerData extends InternalData<OathPlayer> {
     site: Site;
     advisers = new Set<WorldCard>();
     relics = new Set<Relic>();
     banners = new Set<Banner>();
+    isImperial: boolean;
+
+    get discard(): Discard { return this.instance.game.board.nextRegion(this.site.region).discard; }
+
+    adviserSuitCount(suit: OathSuit): number {
+        let total = 0;
+        for (const adviser of this.advisers) if (!adviser.facedown && adviser instanceof Denizen && adviser.suit === suit) total++;
+        return total;
+    }
+
+    proxy(): this {
+        const proxy = super.proxy();
+        proxy.isImperial = this.instance.isImperial;
+        return proxy;
+    }
+}
+
+export abstract class OathPlayer extends ResourcesAndWarbands implements CampaignActionTarget {
+    name: string;
+    warbandsInBag: number;
+    supply: number = 7;
+    
+    data = new OathPlayerData(this);
     
     defense = 2;
     takenFromPlayer = true;
 
     constructor(game: OathGame, site: Site) {
         super(game);
-        this.site = site;
+        this.data.site = site;
     }
 
     get isImperial(): boolean { return false; }
     get ownWarbands(): number { return this.warbands.get(this.isImperial ? this : this.game.chancellor) || 0; }
-    get discard(): Discard { return this.game.board.nextRegion(this.site.region).discard; }
 
     rules(card: OwnableCard) {
         return card.ruler === (this.isImperial ? this.game.chancellor : this);
@@ -71,18 +90,12 @@ export abstract class OathPlayer  extends ResourcesAndWarbands implements Campai
     }
 
     addAdviser(card: WorldCard) {
-        this.advisers.add(card);
+        this.data.advisers.add(card);
     }
 
     removeAdviser(card: WorldCard): WorldCard {
-        this.advisers.delete(card);
+        this.data.advisers.delete(card);
         return card;
-    }
-
-    adviserSuitCount(suit: OathSuit): number {
-        let total = 0;
-        for (const adviser of this.advisers) if (!adviser.facedown && adviser instanceof Denizen && adviser.suit === suit) total++;
-        return total;
     }
 
     ruledSuitCount(suit: OathSuit): number {
@@ -93,24 +106,24 @@ export abstract class OathPlayer  extends ResourcesAndWarbands implements Campai
             }
         }
 
-        return this.adviserSuitCount(suit) + total;
+        return this.data.adviserSuitCount(suit) + total;
     }
 
     addRelic(relic: Relic) {
-        this.relics.add(relic);
+        this.data.relics.add(relic);
     }
 
     removeRelic(relic: Relic): Relic {
-        this.relics.delete(relic);
+        this.data.relics.delete(relic);
         return relic;
     }
 
     addBanner(banner: Banner) {
-        this.banners.add(banner);
+        this.data.banners.add(banner);
     }
 
     removeBanner(banner: Banner): Banner {
-        this.banners.delete(banner);
+        this.data.banners.delete(banner);
         return banner;
     }
 
@@ -126,34 +139,34 @@ export abstract class OathPlayer  extends ResourcesAndWarbands implements Campai
 
     seize(player: OathPlayer) {
         // TODO: Move burnt favor to supply
-        new MoveResourcesToTargetEffect(this.game, this, OathResource.Favor, Math.floor(this.getResources(OathResource.Favor) / 2), undefined).do();
-        new AddActionToStackEffect(new CampaignBanishPlayerAction(player, this)).do();
+        new MoveResourcesToTargetEffect(this.game, this.data, OathResource.Favor, Math.floor(this.getResources(OathResource.Favor) / 2), undefined).do();
+        new AddActionToStackEffect(new CampaignBanishPlayerAction(player.data, this)).do();
     }
 
     // -------------- MAJOR ACTIONS ------------- //
     // TODO: Should those functions add to the stack directly, or use the appropriate effect?
     startSearch() {
-        this.game.actionStack.push(new ChooseModifiers(new SearchAction(this)));
+        this.game.actionStack.push(new ChooseModifiers(new SearchAction(this.data)));
     }
 
     startMuster() {
-        this.game.actionStack.push(new ChooseModifiers(new MusterAction(this)));
+        this.game.actionStack.push(new ChooseModifiers(new MusterAction(this.data)));
     }
 
     startTrade(forFavor: boolean) {
-        this.game.actionStack.push(new ChooseModifiers(new TradeAction(this)));
+        this.game.actionStack.push(new ChooseModifiers(new TradeAction(this.data)));
     }
 
     startTravel() {
-        this.game.actionStack.push(new ChooseModifiers(new TravelAction(this)));
+        this.game.actionStack.push(new ChooseModifiers(new TravelAction(this.data)));
     }
 
     startRecover() {
-        this.game.actionStack.push(new ChooseModifiers(new RecoverAction(this)));
+        this.game.actionStack.push(new ChooseModifiers(new RecoverAction(this.data)));
     }
 
     startCampaign() {
-        this.game.actionStack.push(new ChooseModifiers(new CampaignAction(this)));
+        this.game.actionStack.push(new ChooseModifiers(new CampaignAction(this.data)));
     }
 
     abstract rest(): void;
@@ -218,7 +231,7 @@ export class Exile extends OathPlayer {
 
         this.isCitizen = true;
         if (this.vision) {
-            new DiscardCardEffect(this, this.vision).do();
+            new DiscardCardEffect(this.data, this.vision).do();
             this.vision = undefined;
         }
 
