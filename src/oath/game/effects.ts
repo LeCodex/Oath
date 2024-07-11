@@ -1,8 +1,8 @@
 import { Denizen, OwnableCard, Site, Vision, WorldCard } from "./cards/cards";
-import { CardRestriction, OathResource, OathSuit } from "./enums";
+import { BannerName, CardRestriction, OathResource, OathSuit } from "./enums";
 import { Exile, OathPlayer, OathPlayerData } from "./player";
 import { EffectModifier, WhenPlayed } from "./power";
-import { ResourceBank, ResourceCost, ResourcesAndWarbands } from "./resources";
+import { PeoplesFavor, ResourceBank, ResourceCost, ResourcesAndWarbands } from "./resources";
 import { OwnableObject } from "./player";
 import { OathGame, OathGameObject } from "./game";
 import { InvalidActionResolution, OathAction } from "./actions";
@@ -723,5 +723,26 @@ export class SetNewOathkeeperEffect extends PlayerEffect<void> {
 
     revert(): void {
         this.game.oathkeeper = this.oldOathkeeper;
+    }
+}
+
+export class SetPeoplesFavorMobState extends OathEffect<void> {
+    banner: PeoplesFavor;
+    state: boolean;
+    oldState: boolean;
+
+    constructor(game: OathGame, data: OathPlayerData | undefined, banner: PeoplesFavor, state: boolean) {
+        super(game, data);
+        this.banner = banner;
+        this.state = state;
+    }
+
+    resolve(): void {
+        this.oldState = this.banner.isMob;
+        this.banner.isMob = this.state;
+    }
+
+    revert(): void {
+        this.banner.isMob = this.oldState;
     }
 }

@@ -310,6 +310,19 @@ export class Alchemist extends ActivePower<Denizen> {
 }
 
 
+export class ActingTroupe extends AccessedActionModifier<Denizen> {
+    name = "Acting Troupe"
+    static modifiedAction = TradeAction;
+    action: TradeAction;
+
+    applyDuring(): void {
+        this.action.data.adviserSuitCount = (suit: OathSuit): number => {
+            return this.action.data?.adviserSuitCount(suit) + (suit === OathSuit.Order || suit === OathSuit.Beast ? 1 : 0);
+        }
+    }
+}
+
+
 // ------------------ HEARTH ------------------- //
 export class HeartsAndMinds extends DefenderBattlePlan<Denizen> {
     name = "Hearts and Minds";

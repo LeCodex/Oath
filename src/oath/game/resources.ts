@@ -1,5 +1,5 @@
 import { CampaignActionTarget, PeoplesFavorReturnAction, RecoverAction, RecoverActionTarget, RecoverBannerPitchAction } from "./actions";
-import { AddActionToStackEffect, TakeOwnableObjectEffect } from "./effects";
+import { AddActionToStackEffect, PutResourcesIntoBankEffect, SetPeoplesFavorMobState, TakeOwnableObjectEffect, TakeResourcesFromBankEffect } from "./effects";
 import { OathResource } from "./enums"
 import { OathGame, OathGameObject } from "./game";
 import { OwnableObject } from "./player";
@@ -45,7 +45,7 @@ export abstract class Banner extends ResourceBank implements OwnableObject, Reco
     powers: Constructor<OathPower<Banner>>[];
 
     get defense() { return this.amount; }
-    takenFromPlayer = true;
+    pawnMustBeAtSite = true;
 
     setOwner(newOwner?: OathPlayer) {
         if (this.owner) this.owner.removeBanner(this);
@@ -68,7 +68,7 @@ export abstract class Banner extends ResourceBank implements OwnableObject, Reco
 
         // Banner-specific logic
         this.handleRecovery(this.owner);
-        this.put(this.owner.takeResources(this.type, amount));
+        new PutResourcesIntoBankEffect(this.game, this.owner?.data, this, amount).do();
     }
 
     seize(player: OathPlayer) {
@@ -86,7 +86,7 @@ export class PeoplesFavor extends Banner {
     isMob: boolean;
 
     handleRecovery(player: OathPlayer) {
-        this.isMob = false;
+        new SetPeoplesFavorMobState(this.game, player.data, this, false).do();
         new AddActionToStackEffect(new PeoplesFavorReturnAction(player.data, this.take())).do();
     }
 }
@@ -110,8 +110,8 @@ export class DarkestSecret extends Banner {
     }
 
     handleRecovery(player: OathPlayer) {
-        player.putResources(OathResource.Secret, this.take(1));
-        if (this.owner) this.owner.putResources(OathResource.Secret, this.take());
+        new TakeResourcesFromBankEffect(this.game, player.data, this, 1).do();
+        if (this.owner) new TakeResourcesFromBankEffect(this.game, this.owner.data, this, Infinity).do();
     }
 }
 

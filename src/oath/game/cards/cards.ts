@@ -48,7 +48,7 @@ export class Site extends OathCard implements CampaignActionTarget {
     relics: Set<Relic>;
 
     defense = 1;
-    takenFromPlayer = false;
+    pawnMustBeAtSite = false;
 
     constructor(
         game: OathGame,
@@ -138,7 +138,7 @@ export class Relic extends OwnableCard implements RecoverActionTarget, CampaignA
     site?: Site;
 
     defense: number;
-    takenFromPlayer = true;
+    pawnMustBeAtSite = true;
 
     constructor(game: OathGame, name: string, powers: Iterable<Constructor<OathPower<Relic>>>, defense: number) {
         super(game, name, powers);

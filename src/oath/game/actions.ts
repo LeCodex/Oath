@@ -1,6 +1,6 @@
 import { Denizen, Relic, Site, WorldCard } from "./cards/cards";
 import { SearchableDeck } from "./cards/decks";
-import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect, DiscardCardEffect, MoveOwnWarbandsEffect, AddActionToStackEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect, SetNewOathkeeperEffect } from "./effects";
+import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect, DiscardCardEffect, MoveOwnWarbandsEffect, AddActionToStackEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect, SetNewOathkeeperEffect, SetPeoplesFavorMobState } from "./effects";
 import { OathResource, OathResourceName, OathSuit, OathSuitName } from "./enums";
 import { OathGame, OathGameObject } from "./game";
 import { OathPlayer, OathPlayerData } from "./player";
@@ -621,7 +621,7 @@ export class CampaignAction extends MajorAction {
 
 export interface CampaignActionTarget {
     defense: number;
-    takenFromPlayer: boolean;
+    pawnMustBeAtSite: boolean;
 
     seize(player: OathPlayer): void;
 };
@@ -778,7 +778,7 @@ class CampaignResult extends OathGameObject {
     resolveDefForce() {
         let total = 0, pawnTargeted = false;
         for (const target of this.targets) {
-            if (target.takenFromPlayer) {
+            if (target.pawnMustBeAtSite) {
                 if (!pawnTargeted) total += this.defender?.instance.ownWarbands || 0;
                 pawnTargeted = true;
                 continue;
@@ -1049,6 +1049,9 @@ export class PeoplesFavorWakeAction extends ChooseSuit {
             new MoveBankResourcesEffect(this.game, this.data, this.banner, bank, 1).do();
         else
             new PutResourcesIntoBankEffect(this.game, this.data, this.banner, 1).do();
+
+        if (this.banner.amount >= 6)
+            new SetPeoplesFavorMobState(this.game, this.data, this.banner, true).do();
     }
 }
 

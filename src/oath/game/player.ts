@@ -36,7 +36,7 @@ export class OathPlayerData extends InternalData<OathPlayer> {
     proxy(): this {
         const proxy = super.proxy();
         proxy.isImperial = this.instance.isImperial;
-        proxy.adviserSuitCount = this.adviserSuitCount;
+        proxy.adviserSuitCount = this.adviserSuitCount.bind(proxy);
         return proxy;
     }
 }
@@ -49,7 +49,7 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
     data = new OathPlayerData(this);
     
     defense = 2;
-    takenFromPlayer = true;
+    pawnMustBeAtSite = true;
 
     constructor(game: OathGame, site: Site) {
         super(game);

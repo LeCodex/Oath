@@ -1,5 +1,5 @@
 import { CardRestriction } from "../enums";
-import { Alchemist, Assassin, AwaitedReturn, BookBinders, Bracken, ChaosCult, CharmingFriend, Curfew, Dazzle, Elders, FabledFeast, ForcedLabor, GamblingHall, GleamingArmorAttack, GleamingArmorDefense, HeartsAndMinds, Herald, InsectSwarmAttack, InsectSwarmDefense, Insomnia, KeyToTheCity, LongbowArchersAttack, LongbowArchersDefense, LostTongue, LostTongueCampaign, MarriageAction, MarriageEffect, Naysayers, OathPower, OnlyTwoAdvisers, PiedPiper, PiedPiperActive, RelicThief, RoyalTax, SaddleMakers, ShieldWall, SilverTongue, SleightOfHand, SpellBreaker, SpellBreakerActive, SpiritSnare, ThreateningRoar, TollRoads, Tutor, VowOfObedience, VowOfPoverty, VowOfPovertyRest, WayStation } from "../power";
+import { ActingTroupe, Alchemist, Assassin, AwaitedReturn, BookBinders, Bracken, ChaosCult, CharmingFriend, Curfew, Dazzle, Elders, FabledFeast, ForcedLabor, GamblingHall, GleamingArmorAttack, GleamingArmorDefense, HeartsAndMinds, Herald, InsectSwarmAttack, InsectSwarmDefense, Insomnia, KeyToTheCity, LongbowArchersAttack, LongbowArchersDefense, LostTongue, LostTongueCampaign, MarriageAction, MarriageEffect, Naysayers, OathPower, OnlyTwoAdvisers, PiedPiper, PiedPiperActive, RelicThief, RoyalTax, SaddleMakers, ShieldWall, SilverTongue, SleightOfHand, SpellBreaker, SpellBreakerActive, SpiritSnare, ThreateningRoar, TollRoads, Tutor, VowOfObedience, VowOfPoverty, VowOfPovertyRest, WayStation } from "../power";
 import { Denizen } from "./cards";
 
 export const denizenData: StringObject<[string, Constructor<OathPower<Denizen>>[], CardRestriction?, boolean?]> = {
@@ -18,6 +18,7 @@ export const denizenData: StringObject<[string, Constructor<OathPower<Denizen>>[
     "Dazzle":           ["Dazzle",              [Dazzle]],
     "Tutor":            ["Tutor",               [Tutor], CardRestriction.Adviser],
     "Alchemist":        ["Alchemist",           [Alchemist]],
+    "ActingTroupe":     ["Acting Troupe",       [ActingTroupe], CardRestriction.Adviser],
     
     "LongbowArchers":   ["Longbow Archers",     [LongbowArchersAttack, LongbowArchersDefense]],
     "ShieldWall":       ["Shield Wall",         [ShieldWall]],
