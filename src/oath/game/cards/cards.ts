@@ -5,7 +5,7 @@ import { CardRestriction, OathResource, OathSuit, OathTypeVisionName, RegionName
 import { OathGame, Oath } from "../game";
 import { OathPlayer, OathPlayerData, OwnableObject } from "../player";
 import { ConspiracyPower, OathPower, VisionPower } from "../power";
-import { ResourceCost, ResourcesAndWarbands } from "../resources";
+import { ResourceCost, ResourcesAndWarbands, ResourcesAndWarbandsData } from "../resources";
 
 
 export abstract class OathCard extends ResourcesAndWarbands {
@@ -31,6 +31,16 @@ export abstract class OathCard extends ResourcesAndWarbands {
 
     peek(player: OathPlayer) {
         this.seenBy.add(player);
+    }
+}
+
+export class SiteData extends ResourcesAndWarbandsData<Site> {
+    ruler: OathPlayer | undefined;
+
+    proxy(): this {
+        const proxy = super.proxy();
+        proxy.ruler = this.instance.ruler;
+        return proxy;
     }
 }
 
@@ -70,7 +80,7 @@ export class Site extends OathCard implements CampaignActionTarget {
 
     get ruler(): OathPlayer | undefined {
         let max = 0, ruler = undefined;
-        for (const [player, number] of this.warbands) {
+        for (const [player, number] of this.data.warbands) {
             if (number > max) {
                 max = number;
                 ruler = player;
@@ -91,7 +101,7 @@ export class Site extends OathCard implements CampaignActionTarget {
     hide(): void {
         super.hide();
         for (const relic of this.relics) this.game.relicDeck.putCard(relic);
-        for (const [resource, amount] of this.resources) this.takeResources(resource, amount);
+        for (const [resource, amount] of this.data.resources) this.takeResources(resource, amount);
     }
 
     inRegion(regionName: RegionName) {
@@ -188,7 +198,7 @@ export abstract class WorldCard extends OwnableCard {
 
     returnResources(): void {
         this.game.currentPlayer.putResources(OathResource.Secret, this.takeResources(OathResource.Secret));
-        for (const player of this.warbands.keys()) player.moveWarbandsIntoBagFrom(this);
+        for (const player of this.data.warbands.keys()) player.moveWarbandsIntoBagFrom(this);
     }
 }
 

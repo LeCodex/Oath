@@ -1,5 +1,5 @@
 import { Denizen, OwnableCard, Site, Vision, WorldCard } from "./cards/cards";
-import { BannerName, CardRestriction, OathResource, OathSuit } from "./enums";
+import { CardRestriction, OathResource, OathSuit } from "./enums";
 import { Exile, OathPlayer, OathPlayerData } from "./player";
 import { EffectModifier, WhenPlayed } from "./power";
 import { PeoplesFavor, ResourceBank, ResourceCost, ResourcesAndWarbands } from "./resources";
@@ -229,7 +229,7 @@ export class PayCostToTargetEffect extends OathEffect<boolean> {
             return new PayCostToBankEffect(this.game, this.data, this.cost, this.target.suit, this.source).do();
 
         for (const [resource, amount] of this.cost.totalResources)
-            if (this.source.getResources(resource) < amount) return false;
+            if (this.source.data.getResources(resource) < amount) return false;
 
         for (const [resource, amount] of this.cost.burntResources)
             new MoveResourcesToTargetEffect(this.game, this.data, resource, amount, undefined, this.source).do(); // TODO: Move burnt favor to supply
@@ -261,7 +261,7 @@ export class PayCostToBankEffect extends OathEffect<boolean> {
         if (!this.source) return false;
 
         for (const [resource, amount] of this.cost.totalResources)
-            if (this.source.getResources(resource) < amount) return false;
+            if (this.source.data.getResources(resource) < amount) return false;
 
         for (const [resource, amount] of this.cost.burntResources)
             new MoveResourcesToTargetEffect(this.game, this.data, resource, amount, undefined, this.source).do(); // TODO: Move burnt favor to supply

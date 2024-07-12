@@ -11,6 +11,12 @@ abstract class InternalData<T> {
     } 
 
     proxy() {  // Creates a copy with all dynamic fields filled statically
-        return {...this};
+        const proxy = {...this};
+        for (const key in this) {
+            if (typeof this[key] === "function")
+                proxy[key] = this[key].bind(proxy);
+        }
+
+        return proxy;
     }
 }

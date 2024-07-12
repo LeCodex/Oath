@@ -1,3 +1,11 @@
+export enum PlayerColor {
+    Purple,
+    Red,
+    Blue,
+    Yellow,
+    White,
+    Black
+}
 
 export enum OathSuit {
     Discord,

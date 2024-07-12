@@ -5,7 +5,7 @@ import { RelicDeck, WorldDeck } from "./cards/decks";
 import { denizenData } from "./cards/denizens";
 import { relicsData } from "./cards/relics";
 import { AddActionToStackEffect, OathEffect } from "./effects";
-import { BannerName, OathType, OathPhase, OathSuit, RegionName } from "./enums";
+import { BannerName, OathType, OathPhase, OathSuit, RegionName, PlayerColor } from "./enums";
 import { Chancellor, Exile, OathPlayer } from "./player";
 import { OathPower } from "./power";
 import { Banner, DarkestSecret, FavorBank, PeoplesFavor } from "./resources";
@@ -21,13 +21,14 @@ export class OathGame {
     relicDeck = new RelicDeck(this);
     
     chancellor: Chancellor;
-    players: OathPlayer[];
+    players: { [key: number]: OathPlayer } = {};
     
     oath: Oath;
     oathkeeper: OathPlayer;
     isUsurper = false;
 
     turn = 0;
+    order: PlayerColor[] = [PlayerColor.Purple];
     phase = OathPhase.Wake;
     round = 1;
 
@@ -49,8 +50,11 @@ export class OathGame {
 
         const topCradleSite = this.board.regions[RegionName.Cradle].sites[0];
         this.oathkeeper = this.chancellor = new Chancellor(this, topCradleSite);
-        this.players.push(this.chancellor);
-        for (let i = 0; i < playerCount - 1; i++) this.players.push(new Exile(this, topCradleSite));
+        this.players[PlayerColor.Purple] = this.chancellor;
+        for (let i = 1; i < playerCount; i++) {
+            this.players[i+1] = new Exile(this, topCradleSite, i+1);
+            this.order.push(i+1);
+        }
         
         // TODO: Take favor from supply
         const startingAmount = playerCount < 5 ? 3 : 4;
@@ -64,7 +68,7 @@ export class OathGame {
         ]);
     }
 
-    get currentPlayer(): OathPlayer { return this.players[this.turn]; }
+    get currentPlayer(): OathPlayer { return this.players[this.order[this.turn]]; }
 
     getPowers<T extends OathPower<any>>(type: AbstractConstructor<T>): [any, Constructor<T>][] {
         const powers: [any, Constructor<T>][] = [];
@@ -82,7 +86,7 @@ export class OathGame {
             }
         }
 
-        for (const player of this.players) {
+        for (const player of Object.values(this.players)) {
             for (const adviser of player.data.advisers) {
                 if (adviser.facedown) continue;
                 for (const power of adviser.powers)
@@ -157,7 +161,7 @@ export class OathGame {
 
     endTurn() {
         this.turn++;
-        if (this.turn === this.players.length) this.turn = 0;
+        if (this.turn === Object.keys(this.players).length) this.turn = 0;
     }
 }
 
@@ -179,7 +183,7 @@ export abstract class Oath extends OathGameObject{
 
     getCandidates(): Set<OathPlayer> {
         let max = 0, candidates = new Set<OathPlayer>();
-        for (const player of this.game.players) {
+        for (const player of Object.values(this.game.players)) {
             const score = this.scorePlayer(player);
             if (score > max) {
                 candidates.clear();

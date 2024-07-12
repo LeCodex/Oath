@@ -347,7 +347,7 @@ export class RecoverBannerPitchAction extends OathAction {
 
     start() {
         const values: number[] = [];
-        for (let i = this.banner.amount + 1; i <= this.player.getResources(this.banner.type); i++) values.push(i);
+        for (let i = this.banner.amount + 1; i <= this.data.getResources(this.banner.type); i++) values.push(i);
         this.selects.amount = new SelectNumber(values);
         super.start();
     }
@@ -601,7 +601,7 @@ export class CampaignAction extends MajorAction {
 
     start() {
         const choices = new Map<string, OathPlayer | undefined>();
-        for (const player of this.game.players) choices.set(player.name, player);
+        for (const player of Object.values(this.game.players)) choices.set(player.name, player);
         if (this.data.site.ruler === undefined) choices.set("Bandits", undefined);
         this.selects.defender = new SelectNOf(choices, 1);
         super.start();
@@ -786,7 +786,7 @@ class CampaignResult extends OathGameObject {
             
             // TODO: Make that modular
             if (target instanceof Site) {
-                total += this.defender ? target.getWarbands(this.defender.instance) : target.bandits;
+                total += this.defender ? target.data.getWarbands(this.defender.instance) : target.bandits;
                 continue;
             }
         }
@@ -1068,7 +1068,7 @@ export class ChooseResourceToTakeAction extends OathAction {
 
     start() {
         const choices = new Map<string, OathResource>();
-        for (const [resource, value] of this.source.resources)
+        for (const [resource, value] of this.source.data.resources)
             if (value > 0) choices.set(OathResourceName[resource], resource);
         this.selects.resource = new SelectNOf(choices, 1);
         super.start();
@@ -1096,7 +1096,7 @@ export abstract class ChoosePlayer extends OathAction {
     }
 
     start(none?: string) {
-        if (!this.players.size) this.players = new Set(this.game.players);
+        if (!this.players.size) this.players = new Set(Object.values(this.game.players));
 
         const choices = new Map<string, OathPlayer | undefined>();
         for (const player of this.players)
@@ -1126,7 +1126,7 @@ export class TakeResourceFromPlayerAction extends ChoosePlayer {
         if (!this.target) return;
 
         // TODO: Where should this check be?
-        if (this.resource === OathResource.Secret && this.target.getResources(OathResource.Secret) <= 1) return;
+        if (this.resource === OathResource.Secret && this.target.data.getResources(OathResource.Secret) <= 1) return;
         new MoveResourcesToTargetEffect(this.game, this.data, this.resource, 1, this.player, this.target).do();
     }
 }

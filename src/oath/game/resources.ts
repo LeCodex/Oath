@@ -55,7 +55,7 @@ export abstract class Banner extends ResourceBank implements OwnableObject, Reco
     }
 
     canRecover(action: RecoverAction): boolean {
-        return action.player.getResources(this.type) > this.amount;
+        return action.data.getResources(this.type) > this.amount;
     }
 
     recover(player: OathPlayer): void {
@@ -115,11 +115,11 @@ export class DarkestSecret extends Banner {
     }
 }
 
-export abstract class ResourcesAndWarbands extends OathGameObject {
+
+export class ResourcesAndWarbandsData<T extends ResourcesAndWarbands> extends InternalData<T> {
     resources = new Map<OathResource, number>();
     warbands = new Map<OathPlayer, number>();
-
-
+    
     get empty(): boolean {
         for (const amount of this.resources.values()) if (amount) return false;
         return true;
@@ -128,13 +128,21 @@ export abstract class ResourcesAndWarbands extends OathGameObject {
     getResources(resource: OathResource): number {
         return this.resources.get(resource) || 0;
     }
+    
+    getWarbands(player: OathPlayer): number {
+        return this.warbands.get(player) || 0;
+    }
+}
+
+export abstract class ResourcesAndWarbands extends OathGameObject {
+    data: ResourcesAndWarbandsData<any> = new ResourcesAndWarbandsData(this);
 
     putResources(resource: OathResource, amount: number): number {
-        const newAmount = this.getResources(resource) + amount;
-        this.resources.set(resource, newAmount);
+        const newAmount = this.data.getResources(resource) + amount;
+        this.data.resources.set(resource, newAmount);
         return newAmount;
     }
-
+    
     putResourcesIntoBank(bank: ResourceBank | undefined, amount: number = Infinity): number {
         if (!bank) return 0;
         const numberMoved = this.takeResources(bank.type, amount);
@@ -143,9 +151,9 @@ export abstract class ResourcesAndWarbands extends OathGameObject {
     }
 
     takeResources(resource: OathResource, amount: number = Infinity): number {
-        const oldAmount = (this.resources.get(resource) || 0);
+        const oldAmount = (this.data.resources.get(resource) || 0);
         const newAmount = Math.max(oldAmount - amount, 0);
-        this.resources.set(resource, newAmount);
+        this.data.resources.set(resource, newAmount);
         return oldAmount - newAmount;
     }
 
@@ -157,26 +165,22 @@ export abstract class ResourcesAndWarbands extends OathGameObject {
     }
 
     moveResourcesTo(resource: OathResource, target: ResourcesAndWarbands | undefined, amount: number = Infinity, exact: boolean = false): number {
-        if (exact && this.getResources(resource) < amount) return 0;
+        if (exact && this.data.getResources(resource) < amount) return 0;
         const numberMoved = this.takeResources(resource, amount);
         if (target) target.putResources(resource, numberMoved);
         return numberMoved;
     }
 
-    getWarbands(player: OathPlayer): number {
-        return this.warbands.get(player) || 0;
-    }
-
     putWarbands(player: OathPlayer, amount: number): number {
-        const newAmount = this.getWarbands(player) + amount;
-        this.warbands.set(player, newAmount);
+        const newAmount = this.data.getWarbands(player) + amount;
+        this.data.warbands.set(player, newAmount);
         return newAmount;
     }
 
     takeWarbands(player: OathPlayer, amount: number = Infinity): number {
-        const oldAmount = (this.warbands.get(player) || 0);
+        const oldAmount = (this.data.warbands.get(player) || 0);
         const newAmount = Math.max(oldAmount - amount, 0);
-        this.warbands.set(player, newAmount);
+        this.data.warbands.set(player, newAmount);
         return oldAmount - newAmount;
     }
 

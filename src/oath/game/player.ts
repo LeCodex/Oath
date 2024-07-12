@@ -2,10 +2,10 @@ import { CampaignAction, CampaignActionTarget, CampaignBanishPlayerAction, Choos
 import { Denizen, OwnableCard, Relic, Site, Vision, WorldCard } from "./cards/cards";
 import { Discard } from "./cards/decks";
 import { AddActionToStackEffect, DiscardCardEffect, MoveResourcesToTargetEffect } from "./effects";
-import { OathResource, OathSuit } from "./enums";
+import { OathResource, OathSuit, PlayerColor } from "./enums";
 import { OathGame, OathGameObject } from "./game";
 import { Brutal, Careless, Decadent, Greedy } from "./power";
-import { Banner, ResourcesAndWarbands } from "./resources";
+import { Banner, ResourcesAndWarbands, ResourcesAndWarbandsData } from "./resources";
 
 export interface OwnableObject {
     owner?: OathPlayer;
@@ -17,8 +17,7 @@ export function isOwnable(obj: object): obj is OwnableObject {
     return "owner" in obj;
 }
 
-// TODO: Move the resources and warbands to this?
-export class OathPlayerData extends InternalData<OathPlayer> {
+export class OathPlayerData extends ResourcesAndWarbandsData<OathPlayer> {
     site: Site;
     advisers = new Set<WorldCard>();
     relics = new Set<Relic>();
@@ -36,13 +35,13 @@ export class OathPlayerData extends InternalData<OathPlayer> {
     proxy(): this {
         const proxy = super.proxy();
         proxy.isImperial = this.instance.isImperial;
-        proxy.adviserSuitCount = this.adviserSuitCount.bind(proxy);
         return proxy;
     }
 }
 
 export abstract class OathPlayer extends ResourcesAndWarbands implements CampaignActionTarget {
     name: string;
+    color: PlayerColor;
     warbandsInBag: number;
     supply: number = 7;
     
@@ -51,13 +50,14 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
     defense = 2;
     pawnMustBeAtSite = true;
 
-    constructor(game: OathGame, site: Site) {
+    constructor(game: OathGame, site: Site, color: PlayerColor) {
         super(game);
         this.data.site = site;
+        this.color = color;
     }
 
     get isImperial(): boolean { return false; }
-    get ownWarbands(): number { return this.warbands.get(this.isImperial ? this : this.game.chancellor) || 0; }
+    get ownWarbands(): number { return this.data.getWarbands(this.isImperial ? this : this.game.chancellor); }
 
     rules(card: OwnableCard) {
         return card.ruler === (this.isImperial ? this.game.chancellor : this);
@@ -140,7 +140,7 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
 
     seize(player: OathPlayer) {
         // TODO: Move burnt favor to supply
-        new MoveResourcesToTargetEffect(this.game, this.data, OathResource.Favor, Math.floor(this.getResources(OathResource.Favor) / 2), undefined).do();
+        new MoveResourcesToTargetEffect(this.game, this.data, OathResource.Favor, Math.floor(this.data.getResources(OathResource.Favor) / 2), undefined).do();
         new AddActionToStackEffect(new CampaignBanishPlayerAction(player.data, this)).do();
     }
 
@@ -175,8 +175,11 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
 
 export class Chancellor extends OathPlayer {
     warbandsInBag = 24;
-
     reliquary = new Reliquary(this.game);
+
+    constructor(game: OathGame, site: Site) {
+        super(game, site, PlayerColor.Purple);
+    }
 
     get isImperial(): boolean { return true; }
 
