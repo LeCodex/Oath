@@ -9,6 +9,8 @@ import { BannerName, OathType, OathPhase, OathSuit, RegionName, PlayerColor } fr
 import { Chancellor, Exile, OathPlayer } from "./player";
 import { OathPower } from "./power";
 import { Banner, DarkestSecret, FavorBank, PeoplesFavor } from "./resources";
+import { AbstractConstructor, Constructor, isExtended, StringObject } from "./utils";
+
 
 export class OathGame {
     board = new OathBoard(this);
@@ -22,13 +24,13 @@ export class OathGame {
     
     chancellor: Chancellor;
     players: { [key: number]: OathPlayer } = {};
+    order: PlayerColor[] = [PlayerColor.Purple];
     
     oath: Oath;
     oathkeeper: OathPlayer;
     isUsurper = false;
 
     turn = 0;
-    order: PlayerColor[] = [PlayerColor.Purple];
     phase = OathPhase.Wake;
     round = 1;
 
@@ -87,13 +89,13 @@ export class OathGame {
         }
 
         for (const player of Object.values(this.players)) {
-            for (const adviser of player.data.advisers) {
+            for (const adviser of player.advisers) {
                 if (adviser.facedown) continue;
                 for (const power of adviser.powers)
                     if (isExtended(power, type)) powers.push([adviser, power]);
             }
 
-            for (const relic of player.data.relics) {
+            for (const relic of player.relics) {
                 if (relic.facedown) continue;
                 for (const power of relic.powers) {
                     if (isExtended(power, type)) powers.push([relic, power]);
@@ -154,7 +156,7 @@ export class OathGame {
         if (candidates.has(this.oathkeeper)) return;
         if (candidates.size) {
             // TODO: Can this be added to the stack directly?
-            new AddActionToStackEffect(new ChooseNewOathkeeper(this.oathkeeper.data, candidates)).do();
+            new AddActionToStackEffect(new ChooseNewOathkeeper(this.oathkeeper, candidates)).do();
             this.checkForNextAction();
         }
     }
@@ -174,7 +176,7 @@ export abstract class OathGameObject {
 }
 
 
-export abstract class Oath extends OathGameObject{
+export abstract class Oath extends OathGameObject {
     type: OathType;
 
     abstract setup(): void;
@@ -214,7 +216,7 @@ export class OathOfSupremacy extends Oath {
     }
 
     isSuccessor(player: OathPlayer): boolean {
-        return player.data.relics.size + player.data.banners.size > this.game.chancellor.data.relics.size + this.game.chancellor.data.banners.size;
+        return player.relics.size + player.banners.size > this.game.chancellor.relics.size + this.game.chancellor.banners.size;
     }
 }
 
@@ -226,7 +228,7 @@ export class OathOfProtection extends Oath {
     }
 
     scorePlayer(player: OathPlayer): number {
-        return player.data.relics.size + player.data.banners.size;
+        return player.relics.size + player.banners.size;
     }
 
     isSuccessor(player: OathPlayer): boolean {

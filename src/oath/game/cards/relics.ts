@@ -1,4 +1,5 @@
 import { BookOfRecords, CircletOfCommand, CupOfPlenty, DragonskinWardrum, OathPower } from "../power";
+import { Constructor, StringObject } from "../utils";
 import { Relic } from "./cards";
 
 export const relicsData: StringObject<[string, Constructor<OathPower<Relic>>[], number]> = {

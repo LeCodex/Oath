@@ -1,27 +1,30 @@
 import { Denizen, OwnableCard, Site, Vision, WorldCard } from "./cards/cards";
-import { CardRestriction, OathResource, OathSuit } from "./enums";
-import { Exile, OathPlayer, OathPlayerData } from "./player";
+import { CardRestriction, OathResource, OathSuit, PlayerColor } from "./enums";
+import { Exile, OathPlayer } from "./player";
 import { EffectModifier, WhenPlayed } from "./power";
 import { PeoplesFavor, ResourceBank, ResourceCost, ResourcesAndWarbands } from "./resources";
 import { OwnableObject } from "./player";
 import { OathGame, OathGameObject } from "./game";
 import { InvalidActionResolution, OathAction } from "./actions";
 import { CardDeck, SearchableDeck } from "./cards/decks";
+import { CopyWithOriginal, getCopyWithOriginal, isExtended } from "./utils";
 
 
 //////////////////////////////////////////////////
 //                BASE CLASSES                  //
 //////////////////////////////////////////////////
 export abstract class OathEffect<T> extends OathGameObject {
-    readonly data: OathPlayerData | undefined;
+    readonly game: CopyWithOriginal<OathGame>;
+    readonly playerColor: PlayerColor | undefined;
     modifiers: EffectModifier<any>[];
 
-    constructor(game: OathGame, data: OathPlayerData | undefined) {
-        super(game);
-        this.data = data;
+    constructor(game: OathGame, player: OathPlayer | undefined) {
+        super(getCopyWithOriginal(game));
+        this.playerColor = player?.color;
     }
 
-    get player(): OathPlayer | undefined { return this.data?.instance; }
+    get player() { return this.playerColor !== undefined ? this.game.players[this.playerColor] : undefined; }
+    get originalPlayer() { return this.playerColor !== undefined ? this.game.original.players[this.playerColor] : undefined; }
 
     do(): T {
         this.applyModifiers();
@@ -54,14 +57,14 @@ export abstract class OathEffect<T> extends OathGameObject {
 }
 
 export abstract class PlayerEffect<T> extends OathEffect<T> {
-    readonly data: OathPlayerData;
+    readonly playerColor: PlayerColor;
 
-    constructor(data: OathPlayerData) {
-        super(data.instance.game, data);
-        this.player.defense;
+    constructor(player: OathPlayer) {
+        super(player.game, player);
     }
 
-    get player(): OathPlayer { return this.data.instance; }
+    get player() { return this.game.players[this.playerColor]; }
+    get originalPlayer() { return this.game.original.players[this.playerColor]; }
 }
 
 
@@ -90,11 +93,11 @@ export class PutResourcesOnTargetEffect extends OathEffect<number> {
     amount: number;
     target?: ResourcesAndWarbands;
 
-    constructor(game: OathGame, data: OathPlayerData | undefined, resource: OathResource, amount: number, target?: ResourcesAndWarbands) {
-        super(game, data);
+    constructor(game: OathGame, player: OathPlayer | undefined, resource: OathResource, amount: number, target?: ResourcesAndWarbands) {
+        super(game, player);
         this.resource = resource;
         this.amount = amount;
-        this.target = target || this.player;
+        this.target = target || this.originalPlayer;
     }
 
     resolve(): number {
@@ -113,12 +116,12 @@ export class MoveResourcesToTargetEffect extends OathEffect<number> {
     target?: ResourcesAndWarbands;
     source?: ResourcesAndWarbands;
 
-    constructor(game: OathGame, data: OathPlayerData | undefined, resource: OathResource, amount: number, target: ResourcesAndWarbands | undefined, source?: ResourcesAndWarbands) {
-        super(game, data);
+    constructor(game: OathGame, player: OathPlayer | undefined, resource: OathResource, amount: number, target: ResourcesAndWarbands | undefined, source?: ResourcesAndWarbands) {
+        super(game, player);
         this.resource = resource;
         this.amount = amount;
         this.target = target;
-        this.source = source || this.player;
+        this.source = source || this.originalPlayer;
     }
 
     resolve(): number {
@@ -139,11 +142,11 @@ export class PutResourcesIntoBankEffect extends OathEffect<number> {
     bank?: ResourceBank;
     source?: ResourcesAndWarbands;
 
-    constructor(game: OathGame, data: OathPlayerData | undefined, bank: ResourceBank | undefined, amount: number, source?: ResourcesAndWarbands | undefined) {
-        super(game, data);
+    constructor(game: OathGame, player: OathPlayer | undefined, bank: ResourceBank | undefined, amount: number, source?: ResourcesAndWarbands | undefined) {
+        super(game, player);
         this.bank = bank;
         this.amount = amount;
-        this.source = source || this.player;
+        this.source = source || this.originalPlayer;
     }
 
     resolve(): number {
@@ -164,11 +167,11 @@ export class TakeResourcesFromBankEffect extends OathEffect<number> {
     bank?: ResourceBank;
     target?: ResourcesAndWarbands;
 
-    constructor(game: OathGame, data: OathPlayerData | undefined, bank: ResourceBank | undefined, amount: number, target?: ResourcesAndWarbands | undefined) {
-        super(game, data);
+    constructor(game: OathGame, player: OathPlayer | undefined, bank: ResourceBank | undefined, amount: number, target?: ResourcesAndWarbands | undefined) {
+        super(game, player);
         this.bank = bank;
         this.amount = amount;
-        this.target = target || this.player;
+        this.target = target || this.originalPlayer;
     }
 
     resolve(): number {
@@ -193,8 +196,8 @@ export class MoveBankResourcesEffect extends OathEffect<number> {
     from: ResourceBank;
     to: ResourceBank;
  
-    constructor(game: OathGame, data: OathPlayerData | undefined, from: ResourceBank, to: ResourceBank, amount: number) {
-        super(game, data);
+    constructor(game: OathGame, player: OathPlayer | undefined, from: ResourceBank, to: ResourceBank, amount: number) {
+        super(game, player);
         this.from = from;
         this.to = to;
         this.amount = amount;
@@ -215,27 +218,27 @@ export class PayCostToTargetEffect extends OathEffect<boolean> {
     target?: ResourcesAndWarbands;
     source?: ResourcesAndWarbands;
 
-    constructor(game: OathGame, data: OathPlayerData | undefined, cost: ResourceCost, target: ResourcesAndWarbands | undefined, source?: ResourcesAndWarbands) {
-        super(game, data);
+    constructor(game: OathGame, player: OathPlayer | undefined, cost: ResourceCost, target: ResourcesAndWarbands | undefined, source?: ResourcesAndWarbands) {
+        super(game, player);
         this.cost = cost;
         this.target = target;
-        this.source = source || this.player;
+        this.source = source || this.originalPlayer;
     }
 
     resolve(): boolean {
         if (!this.source) return false;
 
         if (this.target instanceof Denizen && this.game.currentPlayer !== this.player)
-            return new PayCostToBankEffect(this.game, this.data, this.cost, this.target.suit, this.source).do();
+            return new PayCostToBankEffect(this.game, this.originalPlayer, this.cost, this.target.suit, this.source).do();
 
         for (const [resource, amount] of this.cost.totalResources)
-            if (this.source.data.getResources(resource) < amount) return false;
+            if (this.source.getResources(resource) < amount) return false;
 
         for (const [resource, amount] of this.cost.burntResources)
-            new MoveResourcesToTargetEffect(this.game, this.data, resource, amount, undefined, this.source).do(); // TODO: Move burnt favor to supply
+            new MoveResourcesToTargetEffect(this.game, this.originalPlayer, resource, amount, undefined, this.source).do(); // TODO: Move burnt favor to supply
 
         for (const [resource, amount] of this.cost.placedResources)
-            new MoveResourcesToTargetEffect(this.game, this.data, resource, amount, this.target, this.source).do();
+            new MoveResourcesToTargetEffect(this.game, this.originalPlayer, resource, amount, this.target, this.source).do();
 
         return true;
     }
@@ -250,26 +253,26 @@ export class PayCostToBankEffect extends OathEffect<boolean> {
     suit: OathSuit | undefined;
     source?: ResourcesAndWarbands;
 
-    constructor(game: OathGame, data: OathPlayerData | undefined, cost: ResourceCost, suit: OathSuit | undefined, source?: ResourcesAndWarbands) {
-        super(game, data);
+    constructor(game: OathGame, player: OathPlayer | undefined, cost: ResourceCost, suit: OathSuit | undefined, source?: ResourcesAndWarbands) {
+        super(game, player);
         this.cost = cost;
         this.suit = suit;
-        this.source = source || this.player;
+        this.source = source || this.originalPlayer;
     }
 
     resolve(): boolean {
         if (!this.source) return false;
 
         for (const [resource, amount] of this.cost.totalResources)
-            if (this.source.data.getResources(resource) < amount) return false;
+            if (this.source.getResources(resource) < amount) return false;
 
         for (const [resource, amount] of this.cost.burntResources)
-            new MoveResourcesToTargetEffect(this.game, this.data, resource, amount, undefined, this.source).do(); // TODO: Move burnt favor to supply
+            new MoveResourcesToTargetEffect(this.game, this.originalPlayer, resource, amount, undefined, this.source).do(); // TODO: Move burnt favor to supply
 
         if (this.suit)
-            new PutResourcesIntoBankEffect(this.game, this.data, this.game.favorBanks.get(this.suit), this.cost.placedResources.get(OathResource.Favor) || 0, this.source).do();
+            new PutResourcesIntoBankEffect(this.game, this.originalPlayer, this.game.favorBanks.get(this.suit), this.cost.placedResources.get(OathResource.Favor) || 0, this.source).do();
         
-        new FlipSecretsEffect(this.game, this.data, this.cost.placedResources.get(OathResource.Secret) || 0, this.source).do();
+        new FlipSecretsEffect(this.game, this.originalPlayer, this.cost.placedResources.get(OathResource.Secret) || 0, this.source).do();
 
         return true;
     }
@@ -283,8 +286,8 @@ export class FlipSecretsEffect extends OathEffect<number> {
     amount: number;
     source?: ResourcesAndWarbands
 
-    constructor(game: OathGame, data: OathPlayerData | undefined, amount: number, source?: ResourcesAndWarbands) {
-        super(game, data);
+    constructor(game: OathGame, player: OathPlayer | undefined, amount: number, source?: ResourcesAndWarbands) {
+        super(game, player);
         this.amount = amount;
         this.source = source || this.player;
     }
@@ -311,12 +314,12 @@ export class MoveWarbandsToEffect extends OathEffect<number> {
     target: ResourcesAndWarbands;
     source?: ResourcesAndWarbands;
 
-    constructor(game: OathGame, data: OathPlayerData | undefined, owner: OathPlayer, target: ResourcesAndWarbands, amount: number = Infinity, source?: ResourcesAndWarbands) {
-        super(game, data);
+    constructor(game: OathGame, player: OathPlayer | undefined, owner: OathPlayer, target: ResourcesAndWarbands, amount: number = Infinity, source?: ResourcesAndWarbands) {
+        super(game, player);
         this.owner = owner;
         this.amount = amount;
         this.target = target;
-        this.source = source || this.player;
+        this.source = source || this.originalPlayer;
     }
 
     resolve(): number {
@@ -334,20 +337,20 @@ export class MoveOwnWarbandsEffect extends PlayerEffect<number> {
     from: ResourcesAndWarbands;
     to: ResourcesAndWarbands;
 
-    constructor(data: OathPlayerData, from: ResourcesAndWarbands, to: ResourcesAndWarbands, amount: number = Infinity) {
-        super(data);
+    constructor(player: OathPlayer, from: ResourcesAndWarbands, to: ResourcesAndWarbands, amount: number = Infinity) {
+        super(player);
         this.amount = amount;
         this.from = from;
         this.to = to;
     }
 
     resolve(): number {
-        this.amount = this.player.moveOwnWarbands(this.from, this.to, this.amount);
+        this.amount = this.originalPlayer.moveOwnWarbands(this.from, this.to, this.amount);
         return this.amount;
     }
 
     revert(): void {
-        this.player.moveOwnWarbands(this.to, this.from, this.amount);
+        this.originalPlayer.moveOwnWarbands(this.to, this.from, this.amount);
     }
 }
 
@@ -355,10 +358,10 @@ export class PutWarbandsFromBagEffect extends PlayerEffect<number> {
     amount: number;
     target: ResourcesAndWarbands;
 
-    constructor(data: OathPlayerData, amount: number, target?: ResourcesAndWarbands) {
-        super(data);
+    constructor(player: OathPlayer, amount: number, target?: ResourcesAndWarbands) {
+        super(player);
         this.amount = amount;
-        this.target = target || data.instance;
+        this.target = target || player;
     }
 
     resolve(): number {
@@ -375,10 +378,10 @@ export class TakeWarbandsIntoBagEffect extends PlayerEffect<number> {
     amount: number;
     target: ResourcesAndWarbands;
 
-    constructor(data: OathPlayerData, amount: number, target?: ResourcesAndWarbands) {
-        super(data);
+    constructor(player: OathPlayer, amount: number, target?: ResourcesAndWarbands) {
+        super(player);
         this.amount = amount;
-        this.target = target || data.instance;
+        this.target = target || player;
     }
 
     resolve(): number {
@@ -397,15 +400,15 @@ export class TravelEffect extends PlayerEffect<void> {
     oldSite: Site;
     revealedSite: boolean;
 
-    constructor(data: OathPlayerData, site: Site, initiatedBy?: OathPlayer) {
-        super(data);
+    constructor(player: OathPlayer, site: Site, initiatedBy?: OathPlayer) {
+        super(player);
         this.site = site;
         this.initiatedBy = initiatedBy || this.player;
     }
 
     resolve(): void {
-        this.oldSite = this.data.site;
-        this.player.data.site = this.site;
+        this.oldSite = this.player.site;
+        this.player.site = this.site;
 
         this.revealedSite = this.site.facedown;
         if (this.revealedSite) this.site.reveal();
@@ -413,7 +416,7 @@ export class TravelEffect extends PlayerEffect<void> {
 
     revert(): void {
         // This effect SHOULD NOT get reverted
-        this.player.data.site = this.oldSite;
+        this.player.site = this.oldSite;
         if (this.revealedSite) this.site.hide();
     }
 }
@@ -424,8 +427,8 @@ export class DrawFromDeckEffect<T extends OwnableCard> extends PlayerEffect<T[]>
     fromBottom: boolean;
     cards: T[];
 
-    constructor(data: OathPlayerData, deck: CardDeck<T>, amount: number, fromBottom: boolean = false) {
-        super(data);
+    constructor(player: OathPlayer, deck: CardDeck<T>, amount: number, fromBottom: boolean = false) {
+        super(player);
         this.deck = deck;
         this.amount = amount;
         this.fromBottom = fromBottom;
@@ -445,14 +448,14 @@ export class PlayFromAdvisersEffect extends PlayerEffect<void> {
     card: WorldCard;
     site?: Site;
 
-    constructor(data: OathPlayerData, card: WorldCard, site?: Site) {
-        super(data);
+    constructor(player: OathPlayer, card: WorldCard, site?: Site) {
+        super(player);
         this.card = card;
         this.site = site;
     }
 
     resolve(): void {
-        new PlayWorldCardEffect(this.data, this.card, false, this.site);
+        new PlayWorldCardEffect(this.player, this.card, false, this.site);
     }
 
     revert(): void {
@@ -467,8 +470,8 @@ export class PlayWorldCardEffect extends PlayerEffect<void> {
     site?: Site;
     oldOwner: OathPlayer | undefined;
 
-    constructor(data: OathPlayerData, card: WorldCard, facedown: boolean = false, site?: Site) {
-        super(data);
+    constructor(player: OathPlayer, card: WorldCard, facedown: boolean = false, site?: Site) {
+        super(player);
         this.card = card;
         this.facedown = facedown;
         this.site = site;
@@ -479,17 +482,17 @@ export class PlayWorldCardEffect extends PlayerEffect<void> {
             if (!(this.card instanceof Denizen)) throw new InvalidActionResolution("Only Denizens can be played to sites.");
             if (this.card.restriction === CardRestriction.Adviser) throw new InvalidActionResolution("Cannot play adviser-only cards to sites.");
 
-            new PlayDenizenAtSiteEffect(this.data, this.card, this.site).do();
+            new PlayDenizenAtSiteEffect(this.player, this.card, this.site).do();
         } else {
             if (!this.facedown && this.card instanceof Denizen && this.card.restriction === CardRestriction.Site)
                 throw new InvalidActionResolution("Cannot play site-only cards to advisers.");
             
             if (!this.facedown && this.card instanceof Vision) {
-                new PlayVisionEffect(this.data, this.card).do();
+                new PlayVisionEffect(this.player, this.card).do();
                 return;
             }
 
-            new PlayWorldCardToAdviserEffect(this.data, this.card, this.facedown).do();
+            new PlayWorldCardToAdviserEffect(this.player, this.card, this.facedown).do();
         }
         
         for (const power of this.card.powers)
@@ -507,8 +510,8 @@ export class PlayDenizenAtSiteEffect extends PlayerEffect<void> {
 
     getting = new Map([[OathResource.Favor, 1]]);
 
-    constructor(data: OathPlayerData, card: Denizen, site: Site) {
-        super(data);
+    constructor(player: OathPlayer, card: Denizen, site: Site) {
+        super(player);
         this.card = card;
         this.site = site;
     }
@@ -521,9 +524,9 @@ export class PlayDenizenAtSiteEffect extends PlayerEffect<void> {
         const bank = this.game.favorBanks.get(this.card.suit);
         for (const [resource, amount] of this.getting) {
             if (bank && resource === bank.type)
-                new TakeResourcesFromBankEffect(this.game, this.data, bank, amount).do();
+                new TakeResourcesFromBankEffect(this.game, this.player, bank, amount).do();
             else
-                new PutResourcesOnTargetEffect(this.game, this.data, resource, amount).do();
+                new PutResourcesOnTargetEffect(this.game, this.player, resource, amount).do();
         }
     }
 
@@ -538,8 +541,8 @@ export class PlayWorldCardToAdviserEffect extends PlayerEffect<void> {
     card: WorldCard;
     facedown: boolean;
 
-    constructor(data: OathPlayerData, card: WorldCard, facedown: boolean) {
-        super(data);
+    constructor(player: OathPlayer, card: WorldCard, facedown: boolean) {
+        super(player);
         this.card = card;
         this.facedown = facedown;
     }
@@ -559,21 +562,21 @@ export class PlayVisionEffect extends PlayerEffect<void> {
     card: Vision;
     oldVision: Vision | undefined;
 
-    constructor(data: OathPlayerData, card: Vision) {
-        super(data);
+    constructor(player: OathPlayer, card: Vision) {
+        super(player);
         this.card = card;
     }
 
     resolve(): void {
-        if (!(this.player instanceof Exile) || this.data.isImperial) throw new InvalidActionResolution("Only Exiles can play Visions faceup.");
+        if (!(this.player instanceof Exile) || this.player.isImperial) throw new InvalidActionResolution("Only Exiles can play Visions faceup.");
         this.oldVision = this.player.setVision(this.card);
-        if (this.oldVision) new DiscardCardEffect(this.data, this.oldVision).do();
+        if (this.oldVision) new DiscardCardEffect(this.player, this.oldVision).do();
     }
 
     revert(): void {
         // The thing that calls this effect is in charge of putting the card back where it was
         // This just replaces the old Vision (if there was one) and removes the current one
-        if (!(this.player instanceof Exile) || this.data.isImperial) return;
+        if (!(this.player instanceof Exile) || this.player.isImperial) return;
         this.player.setVision(this.oldVision);
     }
 }
@@ -581,13 +584,13 @@ export class PlayVisionEffect extends PlayerEffect<void> {
 export class MoveAdviserEffect extends PlayerEffect<WorldCard> {
     card: WorldCard;
 
-    constructor(data: OathPlayerData, card: WorldCard) {
-        super(data);
+    constructor(player: OathPlayer, card: WorldCard) {
+        super(player);
         this.card = card;
     }
 
     resolve(): WorldCard {
-        if (!this.data.advisers.has(this.card)) throw new InvalidActionResolution("Trying to move an adviser you don't have.")
+        if (!this.player.advisers.has(this.card)) throw new InvalidActionResolution("Trying to move an adviser you don't have.")
         return this.card;
     }
 
@@ -601,10 +604,10 @@ export class MoveWorldCardToAdvisersEffect extends OathEffect<void> {
     target: OathPlayer | undefined;
     oldOwner: OathPlayer | undefined;
 
-    constructor(game: OathGame, data: OathPlayerData | undefined, card: WorldCard, target?: OathPlayer) {
-        super(game, data);
+    constructor(game: OathGame, player: OathPlayer | undefined, card: WorldCard, target?: OathPlayer) {
+        super(game, player);
         this.card = card;
-        this.target = target || data?.instance;
+        this.target = target || player;
     }
 
     resolve(): void {
@@ -622,10 +625,10 @@ export class DiscardCardEffect extends PlayerEffect<void> {
     discard: SearchableDeck;
     onBottom: boolean
 
-    constructor(data: OathPlayerData, card: WorldCard, discard?: SearchableDeck, onBottom: boolean = false) {
-        super(data);
+    constructor(player: OathPlayer, card: WorldCard, discard?: SearchableDeck, onBottom: boolean = false) {
+        super(player);
         this.card = card;
-        this.discard = discard || (card.owner ? card.owner.data.discard : card instanceof Denizen && card.site ? this.game.board.nextRegion(card.site.region).discard : data.discard);
+        this.discard = discard || (card.owner ? card.owner.discard : card instanceof Denizen && card.site ? this.game.board.nextRegion(card.site.region).discard : player.discard);
         this.onBottom = onBottom;
     }
 
@@ -645,17 +648,17 @@ export class RegionDiscardEffect extends PlayerEffect<void> {
     suits: OathSuit[];
     cards: Map<Denizen, Site>;
 
-    constructor(data: OathPlayerData, suits: OathSuit[]) {
-        super(data);
+    constructor(player: OathPlayer, suits: OathSuit[]) {
+        super(player);
         this.suits = suits;
     }
 
     resolve(): void {
-        for (const site of this.data.site.region.sites) {
+        for (const site of this.player.site.region.sites) {
             for (const denizen of site.denizens) {
                 if (this.suits.includes(denizen.suit)) {
                     this.cards.set(denizen, site);
-                    new DiscardCardEffect(this.data, denizen).do();
+                    new DiscardCardEffect(this.player, denizen).do();
                 }
             }
         }
@@ -672,8 +675,8 @@ export class TakeOwnableObjectEffect extends OathEffect<void> {
     target: OwnableObject;
     oldOwner: OathPlayer | undefined;
 
-    constructor(game: OathGame, data: OathPlayerData | undefined, target: OwnableObject) {
-        super(game, data);
+    constructor(game: OathGame, player: OathPlayer | undefined, target: OwnableObject) {
+        super(game, player);
         this.target = target;
     }
 
@@ -691,8 +694,8 @@ export class RollDiceEffect extends OathEffect<number[]> {
     die: number[];
     amount: number;
 
-    constructor(game: OathGame, data: OathPlayerData | undefined, die: number[], amount: number) {
-        super(game, data);
+    constructor(game: OathGame, player: OathPlayer | undefined, die: number[], amount: number) {
+        super(game, player);
         this.die = die;
         this.amount = amount;
     }
@@ -731,8 +734,8 @@ export class SetPeoplesFavorMobState extends OathEffect<void> {
     state: boolean;
     oldState: boolean;
 
-    constructor(game: OathGame, data: OathPlayerData | undefined, banner: PeoplesFavor, state: boolean) {
-        super(game, data);
+    constructor(game: OathGame, player: OathPlayer | undefined, banner: PeoplesFavor, state: boolean) {
+        super(game, player);
         this.banner = banner;
         this.state = state;
     }

@@ -3,9 +3,10 @@ import { Region } from "../board";
 import { AddActionToStackEffect, MoveOwnWarbandsEffect, PayCostToBankEffect, TakeOwnableObjectEffect } from "../effects";
 import { CardRestriction, OathResource, OathSuit, OathTypeVisionName, RegionName } from "../enums";
 import { OathGame, Oath } from "../game";
-import { OathPlayer, OathPlayerData, OwnableObject } from "../player";
+import { OathPlayer, OwnableObject } from "../player";
 import { ConspiracyPower, OathPower, VisionPower } from "../power";
-import { ResourceCost, ResourcesAndWarbands, ResourcesAndWarbandsData } from "../resources";
+import { ResourceCost, ResourcesAndWarbands } from "../resources";
+import { Constructor } from "../utils";
 
 
 export abstract class OathCard extends ResourcesAndWarbands {
@@ -34,15 +35,6 @@ export abstract class OathCard extends ResourcesAndWarbands {
     }
 }
 
-export class SiteData extends ResourcesAndWarbandsData<Site> {
-    ruler: OathPlayer | undefined;
-
-    proxy(): this {
-        const proxy = super.proxy();
-        proxy.ruler = this.instance.ruler;
-        return proxy;
-    }
-}
 
 export class Site extends OathCard implements CampaignActionTarget {
     region: Region;
@@ -80,7 +72,7 @@ export class Site extends OathCard implements CampaignActionTarget {
 
     get ruler(): OathPlayer | undefined {
         let max = 0, ruler = undefined;
-        for (const [player, number] of this.data.warbands) {
+        for (const [player, number] of this.warbands) {
             if (number > max) {
                 max = number;
                 ruler = player;
@@ -101,7 +93,7 @@ export class Site extends OathCard implements CampaignActionTarget {
     hide(): void {
         super.hide();
         for (const relic of this.relics) this.game.relicDeck.putCard(relic);
-        for (const [resource, amount] of this.data.resources) this.takeResources(resource, amount);
+        for (const [resource, amount] of this.resources) this.takeResources(resource, amount);
     }
 
     inRegion(regionName: RegionName) {
@@ -127,8 +119,8 @@ export class Site extends OathCard implements CampaignActionTarget {
     }
 
     seize(player: OathPlayer) {
-        if (this.ruler) new MoveOwnWarbandsEffect(this.ruler.data, this, this.ruler).do();
-        new AddActionToStackEffect(new CampaignSeizeSiteAction(player.data, this)).do();
+        if (this.ruler) new MoveOwnWarbandsEffect(this.ruler, this, this.ruler).do();
+        new AddActionToStackEffect(new CampaignSeizeSiteAction(player, this)).do();
     }
 }
 
@@ -137,8 +129,8 @@ export abstract class OwnableCard extends OathCard implements OwnableObject {
 
     get ruler() { return this.owner; }
 
-    accessibleBy(data: OathPlayerData | undefined): boolean {
-        return data?.instance === this.ruler;
+    accessibleBy(player: OathPlayer | undefined): boolean {
+        return player === this.ruler;
     }
 
     abstract setOwner(newOwner?: OathPlayer): void;
@@ -171,19 +163,19 @@ export class Relic extends OwnableCard implements RecoverActionTarget, CampaignA
     }
 
     canRecover(action: RecoverAction): boolean {
-        return action.data.site === this.site;
+        return action.player.site === this.site;
     }
 
     recover(player: OathPlayer): void {
         if (!this.site) return;
-        if (!new PayCostToBankEffect(this.game, player.data, this.site.recoverCost, this.site.recoverSuit).do()) throw new InvalidActionResolution("Cannot pay recover cost.");
+        if (!new PayCostToBankEffect(this.game, player, this.site.recoverCost, this.site.recoverSuit).do()) throw new InvalidActionResolution("Cannot pay recover cost.");
 
-        new TakeOwnableObjectEffect(this.game, player.data, this).do();
+        new TakeOwnableObjectEffect(this.game, player, this).do();
         this.facedown = false;
     }
 
     seize(player: OathPlayer) {
-        new TakeOwnableObjectEffect(this.game, player.data, this).do();
+        new TakeOwnableObjectEffect(this.game, player, this).do();
         this.facedown = false;
     }
 }
@@ -198,7 +190,7 @@ export abstract class WorldCard extends OwnableCard {
 
     returnResources(): void {
         this.game.currentPlayer.putResources(OathResource.Secret, this.takeResources(OathResource.Secret));
-        for (const player of this.data.warbands.keys()) player.moveWarbandsIntoBagFrom(this);
+        for (const player of this.warbands.keys()) player.moveWarbandsIntoBagFrom(this);
     }
 }
 
@@ -219,8 +211,8 @@ export class Denizen extends WorldCard {
         this.locked = locked;
     }
 
-    accessibleBy(data: OathPlayerData): boolean {
-        return super.accessibleBy(data) || this.site === data.site;
+    accessibleBy(player: OathPlayer): boolean {
+        return super.accessibleBy(player) || this.site === player.site;
     }
 
     setOwner(newOwner?: OathPlayer): void {

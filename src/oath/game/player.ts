@@ -5,7 +5,7 @@ import { AddActionToStackEffect, DiscardCardEffect, MoveResourcesToTargetEffect 
 import { OathResource, OathSuit, PlayerColor } from "./enums";
 import { OathGame, OathGameObject } from "./game";
 import { Brutal, Careless, Decadent, Greedy } from "./power";
-import { Banner, ResourcesAndWarbands, ResourcesAndWarbandsData } from "./resources";
+import { Banner, ResourcesAndWarbands } from "./resources";
 
 export interface OwnableObject {
     owner?: OathPlayer;
@@ -17,47 +17,35 @@ export function isOwnable(obj: object): obj is OwnableObject {
     return "owner" in obj;
 }
 
-export class OathPlayerData extends ResourcesAndWarbandsData<OathPlayer> {
-    site: Site;
-    advisers = new Set<WorldCard>();
-    relics = new Set<Relic>();
-    banners = new Set<Banner>();
-    isImperial: boolean;
-
-    get discard(): Discard { return this.instance.game.board.nextRegion(this.site.region).discard; }
-
-    adviserSuitCount(suit: OathSuit): number {
-        let total = 0;
-        for (const adviser of this.advisers) if (!adviser.facedown && adviser instanceof Denizen && adviser.suit === suit) total++;
-        return total;
-    }
-
-    proxy(): this {
-        const proxy = super.proxy();
-        proxy.isImperial = this.instance.isImperial;
-        return proxy;
-    }
-}
-
 export abstract class OathPlayer extends ResourcesAndWarbands implements CampaignActionTarget {
     name: string;
     color: PlayerColor;
     warbandsInBag: number;
     supply: number = 7;
     
-    data = new OathPlayerData(this);
+    site: Site;
+    advisers = new Set<WorldCard>();
+    relics = new Set<Relic>();
+    banners = new Set<Banner>();
     
     defense = 2;
     pawnMustBeAtSite = true;
 
     constructor(game: OathGame, site: Site, color: PlayerColor) {
         super(game);
-        this.data.site = site;
+        this.site = site;
         this.color = color;
     }
 
     get isImperial(): boolean { return false; }
-    get ownWarbands(): number { return this.data.getWarbands(this.isImperial ? this : this.game.chancellor); }
+    get ownWarbands(): number { return this.getWarbands(this.isImperial ? this : this.game.chancellor); }
+    get discard(): Discard { return this.game.board.nextRegion(this.site.region).discard; }
+
+    adviserSuitCount(suit: OathSuit): number {
+        let total = 0;
+        for (const adviser of this.advisers) if (!adviser.facedown && adviser instanceof Denizen && adviser.suit === suit) total++;
+        return total;
+    }
 
     rules(card: OwnableCard) {
         return card.ruler === (this.isImperial ? this.game.chancellor : this);
@@ -91,11 +79,11 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
     }
 
     addAdviser(card: WorldCard) {
-        this.data.advisers.add(card);
+        this.advisers.add(card);
     }
 
     removeAdviser(card: WorldCard): WorldCard {
-        this.data.advisers.delete(card);
+        this.advisers.delete(card);
         return card;
     }
 
@@ -107,24 +95,24 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
             }
         }
 
-        return this.data.adviserSuitCount(suit) + total;
+        return this.adviserSuitCount(suit) + total;
     }
 
     addRelic(relic: Relic) {
-        this.data.relics.add(relic);
+        this.relics.add(relic);
     }
 
     removeRelic(relic: Relic): Relic {
-        this.data.relics.delete(relic);
+        this.relics.delete(relic);
         return relic;
     }
 
     addBanner(banner: Banner) {
-        this.data.banners.add(banner);
+        this.banners.add(banner);
     }
 
     removeBanner(banner: Banner): Banner {
-        this.data.banners.delete(banner);
+        this.banners.delete(banner);
         return banner;
     }
 
@@ -140,34 +128,34 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
 
     seize(player: OathPlayer) {
         // TODO: Move burnt favor to supply
-        new MoveResourcesToTargetEffect(this.game, this.data, OathResource.Favor, Math.floor(this.data.getResources(OathResource.Favor) / 2), undefined).do();
-        new AddActionToStackEffect(new CampaignBanishPlayerAction(player.data, this)).do();
+        new MoveResourcesToTargetEffect(this.game, this, OathResource.Favor, Math.floor(this.getResources(OathResource.Favor) / 2), undefined).do();
+        new AddActionToStackEffect(new CampaignBanishPlayerAction(player, this)).do();
     }
 
     // -------------- MAJOR ACTIONS ------------- //
     // TODO: Should those functions add to the stack directly, or use the appropriate effect?
     startSearch() {
-        this.game.actionStack.push(new ChooseModifiers(new SearchAction(this.data)));
+        this.game.actionStack.push(new ChooseModifiers(new SearchAction(this)));
     }
 
     startMuster() {
-        this.game.actionStack.push(new ChooseModifiers(new MusterAction(this.data)));
+        this.game.actionStack.push(new ChooseModifiers(new MusterAction(this)));
     }
 
     startTrade(forFavor: boolean) {
-        this.game.actionStack.push(new ChooseModifiers(new TradeAction(this.data)));
+        this.game.actionStack.push(new ChooseModifiers(new TradeAction(this)));
     }
 
     startTravel() {
-        this.game.actionStack.push(new ChooseModifiers(new TravelAction(this.data)));
+        this.game.actionStack.push(new ChooseModifiers(new TravelAction(this)));
     }
 
     startRecover() {
-        this.game.actionStack.push(new ChooseModifiers(new RecoverAction(this.data)));
+        this.game.actionStack.push(new ChooseModifiers(new RecoverAction(this)));
     }
 
     startCampaign() {
-        this.game.actionStack.push(new ChooseModifiers(new CampaignAction(this.data)));
+        this.game.actionStack.push(new ChooseModifiers(new CampaignAction(this)));
     }
 
     abstract rest(): void;
@@ -235,7 +223,7 @@ export class Exile extends OathPlayer {
 
         this.isCitizen = true;
         if (this.vision) {
-            new DiscardCardEffect(this.data, this.vision).do();
+            new DiscardCardEffect(this, this.vision).do();
             this.vision = undefined;
         }
 

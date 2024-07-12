@@ -5,6 +5,7 @@ import { OathGame, OathGameObject } from "./game";
 import { OwnableObject } from "./player";
 import { OathPlayer } from "./player";
 import { DarkestSecretPower as DarkestSecretSearch, OathPower, PeoplesFavorSearch, PeoplesFavorWake } from "./power";
+import { Constructor } from "./utils";
 
 export abstract class ResourceBank extends OathGameObject {
     type: OathResource;
@@ -55,12 +56,12 @@ export abstract class Banner extends ResourceBank implements OwnableObject, Reco
     }
 
     canRecover(action: RecoverAction): boolean {
-        return action.data.getResources(this.type) > this.amount;
+        return action.player.getResources(this.type) > this.amount;
     }
 
     recover(player: OathPlayer): void {
-        new TakeOwnableObjectEffect(this.game, player.data, this).do();
-        new AddActionToStackEffect(new RecoverBannerPitchAction(player.data, this)).do();
+        new TakeOwnableObjectEffect(this.game, player, this).do();
+        new AddActionToStackEffect(new RecoverBannerPitchAction(player, this)).do();
     }
     
     finishRecovery(amount: number): void {
@@ -68,11 +69,11 @@ export abstract class Banner extends ResourceBank implements OwnableObject, Reco
 
         // Banner-specific logic
         this.handleRecovery(this.owner);
-        new PutResourcesIntoBankEffect(this.game, this.owner?.data, this, amount).do();
+        new PutResourcesIntoBankEffect(this.game, this.owner, this, amount).do();
     }
 
     seize(player: OathPlayer) {
-        new TakeOwnableObjectEffect(this.game, player.data, this).do();
+        new TakeOwnableObjectEffect(this.game, player, this).do();
         this.amount = Math.max(1, this.amount - 2);
     }
 
@@ -86,8 +87,8 @@ export class PeoplesFavor extends Banner {
     isMob: boolean;
 
     handleRecovery(player: OathPlayer) {
-        new SetPeoplesFavorMobState(this.game, player.data, this, false).do();
-        new AddActionToStackEffect(new PeoplesFavorReturnAction(player.data, this.take())).do();
+        new SetPeoplesFavorMobState(this.game, player, this, false).do();
+        new AddActionToStackEffect(new PeoplesFavorReturnAction(player, this.take())).do();
     }
 }
 
@@ -100,8 +101,8 @@ export class DarkestSecret extends Banner {
         if (!super.canRecover(action)) return false;
         if (!this.owner || this.owner === action.player) return true;
 
-        for (const denizen of this.owner.data.site.denizens) {
-            if (this.owner.data.adviserSuitCount(denizen.suit) === 0) {
+        for (const denizen of this.owner.site.denizens) {
+            if (this.owner.adviserSuitCount(denizen.suit) === 0) {
                 return true;
             }
         }
@@ -110,13 +111,13 @@ export class DarkestSecret extends Banner {
     }
 
     handleRecovery(player: OathPlayer) {
-        new TakeResourcesFromBankEffect(this.game, player.data, this, 1).do();
-        if (this.owner) new TakeResourcesFromBankEffect(this.game, this.owner.data, this, Infinity).do();
+        new TakeResourcesFromBankEffect(this.game, player, this, 1).do();
+        if (this.owner) new TakeResourcesFromBankEffect(this.game, this.owner, this, Infinity).do();
     }
 }
 
 
-export class ResourcesAndWarbandsData<T extends ResourcesAndWarbands> extends InternalData<T> {
+export abstract class ResourcesAndWarbands extends OathGameObject {
     resources = new Map<OathResource, number>();
     warbands = new Map<OathPlayer, number>();
     
@@ -128,18 +129,10 @@ export class ResourcesAndWarbandsData<T extends ResourcesAndWarbands> extends In
     getResources(resource: OathResource): number {
         return this.resources.get(resource) || 0;
     }
-    
-    getWarbands(player: OathPlayer): number {
-        return this.warbands.get(player) || 0;
-    }
-}
-
-export abstract class ResourcesAndWarbands extends OathGameObject {
-    data: ResourcesAndWarbandsData<any> = new ResourcesAndWarbandsData(this);
 
     putResources(resource: OathResource, amount: number): number {
-        const newAmount = this.data.getResources(resource) + amount;
-        this.data.resources.set(resource, newAmount);
+        const newAmount = this.getResources(resource) + amount;
+        this.resources.set(resource, newAmount);
         return newAmount;
     }
     
@@ -151,9 +144,9 @@ export abstract class ResourcesAndWarbands extends OathGameObject {
     }
 
     takeResources(resource: OathResource, amount: number = Infinity): number {
-        const oldAmount = (this.data.resources.get(resource) || 0);
+        const oldAmount = (this.resources.get(resource) || 0);
         const newAmount = Math.max(oldAmount - amount, 0);
-        this.data.resources.set(resource, newAmount);
+        this.resources.set(resource, newAmount);
         return oldAmount - newAmount;
     }
 
@@ -165,22 +158,26 @@ export abstract class ResourcesAndWarbands extends OathGameObject {
     }
 
     moveResourcesTo(resource: OathResource, target: ResourcesAndWarbands | undefined, amount: number = Infinity, exact: boolean = false): number {
-        if (exact && this.data.getResources(resource) < amount) return 0;
+        if (exact && this.getResources(resource) < amount) return 0;
         const numberMoved = this.takeResources(resource, amount);
         if (target) target.putResources(resource, numberMoved);
         return numberMoved;
     }
 
+    getWarbands(player: OathPlayer): number {
+        return this.warbands.get(player) || 0;
+    }
+
     putWarbands(player: OathPlayer, amount: number): number {
-        const newAmount = this.data.getWarbands(player) + amount;
-        this.data.warbands.set(player, newAmount);
+        const newAmount = this.getWarbands(player) + amount;
+        this.warbands.set(player, newAmount);
         return newAmount;
     }
 
     takeWarbands(player: OathPlayer, amount: number = Infinity): number {
-        const oldAmount = (this.data.warbands.get(player) || 0);
+        const oldAmount = (this.warbands.get(player) || 0);
         const newAmount = Math.max(oldAmount - amount, 0);
-        this.data.warbands.set(player, newAmount);
+        this.warbands.set(player, newAmount);
         return oldAmount - newAmount;
     }
 

@@ -1,6 +1,7 @@
 import { OathResource, OathSuit } from "../enums";
 import { AncientCity, CharmingValley, CoastalSite, DeepWoods, FertileValley, OathPower, ResourceSite, StandingStones, Steppe, Wastes } from "../power";
 import { ResourceCost } from "../resources";
+import { Constructor, StringObject } from "../utils";
 import { Site } from "./cards";
 
 export const sitesData: StringObject<[string, Constructor<OathPower<Site>>[], number, number?, ResourceCost?, OathSuit?, Iterable<[OathResource, number]>?]> = {

@@ -1,22 +1,13 @@
-type AbstractConstructor<T> = abstract new (...args: any) => T;
-type Constructor<T> = new (...args: any) => T;
-interface StringObject<T> { [key: string]: T; }
-const isExtended = <T>(constructor: Constructor<any>, type: AbstractConstructor<T>): constructor is Constructor<T> => { return constructor.prototype instanceof type };
+import _ from 'lodash';
 
-abstract class InternalData<T> {
-    instance: T;
+export type AbstractConstructor<T> = abstract new (...args: any) => T;
+export type Constructor<T> = new (...args: any) => T;
+export interface StringObject<T> { [key: string]: T; }
+export const isExtended = <T>(constructor: Constructor<any>, type: AbstractConstructor<T>): constructor is Constructor<T> => { return constructor.prototype instanceof type };
 
-    constructor(instance: T) {
-        this.instance = instance;
-    } 
-
-    proxy() {  // Creates a copy with all dynamic fields filled statically
-        const proxy = {...this};
-        for (const key in this) {
-            if (typeof this[key] === "function")
-                proxy[key] = this[key].bind(proxy);
-        }
-
-        return proxy;
-    }
+export type CopyWithOriginal<T> = T & { original: T };
+export function getCopyWithOriginal<T>(source: T): CopyWithOriginal<T> {
+    const copy = _.cloneDeep(source) as CopyWithOriginal<T>;
+    copy.original = source;
+    return copy;
 }
