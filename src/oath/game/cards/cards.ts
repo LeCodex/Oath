@@ -202,8 +202,9 @@ export class Denizen extends WorldCard {
     get ruler() { return super.ruler || this.site?.ruler; }
     get activelyLocked() { return this.locked && !this.facedown; }
 
-    constructor(game: OathGame, name: string, powers: Iterable<Constructor<OathPower<Denizen>>>, restriction: CardRestriction = CardRestriction.None, locked: boolean = false) {
+    constructor(game: OathGame, name: string, suit: OathSuit, powers: Iterable<Constructor<OathPower<Denizen>>>, restriction: CardRestriction = CardRestriction.None, locked: boolean = false) {
         super(game, name, powers);
+        this._suit = suit;
         this.restriction = restriction;
         this.locked = locked;
     }

@@ -1,6 +1,6 @@
 import { CampaignAtttackAction, CampaignDefenseAction, InvalidActionResolution, ModifiableAction, OathAction, PeoplesFavorDiscardAction, PeoplesFavorWakeAction, RestAction, SearchAction, SearchPlayAction, TakeFavorFromBankAction, ChooseResourceToTakeAction, TradeAction, TravelAction, UsePowerAction, WakeAction, TakeResourceFromPlayerAction, PiedPiperAction, CampaignAction, CampaignEndAction, ConspiracyAction } from "./actions";
 import { Conspiracy, Denizen, OwnableCard, Relic, Site, Vision, WorldCard } from "./cards/cards";
-import { BannerName, OathResource, OathSuit, RegionName } from "./enums";
+import { BannerName, CardRestriction, OathResource, OathSuit, RegionName } from "./enums";
 import { Banner, DarkestSecret, PeoplesFavor, ResourceCost } from "./resources";
 import { AddActionToStackEffect, MoveResourcesToTargetEffect, OathEffect, PayCostToTargetEffect, PlayDenizenAtSiteEffect, PlayVisionEffect, PlayWorldCardEffect, PutResourcesOnTargetEffect, PutWarbandsFromBagEffect, RegionDiscardEffect, RollDiceEffect, SetNewOathkeeperEffect, TakeOwnableObjectEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect } from "./effects";
 import { OathPlayer, OathPlayerData, OwnableObject, Reliquary, isOwnable } from "./player";
@@ -426,9 +426,9 @@ export class MarriageAction extends AccessedActionModifier<Denizen> {
     mustUse = true;
 
     applyDuring(): void {
-        this.action.data.adviserSuitCount = (suit: OathSuit): number => {
-            return this.action.data?.adviserSuitCount(suit) + (suit === OathSuit.Hearth ? 1 : 0);
-        }
+        const fakeAdviser = new Denizen(this.game, "Marriage", OathSuit.Hearth, []);
+        fakeAdviser.reveal();
+        this.action.data.advisers.add(fakeAdviser);
     }
 }
 export class MarriageEffect extends AccessedEffectModifier<Denizen> {
@@ -439,9 +439,9 @@ export class MarriageEffect extends AccessedEffectModifier<Denizen> {
 
     applyDuring(): void {
         if (!this.effect.data) return;
-        this.effect.data.adviserSuitCount = (suit: OathSuit): number => {
-            return (this.effect.data?.adviserSuitCount(suit) || 0) + (suit === OathSuit.Hearth ? 1 : 0);
-        }
+        const fakeAdviser = new Denizen(this.game, "Marriage", OathSuit.Hearth, []);
+        fakeAdviser.reveal();
+        this.effect.data.advisers.add(fakeAdviser);
     }
 }
 

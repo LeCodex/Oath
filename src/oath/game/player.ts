@@ -17,7 +17,7 @@ export function isOwnable(obj: object): obj is OwnableObject {
     return "owner" in obj;
 }
 
-
+// TODO: Move the resources and warbands to this?
 export class OathPlayerData extends InternalData<OathPlayer> {
     site: Site;
     advisers = new Set<WorldCard>();
