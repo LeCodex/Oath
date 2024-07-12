@@ -69,8 +69,8 @@ export abstract class OathAction extends OathGameObject {
     readonly parameters: StringObject<any>;
     readonly autocompleteSelects: boolean = true;
 
-    constructor(player: OathPlayer) {
-        super(getCopyWithOriginal(player.game));
+    constructor(player: OathPlayer, dontCopyGame: boolean = false) {
+        super(dontCopyGame ? player.game : getCopyWithOriginal(player.game));
         this.playerColor = player.color;
     }
 
@@ -123,7 +123,7 @@ export class ChooseModifiers extends OathAction {
     readonly executeImmediately: boolean;
 
     constructor(next: ModifiableAction, executeImmediately: boolean = false) {
-        super(next.player);
+        super(next.player, true);  // Not copying for performance reasons, since this copy should never be accessed
         this.next = next;
         this.executeImmediately = executeImmediately;
     }
@@ -636,7 +636,7 @@ export class CampaignAtttackAction extends ModifiableAction {
     constructor(player: OathPlayer, defender: OathPlayer | undefined) {
         super(player);
         this.campaignResult.defender = defender;
-        this.next = new CampaignDefenseAction(defender || this.player);
+        this.next = new CampaignDefenseAction(defender || this.player, this.player);
     }
 
     start() {
@@ -702,7 +702,12 @@ export class CampaignAtttackAction extends ModifiableAction {
 }
 
 export class CampaignDefenseAction extends ModifiableAction {
-    readonly next = new CampaignEndAction(this.player);
+    readonly next: CampaignEndAction;
+
+    constructor(player: OathPlayer, attacker: OathPlayer) {
+        super(player, true);  // Don't copy because this is a big chain
+        this.next = new CampaignEndAction(attacker, true);  // Same deal
+    }
 
     get campaignResult() { return this.next.campaignResult; }
 
