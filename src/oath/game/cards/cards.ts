@@ -130,7 +130,7 @@ export abstract class OwnableCard extends OathCard implements OwnableObject {
     get ruler() { return this.owner; }
 
     accessibleBy(player: OathPlayer | undefined): boolean {
-        return player === this.ruler;
+        return player?.leader === this.ruler;
     }
 
     abstract setOwner(newOwner?: OathPlayer): void;

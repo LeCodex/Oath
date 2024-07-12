@@ -347,7 +347,9 @@ export class AwaitedReturn extends AccessedActionModifier<Denizen> {
     action: TradeAction;
 
     applyDuring(): void {
-        if (this.action.player.ownWarbands > 0) {
+        // XXX: I am enforcing that you can only sacrifice warbands of your leader's color
+        // while *technically* this restriction doesn't exist but making it an action seems overkill
+        if (this.action.player.getWarbands(this.action.player.leader) > 0) {
             new TakeWarbandsIntoBagEffect(this.action.player, 1).do();
             this.action.noSupplyCost = true;
         }

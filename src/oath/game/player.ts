@@ -38,7 +38,7 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
     }
 
     get isImperial(): boolean { return false; }
-    get ownWarbands(): number { return this.getWarbands(this.isImperial ? this : this.game.chancellor); }
+    get leader(): OathPlayer { return this.isImperial ? this : this.game.chancellor; }
     get discard(): Discard { return this.game.board.nextRegion(this.site.region).discard; }
 
     adviserSuitCount(suit: OathSuit): number {
@@ -57,14 +57,12 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
     }
 
     moveWarbandsFromBagOnto(target: ResourcesAndWarbands, amount: number): number {
-        const owner = this.isImperial ? this : this.game.chancellor;
-
-        const oldBagAmount = owner.warbandsInBag;
+        const oldBagAmount = this.leader.warbandsInBag;
         const newBagAmount = Math.max(oldBagAmount - amount);
         const diff = oldBagAmount - newBagAmount;
 
-        owner.warbandsInBag -= diff;
-        target.putWarbands(owner, diff);
+        this.leader.warbandsInBag -= diff;
+        target.putWarbands(this.leader, diff);
         return diff;
     }
 
@@ -75,7 +73,7 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
     }
 
     moveOwnWarbands(from: ResourcesAndWarbands, to: ResourcesAndWarbands, amount: number): number {
-        return from.moveWarbandsTo(this.isImperial ? this : this.game.chancellor, to, amount);
+        return from.moveWarbandsTo(this.leader, to, amount);
     }
 
     addAdviser(card: WorldCard) {
@@ -172,9 +170,9 @@ export class Chancellor extends OathPlayer {
     get isImperial(): boolean { return true; }
 
     rest() {
-        if (this.ownWarbands >= 18) this.gainSupply(6);
-        else if (this.ownWarbands >= 11) this.gainSupply(5);
-        else if (this.ownWarbands >= 4) this.gainSupply(4);
+        if (this.warbandsInBag >= 18) this.gainSupply(6);
+        else if (this.warbandsInBag >= 11) this.gainSupply(5);
+        else if (this.warbandsInBag >= 4) this.gainSupply(4);
         else this.gainSupply(3);
     }
 }
@@ -237,8 +235,13 @@ export class Exile extends OathPlayer {
     }
 
     rest() {
-        if (this.ownWarbands >= 9) this.gainSupply(6);
-        else if (this.ownWarbands >= 4) this.gainSupply(5);
+        if (this.isImperial) {
+            this.gainSupply(this.game.chancellor.supply);
+            return;
+        }
+
+        if (this.warbandsInBag >= 9) this.gainSupply(6);
+        else if (this.warbandsInBag >= 4) this.gainSupply(5);
         else this.gainSupply(4);
     }
 }

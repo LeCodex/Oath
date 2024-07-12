@@ -663,7 +663,7 @@ export class CampaignAtttackAction extends ModifiableAction {
         this.selects.targets = new SelectNOf(choices, targetingOwnSite ? 0 : 1);
 
         const values: number[] = [];
-        for (let i = 0; i <= this.player.ownWarbands; i++) values.push(i);
+        for (let i = 0; i <= this.player.totalWarbands; i++) values.push(i);
         this.selects.pool = new SelectNumber(values);
         
         super.start();
@@ -774,14 +774,14 @@ class CampaignResult extends OathGameObject {
     get loserKillsEntireForce() { return this.successful ? this.defenderKillsEntireForce : this.attackerKillsEntireForce }
 
     resolveAtkForce() {
-        this.atkForce = this.attacker.ownWarbands;
+        this.atkForce = this.attacker.totalWarbands;
     }
     
     resolveDefForce() {
         let total = 0, pawnTargeted = false;
         for (const target of this.targets) {
             if (target.pawnMustBeAtSite) {
-                if (!pawnTargeted) total += this.defender?.ownWarbands || 0;
+                if (!pawnTargeted) total += this.defender?.totalWarbands || 0;
                 pawnTargeted = true;
                 continue;
             }
@@ -853,7 +853,7 @@ export class CampaignEndAction extends ModifiableAction {
             for (const target of this.campaignResult.targets) target.seize(this.campaignResult.attacker);
 
         if (this.campaignResult.loser && !this.campaignResult.ignoreKilling && !this.campaignResult.loserKillsNoWarbands)
-            this.campaignResult.loserKills(Math.floor(this.campaignResult.loser.ownWarbands / (this.campaignResult.loserKillsEntireForce ? 1 : 2)));
+            this.campaignResult.loserKills(Math.floor(this.campaignResult.loser.totalWarbands / (this.campaignResult.loserKillsEntireForce ? 1 : 2)));
 
         for (const denizen of this.campaignResult.discardAtEnd)
             new DiscardCardEffect(denizen.ruler || this.campaignResult.attacker, denizen).do();
@@ -873,7 +873,7 @@ export class CampaignSeizeSiteAction extends OathAction {
 
     start() {
         const values: number[] = [];
-        for (let i = 0; i <= this.player.ownWarbands; i++) values.push(i);
+        for (let i = 0; i <= this.player.totalWarbands; i++) values.push(i);
         this.selects.amount = new SelectNumber(values);
         super.start();
     }

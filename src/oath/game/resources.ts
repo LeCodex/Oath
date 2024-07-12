@@ -126,6 +126,12 @@ export abstract class ResourcesAndWarbands extends OathGameObject {
         return true;
     }
 
+    get totalWarbands(): number {
+        let total = 0;
+        for (const number of this.warbands.values()) total += number;
+        return total;
+    }
+
     getResources(resource: OathResource): number {
         return this.resources.get(resource) || 0;
     }
