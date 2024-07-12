@@ -7,14 +7,14 @@ import { OwnableObject } from "./player";
 import { OathGame, OathGameObject } from "./game";
 import { InvalidActionResolution, OathAction } from "./actions";
 import { CardDeck, SearchableDeck } from "./cards/decks";
-import { CopyWithOriginal, getCopyWithOriginal, isExtended } from "./utils";
+import { getCopyWithOriginal, isExtended } from "./utils";
 
 
 //////////////////////////////////////////////////
 //                BASE CLASSES                  //
 //////////////////////////////////////////////////
 export abstract class OathEffect<T> extends OathGameObject {
-    readonly game: CopyWithOriginal<OathGame>;
+    readonly game: OathGame;
     readonly playerColor: PlayerColor | undefined;
     modifiers: EffectModifier<any>[];
 
@@ -24,7 +24,6 @@ export abstract class OathEffect<T> extends OathGameObject {
     }
 
     get player() { return this.playerColor !== undefined ? this.game.players[this.playerColor] : undefined; }
-    get originalPlayer() { return this.playerColor !== undefined ? this.game.original.players[this.playerColor] : undefined; }
 
     do(): T {
         this.applyModifiers();
@@ -64,7 +63,6 @@ export abstract class PlayerEffect<T> extends OathEffect<T> {
     }
 
     get player() { return this.game.players[this.playerColor]; }
-    get originalPlayer() { return this.game.original.players[this.playerColor]; }
 }
 
 
@@ -97,16 +95,16 @@ export class PutResourcesOnTargetEffect extends OathEffect<number> {
         super(game, player);
         this.resource = resource;
         this.amount = amount;
-        this.target = target || this.originalPlayer;
+        this.target = target || this.player;
     }
 
     resolve(): number {
         // TODO: Take favor from supply
-        return this.target?.putResources(this.resource, this.amount) || 0;
+        return this.target?.original.putResources(this.resource, this.amount) || 0;
     }
 
     revert(): void {
-        this.target?.takeResources(this.resource, this.amount);
+        this.target?.original.takeResources(this.resource, this.amount);
     }
 }
 
@@ -121,19 +119,19 @@ export class MoveResourcesToTargetEffect extends OathEffect<number> {
         this.resource = resource;
         this.amount = amount;
         this.target = target;
-        this.source = source || this.originalPlayer;
+        this.source = source || this.player;
     }
 
     resolve(): number {
-        this.amount = this.source?.moveResourcesTo(this.resource, this.target, this.amount) || 0;
+        this.amount = this.source?.original.moveResourcesTo(this.resource, this.target?.original, this.amount) || 0;
         return this.amount;
     }
 
     revert(): void {
         if (this.target)
-            this.target.moveResourcesTo(this.resource, this.source, this.amount);
+            this.target.original.moveResourcesTo(this.resource, this.source?.original, this.amount);
         else
-            this.source?.putResources(this.resource, this.amount);
+            this.source?.original.putResources(this.resource, this.amount);
     }
 }
 
@@ -146,19 +144,19 @@ export class PutResourcesIntoBankEffect extends OathEffect<number> {
         super(game, player);
         this.bank = bank;
         this.amount = amount;
-        this.source = source || this.originalPlayer;
+        this.source = source || this.player;
     }
 
     resolve(): number {
-        if (!this.source) return this.bank?.put(this.amount) || 0;
-        return this.source.putResourcesIntoBank(this.bank, this.amount);
+        if (!this.source) return this.bank?.original.put(this.amount) || 0;
+        return this.source.original.putResourcesIntoBank(this.bank?.original, this.amount);
     }
 
     revert(): void {
         if (!this.source)
-            this.bank?.take(this.amount);
+            this.bank?.original.take(this.amount);
         else
-            this.source.takeResourcesFromBank(this.bank, this.amount);
+            this.source.original.takeResourcesFromBank(this.bank?.original, this.amount);
     }
 }
 
@@ -171,23 +169,23 @@ export class TakeResourcesFromBankEffect extends OathEffect<number> {
         super(game, player);
         this.bank = bank;
         this.amount = amount;
-        this.target = target || this.originalPlayer;
+        this.target = target || this.player;
     }
 
     resolve(): number {
         if (!this.target)
-            this.amount = this.bank?.take(this.amount) || 0;
+            this.amount = this.bank?.original.take(this.amount) || 0;
         else
-            this.amount = this.target.takeResourcesFromBank(this.bank, this.amount);
+            this.amount = this.target.original.takeResourcesFromBank(this.bank?.original, this.amount);
 
         return this.amount;
     }
 
     revert(): void {
         if (!this.target)
-            this.bank?.put(this.amount);
+            this.bank?.original.put(this.amount);
         else
-            this.target.putResourcesIntoBank(this.bank, this.amount);
+            this.target.original.putResourcesIntoBank(this.bank?.original, this.amount);
     }
 }
 
@@ -204,12 +202,12 @@ export class MoveBankResourcesEffect extends OathEffect<number> {
     }
 
     resolve(): number {
-        this.amount = this.from.moveTo(this.to, this.amount);
+        this.amount = this.from.original.moveTo(this.to.original, this.amount);
         return this.amount;
     }
 
     revert(): void {
-        this.to.moveTo(this.from, this.amount);
+        this.to.original.moveTo(this.from.original, this.amount);
     }
 }
 
@@ -222,23 +220,23 @@ export class PayCostToTargetEffect extends OathEffect<boolean> {
         super(game, player);
         this.cost = cost;
         this.target = target;
-        this.source = source || this.originalPlayer;
+        this.source = source || this.player;
     }
 
     resolve(): boolean {
         if (!this.source) return false;
 
         if (this.target instanceof Denizen && this.game.currentPlayer !== this.player)
-            return new PayCostToBankEffect(this.game, this.originalPlayer, this.cost, this.target.suit, this.source).do();
+            return new PayCostToBankEffect(this.game, this.player, this.cost, this.target.suit, this.source).do();
 
         for (const [resource, amount] of this.cost.totalResources)
             if (this.source.getResources(resource) < amount) return false;
 
         for (const [resource, amount] of this.cost.burntResources)
-            new MoveResourcesToTargetEffect(this.game, this.originalPlayer, resource, amount, undefined, this.source).do(); // TODO: Move burnt favor to supply
+            new MoveResourcesToTargetEffect(this.game, this.player, resource, amount, undefined, this.source).do(); // TODO: Move burnt favor to supply
 
         for (const [resource, amount] of this.cost.placedResources)
-            new MoveResourcesToTargetEffect(this.game, this.originalPlayer, resource, amount, this.target, this.source).do();
+            new MoveResourcesToTargetEffect(this.game, this.player, resource, amount, this.target, this.source).do();
 
         return true;
     }
@@ -257,7 +255,7 @@ export class PayCostToBankEffect extends OathEffect<boolean> {
         super(game, player);
         this.cost = cost;
         this.suit = suit;
-        this.source = source || this.originalPlayer;
+        this.source = source || this.player?.original;
     }
 
     resolve(): boolean {
@@ -267,12 +265,12 @@ export class PayCostToBankEffect extends OathEffect<boolean> {
             if (this.source.getResources(resource) < amount) return false;
 
         for (const [resource, amount] of this.cost.burntResources)
-            new MoveResourcesToTargetEffect(this.game, this.originalPlayer, resource, amount, undefined, this.source).do(); // TODO: Move burnt favor to supply
+            new MoveResourcesToTargetEffect(this.game, this.player?.original, resource, amount, undefined, this.source).do(); // TODO: Move burnt favor to supply
 
         if (this.suit)
-            new PutResourcesIntoBankEffect(this.game, this.originalPlayer, this.game.favorBanks.get(this.suit), this.cost.placedResources.get(OathResource.Favor) || 0, this.source).do();
+            new PutResourcesIntoBankEffect(this.game, this.player?.original, this.game.favorBanks.get(this.suit), this.cost.placedResources.get(OathResource.Favor) || 0, this.source).do();
         
-        new FlipSecretsEffect(this.game, this.originalPlayer, this.cost.placedResources.get(OathResource.Secret) || 0, this.source).do();
+        new FlipSecretsEffect(this.game, this.player?.original, this.cost.placedResources.get(OathResource.Secret) || 0, this.source).do();
 
         return true;
     }
@@ -295,16 +293,16 @@ export class FlipSecretsEffect extends OathEffect<number> {
     resolve(): number {
         if (!this.source) return 0;
 
-        this.amount = this.source.takeResources(OathResource.Secret, this.amount);
-        this.source.putResources(OathResource.FlippedSecret, this.amount);
+        this.amount = this.source.original.takeResources(OathResource.Secret, this.amount);
+        this.source.original.putResources(OathResource.FlippedSecret, this.amount);
         return this.amount;
     }
 
     revert(): void {
         if (!this.source) return;
 
-        this.source.takeResources(OathResource.FlippedSecret, this.amount);
-        this.source.putResources(OathResource.Secret, this.amount);
+        this.source.original.takeResources(OathResource.FlippedSecret, this.amount);
+        this.source.original.putResources(OathResource.Secret, this.amount);
     }
 }
 
@@ -319,16 +317,16 @@ export class MoveWarbandsToEffect extends OathEffect<number> {
         this.owner = owner;
         this.amount = amount;
         this.target = target;
-        this.source = source || this.originalPlayer;
+        this.source = source || this.player;
     }
 
     resolve(): number {
-        this.amount = this.source?.moveWarbandsTo(this.owner, this.target, this.amount) || 0;
+        this.amount = this.source?.original.moveWarbandsTo(this.owner, this.target.original, this.amount) || 0;
         return this.amount;
     }
 
     revert(): void {
-        if (this.source) this.target.moveWarbandsTo(this.owner, this.source, this.amount);
+        if (this.source) this.target.original.moveWarbandsTo(this.owner, this.source.original, this.amount);
     }
 }
 
@@ -345,12 +343,12 @@ export class MoveOwnWarbandsEffect extends PlayerEffect<number> {
     }
 
     resolve(): number {
-        this.amount = this.originalPlayer.moveOwnWarbands(this.from, this.to, this.amount);
+        this.amount = this.player.original.moveOwnWarbands(this.from.original, this.to.original, this.amount);
         return this.amount;
     }
 
     revert(): void {
-        this.originalPlayer.moveOwnWarbands(this.to, this.from, this.amount);
+        this.player.original.moveOwnWarbands(this.to.original, this.from.original, this.amount);
     }
 }
 
@@ -361,16 +359,16 @@ export class PutWarbandsFromBagEffect extends PlayerEffect<number> {
     constructor(player: OathPlayer, amount: number, target?: ResourcesAndWarbands) {
         super(player);
         this.amount = amount;
-        this.target = target || player;
+        this.target = target || this.player;
     }
 
     resolve(): number {
-        this.amount = this.player.moveWarbandsFromBagOnto(this.target, this.amount);
+        this.amount = this.player.original.moveWarbandsFromBagOnto(this.target.original, this.amount);
         return this.amount;
     }
 
     revert(): void {
-        this.player.moveWarbandsIntoBagFrom(this.target, this.amount);
+        this.player.original.moveWarbandsIntoBagFrom(this.target.original, this.amount);
     }
 }
 
@@ -381,16 +379,16 @@ export class TakeWarbandsIntoBagEffect extends PlayerEffect<number> {
     constructor(player: OathPlayer, amount: number, target?: ResourcesAndWarbands) {
         super(player);
         this.amount = amount;
-        this.target = target || player;
+        this.target = target || this.player;
     }
 
     resolve(): number {
-        this.amount = this.player.moveWarbandsIntoBagFrom(this.target, this.amount);
+        this.amount = this.player.original.moveWarbandsIntoBagFrom(this.target.original, this.amount);
         return this.amount;
     }
 
     revert(): void {
-        this.player.moveWarbandsFromBagOnto(this.target, this.amount);
+        this.player.original.moveWarbandsFromBagOnto(this.target.original, this.amount);
     }
 }
 
@@ -407,17 +405,17 @@ export class TravelEffect extends PlayerEffect<void> {
     }
 
     resolve(): void {
-        this.oldSite = this.player.site;
-        this.player.site = this.site;
+        this.oldSite = this.player.original.site;
+        this.player.original.site = this.site.original;
 
-        this.revealedSite = this.site.facedown;
-        if (this.revealedSite) this.site.reveal();
+        this.revealedSite = this.site.original.facedown;
+        if (this.revealedSite) this.site.original.reveal();
     }
 
     revert(): void {
         // This effect SHOULD NOT get reverted
-        this.player.site = this.oldSite;
-        if (this.revealedSite) this.site.hide();
+        this.player.original.site = this.oldSite;
+        if (this.revealedSite) this.site.original.hide();
     }
 }
 
@@ -435,12 +433,12 @@ export class DrawFromDeckEffect<T extends OwnableCard> extends PlayerEffect<T[]>
     }
 
     resolve(): T[] {
-        this.cards = this.deck.draw(this.amount, this.fromBottom);
+        this.cards = this.deck.original.draw(this.amount, this.fromBottom);
         return this.cards;
     }
 
     revert(): void {
-        for (const card of this.cards) this.deck.putCard(card, this.fromBottom);
+        for (const card of this.cards) this.deck.original.putCard(card, this.fromBottom);
     }
 }
 
@@ -459,7 +457,7 @@ export class PlayFromAdvisersEffect extends PlayerEffect<void> {
     }
 
     revert(): void {
-        this.card.setOwner(this.player);
+        this.card.setOwner(this.player.original);
         this.card.hide();
     }
 }
@@ -517,8 +515,8 @@ export class PlayDenizenAtSiteEffect extends PlayerEffect<void> {
     }
 
     resolve(): void {
-        this.card.putAtSite(this.site);
-        this.card.reveal();
+        this.card.original.putAtSite(this.site.original);
+        this.card.original.reveal();
         
         // TODO: Put this in an effect?
         const bank = this.game.favorBanks.get(this.card.suit);
@@ -548,8 +546,8 @@ export class PlayWorldCardToAdviserEffect extends PlayerEffect<void> {
     }
 
     resolve(): void {
-        this.card.setOwner(this.player);
-        if (!this.card.facedown) this.card.reveal();
+        this.card.setOwner(this.player.original);
+        if (!this.card.original.facedown) this.card.original.reveal();
     }
 
     revert(): void {
@@ -568,16 +566,16 @@ export class PlayVisionEffect extends PlayerEffect<void> {
     }
 
     resolve(): void {
-        if (!(this.player instanceof Exile) || this.player.isImperial) throw new InvalidActionResolution("Only Exiles can play Visions faceup.");
-        this.oldVision = this.player.setVision(this.card);
-        if (this.oldVision) new DiscardCardEffect(this.player, this.oldVision).do();
+        if (!(this.player.original instanceof Exile) || this.player.isImperial) throw new InvalidActionResolution("Only Exiles can play Visions faceup.");
+        this.oldVision = this.player.original.setVision(this.card);
+        if (this.oldVision) new DiscardCardEffect(this.player.original, this.oldVision).do();
     }
 
     revert(): void {
         // The thing that calls this effect is in charge of putting the card back where it was
         // This just replaces the old Vision (if there was one) and removes the current one
-        if (!(this.player instanceof Exile) || this.player.isImperial) return;
-        this.player.setVision(this.oldVision);
+        if (!(this.player.original instanceof Exile) || this.player.isImperial) return;
+        this.player.original.setVision(this.oldVision);
     }
 }
 
@@ -590,12 +588,12 @@ export class MoveAdviserEffect extends PlayerEffect<WorldCard> {
     }
 
     resolve(): WorldCard {
-        if (!this.player.advisers.has(this.card)) throw new InvalidActionResolution("Trying to move an adviser you don't have.")
-        return this.card;
+        if (!this.player.original.advisers.has(this.card.original)) throw new InvalidActionResolution("Trying to move an adviser you don't have.")
+        return this.card.original;
     }
 
     revert(): void {
-        this.card.setOwner(this.player);
+        this.card.original.setOwner(this.player.original);
     }
 }
 
@@ -607,12 +605,12 @@ export class MoveWorldCardToAdvisersEffect extends OathEffect<void> {
     constructor(game: OathGame, player: OathPlayer | undefined, card: WorldCard, target?: OathPlayer) {
         super(game, player);
         this.card = card;
-        this.target = target || player;
+        this.target = target || this.player;
     }
 
     resolve(): void {
         if (!this.target) return;
-        this.card.setOwner(this.target);
+        this.card.original.setOwner(this.target.original);
     }
 
     revert(): void {
@@ -634,13 +632,13 @@ export class DiscardCardEffect extends PlayerEffect<void> {
 
     resolve(): void {
         if (this.card instanceof Denizen && this.card.activelyLocked) return;
-        this.discard.putCard(this.card, this.onBottom);
+        this.discard.original.putCard(this.card.original, this.onBottom);
     }
 
     revert(): void {
         // The thing that calls this effect is in charge of putting the card back where it was
         // This just removes it from the deck
-        this.discard.drawSingleCard(this.onBottom);
+        this.discard.original.drawSingleCard(this.onBottom);
     }
 }
 
@@ -681,8 +679,8 @@ export class TakeOwnableObjectEffect extends OathEffect<void> {
     }
 
     resolve(): void {
-        this.oldOwner = this.target.owner;
-        this.target.setOwner(this.player);
+        this.oldOwner = this.target.original.owner;
+        this.target.original.setOwner(this.player?.original);
     }
 
     revert(): void {
@@ -720,12 +718,12 @@ export class SetNewOathkeeperEffect extends PlayerEffect<void> {
     oldOathkeeper: OathPlayer;
 
     resolve(): void {
-        this.oldOathkeeper = this.game.oathkeeper;
-        this.game.oathkeeper = this.player;
+        this.oldOathkeeper = this.game.original.oathkeeper;
+        this.game.original.oathkeeper = this.player.original;
     }
 
     revert(): void {
-        this.game.oathkeeper = this.oldOathkeeper;
+        this.game.original.oathkeeper = this.oldOathkeeper;
     }
 }
 
@@ -741,11 +739,11 @@ export class SetPeoplesFavorMobState extends OathEffect<void> {
     }
 
     resolve(): void {
-        this.oldState = this.banner.isMob;
-        this.banner.isMob = this.state;
+        this.oldState = this.banner.original.isMob;
+        this.banner.original.isMob = this.state;
     }
 
     revert(): void {
-        this.banner.isMob = this.oldState;
+        this.banner.original.isMob = this.oldState;
     }
 }

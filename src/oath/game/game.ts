@@ -9,10 +9,10 @@ import { BannerName, OathType, OathPhase, OathSuit, RegionName, PlayerColor } fr
 import { Chancellor, Exile, OathPlayer } from "./player";
 import { OathPower } from "./power";
 import { Banner, DarkestSecret, FavorBank, PeoplesFavor } from "./resources";
-import { AbstractConstructor, Constructor, isExtended, StringObject } from "./utils";
+import { AbstractConstructor, Constructor, CopiableWithOriginal, isExtended, StringObject } from "./utils";
 
 
-export class OathGame {
+export class OathGame extends CopiableWithOriginal {
     board = new OathBoard(this);
     banners = new Map<BannerName, Banner>([
         [BannerName.PeoplesFavor, new PeoplesFavor(this)],
@@ -38,6 +38,7 @@ export class OathGame {
     currentEffects: OathEffect<any>[] = [];
 
     constructor(oath: OathType, playerCount: number) {
+        super();
         this.oath = new OathTypeToOath[oath](this);
         this.oath.setup();
 
@@ -167,10 +168,11 @@ export class OathGame {
     }
 }
 
-export abstract class OathGameObject {
+export abstract class OathGameObject extends CopiableWithOriginal {
     game: OathGame;
 
     constructor(game: OathGame) {
+        super();
         this.game = game;
     }
 }

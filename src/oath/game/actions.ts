@@ -6,7 +6,7 @@ import { OathGame, OathGameObject } from "./game";
 import { OathPlayer } from "./player";
 import { ActionModifier, ActivePower, SearchPlayActionModifier } from "./power";
 import { Banner, PeoplesFavor, ResourceCost, ResourcesAndWarbands } from "./resources";
-import { CopyWithOriginal, StringObject, getCopyWithOriginal, isExtended } from "./utils";
+import { StringObject, getCopyWithOriginal, isExtended } from "./utils";
 
 
 
@@ -63,7 +63,7 @@ export class SelectNumber extends SelectNOf<number> {
 export class InvalidActionResolution extends Error { }
 
 export abstract class OathAction extends OathGameObject {
-    readonly game: CopyWithOriginal<OathGame>;
+    readonly game: OathGame;
     readonly playerColor: PlayerColor;
     readonly selects: StringObject<SelectNOf<any>>;
     readonly parameters: StringObject<any>;
@@ -949,7 +949,7 @@ export class UsePowerAction extends ModifiableAction {
         if (!new PayCostToTargetEffect(this.game, this.player, this.power.cost, this.power.source).do())
             throw new InvalidActionResolution("Cannot pay the resource cost.");
 
-        this.power.usePower(this.player);
+        this.power.usePower(this);
     }
 }
 
@@ -1128,6 +1128,7 @@ export class TakeResourceFromPlayerAction extends ChoosePlayer {
         this.resource = resource;
         this.amount = amount || 1;
     }
+    
     execute() {
         super.execute();
         if (!this.target) return;
