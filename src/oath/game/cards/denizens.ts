@@ -1,5 +1,5 @@
 import { CardRestriction, OathSuit } from "../enums";
-import { ActingTroupe, Alchemist, Assassin, AwaitedReturn, BookBinders, Bracken, ChaosCult, CharmingFriend, Curfew, Dazzle, Elders, FabledFeast, ForcedLabor, GamblingHall, GleamingArmorAttack, GleamingArmorDefense, HeartsAndMinds, Herald, InsectSwarmAttack, InsectSwarmDefense, Insomnia, KeyToTheCity, LongbowArchersAttack, LongbowArchersDefense, LostTongue, LostTongueCampaign, MarriageAction, MarriageEffect, Naysayers, OathPower, OnlyTwoAdvisers, PiedPiper, PiedPiperActive, RelicThief, RoyalTax, SaddleMakers, ShieldWall, SilverTongue, SleightOfHand, SpellBreaker, SpellBreakerActive, SpiritSnare, ThreateningRoar, TollRoads, Tutor, VowOfObedience, VowOfPoverty, VowOfPovertyRest, WayStation } from "../power";
+import { ActingTroupe, Alchemist, Assassin, AwaitedReturn, BookBinders, Bracken, ChaosCult, CharmingFriend, Curfew, Dazzle, Elders, FabledFeast, ForcedLabor, GamblingHall, GleamingArmorAttack, GleamingArmorDefense, HeartsAndMinds, Herald, InsectSwarmAttack, InsectSwarmDefense, Insomnia, KeyToTheCity, LongbowArchersAttack, LongbowArchersDefense, LostTongue, LostTongueCampaign, MarriageActionModifier, MarriageEffectModifier, Naysayers, OathPower, OnlyTwoAdvisers, PiedPiper, PiedPiperActive, RelicThief, RoyalTax, SaddleMakers, ShieldWall, SilverTongue, SleightOfHand, SpellBreaker, SpellBreakerActive, SpiritSnare, ThreateningRoar, TollRoads, Tutor, VowOfObedience, VowOfPoverty, VowOfPovertyRest, WayStation } from "../power";
 import { Constructor, StringObject } from "../utils";
 import { Denizen } from "./cards";
 
@@ -36,7 +36,7 @@ export const denizenData: StringObject<[string, OathSuit, Constructor<OathPower<
     "BookBinders":      ["Book Binders",        OathSuit.Hearth,    [BookBinders], CardRestriction.Adviser],
     "SaddleMakers":     ["Saddle Makers",       OathSuit.Hearth,    [SaddleMakers], CardRestriction.Adviser],
     "Herald":           ["Herald",              OathSuit.Hearth,    [Herald], CardRestriction.Adviser],
-    "Marriage":         ["Marriage",            OathSuit.Hearth,    [MarriageAction, MarriageEffect], CardRestriction.Adviser, true],
+    "Marriage":         ["Marriage",            OathSuit.Hearth,    [MarriageActionModifier, MarriageEffectModifier], CardRestriction.Adviser, true],
 
     "WayStation":       ["Way Station",         OathSuit.Nomad,     [WayStation], CardRestriction.Site],
     "LostTongue":       ["Lost Tongue",         OathSuit.Nomad,     [LostTongue, LostTongueCampaign], CardRestriction.Adviser],

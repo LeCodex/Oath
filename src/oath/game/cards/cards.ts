@@ -201,6 +201,7 @@ export class Denizen extends WorldCard {
 
     protected _suit: OathSuit;
     get suit() { return this._suit; }
+    set suit(_suit: OathSuit) { this._suit = _suit; }
     get ruler() { return super.ruler || this.site?.ruler; }
     get activelyLocked() { return this.locked && !this.facedown; }
 

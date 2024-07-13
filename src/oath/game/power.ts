@@ -317,9 +317,8 @@ export class ActingTroupe extends AccessedActionModifier<Denizen> {
     action: TradeAction;
 
     applyDuring(): void {
-        this.action.player.adviserSuitCount = (suit: OathSuit): number => {
-            return this.action.player?.adviserSuitCount(suit) + (suit === OathSuit.Order || suit === OathSuit.Beast ? 1 : 0);
-        }
+        if (this.action.card.suit === OathSuit.Order || this.action.card.suit === OathSuit.Beast)
+            this.source.suit = this.action.card.suit;
     }
 }
 
@@ -422,19 +421,20 @@ export class Herald extends EnemyActionModifier<Denizen> {
 }
 
 
-export class MarriageAction extends AccessedActionModifier<Denizen> {
+export class MarriageActionModifier extends AccessedActionModifier<Denizen> {
     name = "Marriage"
     static modifiedAction = ModifiableAction;
     action: ModifiableAction;
     mustUse = true;
 
     applyDuring(): void {
-        const fakeAdviser = new Denizen(this.action.game, "Marriage", OathSuit.Hearth, []);
-        fakeAdviser.reveal();
-        this.action.player.advisers.add(fakeAdviser);
+        const originalFn = this.action.player.adviserSuitCount
+        this.action.player.adviserSuitCount = (suit: OathSuit) => {
+            return originalFn(suit) + (suit === OathSuit.Hearth ? 1 : 0);
+        }
     }
 }
-export class MarriageEffect extends AccessedEffectModifier<Denizen> {
+export class MarriageEffectModifier extends AccessedEffectModifier<Denizen> {
     name = "Marriage"
     static modifiedEffect = OathEffect;
     effect: OathEffect<any>;
@@ -442,9 +442,10 @@ export class MarriageEffect extends AccessedEffectModifier<Denizen> {
 
     applyDuring(): void {
         if (!this.effect.player) return;
-        const fakeAdviser = new Denizen(this.effect.game, "Marriage", OathSuit.Hearth, []);
-        fakeAdviser.reveal();
-        this.effect.player.advisers.add(fakeAdviser);
+        const originalFn = this.effect.player.adviserSuitCount;
+        this.effect.player.adviserSuitCount = (suit: OathSuit) => {
+            return originalFn(suit) + (suit === OathSuit.Hearth ? 1 : 0);
+        }
     }
 }
 
@@ -738,6 +739,18 @@ export class PiedPiperActive extends ActivePower<Denizen> {
 
     usePower(action: UsePowerAction): void {
         new AddActionToStackEffect(new PiedPiperAction(action.player, this.source)).do();
+    }
+}
+
+
+export class SmallFriends extends AccessedActionModifier<Denizen> {
+    name = "Small Friends"
+    static modifiedAction = TradeAction;
+    action: TradeAction;
+
+    applyBefore(): boolean {
+        // TODO: Action to choose a site
+        return true;
     }
 }
 
