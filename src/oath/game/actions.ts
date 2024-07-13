@@ -966,7 +966,7 @@ export abstract class ChooseSuit extends OathAction {
     suit: OathSuit | undefined;
 
     constructor(player: OathPlayer, suits?: Iterable<OathSuit>) {
-        super(player);
+        super(player, false);  // Don't copy, they're not modifiable, are not entry points, and can be used to modify data in other actions
         this.suits = new Set(suits);
     }
 
@@ -1098,7 +1098,7 @@ export abstract class ChoosePlayer extends OathAction {
     target: OathPlayer | undefined;
 
     constructor(player: OathPlayer, players?: Iterable<OathPlayer>) {
-        super(player);
+        super(player, false);  // Don't copy, they're not modifiable, are not entry points, and can be used to modify data in other actions
         this.players = new Set(players);
     }
 
@@ -1196,5 +1196,44 @@ export class ConspiracyStealAction extends OathAction {
     execute(): void {
         const taking = this.parameters.taking[0];
         taking.seize(this.player);
+    }
+}
+
+
+export abstract class ChooseSite extends OathAction {
+    readonly selects: { site: SelectNOf<Site | undefined> };
+    readonly parameters: { site: (Site | undefined)[] };
+    readonly canChooseCurrentSite = false;
+
+    sites: Set<Site>;
+    target: Site | undefined;
+
+    constructor(player: OathPlayer, sites?: Iterable<Site>) {
+        super(player, false);  // Don't copy, they're not modifiable, are not entry points, and can be used to modify data in other actions
+        this.sites = new Set(sites);
+    }
+
+    start(none?: string) {
+        if (!this.sites.size) this.sites = new Set(this.game.board.sites());
+
+        const choices = new Map<string, Site | undefined>();
+        for (const site of this.sites)
+            if (!(site === this.player.site && !this.canChooseCurrentSite)) choices.set(site.name, site);
+        if (none) choices.set(none, undefined);
+        this.selects.site = new SelectNOf(choices, 1);
+
+        super.start();
+    }
+
+    execute(): void {
+        this.target = this.parameters.site[0];
+    }
+}
+
+export class ActAsIfAtSiteAction extends ChooseSite {
+    execute(): void {
+        super.execute();
+        if (!this.target) return;
+        this.player.site = this.target;
     }
 }
