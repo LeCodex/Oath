@@ -8,6 +8,7 @@ import { OathGame, OathGameObject } from "./game";
 import { InvalidActionResolution, OathAction } from "./actions";
 import { CardDeck, SearchableDeck } from "./cards/decks";
 import { getCopyWithOriginal, isExtended } from "./utils";
+import { Die } from "./dice";
 
 
 //////////////////////////////////////////////////
@@ -31,7 +32,7 @@ export abstract class OathEffect<T> extends OathGameObject {
         // Whenever we resolve an effect, we add it to the stack
         this.game.currentEffects.unshift(this);
         let result = this.resolve();
-        this.afterResolution();
+        this.afterResolution(result);
         
         return result;
     }
@@ -48,8 +49,8 @@ export abstract class OathEffect<T> extends OathGameObject {
 
     abstract resolve(): T;
     
-    afterResolution() {
-        for (const modifier of this.modifiers) modifier.applyAfter();
+    afterResolution(result: T) {
+        for (const modifier of this.modifiers) modifier.applyAfter(result);
     };
 
     abstract revert(): void;
@@ -689,10 +690,10 @@ export class TakeOwnableObjectEffect extends OathEffect<void> {
 }
 
 export class RollDiceEffect extends OathEffect<number[]> {
-    die: number[];
+    die: typeof Die;
     amount: number;
 
-    constructor(game: OathGame, player: OathPlayer | undefined, die: number[], amount: number) {
+    constructor(game: OathGame, player: OathPlayer | undefined, die: typeof Die, amount: number) {
         super(game, player);
         this.die = die;
         this.amount = amount;
@@ -701,11 +702,7 @@ export class RollDiceEffect extends OathEffect<number[]> {
     resolve(): number[] {
         // Side note: Because of powers like Jinx and Squalid District, the result of this should NOT be processed in its current action,
         // but in a consecutive one, so a new action can be slotted in-between
-        const result: number[] = [];
-        for (let i = 0; i < this.amount; i++) {
-            result.push(this.die[Math.floor(Math.random() * this.die.length)]);
-        }
-        return result;
+        return this.die.roll(this.amount);
     }
 
     revert(): void {

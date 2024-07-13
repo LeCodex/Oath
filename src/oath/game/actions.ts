@@ -1,5 +1,6 @@
 import { Denizen, Relic, Site, WorldCard } from "./cards/cards";
 import { SearchableDeck } from "./cards/decks";
+import { AttackDie, DefenseDie, Die } from "./dice";
 import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect, DiscardCardEffect, MoveOwnWarbandsEffect, AddActionToStackEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect, SetNewOathkeeperEffect, SetPeoplesFavorMobState } from "./effects";
 import { OathResource, OathResourceName, OathSuit, OathSuitName, PlayerColor } from "./enums";
 import { OathGame, OathGameObject } from "./game";
@@ -755,23 +756,14 @@ class CampaignResult extends OathGameObject {
     discardAtEnd = new Set<Denizen>();
 
     get atk() { 
-        let total = 0;
-        for (const roll of this.atkRoll) total += roll;
-        return Math.floor(total);
+        return AttackDie.getResult(this.atkRoll);
     };
     get def() {
-        let total = 0, mult = 1;
-        for (const roll of this.defRoll) {
-            if (roll == -1)
-                mult *= 2;
-            else
-                total += roll
-        }
-        return total * mult + this.defForce;
+        return DefenseDie.getResult(this.defRoll) + this.defForce;
     };
 
     get requiredSacrifice() { return this.def - this.atk + 1; }
-    get couldSacrifice() { return this.requiredSacrifice > 0 && this.requiredSacrifice < this.atkForce; }
+    get couldSacrifice() { return this.requiredSacrifice > 0 && this.requiredSacrifice < this.atkForce - AttackDie.getSkulls(this.atkRoll); }
 
     get winner() { return this.successful ? this.attacker : this.defender }
     get loser() { return this.successful ? this.defender : this.attacker }
@@ -802,11 +794,11 @@ class CampaignResult extends OathGameObject {
     }
 
     rollAttack() {
-        this.atkRoll = new RollDiceEffect(this.game, this.attacker, [0.5, 0.5, 0.5, 1, 1, 2], this.atkPool).do();
+        this.atkRoll = new RollDiceEffect(this.game, this.attacker, AttackDie, this.atkPool).do();
     }
 
     rollDefense() {
-        this.defRoll = new RollDiceEffect(this.game, this.defender, [0, 0, 1, 1, 2, -1], this.defPool).do();
+        this.defRoll = new RollDiceEffect(this.game, this.defender, DefenseDie, this.defPool).do();
     }
     
     attackerKills(amount: number) {
@@ -826,8 +818,6 @@ class CampaignResult extends OathGameObject {
     resolve() {
         this.rollAttack();
         this.rollDefense();
-        if (!this.ignoreKilling && !this.ignoreSkulls)
-            this.attackerKills(this.atkRoll.filter(e => e === 2).length);
     }
 }
 
@@ -839,7 +829,7 @@ export class CampaignEndAction extends ModifiableAction {
     doSacrifice: boolean
 
     start() {
-        this.selects.doSacrifice = new SelectBoolean([`Sacrifice ${this.campaignResult.requiredSacrifice} warbands`, "Lose"]);
+        this.selects.doSacrifice = new SelectBoolean([`Sacrifice ${this.campaignResult.requiredSacrifice} warbands`, "Retreat"]);
         super.start();
     }
 
@@ -849,6 +839,9 @@ export class CampaignEndAction extends ModifiableAction {
     }
 
     modifiedExecution() {
+        if (!this.campaignResult.ignoreKilling && !this.campaignResult.ignoreSkulls)
+            this.campaignResult.attackerKills(AttackDie.getSkulls(this.campaignResult.atkRoll));
+
         if (this.doSacrifice) {
             this.campaignResult.attackerKills(this.campaignResult.requiredSacrifice);
             this.campaignResult.successful = true;
@@ -958,6 +951,44 @@ export class UsePowerAction extends ModifiableAction {
 ////////////////////////////////////////////
 //              OTHER ACTIONS             //
 ////////////////////////////////////////////
+export class AskForRerollAction extends OathAction {
+    readonly selects: { doReroll: SelectBoolean };
+    readonly parameters: { doReroll: boolean[] };
+
+    faces: number[];
+    die: typeof Die;
+
+    constructor(player: OathPlayer, faces: number[], die: typeof Die) {
+        super(player, false); // Don't copy, not modifiable, and not an entry point
+        this.faces = faces;
+    }
+
+    start(): void {
+        this.selects.doReroll = new SelectBoolean(["Reroll", "Don't reroll"]);
+        super.start();
+    }
+
+    execute(): void {
+        if (this.parameters.doReroll[0])
+            for (const [i, face] of this.die.roll(this.faces.length).entries()) this.faces[i] = face;
+    }
+}
+
+
+export class GamblingHallAction extends OathAction {
+    faces: number[];
+
+    constructor(player: OathPlayer, faces: number[]) {
+        super(player, false); // Don't copy, not modifiable, and not an entry point
+        this.faces = faces;
+    }
+
+    execute(): void {
+        new AddActionToStackEffect(new TakeFavorFromBankAction(this.player, DefenseDie.getResult(this.faces))).do();
+    }
+}
+
+
 export abstract class ChooseSuit extends OathAction {
     readonly selects: { suit: SelectNOf<OathSuit | undefined> };
     readonly parameters: { suit: (OathSuit | undefined)[] };

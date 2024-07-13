@@ -1,4 +1,4 @@
-import { CampaignAtttackAction, CampaignDefenseAction, InvalidActionResolution, ModifiableAction, OathAction, PeoplesFavorDiscardAction, PeoplesFavorWakeAction, RestAction, SearchAction, SearchPlayAction, TakeFavorFromBankAction, ChooseResourceToTakeAction, TradeAction, TravelAction, UsePowerAction, WakeAction, TakeResourceFromPlayerAction, PiedPiperAction, CampaignAction, CampaignEndAction, ConspiracyAction, ActAsIfAtSiteAction } from "./actions";
+import { CampaignAtttackAction, CampaignDefenseAction, InvalidActionResolution, ModifiableAction, OathAction, PeoplesFavorDiscardAction, PeoplesFavorWakeAction, RestAction, SearchAction, SearchPlayAction, TakeFavorFromBankAction, ChooseResourceToTakeAction, TradeAction, TravelAction, UsePowerAction, WakeAction, TakeResourceFromPlayerAction, PiedPiperAction, CampaignAction, CampaignEndAction, ConspiracyAction, ActAsIfAtSiteAction, GamblingHallAction, AskForRerollAction } from "./actions";
 import { Conspiracy, Denizen, OwnableCard, Relic, Site, Vision, WorldCard } from "./cards/cards";
 import { BannerName, OathResource, OathSuit, RegionName } from "./enums";
 import { Banner, DarkestSecret, PeoplesFavor, ResourceCost } from "./resources";
@@ -6,6 +6,7 @@ import { AddActionToStackEffect, MoveResourcesToTargetEffect, OathEffect, PayCos
 import { OathPlayer, OwnableObject, Reliquary, isOwnable } from "./player";
 import { OathGameObject } from "./game";
 import { AbstractConstructor } from "./utils";
+import { DefenseDie } from "./dice";
 
 
 //////////////////////////////////////////////////
@@ -113,7 +114,7 @@ export abstract class SearchPlayActionModifier<T extends WorldCard> extends Acti
 
 export abstract class EffectModifier<T extends OathGameObject> extends OathPower<T> {
     static modifiedEffect: AbstractConstructor<OathEffect<any>>;
-    effect: OathEffect<any>
+    effect: OathEffect<any>;
 
     constructor(source: T, effect: OathEffect<any>) {
         super(source);
@@ -125,7 +126,7 @@ export abstract class EffectModifier<T extends OathGameObject> extends OathPower
     }
 
     applyDuring(): void { }     // Applied right before the resolution of the effect
-    applyAfter(): void { }      // Applied after the resolution of the effect
+    applyAfter(result: any): void { }      // Applied after the resolution of the effect
 }
 
 export abstract class EnemyEffectModifier<T extends OwnableCard> extends EffectModifier<T> {
@@ -312,13 +313,29 @@ export class Alchemist extends ActivePower<Denizen> {
 
 
 export class ActingTroupe extends AccessedActionModifier<Denizen> {
-    name = "Acting Troupe"
+    name = "Acting Troupe";
     static modifiedAction = TradeAction;
     action: TradeAction;
 
     applyDuring(): void {
         if (this.action.card.suit === OathSuit.Order || this.action.card.suit === OathSuit.Beast)
             this.source.suit = this.action.card.suit;
+    }
+}
+
+
+export class Jinx extends EffectModifier<Denizen> {
+    name = "Jinx";
+    static modifiedEffect = RollDiceEffect;
+    effect: RollDiceEffect;
+
+    canUse(): boolean {
+        return this.effect.player !== undefined && this.effect.player.rules(this.source);
+    }
+
+    applyAfter(result: number[]): void {
+        if (!this.effect.player) return;
+        new AddActionToStackEffect(new AskForRerollAction(this.effect.player, result, this.effect.die)).do();
     }
 }
 
@@ -388,7 +405,7 @@ export class BookBinders extends EnemyEffectModifier<Denizen> {
     static modifiedEffect = PlayVisionEffect;
     effect: PlayVisionEffect;
 
-    applyAfter(): void {
+    applyAfter(result: void): void {
         if (!this.source.ruler) return;
         new AddActionToStackEffect(new TakeFavorFromBankAction(this.source.ruler, 2)).do();
     }
@@ -399,7 +416,7 @@ export class SaddleMakers extends EnemyEffectModifier<Denizen> {
     static modifiedEffect = PlayWorldCardEffect;
     effect: PlayWorldCardEffect;
 
-    applyAfter(): void {
+    applyAfter(result: void): void {
         if (!this.source.ruler) return;
         if (this.effect.facedown || !(this.effect.card instanceof Denizen)) return;
         if (this.effect.card.suit !== OathSuit.Nomad && this.effect.card.suit !== OathSuit.Discord) return;
@@ -428,7 +445,7 @@ export class MarriageActionModifier extends AccessedActionModifier<Denizen> {
     mustUse = true;
 
     applyDuring(): void {
-        const originalFn = this.action.player.adviserSuitCount
+        const originalFn = this.action.player.original.adviserSuitCount
         this.action.player.adviserSuitCount = (suit: OathSuit) => {
             return originalFn(suit) + (suit === OathSuit.Hearth ? 1 : 0);
         }
@@ -442,7 +459,7 @@ export class MarriageEffectModifier extends AccessedEffectModifier<Denizen> {
 
     applyDuring(): void {
         if (!this.effect.player) return;
-        const originalFn = this.effect.player.adviserSuitCount;
+        const originalFn = this.effect.player.original.adviserSuitCount;
         this.effect.player.adviserSuitCount = (suit: OathSuit) => {
             return originalFn(suit) + (suit === OathSuit.Hearth ? 1 : 0);
         }
@@ -537,7 +554,7 @@ export class RelicThief extends EnemyEffectModifier<Denizen> {
     static modifiedEffect = TakeOwnableObjectEffect;
     effect: TakeOwnableObjectEffect;
 
-    applyAfter(): void {
+    applyAfter(result: void): void {
         if (!this.source.ruler) return;
         if (this.effect.target instanceof Relic && this.effect.player?.site.region === this.source.ruler.site.region) {
             // Roll dice and do stuff, probably after an action to pay the cost
@@ -628,7 +645,7 @@ export class ChaosCult extends EnemyEffectModifier<Denizen> {
     static modifiedEffect = SetNewOathkeeperEffect;
     effect: SetNewOathkeeperEffect;
 
-    applyAfter(): void {
+    applyAfter(result: void): void {
         new MoveResourcesToTargetEffect(this.effect.game, this.source.ruler, OathResource.Favor, 1, this.source.ruler, this.effect.player).do();
     }
 }
@@ -640,19 +657,8 @@ export class GamblingHall extends ActivePower<Denizen> {
 
     usePower(action: UsePowerAction): void {
         // TODO: This doesn't work with Jinx, and I don't know how to solve it in a clean way
-        const result = new RollDiceEffect(action.game, action.player, [0, 0, 1, 1, 2, -1], 4).do();
-        
-        // TODO: Factor this out, probably in a Die class
-        let total = 0, mult = 1;
-        for (const roll of result) {
-            if (roll == -1)
-                mult *= 2;
-            else
-                total += roll
-        }
-        const amount = total * mult;
-
-        new AddActionToStackEffect(new TakeFavorFromBankAction(action.player, amount)).do();
+        const faces = new RollDiceEffect(action.game, action.player, DefenseDie, 4).do();
+        new AddActionToStackEffect(new GamblingHallAction(this.action.player, faces)).do();
     }
 }
 
@@ -811,7 +817,7 @@ export abstract class HomelandSitePower extends EffectModifier<Site> {
     effect: PlayWorldCardEffect;
     abstract suit: OathSuit;
 
-    applyAfter(): void {
+    applyAfter(result: void): void {
         // TODO: "and if you have not discarded a <suit> card here during this turn"
         if (this.effect.site === this.source && this.effect.card instanceof Denizen && this.effect.card.suit === this.suit)
             this.giveReward(this.effect.player);
@@ -967,7 +973,7 @@ export class DragonskinWardrum extends AccessedEffectModifier<Relic> {
     static modifiedEffect = TravelEffect;
     effect: TravelEffect;
 
-    applyAfter(): void {
+    applyAfter(result: void): void {
         new PutWarbandsFromBagEffect(this.effect.player, 1).do();
     }
 }
