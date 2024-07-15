@@ -5,7 +5,7 @@ import { EffectModifier, WhenPlayed } from "./power";
 import { PeoplesFavor, ResourceBank, ResourceCost, ResourcesAndWarbands } from "./resources";
 import { OwnableObject } from "./player";
 import { OathGame, OathGameObject } from "./game";
-import { InvalidActionResolution, OathAction } from "./actions";
+import { InvalidActionResolution, OathAction, SearchDiscardAction, SearchDiscardOptions, SearchPlayAction } from "./actions";
 import { CardDeck, SearchableDeck } from "./cards/decks";
 import { getCopyWithOriginal, isExtended } from "./utils";
 import { Die } from "./dice";
@@ -95,7 +95,7 @@ export class PutResourcesOnTargetEffect extends OathEffect<number> {
     constructor(game: OathGame, player: OathPlayer | undefined, resource: OathResource, amount: number, target?: ResourcesAndWarbands) {
         super(game, player);
         this.resource = resource;
-        this.amount = amount;
+        this.amount = Math.max(0, amount);
         this.target = target || this.player;
     }
 
@@ -118,7 +118,7 @@ export class MoveResourcesToTargetEffect extends OathEffect<number> {
     constructor(game: OathGame, player: OathPlayer | undefined, resource: OathResource, amount: number, target: ResourcesAndWarbands | undefined, source?: ResourcesAndWarbands) {
         super(game, player);
         this.resource = resource;
-        this.amount = amount;
+        this.amount = Math.max(0, amount);
         this.target = target;
         this.source = source || this.player;
     }
@@ -144,7 +144,7 @@ export class PutResourcesIntoBankEffect extends OathEffect<number> {
     constructor(game: OathGame, player: OathPlayer | undefined, bank: ResourceBank | undefined, amount: number, source?: ResourcesAndWarbands | undefined) {
         super(game, player);
         this.bank = bank;
-        this.amount = amount;
+        this.amount = Math.max(0, amount);
         this.source = source || this.player;
     }
 
@@ -169,7 +169,7 @@ export class TakeResourcesFromBankEffect extends OathEffect<number> {
     constructor(game: OathGame, player: OathPlayer | undefined, bank: ResourceBank | undefined, amount: number, target?: ResourcesAndWarbands | undefined) {
         super(game, player);
         this.bank = bank;
-        this.amount = amount;
+        this.amount = Math.max(0, amount);
         this.target = target || this.player;
     }
 
@@ -199,7 +199,7 @@ export class MoveBankResourcesEffect extends OathEffect<number> {
         super(game, player);
         this.from = from;
         this.to = to;
-        this.amount = amount;
+        this.amount = Math.max(0, amount);
     }
 
     resolve(): number {
@@ -287,7 +287,7 @@ export class FlipSecretsEffect extends OathEffect<number> {
 
     constructor(game: OathGame, player: OathPlayer | undefined, amount: number, source?: ResourcesAndWarbands) {
         super(game, player);
-        this.amount = amount;
+        this.amount = Math.max(0, amount);
         this.source = source || this.player;
     }
 
@@ -316,7 +316,7 @@ export class MoveWarbandsToEffect extends OathEffect<number> {
     constructor(game: OathGame, player: OathPlayer | undefined, owner: OathPlayer, target: ResourcesAndWarbands, amount: number = Infinity, source?: ResourcesAndWarbands) {
         super(game, player);
         this.owner = owner;
-        this.amount = amount;
+        this.amount = Math.max(0, amount);
         this.target = target;
         this.source = source || this.player;
     }
@@ -338,7 +338,7 @@ export class MoveOwnWarbandsEffect extends PlayerEffect<number> {
 
     constructor(player: OathPlayer, from: ResourcesAndWarbands, to: ResourcesAndWarbands, amount: number = Infinity) {
         super(player);
-        this.amount = amount;
+        this.amount = Math.max(0, amount);
         this.from = from;
         this.to = to;
     }
@@ -359,7 +359,7 @@ export class PutWarbandsFromBagEffect extends PlayerEffect<number> {
 
     constructor(player: OathPlayer, amount: number, target?: ResourcesAndWarbands) {
         super(player);
-        this.amount = amount;
+        this.amount = Math.max(0, amount);
         this.target = target || this.player;
     }
 
@@ -379,7 +379,7 @@ export class TakeWarbandsIntoBagEffect extends PlayerEffect<number> {
 
     constructor(player: OathPlayer, amount: number, target?: ResourcesAndWarbands) {
         super(player);
-        this.amount = amount;
+        this.amount = Math.max(0, amount);
         this.target = target || this.player;
     }
 
@@ -494,8 +494,9 @@ export class PlayWorldCardEffect extends PlayerEffect<void> {
             new PlayWorldCardToAdviserEffect(this.player, this.card, this.facedown).do();
         }
         
-        for (const power of this.card.powers)
-            if (isExtended(power, WhenPlayed)) new power(this.card).whenPlayed(this);
+        if (!this.facedown)
+            for (const power of this.card.powers)
+                if (isExtended(power, WhenPlayed)) new power(this.card).whenPlayed(this);
     }
 
     revert(): void {
@@ -589,12 +590,32 @@ export class MoveAdviserEffect extends PlayerEffect<WorldCard> {
     }
 
     resolve(): WorldCard {
-        if (!this.player.original.advisers.has(this.card.original)) throw new InvalidActionResolution("Trying to move an adviser you don't have.")
+        if (!this.player.original.advisers.has(this.card.original)) throw new InvalidActionResolution("Trying to move an adviser you don't have.");
         return this.card.original;
     }
 
     revert(): void {
         this.card.original.setOwner(this.player.original);
+    }
+}
+
+export class MoveSiteDenizenEffect extends OathEffect<Denizen> {
+    card: Denizen;
+    oldSite: Site;
+
+    constructor(game: OathGame, player: OathPlayer | undefined, card: Denizen) {
+        super(game, player);
+        this.card = card;
+    }
+
+    resolve(): Denizen {
+        if (!this.card.original.site) throw new InvalidActionResolution("Trying to move a site card not at a site.");
+        this.oldSite = this.card.original.site;
+        return this.card.original;
+    }
+
+    revert(): void {
+        this.card.original.putAtSite(this.oldSite.original);
     }
 }
 
@@ -619,33 +640,74 @@ export class MoveWorldCardToAdvisersEffect extends OathEffect<void> {
     }
 }
 
+export class DiscardCardGroupEffect extends PlayerEffect<void> {
+    cards: Set<WorldCard>;
+    discardOptions?: SearchDiscardOptions;
+
+    constructor(player: OathPlayer, cards: Iterable<WorldCard>, discardOptions?: SearchDiscardOptions) {
+        super(player);
+        this.cards = new Set(cards);
+        this.discardOptions = discardOptions;
+    }
+
+    resolve(): void {
+        const origins = new Set<Site | OathPlayer>();
+        for (let card of this.cards) {
+            // Those will take care of putting the cards back where they were
+            if (card instanceof Denizen && card.site) {
+                origins.add(card.site);
+                card = new MoveSiteDenizenEffect(this.game, this.player, card).do();
+            } else if (card.owner) {
+                origins.add(card.owner);
+                card = new MoveAdviserEffect(card.owner, card).do();
+            }
+
+            new DiscardCardEffect(this.player, card, this.discardOptions).do();
+        }
+
+        // TODO: Move this to an effect
+        for (const origin of origins) {
+            const site = origin instanceof Site ? origin : undefined;
+            const player = origin instanceof OathPlayer ? origin : origin.ruler || this.player;
+            
+            const [capacity, takesSpace, _] = SearchPlayAction.getCapacityInformation(player, site);
+            const excess = Math.max(0, takesSpace.length - capacity);
+            if (excess > takesSpace.length)
+                throw new InvalidActionResolution(`Cannot satisfy the capacity of ${origin.name}'s cards`);
+            else if (excess)
+                new AddActionToStackEffect(new SearchDiscardAction(origin instanceof OathPlayer ? origin : this.player, takesSpace, excess, this.discardOptions)).do();
+        }
+    }
+
+    revert(): void {
+        // Doesn't do anything on its own
+    }
+}
+
 export class DiscardCardEffect extends PlayerEffect<void> {
     card: WorldCard;
-    discard: SearchableDeck;
-    onBottom: boolean
+    discardOptions: SearchDiscardOptions;
 
-    constructor(player: OathPlayer, card: WorldCard, discard?: SearchableDeck, onBottom: boolean = false) {
+    constructor(player: OathPlayer, card: WorldCard, discardOptions?: SearchDiscardOptions) {
         super(player);
         this.card = card;
-        this.discard = discard || (card.owner ? card.owner.discard : card instanceof Denizen && card.site ? this.game.board.nextRegion(card.site.region).discard : player.discard);
-        this.onBottom = onBottom;
+        this.discardOptions = discardOptions || new SearchDiscardOptions(card.owner ? card.owner.discard : card instanceof Denizen && card.site ? this.game.board.nextRegion(card.site.region).discard : player.discard, false);
     }
 
     resolve(): void {
         if (this.card instanceof Denizen && this.card.activelyLocked) return;
-        this.discard.original.putCard(this.card.original, this.onBottom);
+        this.discardOptions.discard.original.putCard(this.card.original, this.discardOptions.onBottom);
     }
 
     revert(): void {
         // The thing that calls this effect is in charge of putting the card back where it was
         // This just removes it from the deck
-        this.discard.original.drawSingleCard(this.onBottom);
+        this.discardOptions.discard.original.drawSingleCard(this.discardOptions.onBottom);
     }
 }
 
 export class RegionDiscardEffect extends PlayerEffect<void> {
     suits: OathSuit[];
-    cards: Map<Denizen, Site>;
 
     constructor(player: OathPlayer, suits: OathSuit[]) {
         super(player);
@@ -653,20 +715,17 @@ export class RegionDiscardEffect extends PlayerEffect<void> {
     }
 
     resolve(): void {
-        for (const site of this.player.site.region.sites) {
-            for (const denizen of site.denizens) {
-                if (this.suits.includes(denizen.suit)) {
-                    this.cards.set(denizen, site);
-                    new DiscardCardEffect(this.player, denizen).do();
-                }
-            }
-        }
+        const cards: Denizen[] = [];
+        for (const site of this.player.site.region.sites)
+            for (const denizen of site.denizens)
+                if (this.suits.includes(denizen.suit))
+                    cards.push(denizen);
+
+        new DiscardCardGroupEffect(this.player, cards).do();
     }
 
     revert(): void {
-        for (const [denizen, site] of this.cards) {
-            denizen.putAtSite(site);
-        }
+        // DOesn't do anything on its own
     }
 }
 

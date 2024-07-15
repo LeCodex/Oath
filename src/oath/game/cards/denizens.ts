@@ -1,5 +1,5 @@
 import { CardRestriction, OathSuit } from "../enums";
-import { ActingTroupe, Alchemist, Assassin, AwaitedReturn, BookBinders, Bracken, ChaosCult, CharmingFriend, Curfew, Dazzle, Elders, FabledFeast, ForcedLabor, GamblingHall, GleamingArmorAttack, GleamingArmorDefense, HeartsAndMinds, Herald, InsectSwarmAttack, InsectSwarmDefense, Insomnia, KeyToTheCity, LongbowArchersAttack, LongbowArchersDefense, LostTongue, LostTongueCampaign, MarriageActionModifier, MarriageEffectModifier, Naysayers, OathPower, OnlyTwoAdvisers, PiedPiper, PiedPiperActive, RelicThief, RoyalTax, SaddleMakers, ShieldWall, SilverTongue, SleightOfHand, SmallFriends, SpellBreaker, SpellBreakerActive, SpiritSnare, ThreateningRoar, TollRoads, Tutor, VowOfObedience, VowOfPoverty, VowOfPovertyRest, WayStation } from "../power";
+import { ActingTroupe, Alchemist, Assassin, AwaitedReturn, BookBinders, Bracken, ChaosCult, CharmingFriend, Curfew, Dazzle, Elders, FabledFeast, ForcedLabor, GamblingHall, GleamingArmorAttack, GleamingArmorDefense, HeartsAndMinds, Herald, IgnoresCapacity, InsectSwarmAttack, InsectSwarmDefense, Insomnia, KeyToTheCity, LongbowArchersAttack, LongbowArchersDefense, LostTongue, LostTongueCampaign, MarriageActionModifier, MarriageEffectModifier, Naysayers, OathPower, OnlyTwoAdvisers, PiedPiperActive, RelicThief, RoyalTax, SaddleMakers, ShieldWall, SilverTongue, SleightOfHand, SmallFriends, SpellBreaker, SpellBreakerActive, SpiritSnare, ThreateningRoar, TollRoads, Tutor, VowOfObedience, VowOfPoverty, VowOfPovertyRest, WayStation } from "../power";
 import { Constructor, StringObject } from "../utils";
 import { Denizen } from "./cards";
 
@@ -37,16 +37,16 @@ export const denizenData: StringObject<[string, OathSuit, Constructor<OathPower<
     "SaddleMakers":     ["Saddle Makers",       OathSuit.Hearth,    [SaddleMakers], CardRestriction.Adviser],
     "Herald":           ["Herald",              OathSuit.Hearth,    [Herald], CardRestriction.Adviser],
     "Marriage":         ["Marriage",            OathSuit.Hearth,    [MarriageActionModifier, MarriageEffectModifier], CardRestriction.Adviser, true],
+    
+    "Bracken":          ["Bracken",             OathSuit.Beast,     [Bracken]],
+    "InsectSwarm":      ["Insect Swarm",        OathSuit.Beast,     [InsectSwarmAttack, InsectSwarmDefense]],
+    "ThreateningRoar":  ["Threatening Roar",    OathSuit.Beast,     [ThreateningRoar]],
+    "VowOfPoverty":     ["Vow of Poverty",      OathSuit.Beast,     [VowOfPoverty, VowOfPovertyRest], CardRestriction.Adviser, true],
+    "PiedPiper":        ["PiedPiper",           OathSuit.Beast,     [IgnoresCapacity, PiedPiperActive], CardRestriction.Adviser],
+    "SmallFriend":      ["Small Friends",       OathSuit.Beast,     [SmallFriends], CardRestriction.Adviser],
 
     "WayStation":       ["Way Station",         OathSuit.Nomad,     [WayStation], CardRestriction.Site],
     "LostTongue":       ["Lost Tongue",         OathSuit.Nomad,     [LostTongue, LostTongueCampaign], CardRestriction.Adviser],
     "Elders":           ["Elders",              OathSuit.Nomad,     [Elders]],
     "SpellBreaker":     ["Spell Breaker",       OathSuit.Nomad,     [SpellBreaker, SpellBreakerActive], CardRestriction.Site],
-
-    "Bracken":          ["Bracken",             OathSuit.Beast,     [Bracken]],
-    "InsectSwarm":      ["Insect Swarm",        OathSuit.Beast,     [InsectSwarmAttack, InsectSwarmDefense]],
-    "ThreateningRoar":  ["Threatening Roar",    OathSuit.Beast,     [ThreateningRoar]],
-    "VowOfPoverty":     ["Vow of Poverty",      OathSuit.Beast,     [VowOfPoverty, VowOfPovertyRest], CardRestriction.Adviser, true],
-    "PiedPiper":        ["PiedPiper",           OathSuit.Beast,     [PiedPiper, PiedPiperActive], CardRestriction.Adviser],
-    "SmallFriend":      ["Small Friends",       OathSuit.Beast,     [SmallFriends], CardRestriction.Adviser]
 }

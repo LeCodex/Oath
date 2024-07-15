@@ -1,4 +1,4 @@
-import { CampaignAtttackAction, CampaignDefenseAction, InvalidActionResolution, ModifiableAction, OathAction, PeoplesFavorDiscardAction, PeoplesFavorWakeAction, RestAction, SearchAction, SearchPlayAction, TakeFavorFromBankAction, ChooseResourceToTakeAction, TradeAction, TravelAction, UsePowerAction, WakeAction, TakeResourceFromPlayerAction, PiedPiperAction, CampaignAction, CampaignEndAction, ConspiracyAction, ActAsIfAtSiteAction, GamblingHallAction, AskForRerollAction } from "./actions";
+import { CampaignAtttackAction, CampaignDefenseAction, InvalidActionResolution, ModifiableAction, OathAction, PeoplesFavorDiscardAction, PeoplesFavorWakeAction, RestAction, SearchAction, SearchPlayAction, TakeFavorFromBankAction, ChooseResourceToTakeAction, TradeAction, TravelAction, UsePowerAction, WakeAction, TakeResourceFromPlayerAction, PiedPiperAction, CampaignEndAction, ConspiracyAction, ActAsIfAtSiteAction, GamblingHallAction, AskForRerollAction } from "./actions";
 import { Conspiracy, Denizen, OwnableCard, Relic, Site, Vision, WorldCard } from "./cards/cards";
 import { BannerName, OathResource, OathSuit, RegionName } from "./enums";
 import { Banner, DarkestSecret, PeoplesFavor, ResourceCost } from "./resources";
@@ -27,6 +27,18 @@ export abstract class WhenPlayed<T extends WorldCard> extends OathPower<T> {
     static modifiedEffect = PlayWorldCardEffect;
 
     abstract whenPlayed(effect: PlayWorldCardEffect): void;
+}
+
+export abstract class CapacityModifier<T extends WorldCard> extends OathPower<T> {
+    canUse(player: OathPlayer, site?: Site): boolean {
+        return true;
+    }
+    
+    // Updates the information to calculate capacity in the group the source is in/being played to
+    // First return is the update to capacity (min of all values), second is a set of cards that don't count towards capacity
+    updateCapacityInformation(source: Set<WorldCard>): [number, Iterable<WorldCard>] { return [Infinity, []]; }
+
+    ignoreCapacity(card: WorldCard, facedown: boolean = card.facedown): boolean { return false; }
 }
 
 export abstract class ActionPower<T extends OathGameObject> extends OathPower<T> {
@@ -105,13 +117,6 @@ export abstract class DefenderBattlePlan<T extends OwnableCard> extends BattlePl
     action: CampaignDefenseAction;
 }
 
-export abstract class SearchPlayActionModifier<T extends WorldCard> extends ActionModifier<T> {
-    static modifiedAction = SearchPlayAction;
-    action: SearchPlayAction;
-
-    applyOnPlay(): void {  }    // Applied right before the card is played
-}
-
 export abstract class EffectModifier<T extends OathGameObject> extends OathPower<T> {
     static modifiedEffect: AbstractConstructor<OathEffect<any>>;
     effect: OathEffect<any>;
@@ -145,6 +150,20 @@ export abstract class AccessedEffectModifier<T extends OwnableCard> extends Effe
 //////////////////////////////////////////////////
 //                  DENIZENS                    //
 //////////////////////////////////////////////////
+// ------------------ GENERAL ------------------- //
+export class IgnoresCapacity extends CapacityModifier<Denizen> {
+    name = "Ignores Capacity";
+
+    canUse(player: OathPlayer, site?: Site): boolean {
+        return player === this.source.ruler;
+    }
+
+    ignoreCapacity(card: WorldCard, facedown?: boolean): boolean {
+        return !facedown && card === this.source;
+    }
+}
+
+
 // ------------------ ORDER ------------------- //
 export class LongbowArchersAttack extends AttackerBattlePlan<Denizen> {
     name = "Longbow Archers";
@@ -227,8 +246,10 @@ export class RoyalTax extends WhenPlayed<Denizen> {
 }
 
 
-export class VowOfObedience extends SearchPlayActionModifier<Denizen> {
+export class VowOfObedience extends ActionModifier<Denizen> {
     name = "Vow of Obedience";
+    static modifiedAction = SearchPlayAction;
+    action: SearchPlayAction;
     mustUse = true;
 
     applyDuring(): void {
@@ -548,6 +569,23 @@ export class SpellBreakerActive extends EnemyActionModifier<Denizen> {
 }
 
 
+export class FamilyWagon extends CapacityModifier<Denizen> {
+    name = "Family Wagon";
+
+    canUse(player: OathPlayer, site?: Site): boolean {
+        return player === this.source.ruler && !site;
+    }
+
+    updateCapacityInformation(source: Set<WorldCard>): [number, Iterable<WorldCard>] {
+        // NOTE: This is technically different from the way Family Wagon is worded. The way this works
+        // is by setting the capacity to 2, and making all *other* Nomad cards not count towards the limit (effectively
+        // making you have 1 spot for a non Nomad card, and infinite ones for Nomad cards, while allowing you
+        // to replace Family Wagon if you want to)
+        return [2, [...source].filter(e => e !== this.source && !e.facedown && e instanceof Denizen && e.suit === OathSuit.Nomad)];
+    }
+}
+
+
 // ------------------ DISCORD ------------------- //
 export class RelicThief extends EnemyEffectModifier<Denizen> {
     name = "Relic Thief";
@@ -578,16 +616,15 @@ export class KeyToTheCity extends WhenPlayed<Denizen> {
 }
 
 
-export class OnlyTwoAdvisers extends SearchPlayActionModifier<Denizen> {
+export class OnlyTwoAdvisers extends CapacityModifier<Denizen> {
     name = "Only Two Advisers";
-    mustUse = true;
 
-    applyDuring(): void {
-        if (!this.action.site) this.action.capacity = Math.min(this.action.capacity, 2);
+    canUse(player: OathPlayer, site?: Site): boolean {
+        return player === this.source.ruler && !site;
     }
 
-    applyOnPlay(): void {
-        this.applyDuring();
+    updateCapacityInformation(source: Set<WorldCard>): [number, Iterable<WorldCard>] {
+        return [2, []];
     }
 }
 
@@ -717,7 +754,7 @@ export class VowOfPoverty extends AccessedActionModifier<Denizen> {
     mustUse = true;
 
     applyDuring(): void {
-        this.action.getting.delete(OathResource.Favor);
+        this.action.getting.set(OathResource.Favor, -Infinity);
     }
 }
 export class VowOfPovertyRest extends RestPower<Denizen> {
@@ -730,15 +767,6 @@ export class VowOfPovertyRest extends RestPower<Denizen> {
 }
 
 
-export class PiedPiper extends SearchPlayActionModifier<Denizen> {
-    name = "Pied Piper";
-
-    canUse(): boolean { return false; }
-
-    applyOnPlay(): void {
-        if (!this.action.site) this.action.capacity = Infinity;
-    }
-}
 export class PiedPiperActive extends ActivePower<Denizen> {
     name = "Pied Piper";
     cost = new ResourceCost([[OathResource.Secret, 1]]);
