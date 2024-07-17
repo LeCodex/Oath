@@ -7,7 +7,10 @@ export const isExtended = <T>(constructor: Constructor<any>, type: AbstractConst
 
 export abstract class CopiableWithOriginal { original = this; }  // Original should be idempotent
 export function getCopyWithOriginal<T extends CopiableWithOriginal>(source: T): T {
-    const customizer = (e: any, k: any, o: any, s: any) => { if (k === "original" && s && s.get(o)) s.get(o).original = o.original; }
+    const customizer = (e: any, k: any, o: any, s: any) => {
+        if (k === "actionManager") return e;  // TODO: Move that into the game class?
+        if (k === "original" && s && s.get(o)) s.get(o).original = o.original;
+    }
     const copy = _.cloneDeepWith(source, customizer) as T;
     copy.original = "original" in source ? source.original as T : source ;
     return copy;

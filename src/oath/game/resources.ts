@@ -30,7 +30,7 @@ export abstract class ResourceBank extends OathGameObject {
     }
 
     moveTo(other: ResourceBank, amount: number = Infinity): number {
-        const amountMoved = this.take(this.amount);
+        const amountMoved = this.take(amount);
         other.put(amountMoved);
         return amountMoved;
     }
@@ -61,15 +61,13 @@ export abstract class Banner extends ResourceBank implements OwnableObject, Reco
 
     recover(player: OathPlayer): void {
         new TakeOwnableObjectEffect(this.game, player, this).do();
-        new AddActionToStackEffect(new RecoverBannerPitchAction(player, this)).do();
+        new RecoverBannerPitchAction(player, this).putOnStack();
     }
     
-    finishRecovery(amount: number): void {
-        if (!this.owner) return;
-
+    finishRecovery(player: OathPlayer, amount: number): void {
         // Banner-specific logic
-        this.handleRecovery(this.owner);
-        new PutResourcesIntoBankEffect(this.game, this.owner, this, amount).do();
+        this.handleRecovery(player);
+        new PutResourcesIntoBankEffect(this.game, player, this, amount).do();
     }
 
     seize(player: OathPlayer) {
@@ -88,7 +86,7 @@ export class PeoplesFavor extends Banner {
 
     handleRecovery(player: OathPlayer) {
         new SetPeoplesFavorMobState(this.game, player, this, false).do();
-        new AddActionToStackEffect(new PeoplesFavorReturnAction(player, this.take())).do();
+        new PeoplesFavorReturnAction(player, this.take()).putOnStack();
     }
 }
 

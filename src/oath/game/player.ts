@@ -128,33 +128,33 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
     seize(player: OathPlayer) {
         // TODO: Move burnt favor to supply
         new MoveResourcesToTargetEffect(this.game, this, OathResource.Favor, Math.floor(this.getResources(OathResource.Favor) / 2), undefined).do();
-        new AddActionToStackEffect(new CampaignBanishPlayerAction(player, this)).do();
+        new CampaignBanishPlayerAction(player, this).putOnStack();
     }
 
     // -------------- MAJOR ACTIONS ------------- //
     // TODO: Should those functions add to the stack directly, or use the appropriate effect?
     startSearch() {
-        this.game.actionStack.push(new ChooseModifiers(new SearchAction(this)));
+        new SearchAction(this).putOnStack();
     }
 
     startMuster() {
-        this.game.actionStack.push(new ChooseModifiers(new MusterAction(this)));
+        new MusterAction(this).putOnStack();
     }
 
-    startTrade(forFavor: boolean) {
-        this.game.actionStack.push(new ChooseModifiers(new TradeAction(this)));
+    startTrade() {
+        new TradeAction(this).putOnStack();
     }
 
     startTravel() {
-        this.game.actionStack.push(new ChooseModifiers(new TravelAction(this)));
+        new TravelAction(this).putOnStack();
     }
 
     startRecover() {
-        this.game.actionStack.push(new ChooseModifiers(new RecoverAction(this)));
+        new RecoverAction(this).putOnStack();
     }
 
     startCampaign() {
-        this.game.actionStack.push(new ChooseModifiers(new CampaignAction(this)));
+        new CampaignAction(this).putOnStack();
     }
 
     abstract rest(): void;

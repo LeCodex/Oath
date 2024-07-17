@@ -261,7 +261,7 @@ export class VowOfObedienceRest extends RestPower<Denizen> {
     name = "Vow of Obedience";
 
     applyBefore(): boolean {
-        new AddActionToStackEffect(new TakeFavorFromBankAction(this.action.player)).do();
+        new TakeFavorFromBankAction(this.action.player).putOnStack();
         return true;
     }
 }
@@ -299,7 +299,7 @@ export class SpiritSnare extends ActivePower<Denizen> {
     cost = new ResourceCost([[OathResource.Secret, 1]]);
 
     usePower(action: UsePowerAction): void {
-        new AddActionToStackEffect(new TakeFavorFromBankAction(action.player)).do();
+        new TakeFavorFromBankAction(action.player).putOnStack();
     }
 }
 
@@ -328,7 +328,7 @@ export class Alchemist extends ActivePower<Denizen> {
     cost = new ResourceCost([[OathResource.Secret, 1]], [[OathResource.Secret, 1]]);
 
     usePower(action: UsePowerAction): void {
-        for (let i = 0; i < 4; i++) new AddActionToStackEffect(new TakeFavorFromBankAction(action.player)).do();
+        for (let i = 0; i < 4; i++) new TakeFavorFromBankAction(action.player).putOnStack();
     }
 }
 
@@ -356,7 +356,7 @@ export class Jinx extends EffectModifier<Denizen> {
 
     applyAfter(result: number[]): void {
         if (!this.effect.player) return;
-        new AddActionToStackEffect(new AskForRerollAction(this.effect.player, result, this.effect.die)).do();
+        new AskForRerollAction(this.effect.player, result, this.effect.die).putOnStack();
     }
 }
 
@@ -368,7 +368,7 @@ export class HeartsAndMinds extends DefenderBattlePlan<Denizen> {
 
     applyBefore(): boolean {
         this.action.campaignResult.successful = false;
-        new AddActionToStackEffect(this.action.next).do();
+        this.action.next.putOnStack();
 
         if (this.action.game.banners.get(BannerName.PeoplesFavor)?.owner !== this.action.player)
             this.action.campaignResult.discardAtEnd.add(this.source);
@@ -399,7 +399,7 @@ export class CharmingFriend extends ActivePower<Denizen> {
     cost = new ResourceCost([[OathResource.Secret, 1]]);
 
     usePower(action: UsePowerAction): void {
-        new AddActionToStackEffect(new TakeResourceFromPlayerAction(action.player, OathResource.Favor, 1)).do();
+        new TakeResourceFromPlayerAction(action.player, OathResource.Favor, 1).putOnStack();
     }
 }
 
@@ -428,7 +428,7 @@ export class BookBinders extends EnemyEffectModifier<Denizen> {
 
     applyAfter(result: void): void {
         if (!this.source.ruler) return;
-        new AddActionToStackEffect(new TakeFavorFromBankAction(this.source.ruler, 2)).do();
+        new TakeFavorFromBankAction(this.source.ruler, 2).putOnStack();
     }
 }
 
@@ -454,7 +454,7 @@ export class Herald extends EnemyActionModifier<Denizen> {
     applyAfter(): void {
         if (!this.source.ruler) return;
         if (!this.action.campaignResult.defender) return;
-        new AddActionToStackEffect(new TakeFavorFromBankAction(this.source.ruler, 1)).do();
+        new TakeFavorFromBankAction(this.source.ruler, 1).putOnStack();
     }
 }
 
@@ -651,7 +651,7 @@ export class SilverTongue extends RestPower<Denizen> {
     applyBefore(): boolean {
         const suits: Set<OathSuit> = new Set();
         for (const denizen of this.action.player.site.denizens) suits.add(denizen.suit);
-        new AddActionToStackEffect(new TakeFavorFromBankAction(this.action.player, 1, suits)).do();
+        new TakeFavorFromBankAction(this.action.player, 1, suits).putOnStack();
         return true;
     }
 }
@@ -662,7 +662,7 @@ export class SleightOfHand extends ActivePower<Denizen> {
     cost = new ResourceCost([[OathResource.Favor, 1]]);
 
     usePower(action: UsePowerAction): void {
-        new AddActionToStackEffect(new TakeResourceFromPlayerAction(action.player, OathResource.Secret, 1)).do()
+        new TakeResourceFromPlayerAction(action.player, OathResource.Secret, 1).putOnStack()
     }
 }
 
@@ -695,7 +695,7 @@ export class GamblingHall extends ActivePower<Denizen> {
     usePower(action: UsePowerAction): void {
         // TODO: This doesn't work with Jinx, and I don't know how to solve it in a clean way
         const faces = new RollDiceEffect(action.game, action.player, DefenseDie, 4).do();
-        new AddActionToStackEffect(new GamblingHallAction(this.action.player, faces)).do();
+        new GamblingHallAction(this.action.player, faces).putOnStack();
     }
 }
 
@@ -761,7 +761,7 @@ export class VowOfPovertyRest extends RestPower<Denizen> {
     name = "Vow of Poverty";
 
     applyBefore(): boolean {
-        new AddActionToStackEffect(new TakeFavorFromBankAction(this.action.player, 2)).do();
+        new TakeFavorFromBankAction(this.action.player, 2).putOnStack();
         return true;
     }
 }
@@ -772,7 +772,7 @@ export class PiedPiperActive extends ActivePower<Denizen> {
     cost = new ResourceCost([[OathResource.Secret, 1]]);
 
     usePower(action: UsePowerAction): void {
-        new AddActionToStackEffect(new PiedPiperAction(action.player, this.source)).do();
+        new PiedPiperAction(action.player, this.source).putOnStack();
     }
 }
 
@@ -783,7 +783,7 @@ export class SmallFriends extends AccessedActionModifier<Denizen> {
     action: TradeAction;
 
     applyBefore(): boolean {
-        new AddActionToStackEffect(new ActAsIfAtSiteAction(this.action.player)).do();
+        new ActAsIfAtSiteAction(this.action.player).putOnStack();
         return true;
     }
 }
@@ -825,7 +825,7 @@ export class ConspiracyPower extends WhenPlayed<Conspiracy> {
             }
         }
 
-        new AddActionToStackEffect(new ConspiracyAction(effect.player, targets)).do();
+        new ConspiracyAction(effect.player, targets).putOnStack();
     }
 }
 
@@ -944,7 +944,7 @@ export class ResourceSite extends SiteActionModifier {
     action: WakeAction;
 
     applyBefore(): boolean {
-        new AddActionToStackEffect(new ChooseResourceToTakeAction(this.action.player, this.source)).do();
+        new ChooseResourceToTakeAction(this.action.player, this.source).putOnStack();
         return true;
     }
 }
@@ -1040,7 +1040,7 @@ export class PeoplesFavorSearch extends BannerActionModifier<PeoplesFavor> {
             this.action.selects.site.choices.set(site.name, site);
         }
 
-        new AddActionToStackEffect(new PeoplesFavorDiscardAction(this.action.player, this.action.discardOptions)).do();
+        new PeoplesFavorDiscardAction(this.action.player, this.action.discardOptions).putOnStack();
         return true;
     }
 }
@@ -1052,8 +1052,8 @@ export class PeoplesFavorWake extends BannerActionModifier<PeoplesFavor> {
 
     applyBefore(): boolean {
         if (this.source.owner) {
-            new AddActionToStackEffect(new PeoplesFavorWakeAction(this.source.owner, this.source)).do();
-            if (this.source.isMob) new AddActionToStackEffect(new PeoplesFavorWakeAction(this.source.owner, this.source)).do();
+            new PeoplesFavorWakeAction(this.source.owner, this.source).putOnStack();
+            if (this.source.isMob) new PeoplesFavorWakeAction(this.source.owner, this.source).putOnStack();
         }
 
         return true;

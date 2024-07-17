@@ -1,4 +1,4 @@
-import { ChooseNewOathkeeper, OathAction } from "./actions";
+import { ChooseNewOathkeeper, OathAction, OathActionManager } from "./actions";
 import { OathBoard } from "./board";
 import { Conspiracy, Denizen, Relic, Vision } from "./cards/cards";
 import { RelicDeck, WorldDeck } from "./cards/decks";
@@ -34,8 +34,7 @@ export class OathGame extends CopiableWithOriginal {
     phase = OathPhase.Wake;
     round = 1;
 
-    actionStack: OathAction[] = [];
-    currentEffects: OathEffect<any>[] = [];
+    actionManager = new OathActionManager(this);
 
     constructor(oath: OathType, playerCount: number) {
         super();
@@ -116,49 +115,13 @@ export class OathGame extends CopiableWithOriginal {
         return powers;
     }
 
-    checkForNextAction() {
-        if (this.actionStack.length) {
-            this.actionStack[this.actionStack.length - 1].start();
-        } else {
-            this.checkForOathkeeper();
-            // TODO: Clear and save the effects stack
-        }
-
-    }
-
-    continueAction(values: StringObject<string[]>) {
-        const action = this.actionStack.pop();
-        if (!action) return;
-
-        this.currentEffects = [];
-        action.applyParameters(values);
-        try {
-            action.execute();
-        } catch (e) {
-            // Revert all effects that have been done, put the action back on the stack, then pass the error on
-            this.revert();
-            this.actionStack.push(action);
-            throw e;
-        } finally {
-            this.checkForNextAction();
-        }
-    }
-
-    cancelAction() {
-
-    }
-
-    revert() {
-        for (const effect of this.currentEffects) effect.revert();
-    }
-
-    checkForOathkeeper() {
+    checkForOathkeeper(): OathAction | undefined {
         const candidates = this.oath.getCandidates();
         if (candidates.has(this.oathkeeper)) return;
         if (candidates.size) {
-            // TODO: Can this be added to the stack directly?
-            new AddActionToStackEffect(new ChooseNewOathkeeper(this.oathkeeper, candidates)).do();
-            this.checkForNextAction();
+            const action = new ChooseNewOathkeeper(this.oathkeeper, candidates);
+            action.putOnStack();
+            return action;
         }
     }
 
