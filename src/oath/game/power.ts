@@ -261,7 +261,7 @@ export class VowOfObedienceRest extends RestPower<Denizen> {
     name = "Vow of Obedience";
 
     applyBefore(): boolean {
-        new TakeFavorFromBankAction(this.action.player).putOnStack();
+        new TakeFavorFromBankAction(this.action.player).doNext();
         return true;
     }
 }
@@ -299,7 +299,7 @@ export class SpiritSnare extends ActivePower<Denizen> {
     cost = new ResourceCost([[OathResource.Secret, 1]]);
 
     usePower(action: UsePowerAction): void {
-        new TakeFavorFromBankAction(action.player).putOnStack();
+        new TakeFavorFromBankAction(action.player).doNext();
     }
 }
 
@@ -328,7 +328,7 @@ export class Alchemist extends ActivePower<Denizen> {
     cost = new ResourceCost([[OathResource.Secret, 1]], [[OathResource.Secret, 1]]);
 
     usePower(action: UsePowerAction): void {
-        for (let i = 0; i < 4; i++) new TakeFavorFromBankAction(action.player).putOnStack();
+        for (let i = 0; i < 4; i++) new TakeFavorFromBankAction(action.player).doNext();
     }
 }
 
@@ -356,7 +356,7 @@ export class Jinx extends EffectModifier<Denizen> {
 
     applyAfter(result: number[]): void {
         if (!this.effect.player) return;
-        new AskForRerollAction(this.effect.player, result, this.effect.die).putOnStack();
+        new AskForRerollAction(this.effect.player, result, this.effect.die).doNext();
     }
 }
 
@@ -368,7 +368,7 @@ export class HeartsAndMinds extends DefenderBattlePlan<Denizen> {
 
     applyBefore(): boolean {
         this.action.campaignResult.successful = false;
-        this.action.next.putOnStack();
+        this.action.next.doNext();
 
         if (this.action.game.banners.get(BannerName.PeoplesFavor)?.owner !== this.action.player)
             this.action.campaignResult.discardAtEnd.add(this.source);
@@ -399,7 +399,7 @@ export class CharmingFriend extends ActivePower<Denizen> {
     cost = new ResourceCost([[OathResource.Secret, 1]]);
 
     usePower(action: UsePowerAction): void {
-        new TakeResourceFromPlayerAction(action.player, OathResource.Favor, 1).putOnStack();
+        new TakeResourceFromPlayerAction(action.player, OathResource.Favor, 1).doNext();
     }
 }
 
@@ -428,7 +428,7 @@ export class BookBinders extends EnemyEffectModifier<Denizen> {
 
     applyAfter(result: void): void {
         if (!this.source.ruler) return;
-        new TakeFavorFromBankAction(this.source.ruler, 2).putOnStack();
+        new TakeFavorFromBankAction(this.source.ruler, 2).doNext();
     }
 }
 
@@ -454,7 +454,7 @@ export class Herald extends EnemyActionModifier<Denizen> {
     applyAfter(): void {
         if (!this.source.ruler) return;
         if (!this.action.campaignResult.defender) return;
-        new TakeFavorFromBankAction(this.source.ruler, 1).putOnStack();
+        new TakeFavorFromBankAction(this.source.ruler, 1).doNext();
     }
 }
 
@@ -651,7 +651,7 @@ export class SilverTongue extends RestPower<Denizen> {
     applyBefore(): boolean {
         const suits: Set<OathSuit> = new Set();
         for (const denizen of this.action.player.site.denizens) suits.add(denizen.suit);
-        new TakeFavorFromBankAction(this.action.player, 1, suits).putOnStack();
+        new TakeFavorFromBankAction(this.action.player, 1, suits).doNext();
         return true;
     }
 }
@@ -662,7 +662,7 @@ export class SleightOfHand extends ActivePower<Denizen> {
     cost = new ResourceCost([[OathResource.Favor, 1]]);
 
     usePower(action: UsePowerAction): void {
-        new TakeResourceFromPlayerAction(action.player, OathResource.Secret, 1).putOnStack()
+        new TakeResourceFromPlayerAction(action.player, OathResource.Secret, 1).doNext()
     }
 }
 
@@ -695,7 +695,7 @@ export class GamblingHall extends ActivePower<Denizen> {
     usePower(action: UsePowerAction): void {
         // TODO: This doesn't work with Jinx, and I don't know how to solve it in a clean way
         const faces = new RollDiceEffect(action.game, action.player, DefenseDie, 4).do();
-        new GamblingHallAction(this.action.player, faces).putOnStack();
+        new GamblingHallAction(this.action.player, faces).doNext();
     }
 }
 
@@ -761,7 +761,7 @@ export class VowOfPovertyRest extends RestPower<Denizen> {
     name = "Vow of Poverty";
 
     applyBefore(): boolean {
-        new TakeFavorFromBankAction(this.action.player, 2).putOnStack();
+        new TakeFavorFromBankAction(this.action.player, 2).doNext();
         return true;
     }
 }
@@ -772,7 +772,7 @@ export class PiedPiperActive extends ActivePower<Denizen> {
     cost = new ResourceCost([[OathResource.Secret, 1]]);
 
     usePower(action: UsePowerAction): void {
-        new PiedPiperAction(action.player, this.source).putOnStack();
+        new PiedPiperAction(action.player, this.source).doNext();
     }
 }
 
@@ -783,7 +783,7 @@ export class SmallFriends extends AccessedActionModifier<Denizen> {
     action: TradeAction;
 
     applyBefore(): boolean {
-        new ActAsIfAtSiteAction(this.action.player).putOnStack();
+        new ActAsIfAtSiteAction(this.action.player).doNext();
         return true;
     }
 }
@@ -825,7 +825,7 @@ export class ConspiracyPower extends WhenPlayed<Conspiracy> {
             }
         }
 
-        new ConspiracyAction(effect.player, targets).putOnStack();
+        new ConspiracyAction(effect.player, targets).doNext();
     }
 }
 
@@ -944,7 +944,7 @@ export class ResourceSite extends SiteActionModifier {
     action: WakeAction;
 
     applyBefore(): boolean {
-        new ChooseResourceToTakeAction(this.action.player, this.source).putOnStack();
+        new ChooseResourceToTakeAction(this.action.player, this.source).doNext();
         return true;
     }
 }
@@ -1040,7 +1040,7 @@ export class PeoplesFavorSearch extends BannerActionModifier<PeoplesFavor> {
             this.action.selects.site.choices.set(site.name, site);
         }
 
-        new PeoplesFavorDiscardAction(this.action.player, this.action.discardOptions).putOnStack();
+        new PeoplesFavorDiscardAction(this.action.player, this.action.discardOptions).doNext();
         return true;
     }
 }
@@ -1052,8 +1052,8 @@ export class PeoplesFavorWake extends BannerActionModifier<PeoplesFavor> {
 
     applyBefore(): boolean {
         if (this.source.owner) {
-            new PeoplesFavorWakeAction(this.source.owner, this.source).putOnStack();
-            if (this.source.isMob) new PeoplesFavorWakeAction(this.source.owner, this.source).putOnStack();
+            new PeoplesFavorWakeAction(this.source.owner, this.source).doNext();
+            if (this.source.isMob) new PeoplesFavorWakeAction(this.source.owner, this.source).doNext();
         }
 
         return true;

@@ -118,11 +118,7 @@ export class OathGame extends CopiableWithOriginal {
     checkForOathkeeper(): OathAction | undefined {
         const candidates = this.oath.getCandidates();
         if (candidates.has(this.oathkeeper)) return;
-        if (candidates.size) {
-            const action = new ChooseNewOathkeeper(this.oathkeeper, candidates);
-            action.putOnStack();
-            return action;
-        }
+        if (candidates.size) new ChooseNewOathkeeper(this.oathkeeper, candidates).doNext();
     }
 
     endTurn() {
@@ -149,7 +145,8 @@ export abstract class Oath extends OathGameObject {
     abstract isSuccessor(player: OathPlayer): boolean;
 
     getCandidates(): Set<OathPlayer> {
-        let max = 0, candidates = new Set<OathPlayer>();
+        let max = 0;
+        const candidates = new Set<OathPlayer>();
         for (const player of Object.values(this.game.players)) {
             const score = this.scorePlayer(player);
             if (score > max) {

@@ -6,7 +6,7 @@ import { PeoplesFavor, ResourceBank, ResourceCost, ResourcesAndWarbands } from "
 import { OwnableObject } from "./player";
 import { OathGame, OathGameObject } from "./game";
 import { InvalidActionResolution, OathAction, SearchDiscardAction, SearchDiscardOptions, SearchPlayAction } from "./actions";
-import { CardDeck, SearchableDeck } from "./cards/decks";
+import { CardDeck } from "./cards/decks";
 import { getCopyWithOriginal, isExtended } from "./utils";
 import { Die } from "./dice";
 
@@ -30,7 +30,7 @@ export abstract class OathEffect<T> extends OathGameObject {
         this.applyModifiers();
         
         // Whenever we resolve an effect, we add it to the stack
-        this.game.actionManager.currentEffects.push(this);
+        this.game.actionManager.currentEffectsStack.push(this);
         let result = this.resolve();
         this.afterResolution(result);
         
@@ -79,15 +79,15 @@ export class AddActionToStackEffect extends OathEffect<void> {
     }
 
     resolve(): void {
-        this.game.actionManager.actionStack.push(this.action);
+        this.game.actionManager.actionList.push(this.action);
     }
 
     revert(): void {
-        this.game.actionManager.actionStack.pop();
+        this.game.actionManager.actionList.pop();
     }
 }
 
-export class PopActionFromStackEffect extends OathEffect<OathAction | undefined> {
+export class NextActionFromStackEffect extends OathEffect<OathAction | undefined> {
     action?: OathAction;
 
     constructor(game: OathGame) {
@@ -95,9 +95,9 @@ export class PopActionFromStackEffect extends OathEffect<OathAction | undefined>
     }
     
     resolve(): OathAction | undefined {
-        const action = this.game.actionManager.actionStack.pop();
+        const action = this.game.actionManager.actionList.shift();
         if (!action) {
-            this.game.actionManager.currentEffects.pop();
+            this.game.actionManager.currentEffectsStack.pop();
             return;
         }
         this.action = action;
@@ -105,7 +105,7 @@ export class PopActionFromStackEffect extends OathEffect<OathAction | undefined>
     }
 
     revert(): void {
-        if (this.action) this.game.actionManager.actionStack.push(this.action);
+        if (this.action) this.game.actionManager.actionList.push(this.action);
     }
 }
 
@@ -697,7 +697,7 @@ export class DiscardCardGroupEffect extends PlayerEffect<void> {
             if (excess > takesSpace.length)
                 throw new InvalidActionResolution(`Cannot satisfy the capacity of ${origin.name}'s cards`);
             else if (excess)
-                new SearchDiscardAction(origin instanceof OathPlayer ? origin : this.player, takesSpace, excess, this.discardOptions).putOnStack();
+                new SearchDiscardAction(origin instanceof OathPlayer ? origin : this.player, takesSpace, excess, this.discardOptions).doNext();
         }
     }
 

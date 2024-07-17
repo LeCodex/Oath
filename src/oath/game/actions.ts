@@ -1,7 +1,8 @@
+import { truncate } from "lodash";
 import { Denizen, Relic, Site, WorldCard } from "./cards/cards";
 import { SearchableDeck } from "./cards/decks";
 import { AttackDie, DefenseDie, Die } from "./dice";
-import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect, DiscardCardEffect, MoveOwnWarbandsEffect, AddActionToStackEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect, SetNewOathkeeperEffect, SetPeoplesFavorMobState, MoveSiteDenizenEffect, DiscardCardGroupEffect, OathEffect, PopActionFromStackEffect } from "./effects";
+import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect, DiscardCardEffect, MoveOwnWarbandsEffect, AddActionToStackEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect, SetNewOathkeeperEffect, SetPeoplesFavorMobState, DiscardCardGroupEffect, OathEffect, NextActionFromStackEffect } from "./effects";
 import { OathResource, OathResourceName, OathSuit, OathSuitName, PlayerColor } from "./enums";
 import { OathGame, OathGameObject } from "./game";
 import { OathPlayer } from "./player";
@@ -15,15 +16,15 @@ import { StringObject, getCopyWithOriginal, isExtended } from "./utils";
 //                MANAGER                 //
 ////////////////////////////////////////////
 export class OathActionManager extends OathGameObject {
-    readonly actionStack: OathAction[] = [];
-    readonly currentEffects: OathEffect<any>[] = [];
-    readonly pastEffects: OathEffect<any>[][] = [];
+    readonly actionList: OathAction[] = [];
+    readonly currentEffectsStack: OathEffect<any>[] = [];
+    readonly pastEffectsStack: OathEffect<any>[][] = [];
     readonly cancelledEffects: OathEffect<any>[] = [];
     noReturn: boolean = false;
 
     checkForNextAction(): object {
-        let action: OathAction | undefined = this.actionStack[this.actionStack.length - 1];
-        if (!action) action = this.game.checkForOathkeeper();
+        if (!this.actionList.length) this.game.checkForOathkeeper();
+        let action: OathAction | undefined = this.actionList[this.actionList.length - 1];
 
         let values = action?.start();
         if (values) {
@@ -32,13 +33,13 @@ export class OathActionManager extends OathGameObject {
         }
         
         if (this.noReturn) {
-            this.currentEffects.length = 0;
-            this.pastEffects.length = 0;
+            this.currentEffectsStack.length = 0;
+            this.pastEffectsStack.length = 0;
         }
         this.noReturn = false;
 
         const returnData = {
-            stack: [...this.actionStack],
+            stack: [...this.actionList],
             cancelledEffects: [...this.cancelledEffects],
             data: {}
         }
@@ -47,13 +48,13 @@ export class OathActionManager extends OathGameObject {
     }
     
     continueAction(values: StringObject<string[]>): object {
-        const action = this.actionStack[this.actionStack.length - 1];
+        const action = this.actionList[this.actionList.length - 1];
         if (!action)
             throw new InvalidActionResolution("No action to continue");
     
-        if (this.currentEffects.length) {
-            this.pastEffects.push([...this.currentEffects]);
-            this.currentEffects.length = 0;
+        if (this.currentEffectsStack.length) {
+            this.pastEffectsStack.push([...this.currentEffectsStack]);
+            this.currentEffectsStack.length = 0;
         }
     
         action.applyParameters(values);
@@ -61,7 +62,7 @@ export class OathActionManager extends OathGameObject {
     }
     
     resolveTopAction(): object {
-        const action = new PopActionFromStackEffect(this.game).do();
+        const action = new NextActionFromStackEffect(this.game).do();
         if (!action) return this.checkForNextAction();
     
         try {
@@ -74,10 +75,8 @@ export class OathActionManager extends OathGameObject {
         }
     }
     
-    cancelAction(): object {
-        console.warn("Cancelling");
-    
-        if (this.currentEffects.length == 0 && this.pastEffects.length == 0) {
+    cancelAction(): object {   
+        if (this.currentEffectsStack.length == 0 && this.pastEffectsStack.length == 0) {
             throw new InvalidActionResolution("Cannot roll back");
         } else {
             const reverted = this.revert();
@@ -89,16 +88,16 @@ export class OathActionManager extends OathGameObject {
     
     revert(): OathEffect<any>[] {
         const reverted: OathEffect<any>[] = [];
-        while (this.currentEffects.length) {
-            const effect = this.currentEffects.pop();
+        while (this.currentEffectsStack.length) {
+            const effect = this.currentEffectsStack.pop();
             if (!effect) break;
             effect.revert();
             reverted.push(effect);
         }
     
-        const group = this.pastEffects.pop();
-        this.currentEffects.length = 0;
-        if (group) this.currentEffects.push(...group);
+        const group = this.pastEffectsStack.pop();
+        this.currentEffectsStack.length = 0;
+        if (group) this.currentEffectsStack.push(...group);
     
         return reverted;
     }
@@ -125,14 +124,14 @@ export class SelectNOf<T> {
     }
 
     parse(input: Iterable<string>): T[] | undefined {
-        const values: T[] = [];
+        const values = new Set<T>();
         for (const val of input) {
             const obj = this.choices.get(val);
-            if (obj) values.push(obj);
+            if (obj) values.add(obj);
         }
-        if (values.length < this.min || values.length > this.max) return undefined;
+        if (values.size < this.min || values.size > this.max) return undefined;
 
-        return values;
+        return [...values];
     }
 }
 
@@ -160,8 +159,8 @@ export class InvalidActionResolution extends Error { }
 export abstract class OathAction extends OathGameObject {
     readonly game: OathGame;
     readonly playerColor: PlayerColor;
-    readonly selects: StringObject<SelectNOf<any>>;
-    readonly parameters: StringObject<any>;
+    readonly selects: StringObject<SelectNOf<any>> = {};
+    readonly parameters: StringObject<any> = {};
     readonly autocompleteSelects: boolean = true;
 
     constructor(player: OathPlayer, dontCopyGame: boolean = false) {
@@ -171,7 +170,7 @@ export abstract class OathAction extends OathGameObject {
 
     get player() { return this.game.players[this.playerColor]; }
 
-    putOnStack(): void {
+    doNext(): void {
         new AddActionToStackEffect(this).do();
     }
 
@@ -199,8 +198,8 @@ export abstract class OathAction extends OathGameObject {
         const values: StringObject<string[]> = {};
         if (this.autocompleteSelects) {
             for (const [key, select] of Object.entries(this.selects)) {
-                if (select.choices.size === 1) {
-                    for (const [k, v] of select.choices.entries()) values[k] = [v];
+                if (select.choices.size === select.min) {
+                    for (const value of select.choices.values()) values[key].push(value);
                 } else if (select.choices.size === 0) {
                     values[key] = [];
                 }
@@ -257,7 +256,7 @@ export class ChooseModifiers extends OathAction {
 
     execute() {
         const modifiers = this.parameters.modifiers;
-        if (!this.executeImmediately) this.next.putOnStack();
+        if (!this.executeImmediately) this.next.doNext();
         if (!this.next.applyModifiers(modifiers)) return;
         if (this.executeImmediately) this.next.execute();
     }
@@ -266,8 +265,12 @@ export class ChooseModifiers extends OathAction {
 export abstract class ModifiableAction extends OathAction {
     readonly parameters: { modifiers: ActionModifier<any>[], [key: string]: any };
 
-    putOnStack(): void {
-        new AddActionToStackEffect(new ChooseModifiers(this)).do();
+    doNext(executeImmediately: boolean = false): void {
+        new ChooseModifiers(this, executeImmediately).doNext();
+    }
+
+    doNextWithoutModifiers(): void {
+        super.doNext();
     }
 
     applyModifiers(modifiers: ActionModifier<any>[]): boolean {
@@ -441,7 +444,7 @@ export class RecoverAction extends MajorAction {
 
 export class RecoverBannerPitchAction extends OathAction {
     readonly selects: { amount: SelectNumber };
-    readonly parameters: { amount: number };
+    readonly parameters: { amount: number[] };
 
     banner: Banner;
 
@@ -458,7 +461,7 @@ export class RecoverBannerPitchAction extends OathAction {
     }
 
     execute() {
-        new PutResourcesIntoBankEffect(this.game, this.player, this.banner, this.parameters.amount).do();
+        this.banner.finishRecovery(this.player, this.parameters.amount[0]);
     }
 }
 
@@ -489,7 +492,7 @@ export class SearchAction extends MajorAction {
     modifiedExecution() {
         super.modifiedExecution();
         const cards = new DrawFromDeckEffect(this.player, this.deck, this.amount, this.fromBottom).do();
-        new SearchChooseAction(this.player, cards, this.discardOptions).putOnStack();
+        new SearchChooseAction(this.player, cards, this.discardOptions).doNext();
     }
 }
 
@@ -532,13 +535,13 @@ export class SearchChooseAction extends ModifiableAction {
     }
 
     modifiedExecution(): void {
+        // The action list is FIFO
+        new SearchDiscardAction(this.player, this.cards, Infinity, this.discardOptions).doNext();
+
         for (const card of this.playing.reverse()) {  // Reversing so the stack order follows the expected order
-            new SearchPlayAction(this.player, card, this.discardOptions).putOnStack();
+            new SearchPlayAction(this.player, card, this.discardOptions).doNext();
             this.cards.delete(card);
         }
-
-        // The action stack is FIFO, so the discards will be done first
-        new SearchDiscardAction(this.player, this.cards, Infinity, this.discardOptions).putOnStack();
     }
 }
 
@@ -653,7 +656,7 @@ export class SearchPlayAction extends ModifiableAction {
             if (!this.canReplace || excess > discardable.length)
                 throw new InvalidActionResolution("Target is full and cards there cannot be replaced");
             else
-                new SearchReplaceAction(this.player, this.card, this.facedown, this.site, discardable, excess, this.discardOptions).putOnStack();
+                new SearchReplaceAction(this.player, this.card, this.facedown, this.site, discardable, excess, this.discardOptions).doNext();
         else
             new PlayWorldCardEffect(this.player, this.card, this.facedown, this.site).do();
     }
@@ -746,8 +749,7 @@ export class CampaignAction extends MajorAction {
 
     modifiedExecution() {
         super.modifiedExecution();
-        const next = new CampaignAtttackAction(this.player, this.defender);
-        new ChooseModifiers(next).putOnStack();
+        new CampaignAtttackAction(this.player, this.defender).doNext();
     }
 }
 
@@ -814,7 +816,7 @@ export class CampaignAtttackAction extends ModifiableAction {
 
     modifiedExecution() {
         if (this.campaignResult.defender) {
-            new ChooseModifiers(this.next, true).putOnStack();
+            this.next.doNext();
             return;
         }
 
@@ -825,9 +827,8 @@ export class CampaignAtttackAction extends ModifiableAction {
                 modifiers.push(modifier);
         };
 
-        if (this.next.applyModifiers(modifiers)) {
-            this.next.execute();
-        }
+        if (this.next.applyModifiers(modifiers))
+            this.next.doNextWithoutModifiers();
     }
 }
 
@@ -845,14 +846,13 @@ export class CampaignDefenseAction extends ModifiableAction {
         super.execute();
         this.campaignResult.successful = this.campaignResult.atk > this.campaignResult.def;
 
-        const modifiersChoice = new ChooseModifiers(this.next, true);
         if (this.campaignResult.couldSacrifice) {
-            modifiersChoice.putOnStack();
+            this.next.doNext();
             return;
         };
 
         this.next.parameters.doSacrifice = false;
-        modifiersChoice.execute();
+        this.next.doNext(true);
     }
 
     modifiedExecution() {
@@ -958,7 +958,7 @@ export class CampaignEndAction extends ModifiableAction {
     doSacrifice: boolean
 
     start() {
-        this.selects.doSacrifice = new SelectBoolean([`Sacrifice ${this.campaignResult.requiredSacrifice} warbands`, "Retreat"]);
+        this.selects.doSacrifice = new SelectBoolean([`Sacrifice ${this.campaignResult.requiredSacrifice} warbands`, "Abandon"]);
         return super.start();
     }
 
@@ -1113,7 +1113,7 @@ export class GamblingHallAction extends OathAction {
     }
 
     execute(): void {
-        new TakeFavorFromBankAction(this.player, DefenseDie.getResult(this.faces)).putOnStack();
+        new TakeFavorFromBankAction(this.player, DefenseDie.getResult(this.faces)).doNext();
     }
 }
 
@@ -1331,7 +1331,7 @@ export class ConspiracyAction extends ChoosePlayer {
     execute(): void {
         super.execute();
         if (!this.target) return;
-        new ConspiracyStealAction(this.player, this.target).putOnStack();
+        new ConspiracyStealAction(this.player, this.target).doNext();
     }
 }
 export class ConspiracyStealAction extends OathAction {

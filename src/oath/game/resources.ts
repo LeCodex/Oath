@@ -61,7 +61,7 @@ export abstract class Banner extends ResourceBank implements OwnableObject, Reco
 
     recover(player: OathPlayer): void {
         new TakeOwnableObjectEffect(this.game, player, this).do();
-        new RecoverBannerPitchAction(player, this).putOnStack();
+        new RecoverBannerPitchAction(player, this).doNext();
     }
     
     finishRecovery(player: OathPlayer, amount: number): void {
@@ -86,7 +86,7 @@ export class PeoplesFavor extends Banner {
 
     handleRecovery(player: OathPlayer) {
         new SetPeoplesFavorMobState(this.game, player, this, false).do();
-        new PeoplesFavorReturnAction(player, this.take()).putOnStack();
+        new PeoplesFavorReturnAction(player, this.take()).doNext();
     }
 }
 

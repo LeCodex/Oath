@@ -120,7 +120,7 @@ export class Site extends OathCard implements CampaignActionTarget {
 
     seize(player: OathPlayer) {
         if (this.ruler) new MoveOwnWarbandsEffect(this.ruler, this, this.ruler).do();
-        new CampaignSeizeSiteAction(player, this).putOnStack();
+        new CampaignSeizeSiteAction(player, this).doNext();
     }
 }
 
