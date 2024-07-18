@@ -72,7 +72,7 @@ export abstract class ActionModifier<T extends OathGameObject> extends ActionPow
     }
 
     applyImmediately(modifiers: ActionModifier<any>[]) { }  // Applied right after all the possible modifiers are collected
-    applyBefore(): boolean { return true; }                 // Applied before the action's choices are made. If returns false, the execution will be interrupted
+    applyBefore(): boolean { return true; }                 // Applied before the action is added to the list. If returns false, it will not be added
     applyDuring(): void { }                                 // Applied right before the execution of the action
     applyAfter(): void { }                                  // Applied after the execution of the action
 }
@@ -130,8 +130,8 @@ export abstract class EffectModifier<T extends OathGameObject> extends OathPower
         return true;
     }
 
-    applyDuring(): void { }     // Applied right before the resolution of the effect
-    applyAfter(result: any): void { }      // Applied after the resolution of the effect
+    applyDuring(): void { }             // Applied right before the resolution of the effect
+    applyAfter(result: any): void { }   // Applied after the resolution of the effect
 }
 
 export abstract class EnemyEffectModifier<T extends OwnableCard> extends EffectModifier<T> {
@@ -408,15 +408,7 @@ export class FabledFeast extends WhenPlayed<Denizen> {
     name = "FabledFeast";
 
     whenPlayed(effect: PlayWorldCardEffect): void {
-        let total = 0;
-        for (const site of effect.game.board.sites())
-            for (const denizen of site.denizens)
-                if (denizen.ruler === effect.player) total++;
-
-        for (const adviser of effect.player.advisers)
-            if (adviser.ruler === effect.player) total++;
-
-        new TakeResourcesFromBankEffect(effect.game, effect.player, effect.game.favorBanks.get(OathSuit.Hearth), total).do();
+        new TakeResourcesFromBankEffect(effect.game, effect.player, effect.game.favorBanks.get(OathSuit.Hearth), effect.player.ruledSuitCount(OathSuit.Hearth)).do();
     }
 }
 
@@ -577,7 +569,7 @@ export class FamilyWagon extends CapacityModifier<Denizen> {
     }
 
     updateCapacityInformation(source: Set<WorldCard>): [number, Iterable<WorldCard>] {
-        // NOTE: This is technically different from the way Family Wagon is worded. The way this works
+        // NOTE: This is technically different from the way Family Wagon is worded. The way *this* works
         // is by setting the capacity to 2, and making all *other* Nomad cards not count towards the limit (effectively
         // making you have 1 spot for a non Nomad card, and infinite ones for Nomad cards, while allowing you
         // to replace Family Wagon if you want to)
@@ -693,7 +685,6 @@ export class GamblingHall extends ActivePower<Denizen> {
     cost = new ResourceCost([[OathResource.Favor, 2]]);
 
     usePower(action: UsePowerAction): void {
-        // TODO: This doesn't work with Jinx, and I don't know how to solve it in a clean way
         const faces = new RollDiceEffect(action.game, action.player, DefenseDie, 4).do();
         new GamblingHallAction(this.action.player, faces).doNext();
     }

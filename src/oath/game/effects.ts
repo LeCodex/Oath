@@ -79,15 +79,15 @@ export class AddActionToStackEffect extends OathEffect<void> {
     }
 
     resolve(): void {
-        this.game.actionManager.actionList.push(this.action);
+        this.game.actionManager.actionStack.push(this.action);
     }
 
     revert(): void {
-        this.game.actionManager.actionList.pop();
+        this.game.actionManager.actionStack.pop();
     }
 }
 
-export class NextActionFromStackEffect extends OathEffect<OathAction | undefined> {
+export class PopActionFromStackEffect extends OathEffect<OathAction | undefined> {
     action?: OathAction;
 
     constructor(game: OathGame) {
@@ -95,7 +95,7 @@ export class NextActionFromStackEffect extends OathEffect<OathAction | undefined
     }
     
     resolve(): OathAction | undefined {
-        const action = this.game.actionManager.actionList.shift();
+        const action = this.game.actionManager.actionStack.pop();
         if (!action) {
             this.game.actionManager.currentEffectsStack.pop();
             return;
@@ -105,7 +105,7 @@ export class NextActionFromStackEffect extends OathEffect<OathAction | undefined
     }
 
     revert(): void {
-        if (this.action) this.game.actionManager.actionList.push(this.action);
+        if (this.action) this.game.actionManager.actionStack.push(this.action);
     }
 }
 
@@ -823,5 +823,24 @@ export class SetPeoplesFavorMobState extends OathEffect<void> {
 
     revert(): void {
         this.banner.original.isMob = this.oldState;
+    }
+}
+
+export class GainSupplyEffect extends PlayerEffect<void> {
+    amount: number;
+
+    constructor(player: OathPlayer, amount: number) {
+        super(player);
+        this.amount = amount;
+    }
+
+    resolve(): void {
+        const newSupply = Math.min(7, this.player.supply + this.amount);
+        this.amount = newSupply - this.player.supply;
+        this.player.supply += this.amount;
+    }
+
+    revert(): void {
+        this.player.supply -= this.amount;
     }
 }

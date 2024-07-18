@@ -1,8 +1,7 @@
-import { truncate } from "lodash";
 import { Denizen, Relic, Site, WorldCard } from "./cards/cards";
 import { SearchableDeck } from "./cards/decks";
 import { AttackDie, DefenseDie, Die } from "./dice";
-import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect, DiscardCardEffect, MoveOwnWarbandsEffect, AddActionToStackEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect, SetNewOathkeeperEffect, SetPeoplesFavorMobState, DiscardCardGroupEffect, OathEffect, NextActionFromStackEffect } from "./effects";
+import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect, DiscardCardEffect, MoveOwnWarbandsEffect, AddActionToStackEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect, SetNewOathkeeperEffect, SetPeoplesFavorMobState, DiscardCardGroupEffect, OathEffect, PopActionFromStackEffect } from "./effects";
 import { OathResource, OathResourceName, OathSuit, OathSuitName, PlayerColor } from "./enums";
 import { OathGame, OathGameObject } from "./game";
 import { OathPlayer } from "./player";
@@ -16,15 +15,16 @@ import { StringObject, getCopyWithOriginal, isExtended } from "./utils";
 //                MANAGER                 //
 ////////////////////////////////////////////
 export class OathActionManager extends OathGameObject {
-    readonly actionList: OathAction[] = [];
+    readonly actionStack: OathAction[] = [];
+    readonly futureActionsList: OathAction[] = [];
     readonly currentEffectsStack: OathEffect<any>[] = [];
     readonly pastEffectsStack: OathEffect<any>[][] = [];
     readonly cancelledEffects: OathEffect<any>[] = [];
     noReturn: boolean = false;
 
     checkForNextAction(): object {
-        if (!this.actionList.length) this.game.checkForOathkeeper();
-        let action: OathAction | undefined = this.actionList[this.actionList.length - 1];
+        if (!this.actionStack.length) this.game.checkForOathkeeper();
+        let action: OathAction | undefined = this.actionStack[this.actionStack.length - 1];
 
         let values = action?.start();
         if (values) {
@@ -39,7 +39,7 @@ export class OathActionManager extends OathGameObject {
         this.noReturn = false;
 
         const returnData = {
-            stack: [...this.actionList],
+            stack: [...this.actionStack],
             cancelledEffects: [...this.cancelledEffects],
             data: {}
         }
@@ -48,7 +48,7 @@ export class OathActionManager extends OathGameObject {
     }
     
     continueAction(values: StringObject<string[]>): object {
-        const action = this.actionList[this.actionList.length - 1];
+        const action = this.actionStack[this.actionStack.length - 1];
         if (!action)
             throw new InvalidActionResolution("No action to continue");
     
@@ -62,7 +62,11 @@ export class OathActionManager extends OathGameObject {
     }
     
     resolveTopAction(): object {
-        const action = new NextActionFromStackEffect(this.game).do();
+        for (const action of this.futureActionsList)
+            new AddActionToStackEffect(action).do();
+        this.futureActionsList.length = 0;
+
+        const action = new PopActionFromStackEffect(this.game).do();
         if (!action) return this.checkForNextAction();
     
         try {
@@ -87,6 +91,8 @@ export class OathActionManager extends OathGameObject {
     }
     
     revert(): OathEffect<any>[] {
+        this.futureActionsList.length = 0;
+
         const reverted: OathEffect<any>[] = [];
         while (this.currentEffectsStack.length) {
             const effect = this.currentEffectsStack.pop();
@@ -124,7 +130,7 @@ export class SelectNOf<T> {
     }
 
     parse(input: Iterable<string>): T[] | undefined {
-        const values = new Set<T>();
+        const values = new Set<T>();  // TODO: For now, duplicate values are not allowed
         for (const val of input) {
             const obj = this.choices.get(val);
             if (obj) values.add(obj);
@@ -171,7 +177,7 @@ export abstract class OathAction extends OathGameObject {
     get player() { return this.game.players[this.playerColor]; }
 
     doNext(): void {
-        new AddActionToStackEffect(this).do();
+        this.game.actionManager.futureActionsList.unshift(this);
     }
 
     parse(data: StringObject<string[]>): StringObject<any[]> | undefined {
@@ -198,8 +204,8 @@ export abstract class OathAction extends OathGameObject {
         const values: StringObject<string[]> = {};
         if (this.autocompleteSelects) {
             for (const [key, select] of Object.entries(this.selects)) {
-                if (select.choices.size === select.min) {
-                    for (const value of select.choices.values()) values[key].push(value);
+                if (select.choices.size <= select.min) {
+                    values[key] = [...select.choices.values()];
                 } else if (select.choices.size === 0) {
                     values[key] = [];
                 }
@@ -1088,7 +1094,7 @@ export class AskForRerollAction extends OathAction {
     die: typeof Die;
 
     constructor(player: OathPlayer, faces: number[], die: typeof Die) {
-        super(player, false); // Don't copy, not modifiable, and not an entry point
+        super(player, false);  // Don't copy, not modifiable, and not an entry point
         this.faces = faces;
     }
 
@@ -1108,7 +1114,7 @@ export class GamblingHallAction extends OathAction {
     faces: number[];
 
     constructor(player: OathPlayer, faces: number[]) {
-        super(player, false); // Don't copy, not modifiable, and not an entry point
+        super(player, false);  // Don't copy, not modifiable, and not an entry point
         this.faces = faces;
     }
 

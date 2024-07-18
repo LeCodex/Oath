@@ -1,12 +1,12 @@
-import { CampaignAction, CampaignActionTarget, CampaignBanishPlayerAction, ChooseModifiers, MusterAction, RecoverAction, SearchAction, TradeAction, TravelAction } from "./actions";
+import { CampaignAction, CampaignActionTarget, CampaignBanishPlayerAction, ChooseModifiers, MusterAction, OathAction, RecoverAction, SearchAction, TradeAction, TravelAction } from "./actions";
 import { Denizen, OwnableCard, Relic, Site, Vision, WorldCard } from "./cards/cards";
 import { Discard } from "./cards/decks";
-import { AddActionToStackEffect, DiscardCardEffect, MoveResourcesToTargetEffect } from "./effects";
+import { AddActionToStackEffect, DiscardCardEffect, GainSupplyEffect, MoveResourcesToTargetEffect } from "./effects";
 import { OathResource, OathSuit, PlayerColor } from "./enums";
 import { OathGame, OathGameObject } from "./game";
 import { Brutal, Careless, Decadent, Greedy } from "./power";
 import { Banner, ResourcesAndWarbands } from "./resources";
-import { CopiableWithOriginal } from "./utils";
+import { Constructor, CopiableWithOriginal } from "./utils";
 
 export interface OwnableObject extends CopiableWithOriginal {
     owner?: OathPlayer;
@@ -131,30 +131,9 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
         new CampaignBanishPlayerAction(player, this).doNext();
     }
 
-    // -------------- MAJOR ACTIONS ------------- //
-    // TODO: Should those functions add to the stack directly, or use the appropriate effect?
-    startSearch() {
-        new SearchAction(this).doNext();
-    }
-
-    startMuster() {
-        new MusterAction(this).doNext();
-    }
-
-    startTrade() {
-        new TradeAction(this).doNext();
-    }
-
-    startTravel() {
-        new TravelAction(this).doNext();
-    }
-
-    startRecover() {
-        new RecoverAction(this).doNext();
-    }
-
-    startCampaign() {
-        new CampaignAction(this).doNext();
+    startAction(action: Constructor<OathAction>) {
+        new action(this).doNext();
+        return this.game.actionManager.checkForNextAction();
     }
 
     abstract rest(): void;
@@ -171,10 +150,12 @@ export class Chancellor extends OathPlayer {
     get isImperial(): boolean { return true; }
 
     rest() {
-        if (this.warbandsInBag >= 18) this.gainSupply(6);
-        else if (this.warbandsInBag >= 11) this.gainSupply(5);
-        else if (this.warbandsInBag >= 4) this.gainSupply(4);
-        else this.gainSupply(3);
+        let amount: number;
+        if (this.warbandsInBag >= 18) amount = 6;
+        else if (this.warbandsInBag >= 11) amount = 5;
+        else if (this.warbandsInBag >= 4) amount = 4;
+        else amount = 3;
+        new GainSupplyEffect(this, amount).do();
     }
 }
 
@@ -237,12 +218,14 @@ export class Exile extends OathPlayer {
 
     rest() {
         if (this.isImperial) {
-            this.gainSupply(this.game.chancellor.supply);
+            new GainSupplyEffect(this, this.game.chancellor.supply).do();
             return;
         }
 
-        if (this.warbandsInBag >= 9) this.gainSupply(6);
-        else if (this.warbandsInBag >= 4) this.gainSupply(5);
-        else this.gainSupply(4);
+        let amount: number;
+        if (this.warbandsInBag >= 9) amount = 6;
+        else if (this.warbandsInBag >= 4) amount = 5;
+        else amount = 4;
+        new GainSupplyEffect(this, amount).do();
     }
 }

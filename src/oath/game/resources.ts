@@ -60,7 +60,6 @@ export abstract class Banner extends ResourceBank implements OwnableObject, Reco
     }
 
     recover(player: OathPlayer): void {
-        new TakeOwnableObjectEffect(this.game, player, this).do();
         new RecoverBannerPitchAction(player, this).doNext();
     }
     
@@ -68,6 +67,7 @@ export abstract class Banner extends ResourceBank implements OwnableObject, Reco
         // Banner-specific logic
         this.handleRecovery(player);
         new PutResourcesIntoBankEffect(this.game, player, this, amount).do();
+        new TakeOwnableObjectEffect(this.game, player, this).do();
     }
 
     seize(player: OathPlayer) {
