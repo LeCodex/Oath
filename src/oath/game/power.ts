@@ -384,7 +384,7 @@ export class AwaitedReturn extends AccessedActionModifier<Denizen> {
     action: TradeAction;
 
     applyDuring(): void {
-        // XXX: I am enforcing that you can only sacrifice warbands of your leader's color
+        // NOTE: I am enforcing that you can only sacrifice warbands of your leader's color
         // while *technically* this restriction doesn't exist but making it an action seems overkill
         if (this.action.player.getWarbands(this.action.player.leader) > 0) {
             new TakeWarbandsIntoBagEffect(this.action.player, 1).do();
@@ -432,8 +432,9 @@ export class SaddleMakers extends EnemyEffectModifier<Denizen> {
     applyAfter(result: void): void {
         if (!this.source.ruler) return;
         if (this.effect.facedown || !(this.effect.card instanceof Denizen)) return;
-        if (this.effect.card.suit !== OathSuit.Nomad && this.effect.card.suit !== OathSuit.Discord) return;
-        new TakeResourcesFromBankEffect(this.effect.game, this.source.ruler, this.effect.game.favorBanks.get(this.effect.card.suit), 2).do();
+
+        if (this.effect.card.suit === OathSuit.Nomad || this.effect.card.suit === OathSuit.Order)
+            new TakeResourcesFromBankEffect(this.effect.game, this.source.ruler, this.effect.game.favorBanks.get(this.effect.card.suit), 2).do();
     }
 }
 

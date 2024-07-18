@@ -4,8 +4,8 @@ import { AppService } from './app.service';
 import { OathModule } from './oath/oath.module';
 
 @Module({
-  imports: [OathModule],
-  controllers: [AppController],
-  providers: [AppService],
+    imports: [OathModule],
+    controllers: [AppController],
+    providers: [AppService],
 })
 export class AppModule {}

@@ -75,15 +75,6 @@ export enum RegionName {
     Hinterland
 }
 
-export enum MajorAction {
-    Campaign,
-    Muster,
-    Recover,
-    Search,
-    Trade,
-    Travel
-}
-
 export enum CardRestriction {
     None,
     Site,

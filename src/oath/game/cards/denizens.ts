@@ -1,5 +1,5 @@
 import { CardRestriction, OathSuit } from "../enums";
-import { ActingTroupe, Alchemist, Assassin, AwaitedReturn, BookBinders, Bracken, ChaosCult, CharmingFriend, Curfew, Dazzle, Elders, FabledFeast, ForcedLabor, GamblingHall, GleamingArmorAttack, GleamingArmorDefense, HeartsAndMinds, Herald, IgnoresCapacity, InsectSwarmAttack, InsectSwarmDefense, Insomnia, KeyToTheCity, LongbowArchersAttack, LongbowArchersDefense, LostTongue, LostTongueCampaign, MarriageActionModifier, MarriageEffectModifier, Naysayers, OathPower, OnlyTwoAdvisers, PiedPiperActive, RelicThief, RoyalTax, SaddleMakers, ShieldWall, SilverTongue, SleightOfHand, SmallFriends, SpellBreaker, SpellBreakerActive, SpiritSnare, ThreateningRoar, TollRoads, Tutor, VowOfObedience, VowOfPoverty, VowOfPovertyRest, WayStation } from "../power";
+import { ActingTroupe, Alchemist, Assassin, AwaitedReturn, BookBinders, Bracken, ChaosCult, CharmingFriend, Curfew, Dazzle, Elders, FabledFeast, ForcedLabor, GamblingHall, GleamingArmorAttack, GleamingArmorDefense, HeartsAndMinds, Herald, IgnoresCapacity, InsectSwarmAttack, InsectSwarmDefense, Insomnia, KeyToTheCity, LongbowArchersAttack, LongbowArchersDefense, LostTongue, LostTongueCampaign, MarriageActionModifier, MarriageEffectModifier, Naysayers, OathPower, OnlyTwoAdvisers, PiedPiperActive, RelicThief, RoyalTax, SaddleMakers, ShieldWall, SilverTongue, SleightOfHand, SmallFriends, SpellBreaker, SpellBreakerActive, SpiritSnare, ThreateningRoar, TollRoads, Tutor, VowOfObedience, VowOfObedienceRest, VowOfPoverty, VowOfPovertyRest, WayStation } from "../power";
 import { Constructor, StringObject } from "../utils";
 import { Denizen } from "./cards";
 
@@ -27,7 +27,7 @@ export const denizenData: StringObject<[string, OathSuit, Constructor<OathPower<
     "TollRoads":        ["Toll Roads",          OathSuit.Order,     [TollRoads], CardRestriction.Site],
     "ForcedLabor":      ["Forced Labor",        OathSuit.Order,     [ForcedLabor], CardRestriction.Site],
     "RoyalTax":         ["Royal Tax",           OathSuit.Order,     [RoyalTax]],
-    "VowOfObedience":   ["Vow of Obedience",    OathSuit.Order,     [VowOfObedience, VowOfPovertyRest], CardRestriction.Adviser, true],
+    "VowOfObedience":   ["Vow of Obedience",    OathSuit.Order,     [VowOfObedience, VowOfObedienceRest], CardRestriction.Adviser, true],
 
     "HeartsAndMinds":   ["Hearts and Minds",    OathSuit.Hearth,    [HeartsAndMinds], CardRestriction.Site],
     "AwaitedReturn":    ["AwaitedReturn",       OathSuit.Hearth,    [AwaitedReturn]],
