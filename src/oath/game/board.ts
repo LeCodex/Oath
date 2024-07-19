@@ -1,8 +1,8 @@
 import { Site } from "./cards/cards";
-import { CardDeck, Discard } from "./cards/decks";
-import { sitesData } from "./cards/sites";
+import { Discard } from "./cards/decks";
 import { RegionName } from "./enums";
-import { OathGame, OathGameObject } from "./game";
+import { OathGame } from "./game";
+import { OathGameObject } from "./gameObject";
 
 
 export class OathBoard extends OathGameObject {
@@ -17,13 +17,6 @@ export class OathBoard extends OathGameObject {
         [RegionName.Provinces]: new Region(this.game, "Provinces", 3, RegionName.Provinces),
         [RegionName.Hinterland]: new Region(this.game, "Hinterland", 3, RegionName.Hinterland),
     };
-    siteDeck = new CardDeck<Site>(this.game);
-
-    constructor(game: OathGame) {
-        super(game);
-        for (const data of Object.values(sitesData))
-            this.siteDeck.putCard(new Site(this.game, ...data));
-    }
 
     nextRegion(region: Region): Region {
         const name = this.nextRegionName.get(region.regionName);
@@ -53,7 +46,7 @@ export class Region extends OathGameObject {
         this.sites = [];
         // TEMP: Get random sites and flip the top ones
         for (let i = 0; i < size; i++) {
-            const site = this.game.board.siteDeck.drawSingleCard();
+            const site = this.game.siteDeck.drawSingleCard();
             if (!site) return;
             this.sites.push(site);
             if (i == 0) site.reveal();

@@ -1,10 +1,11 @@
 import { Denizen, OwnableCard, Site, Vision, WorldCard } from "./cards/cards";
 import { CardRestriction, OathResource, OathSuit, PlayerColor } from "./enums";
 import { Exile, OathPlayer } from "./player";
-import { EffectModifier, WhenPlayed } from "./power";
+import { EffectModifier, WhenPlayed } from "./powers";
 import { PeoplesFavor, ResourceBank, ResourceCost, ResourcesAndWarbands } from "./resources";
 import { OwnableObject } from "./player";
-import { OathGame, OathGameObject } from "./game";
+import { OathGame } from "./game";
+import { OathGameObject } from "./gameObject";
 import { InvalidActionResolution, OathAction, SearchDiscardAction, SearchDiscardOptions, SearchPlayAction } from "./actions";
 import { CardDeck } from "./cards/decks";
 import { getCopyWithOriginal, isExtended } from "./utils";
@@ -17,7 +18,7 @@ import { Die } from "./dice";
 export abstract class OathEffect<T> extends OathGameObject {
     readonly game: OathGame;
     readonly playerColor: PlayerColor | undefined;
-    modifiers: EffectModifier<any>[];
+    modifiers: EffectModifier<any>[] = [];
 
     constructor(game: OathGame, player: OathPlayer | undefined) {
         super(getCopyWithOriginal(game));
@@ -79,11 +80,11 @@ export class AddActionToStackEffect extends OathEffect<void> {
     }
 
     resolve(): void {
-        this.game.actionManager.actionStack.push(this.action);
+        this.game.original.actionManager.actionStack.push(this.action);
     }
 
     revert(): void {
-        this.game.actionManager.actionStack.pop();
+        this.game.original.actionManager.actionStack.pop();
     }
 }
 
@@ -95,9 +96,9 @@ export class PopActionFromStackEffect extends OathEffect<OathAction | undefined>
     }
     
     resolve(): OathAction | undefined {
-        const action = this.game.actionManager.actionStack.pop();
+        const action = this.game.original.actionManager.actionStack.pop();
         if (!action) {
-            this.game.actionManager.currentEffectsStack.pop();
+            this.game.original.actionManager.currentEffectsStack.pop();
             return;
         }
         this.action = action;
@@ -105,7 +106,7 @@ export class PopActionFromStackEffect extends OathEffect<OathAction | undefined>
     }
 
     revert(): void {
-        if (this.action) this.game.actionManager.actionStack.push(this.action);
+        if (this.action) this.game.original.actionManager.actionStack.push(this.action);
     }
 }
 

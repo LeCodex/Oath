@@ -1,10 +1,11 @@
-import { CampaignAction, CampaignActionTarget, CampaignBanishPlayerAction, ChooseModifiers, MusterAction, OathAction, RecoverAction, SearchAction, TradeAction, TravelAction } from "./actions";
+import { CampaignAction, CampaignActionTarget, CampaignBanishPlayerAction, ChooseModifiers, InvalidActionResolution, MusterAction, OathAction, RecoverAction, SearchAction, TradeAction, TravelAction } from "./actions";
 import { Denizen, OwnableCard, Relic, Site, Vision, WorldCard } from "./cards/cards";
 import { Discard } from "./cards/decks";
 import { AddActionToStackEffect, DiscardCardEffect, GainSupplyEffect, MoveResourcesToTargetEffect } from "./effects";
 import { OathResource, OathSuit, PlayerColor } from "./enums";
-import { OathGame, OathGameObject } from "./game";
-import { Brutal, Careless, Decadent, Greedy } from "./power";
+import { OathGame } from "./game";
+import { OathGameObject } from "./gameObject";
+import { Brutal, Careless, Decadent, Greedy } from "./powers";
 import { Banner, ResourcesAndWarbands } from "./resources";
 import { Constructor, CopiableWithOriginal } from "./utils";
 
@@ -36,6 +37,9 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
         super(game);
         this.site = site;
         this.color = color;
+
+        this.putResources(OathResource.Favor, 1);  // TODO: Take favor from supply
+        this.putResources(OathResource.Secret, 1);
     }
 
     get isImperial(): boolean { return false; }
@@ -131,11 +135,6 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
         new CampaignBanishPlayerAction(player, this).doNext();
     }
 
-    startAction(action: Constructor<OathAction>) {
-        new action(this).doNext();
-        return this.game.actionManager.checkForNextAction();
-    }
-
     abstract rest(): void;
 }
 
@@ -145,6 +144,7 @@ export class Chancellor extends OathPlayer {
 
     constructor(game: OathGame, site: Site) {
         super(game, site, PlayerColor.Purple);
+        this.putResources(OathResource.Favor, 1);  // TODO: Take favor from supply
     }
 
     get isImperial(): boolean { return true; }
@@ -160,7 +160,7 @@ export class Chancellor extends OathPlayer {
 }
 
 export class Reliquary extends OathGameObject {
-    relics: [Relic?, Relic?, Relic?, Relic?];
+    relics: [Relic?, Relic?, Relic?, Relic?] = [];
     powers = [Brutal, Greedy, Careless, Decadent];
 
     constructor(game: OathGame) {

@@ -1,10 +1,11 @@
 import { CampaignActionTarget, PeoplesFavorReturnAction, RecoverAction, RecoverActionTarget, RecoverBannerPitchAction } from "./actions";
-import { AddActionToStackEffect, PutResourcesIntoBankEffect, SetPeoplesFavorMobState, TakeOwnableObjectEffect, TakeResourcesFromBankEffect } from "./effects";
+import { PutResourcesIntoBankEffect, SetPeoplesFavorMobState, TakeOwnableObjectEffect, TakeResourcesFromBankEffect } from "./effects";
 import { OathResource } from "./enums"
-import { OathGame, OathGameObject } from "./game";
+import { OathGame } from "./game";
+import { OathGameObject } from "./gameObject";
 import { OwnableObject } from "./player";
 import { OathPlayer } from "./player";
-import { DarkestSecretPower as DarkestSecretSearch, OathPower, PeoplesFavorSearch, PeoplesFavorWake } from "./power";
+import { DarkestSecretPower as DarkestSecretSearch, OathPower, PeoplesFavorSearch, PeoplesFavorWake } from "./powers";
 import { Constructor } from "./utils";
 
 export abstract class ResourceBank extends OathGameObject {

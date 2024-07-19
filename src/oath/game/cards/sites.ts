@@ -1,10 +1,10 @@
 import { OathResource, OathSuit } from "../enums";
-import { AncientCity, CharmingValley, CoastalSite, DeepWoods, FertileValley, OathPower, ResourceSite, StandingStones, Steppe, Wastes } from "../power";
+import { AncientCity, CharmingValley, CoastalSite, DeepWoods, FertileValley, OathPower, ResourceSite, StandingStones, Steppe, Wastes } from "../powers";
 import { ResourceCost } from "../resources";
-import { Constructor, StringObject } from "../utils";
+import { Constructor } from "../utils";
 import { Site } from "./cards";
 
-export const sitesData: StringObject<[string, Constructor<OathPower<Site>>[], number, number?, ResourceCost?, OathSuit?, Iterable<[OathResource, number]>?]> = {
+export const sitesData: Record<string, [string, Constructor<OathPower<Site>>[], number, number?, ResourceCost?, OathSuit?, Iterable<[OathResource, number]>?]> = {
     "AncientCity":      ["Ancient City",    [AncientCity],      2, 1, new ResourceCost([[OathResource.Favor, 3]]), OathSuit.Order],
     "DeepWoods":        ["Deep Woods",      [DeepWoods],        2, 1, new ResourceCost([], [[OathResource.Secret, 2]])],
     "FertileValley":    ["Fertile Valley",  [FertileValley],    3],

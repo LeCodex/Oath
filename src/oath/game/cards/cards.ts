@@ -1,10 +1,11 @@
 import { CampaignActionTarget, CampaignSeizeSiteAction, InvalidActionResolution, RecoverAction, RecoverActionTarget } from "../actions";
 import { Region } from "../board";
-import { AddActionToStackEffect, MoveOwnWarbandsEffect, PayCostToBankEffect, TakeOwnableObjectEffect } from "../effects";
+import { MoveOwnWarbandsEffect, PayCostToBankEffect, TakeOwnableObjectEffect } from "../effects";
 import { CardRestriction, OathResource, OathSuit, OathTypeVisionName, RegionName } from "../enums";
-import { OathGame, Oath } from "../game";
+import { OathGame } from "../game";
+import { Oath } from "../oaths";
 import { OathPlayer, OwnableObject } from "../player";
-import { ConspiracyPower, OathPower, VisionPower } from "../power";
+import { ConspiracyPower, OathPower, VisionPower } from "../powers";
 import { ResourceCost, ResourcesAndWarbands } from "../resources";
 import { Constructor } from "../utils";
 
@@ -46,8 +47,8 @@ export class Site extends OathCard implements CampaignActionTarget {
     recoverCost: ResourceCost;
     recoverSuit: OathSuit;
 
-    denizens: Set<Denizen>;
-    relics: Set<Relic>;
+    denizens = new Set<Denizen>();
+    relics = new Set<Relic>();
 
     defense = 1;
     pawnMustBeAtSite = false;

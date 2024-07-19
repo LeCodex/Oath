@@ -1,19 +1,33 @@
-import { ChooseNewOathkeeper, OathAction, OathActionManager } from "./actions";
+import { ChooseNewOathkeeper, InvalidActionResolution, OathAction, OathActionManager } from "./actions";
 import { OathBoard } from "./board";
-import { Conspiracy, Denizen, Relic, Vision } from "./cards/cards";
-import { RelicDeck, WorldDeck } from "./cards/decks";
+import { Conspiracy, Denizen, Relic, Site, Vision } from "./cards/cards";
+import { CardDeck, RelicDeck, WorldDeck } from "./cards/decks";
 import { denizenData } from "./cards/denizens";
 import { relicsData } from "./cards/relics";
-import { AddActionToStackEffect, OathEffect } from "./effects";
+import { sitesData } from "./cards/sites";
 import { BannerName, OathType, OathPhase, OathSuit, RegionName, PlayerColor } from "./enums";
+import { Oath, OathTypeToOath } from "./oaths";
 import { Chancellor, Exile, OathPlayer } from "./player";
-import { OathPower } from "./power";
+import { OathPower } from "./powers";
 import { Banner, DarkestSecret, FavorBank, PeoplesFavor } from "./resources";
-import { AbstractConstructor, Constructor, CopiableWithOriginal, isExtended, StringObject } from "./utils";
+import { AbstractConstructor, Constructor, CopiableWithOriginal, isExtended } from "./utils";
 
 
 export class OathGame extends CopiableWithOriginal {
-    board = new OathBoard(this);
+    actionManager = new OathActionManager(this);
+
+    oath: Oath;
+    oathkeeper: OathPlayer;
+    isUsurper = false;
+
+    turn = 0;
+    phase = OathPhase.Act;
+    round = 1;
+
+    chancellor: Chancellor;
+    players: Record<number, OathPlayer> = {};
+    order: PlayerColor[] = [PlayerColor.Purple];
+
     banners = new Map<BannerName, Banner>([
         [BannerName.PeoplesFavor, new PeoplesFavor(this)],
         [BannerName.DarkestSecret, new DarkestSecret(this)]
@@ -21,41 +35,27 @@ export class OathGame extends CopiableWithOriginal {
     favorBanks: Map<OathSuit, FavorBank>;
     worldDeck = new WorldDeck(this);
     relicDeck = new RelicDeck(this);
+    siteDeck = new CardDeck<Site>(this);
+    board: OathBoard;
     
-    chancellor: Chancellor;
-    players: { [key: number]: OathPlayer } = {};
-    order: PlayerColor[] = [PlayerColor.Purple];
-    
-    oath: Oath;
-    oathkeeper: OathPlayer;
-    isUsurper = false;
-
-    turn = 0;
-    phase = OathPhase.Wake;
-    round = 1;
-
-    actionManager = new OathActionManager(this);
-
     constructor(oath: OathType, playerCount: number) {
         super();
         this.oath = new OathTypeToOath[oath](this);
         this.oath.setup();
 
+        for (const data of Object.values(sitesData)) this.siteDeck.putCard(new Site(this, ...data));
+
         for (const data of Object.values(relicsData)) this.relicDeck.putCard(new Relic(this, ...data));
         this.relicDeck.shuffle();
 
-        // TEMP: Just load every card and shuffle evertyhing for now
-        for (const data of Object.values(denizenData)) this.worldDeck.putCard(new Denizen(this, ...data));
-        for (const oath of Object.values(OathTypeToOath)) this.worldDeck.putCard(new Vision(new oath(this)));
-        this.worldDeck.putCard(new Conspiracy(this));
-        this.worldDeck.shuffle();
+        this.board = new OathBoard(this);
 
         const topCradleSite = this.board.regions[RegionName.Cradle].sites[0];
         this.oathkeeper = this.chancellor = new Chancellor(this, topCradleSite);
         this.players[PlayerColor.Purple] = this.chancellor;
         for (let i = 1; i < playerCount; i++) {
-            this.players[i+1] = new Exile(this, topCradleSite, i+1);
-            this.order.push(i+1);
+            this.players[i] = new Exile(this, topCradleSite, i);
+            this.order.push(i);
         }
         
         // TODO: Take favor from supply
@@ -68,6 +68,12 @@ export class OathGame extends CopiableWithOriginal {
             [OathSuit.Beast, new FavorBank(this, startingAmount)],
             [OathSuit.Nomad, new FavorBank(this, startingAmount)],
         ]);
+
+        // TEMP: Just load every card and shuffle evertyhing for now
+        for (const data of Object.values(denizenData)) this.worldDeck.putCard(new Denizen(this, ...data));
+        for (const oath of Object.values(OathTypeToOath)) this.worldDeck.putCard(new Vision(new oath(this)));
+        this.worldDeck.putCard(new Conspiracy(this));
+        this.worldDeck.shuffle();
     }
 
     get currentPlayer(): OathPlayer { return this.players[this.order[this.turn]]; }
@@ -115,6 +121,15 @@ export class OathGame extends CopiableWithOriginal {
         return powers;
     }
 
+    startAction(by: number, action: Constructor<OathAction>): object {
+        if (this.turn !== by) throw new InvalidActionResolution(`Cannot begin an action outside your turn.`);
+        if (this.phase !== OathPhase.Act) throw new InvalidActionResolution(`Cannot begin an action outside the Act phase.`);
+        if (this.actionManager.actionStack.length) return new InvalidActionResolution("Cannot start an action while other actions are active.");
+
+        new action(this.currentPlayer).doNext();
+        return this.actionManager.checkForNextAction();
+    }
+
     checkForOathkeeper(): OathAction | undefined {
         const candidates = this.oath.getCandidates();
         if (candidates.has(this.oathkeeper)) return;
@@ -127,113 +142,3 @@ export class OathGame extends CopiableWithOriginal {
     }
 }
 
-export abstract class OathGameObject extends CopiableWithOriginal {
-    game: OathGame;
-
-    constructor(game: OathGame) {
-        super();
-        this.game = game;
-    }
-}
-
-
-export abstract class Oath extends OathGameObject {
-    type: OathType;
-
-    abstract setup(): void;
-    abstract scorePlayer(player: OathPlayer): number;
-    abstract isSuccessor(player: OathPlayer): boolean;
-
-    getCandidates(): Set<OathPlayer> {
-        let max = 0;
-        const candidates = new Set<OathPlayer>();
-        for (const player of Object.values(this.game.players)) {
-            const score = this.scorePlayer(player);
-            if (score > max) {
-                candidates.clear();
-                candidates.add(player);
-                max = score;
-            } else if (score === max) {
-                candidates.add(player);
-            }
-        }
-
-        return candidates;
-    }
-}
-
-export class OathOfSupremacy extends Oath {
-    type = OathType.Supremacy;
-
-    setup() {
-        // Chancellor already rules most sites
-    }
-
-    scorePlayer(player: OathPlayer): number {
-        let total = 0;
-        for (const site of this.game.board.sites())
-            if (site.ruler === player) total++;
-
-        return total
-    }
-
-    isSuccessor(player: OathPlayer): boolean {
-        return player.relics.size + player.banners.size > this.game.chancellor.relics.size + this.game.chancellor.banners.size;
-    }
-}
-
-export class OathOfProtection extends Oath {
-    type = OathType.Protection;
-
-    setup() {
-        // Chancellor already has the Scepter
-    }
-
-    scorePlayer(player: OathPlayer): number {
-        return player.relics.size + player.banners.size;
-    }
-
-    isSuccessor(player: OathPlayer): boolean {
-        return this.game.banners.get(BannerName.PeoplesFavor)?.owner === player;
-    }
-}
-
-export class OathOfThePeople extends Oath {
-    type = OathType.ThePeople;
-
-    setup() {
-        this.game.banners.get(BannerName.PeoplesFavor)?.setOwner(this.game.chancellor);
-    }
-
-    scorePlayer(player: OathPlayer): number {
-        return this.game.banners.get(BannerName.PeoplesFavor)?.owner === player ? 1 : 0;
-    }
-
-    isSuccessor(player: OathPlayer): boolean {
-        return this.game.banners.get(BannerName.DarkestSecret)?.owner === player;
-    }
-}
-
-export class OathOfDevotion extends Oath {
-    type = OathType.Devotion;
-
-    setup() {
-        this.game.banners.get(BannerName.DarkestSecret)?.setOwner(this.game.chancellor);
-    }
-
-    scorePlayer(player: OathPlayer): number {
-        return this.game.banners.get(BannerName.DarkestSecret)?.owner === player ? 1 : 0;
-    }
-
-    isSuccessor(player: OathPlayer): boolean {
-        // TODO: Make this successor goal
-        return false;
-    }
-}
-
-export const OathTypeToOath = {
-    [OathType.Supremacy]: OathOfSupremacy,
-    [OathType.Protection]: OathOfProtection,
-    [OathType.ThePeople]: OathOfThePeople,
-    [OathType.Devotion]: OathOfDevotion,
-}

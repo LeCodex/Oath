@@ -1,9 +1,9 @@
-import { OathGameObject } from "../game";
+import { OathGameObject } from "../gameObject";
 import { WorldCard, VisionBack, Relic, OathCard } from "./cards";
 
 
 export class CardDeck<T extends OathCard> extends OathGameObject {
-    cards: T[];
+    cards: T[] = [];
 
     putCard(card: T, onBottom: boolean = false) {
         card.hide();

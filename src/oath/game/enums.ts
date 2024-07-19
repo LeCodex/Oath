@@ -63,7 +63,6 @@ export const OathTypeVisionName = {
 }
 
 
-
 export enum BannerName {
     PeoplesFavor,
     DarkestSecret

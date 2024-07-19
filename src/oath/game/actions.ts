@@ -3,11 +3,12 @@ import { SearchableDeck } from "./cards/decks";
 import { AttackDie, DefenseDie, Die } from "./dice";
 import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect, DiscardCardEffect, MoveOwnWarbandsEffect, AddActionToStackEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect, SetNewOathkeeperEffect, SetPeoplesFavorMobState, DiscardCardGroupEffect, OathEffect, PopActionFromStackEffect } from "./effects";
 import { OathResource, OathResourceName, OathSuit, OathSuitName, PlayerColor } from "./enums";
-import { OathGame, OathGameObject } from "./game";
+import { OathGame } from "./game";
+import { OathGameObject } from "./gameObject";
 import { OathPlayer } from "./player";
-import { ActionModifier, ActivePower, CapacityModifier } from "./power";
+import { ActionModifier, ActivePower, CapacityModifier } from "./powers";
 import { Banner, PeoplesFavor, ResourceCost, ResourcesAndWarbands } from "./resources";
-import { StringObject, getCopyWithOriginal, isExtended } from "./utils";
+import { getCopyWithOriginal, isExtended } from "./utils";
 
 
 
@@ -23,6 +24,9 @@ export class OathActionManager extends OathGameObject {
     noReturn: boolean = false;
 
     checkForNextAction(): object {
+        for (const action of this.futureActionsList) new AddActionToStackEffect(action).do();
+        this.futureActionsList.length = 0;
+
         if (!this.actionStack.length) this.game.checkForOathkeeper();
         let action: OathAction | undefined = this.actionStack[this.actionStack.length - 1];
 
@@ -41,13 +45,16 @@ export class OathActionManager extends OathGameObject {
         const returnData = {
             stack: [...this.actionStack],
             cancelledEffects: [...this.cancelledEffects],
-            data: {}
+            game: {}  // TODO: Make visitor that gets the global game state
         }
         this.cancelledEffects.length = 0;
         return returnData;
     }
     
-    continueAction(values: StringObject<string[]>): object {
+    continueAction(by: number, values: Record<string, string[]>): object {
+        const actionPlayer = this.actionStack[this.actionStack.length-1].player;
+        if (actionPlayer !== this.game.players[by]) throw new InvalidActionResolution(`Action cannot be resolved by player ${by}.`)
+
         const action = this.actionStack[this.actionStack.length - 1];
         if (!action)
             throw new InvalidActionResolution("No action to continue");
@@ -62,10 +69,6 @@ export class OathActionManager extends OathGameObject {
     }
     
     resolveTopAction(): object {
-        for (const action of this.futureActionsList)
-            new AddActionToStackEffect(action).do();
-        this.futureActionsList.length = 0;
-
         const action = new PopActionFromStackEffect(this.game).do();
         if (!action) return this.checkForNextAction();
     
@@ -165,8 +168,8 @@ export class InvalidActionResolution extends Error { }
 export abstract class OathAction extends OathGameObject {
     readonly game: OathGame;
     readonly playerColor: PlayerColor;
-    readonly selects: StringObject<SelectNOf<any>> = {};
-    readonly parameters: StringObject<any> = {};
+    readonly selects: Record<string, SelectNOf<any>> = {};
+    readonly parameters: Record<string, any> = {};
     readonly autocompleteSelects: boolean = true;
 
     constructor(player: OathPlayer, dontCopyGame: boolean = false) {
@@ -177,11 +180,11 @@ export abstract class OathAction extends OathGameObject {
     get player() { return this.game.players[this.playerColor]; }
 
     doNext(): void {
-        this.game.actionManager.futureActionsList.unshift(this);
+        this.game.original.actionManager.futureActionsList.unshift(this);
     }
 
-    parse(data: StringObject<string[]>): StringObject<any[]> | undefined {
-        const values: StringObject<any[]> = {};
+    parse(data: Record<string, string[]>): Record<string, any[]> | undefined {
+        const values: Record<string, any[]> = {};
         for (const [k, select] of Object.entries(this.selects)) {
             if (!(k in data)) return undefined;
             const value = select.parse(data[k]);
@@ -192,16 +195,16 @@ export abstract class OathAction extends OathGameObject {
         return values;
     }
 
-    applyParameters(values: StringObject<any[]>) {
+    applyParameters(values: Record<string, any[]>) {
         for (const [key, value] of Object.entries(values)) {
             this.parameters[key] = value;
         }
     }
 
-    start(): StringObject<string[]> | undefined {
+    start(): Record<string, string[]> | undefined {
         // Setup the selects here
 
-        const values: StringObject<string[]> = {};
+        const values: Record<string, string[]> = {};
         if (this.autocompleteSelects) {
             for (const [key, select] of Object.entries(this.selects)) {
                 if (select.choices.size <= select.min) {
@@ -251,8 +254,7 @@ export class ChooseModifiers extends OathAction {
         const instances: ActionModifier<any>[] = [];
 
         for (const [source, modifier] of game.getPowers(ActionModifier<any>)) {
-            if (!(action instanceof modifier.prototype.modifiedAction)) continue;
-
+            if (!(action.constructor === modifier)) continue;
             const instance = new modifier(source, action);
             if (instance.canUse()) instances.push(instance);
         };
@@ -332,7 +334,7 @@ export class MusterAction extends MajorAction {
 
     start() {
         const choices = new Map<string, Denizen>();
-        for (const denizen of this.player.site.denizens) if (denizen.suit !== OathSuit.None) choices.set(denizen.name, denizen);
+        for (const denizen of this.player.site.denizens) if (denizen.suit !== OathSuit.None && denizen.empty) choices.set(denizen.name, denizen);
         this.selects.card = new SelectNOf(choices, 1);
         return super.start();
     }
@@ -364,7 +366,7 @@ export class TradeAction extends MajorAction {
 
     start() {
         const choices = new Map<string, Denizen>();
-        for (const denizen of this.player.site.denizens) if (denizen.suit !== OathSuit.None) choices.set(denizen.name, denizen);
+        for (const denizen of this.player.site.denizens) if (denizen.suit !== OathSuit.None && denizen.empty) choices.set(denizen.name, denizen);
         this.selects.card = new SelectNOf(choices, 1);
         this.selects.forFavor = new SelectBoolean(["For favors", "For secrets"]);
         return super.start();
