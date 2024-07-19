@@ -43,10 +43,16 @@ export class OathGame extends CopiableWithOriginal {
         this.oath = new OathTypeToOath[oath](this);
         this.oath.setup();
 
-        for (const data of Object.values(sitesData)) this.siteDeck.putCard(new Site(this, ...data));
-
+        // TEMP: Just load every card and shuffle evertyhing for now
+        for (const data of Object.values(denizenData)) this.worldDeck.putCard(new Denizen(this, ...data));
+        for (const oath of Object.values(OathTypeToOath)) this.worldDeck.putCard(new Vision(new oath(this)));
+        this.worldDeck.putCard(new Conspiracy(this));
+        this.worldDeck.shuffle();
+        
         for (const data of Object.values(relicsData)) this.relicDeck.putCard(new Relic(this, ...data));
         this.relicDeck.shuffle();
+
+        for (const data of Object.values(sitesData)) this.siteDeck.putCard(new Site(this, ...data));
 
         this.board = new OathBoard(this);
 
@@ -68,12 +74,6 @@ export class OathGame extends CopiableWithOriginal {
             [OathSuit.Beast, new FavorBank(this, startingAmount)],
             [OathSuit.Nomad, new FavorBank(this, startingAmount)],
         ]);
-
-        // TEMP: Just load every card and shuffle evertyhing for now
-        for (const data of Object.values(denizenData)) this.worldDeck.putCard(new Denizen(this, ...data));
-        for (const oath of Object.values(OathTypeToOath)) this.worldDeck.putCard(new Vision(new oath(this)));
-        this.worldDeck.putCard(new Conspiracy(this));
-        this.worldDeck.shuffle();
     }
 
     get currentPlayer(): OathPlayer { return this.players[this.order[this.turn]]; }
@@ -122,9 +122,9 @@ export class OathGame extends CopiableWithOriginal {
     }
 
     startAction(by: number, action: Constructor<OathAction>): object {
-        if (this.turn !== by) throw new InvalidActionResolution(`Cannot begin an action outside your turn.`);
-        if (this.phase !== OathPhase.Act) throw new InvalidActionResolution(`Cannot begin an action outside the Act phase.`);
-        if (this.actionManager.actionStack.length) return new InvalidActionResolution("Cannot start an action while other actions are active.");
+        if (this.turn !== by) throw new InvalidActionResolution(`Cannot begin an action outside your turn`);
+        if (this.phase !== OathPhase.Act) throw new InvalidActionResolution(`Cannot begin an action outside the Act phase`);
+        if (this.actionManager.actionStack.length) return new InvalidActionResolution("Cannot start an action while other actions are active");
 
         new action(this.currentPlayer).doNext();
         return this.actionManager.checkForNextAction();

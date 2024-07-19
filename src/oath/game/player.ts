@@ -139,6 +139,7 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
 }
 
 export class Chancellor extends OathPlayer {
+    name = "Chancellor";
     warbandsInBag = 24;
     reliquary = new Reliquary(this.game);
 
@@ -182,6 +183,7 @@ export class Reliquary extends OathGameObject {
 }
 
 export class Exile extends OathPlayer {
+    name = "Exile";
     warbandsInBag = 14;
 
     isCitizen: boolean;

@@ -2,7 +2,7 @@ import { CampaignAtttackAction, CampaignDefenseAction, InvalidActionResolution, 
 import { Conspiracy, Denizen, OwnableCard, Relic, Site, Vision, WorldCard } from "./cards/cards";
 import { BannerName, OathResource, OathSuit, RegionName } from "./enums";
 import { Banner, DarkestSecret, PeoplesFavor, ResourceCost } from "./resources";
-import { AddActionToStackEffect, MoveResourcesToTargetEffect, OathEffect, PayCostToTargetEffect, PlayDenizenAtSiteEffect, PlayVisionEffect, PlayWorldCardEffect, PutResourcesOnTargetEffect, PutWarbandsFromBagEffect, RegionDiscardEffect, RollDiceEffect, SetNewOathkeeperEffect, TakeOwnableObjectEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect } from "./effects";
+import { MoveResourcesToTargetEffect, OathEffect, PayCostToTargetEffect, PlayDenizenAtSiteEffect, PlayVisionEffect, PlayWorldCardEffect, PutResourcesOnTargetEffect, PutWarbandsFromBagEffect, RegionDiscardEffect, RollDiceEffect, SetNewOathkeeperEffect, TakeOwnableObjectEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect } from "./effects";
 import { OathPlayer, OwnableObject, Reliquary, isOwnable } from "./player";
 import { OathGameObject } from "./gameObject";
 import { AbstractConstructor } from "./utils";
@@ -24,7 +24,7 @@ export abstract class OathPower<T extends OathGameObject> extends OathGameObject
 }
 
 export abstract class WhenPlayed<T extends WorldCard> extends OathPower<T> {
-    static modifiedEffect = PlayWorldCardEffect;
+    modifiedEffect = PlayWorldCardEffect;
 
     abstract whenPlayed(effect: PlayWorldCardEffect): void;
 }
@@ -63,7 +63,7 @@ export abstract class ActivePower<T extends OwnableCard> extends ActionPower<T> 
 }
 
 export abstract class ActionModifier<T extends OathGameObject> extends ActionPower<T> {
-    static modifiedAction: AbstractConstructor<ModifiableAction>;
+    modifiedAction: AbstractConstructor<ModifiableAction>;
     action: ModifiableAction;
     mustUse = false;
 
@@ -90,13 +90,13 @@ export abstract class AccessedActionModifier<T extends OwnableCard> extends Acti
 }
 
 export abstract class WakePower<T extends OwnableCard> extends AccessedActionModifier<T> {
-    static modifiedAction = WakeAction;
+    modifiedAction = WakeAction;
     action: WakeAction;
     mustUse = true;
 }
 
 export abstract class RestPower<T extends OwnableCard> extends AccessedActionModifier<T> {
-    static modifiedAction = RestAction;
+    modifiedAction = RestAction;
     action: RestAction;
     mustUse = true;
 }
@@ -108,17 +108,17 @@ export abstract class BattlePlan<T extends OwnableCard> extends ActionModifier<T
 }
 
 export abstract class AttackerBattlePlan<T extends OwnableCard> extends BattlePlan<T> {
-    static modifiedAction = CampaignAtttackAction;
+    modifiedAction = CampaignAtttackAction;
     action: CampaignAtttackAction;
 }
 
 export abstract class DefenderBattlePlan<T extends OwnableCard> extends BattlePlan<T> {
-    static modifiedAction = CampaignDefenseAction;
+    modifiedAction = CampaignDefenseAction;
     action: CampaignDefenseAction;
 }
 
 export abstract class EffectModifier<T extends OathGameObject> extends OathPower<T> {
-    static modifiedEffect: AbstractConstructor<OathEffect<any>>;
+    modifiedEffect: AbstractConstructor<OathEffect<any>>;
     effect: OathEffect<any>;
 
     constructor(source: T, effect: OathEffect<any>) {
@@ -194,7 +194,7 @@ export class ShieldWall extends DefenderBattlePlan<Denizen> {
 
 export class Curfew extends EnemyActionModifier<Denizen> {
     name = "Curfew";
-    static modifiedAction = TradeAction;
+    modifiedAction = TradeAction;
     action: TradeAction;
     mustUse = true;
 
@@ -208,7 +208,7 @@ export class Curfew extends EnemyActionModifier<Denizen> {
 
 export class TollRoads extends EnemyEffectModifier<Denizen> {
     name = "Toll Roads";
-    static modifiedEffect = TravelEffect;
+    modifiedEffect = TravelEffect;
     effect: TravelEffect;
 
     applyDuring(): void {
@@ -221,7 +221,7 @@ export class TollRoads extends EnemyEffectModifier<Denizen> {
 
 export class ForcedLabor extends EnemyActionModifier<Denizen> {
     name = "Forced Labor";
-    static modifiedAction = SearchAction;
+    modifiedAction = SearchAction;
     action: SearchAction;
     mustUse = true;
 
@@ -248,7 +248,7 @@ export class RoyalTax extends WhenPlayed<Denizen> {
 
 export class VowOfObedience extends ActionModifier<Denizen> {
     name = "Vow of Obedience";
-    static modifiedAction = SearchPlayAction;
+    modifiedAction = SearchPlayAction;
     action: SearchPlayAction;
     mustUse = true;
 
@@ -270,7 +270,7 @@ export class VowOfObedienceRest extends RestPower<Denizen> {
 // ------------------ ARCANE ------------------- //
 export class GleamingArmorAttack extends EnemyActionModifier<Denizen> {
     name = "Gleaming Armor";
-    static modifiedAction = CampaignAtttackAction;
+    modifiedAction = CampaignAtttackAction;
     action: CampaignAtttackAction;
     mustUse = true;
 
@@ -282,7 +282,7 @@ export class GleamingArmorAttack extends EnemyActionModifier<Denizen> {
 }
 export class GleamingArmorDefense extends EnemyActionModifier<Denizen> {
     name = "Gleaming Armor";
-    static modifiedAction = CampaignDefenseAction;
+    modifiedAction = CampaignDefenseAction;
     action: CampaignDefenseAction;
     mustUse = true;
 
@@ -335,7 +335,7 @@ export class Alchemist extends ActivePower<Denizen> {
 
 export class ActingTroupe extends AccessedActionModifier<Denizen> {
     name = "Acting Troupe";
-    static modifiedAction = TradeAction;
+    modifiedAction = TradeAction;
     action: TradeAction;
 
     applyDuring(): void {
@@ -347,7 +347,7 @@ export class ActingTroupe extends AccessedActionModifier<Denizen> {
 
 export class Jinx extends EffectModifier<Denizen> {
     name = "Jinx";
-    static modifiedEffect = RollDiceEffect;
+    modifiedEffect = RollDiceEffect;
     effect: RollDiceEffect;
 
     canUse(): boolean {
@@ -380,7 +380,7 @@ export class HeartsAndMinds extends DefenderBattlePlan<Denizen> {
 
 export class AwaitedReturn extends AccessedActionModifier<Denizen> {
     name = "Awaited Return";
-    static modifiedAction = TradeAction;
+    modifiedAction = TradeAction;
     action: TradeAction;
 
     applyDuring(): void {
@@ -415,7 +415,7 @@ export class FabledFeast extends WhenPlayed<Denizen> {
 
 export class BookBinders extends EnemyEffectModifier<Denizen> {
     name = "Book Binders";
-    static modifiedEffect = PlayVisionEffect;
+    modifiedEffect = PlayVisionEffect;
     effect: PlayVisionEffect;
 
     applyAfter(result: void): void {
@@ -426,7 +426,7 @@ export class BookBinders extends EnemyEffectModifier<Denizen> {
 
 export class SaddleMakers extends EnemyEffectModifier<Denizen> {
     name = "Saddle Makers";
-    static modifiedEffect = PlayWorldCardEffect;
+    modifiedEffect = PlayWorldCardEffect;
     effect: PlayWorldCardEffect;
 
     applyAfter(result: void): void {
@@ -440,7 +440,7 @@ export class SaddleMakers extends EnemyEffectModifier<Denizen> {
 
 export class Herald extends EnemyActionModifier<Denizen> {
     name = "Herald";
-    static modifiedAction = CampaignEndAction;
+    modifiedAction = CampaignEndAction;
     action: CampaignEndAction;
     mustUse = true;
 
@@ -454,7 +454,7 @@ export class Herald extends EnemyActionModifier<Denizen> {
 
 export class MarriageActionModifier extends AccessedActionModifier<Denizen> {
     name = "Marriage"
-    static modifiedAction = ModifiableAction;
+    modifiedAction = ModifiableAction;
     action: ModifiableAction;
     mustUse = true;
 
@@ -467,7 +467,7 @@ export class MarriageActionModifier extends AccessedActionModifier<Denizen> {
 }
 export class MarriageEffectModifier extends AccessedEffectModifier<Denizen> {
     name = "Marriage"
-    static modifiedEffect = OathEffect;
+    modifiedEffect = OathEffect;
     effect: OathEffect<any>;
     mustUse = true;
 
@@ -484,7 +484,7 @@ export class MarriageEffectModifier extends AccessedEffectModifier<Denizen> {
 // ------------------ NOMAD ------------------- //
 export class WayStation extends ActionModifier<Denizen> {
     name = "Way Station";
-    static modifiedAction = TravelAction;
+    modifiedAction = TravelAction;
     action: TravelAction;
 
     applyDuring(): void {
@@ -509,7 +509,7 @@ function lostTongueCheckOwnable(source: Denizen, target: OwnableObject, by: Oath
 }
 export class LostTongue extends EnemyEffectModifier<Denizen> {
     name = "Lost Tongue";
-    static modifiedEffect = TakeOwnableObjectEffect;
+    modifiedEffect = TakeOwnableObjectEffect;
     effect: TakeOwnableObjectEffect;
 
     applyDuring(): void {
@@ -518,7 +518,7 @@ export class LostTongue extends EnemyEffectModifier<Denizen> {
 }
 export class LostTongueCampaign extends EnemyActionModifier<Denizen> {
     name = "Lost Tongue";
-    static modifiedAction = CampaignAtttackAction;
+    modifiedAction = CampaignAtttackAction;
     action: CampaignAtttackAction;
     
     applyDuring(): void {
@@ -540,7 +540,7 @@ export class Elders extends ActivePower<Denizen> {
 
 export class SpellBreaker extends EnemyActionModifier<Denizen> {
     name = "Spell Breaker";
-    static modifiedAction = ModifiableAction;
+    modifiedAction = ModifiableAction;
 
     applyBefore(): boolean {
         for (const modifier of this.action.parameters.modifiers)
@@ -552,7 +552,7 @@ export class SpellBreaker extends EnemyActionModifier<Denizen> {
 }
 export class SpellBreakerActive extends EnemyActionModifier<Denizen> {
     name = "Spell Breaker";
-    static modifiedAction = UsePowerAction;
+    modifiedAction = UsePowerAction;
     action: UsePowerAction;
 
     applyDuring(): void {
@@ -582,7 +582,7 @@ export class FamilyWagon extends CapacityModifier<Denizen> {
 // ------------------ DISCORD ------------------- //
 export class RelicThief extends EnemyEffectModifier<Denizen> {
     name = "Relic Thief";
-    static modifiedEffect = TakeOwnableObjectEffect;
+    modifiedEffect = TakeOwnableObjectEffect;
     effect: TakeOwnableObjectEffect;
 
     applyAfter(result: void): void {
@@ -672,7 +672,7 @@ export class Naysayers extends RestPower<Denizen> {
 
 export class ChaosCult extends EnemyEffectModifier<Denizen> {
     name = "Chaos Cult";
-    static modifiedEffect = SetNewOathkeeperEffect;
+    modifiedEffect = SetNewOathkeeperEffect;
     effect: SetNewOathkeeperEffect;
 
     applyAfter(result: void): void {
@@ -695,7 +695,7 @@ export class GamblingHall extends ActivePower<Denizen> {
 // ------------------ BEAST ------------------- //
 export class Bracken extends AccessedActionModifier<Denizen> {
     name = "Bracken"
-    static modifiedAction = SearchAction;
+    modifiedAction = SearchAction;
     action: SearchAction;
 
     applyDuring(): void {
@@ -706,7 +706,7 @@ export class Bracken extends AccessedActionModifier<Denizen> {
 
 export class InsectSwarmAttack extends EnemyActionModifier<Denizen> {
     name = "Insect Swarm";
-    static modifiedAction = CampaignAtttackAction;
+    modifiedAction = CampaignAtttackAction;
     action: CampaignAtttackAction;
     mustUse = true;
 
@@ -718,7 +718,7 @@ export class InsectSwarmAttack extends EnemyActionModifier<Denizen> {
 }
 export class InsectSwarmDefense extends EnemyActionModifier<Denizen> {
     name = "Insect Swarm";
-    static modifiedAction = CampaignDefenseAction;
+    modifiedAction = CampaignDefenseAction;
     action: CampaignDefenseAction;
     mustUse = true;
 
@@ -741,7 +741,7 @@ export class ThreateningRoar extends WhenPlayed<Denizen> {
 
 export class VowOfPoverty extends AccessedActionModifier<Denizen> {
     name = "Vow of Poverty";
-    static modifiedAction = TradeAction;
+    modifiedAction = TradeAction;
     action: TradeAction;
     mustUse = true;
 
@@ -771,7 +771,7 @@ export class PiedPiperActive extends ActivePower<Denizen> {
 
 export class SmallFriends extends AccessedActionModifier<Denizen> {
     name = "Small Friends"
-    static modifiedAction = TradeAction;
+    modifiedAction = TradeAction;
     action: TradeAction;
 
     applyBefore(): boolean {
@@ -833,7 +833,7 @@ export abstract class SiteActionModifier extends ActionModifier<Site> {
 
 
 export abstract class HomelandSitePower extends EffectModifier<Site> {
-    static modifiedEffect = PlayWorldCardEffect;
+    modifiedEffect = PlayWorldCardEffect;
     effect: PlayWorldCardEffect;
     abstract suit: OathSuit;
 
@@ -903,13 +903,13 @@ export class DeepWoods extends HomelandSitePower {
 
 export class CoastalSite extends SiteActionModifier {
     name = "Coastal Site";
-    static modifiedAction = TravelAction;
+    modifiedAction = TravelAction;
     action: TravelAction;
     mustUse = true;
 
     applyDuring(): void {
         for (const power of this.action.site.powers) {
-            if (power instanceof CoastalSite) {
+            if (power === CoastalSite) {
                 this.action.supplyCost = 1;
                 return;
             }
@@ -920,7 +920,7 @@ export class CoastalSite extends SiteActionModifier {
 
 export class CharmingValley extends SiteActionModifier {
     name = "Charming Valley";
-    static modifiedAction = TravelAction;
+    modifiedAction = TravelAction;
     action: TravelAction;
     mustUse = true;
 
@@ -932,7 +932,7 @@ export class CharmingValley extends SiteActionModifier {
 
 export class ResourceSite extends SiteActionModifier {
     name = "Resource Site";
-    static modifiedAction = WakeAction;
+    modifiedAction = WakeAction;
     action: WakeAction;
 
     applyBefore(): boolean {
@@ -948,7 +948,7 @@ export class ResourceSite extends SiteActionModifier {
 //////////////////////////////////////////////////
 export class CupOfPlenty extends AccessedActionModifier<Relic> {
     name = "Cup of Plenty"
-    static modifiedAction = TradeAction;
+    modifiedAction = TradeAction;
     action: TradeAction;
 
     applyDuring(): void {
@@ -967,7 +967,7 @@ function circletOfCommandCheckOwnable(source: Relic, target: OwnableObject, by: 
 }
 export class CircletOfCommand extends EnemyEffectModifier<Relic> {
     name = "Circlet of Command";
-    static modifiedEffect = TakeOwnableObjectEffect;
+    modifiedEffect = TakeOwnableObjectEffect;
     effect: TakeOwnableObjectEffect
 
     applyDuring(): void {
@@ -976,7 +976,7 @@ export class CircletOfCommand extends EnemyEffectModifier<Relic> {
 }
 export class CircletOfCommandCampaign extends EnemyActionModifier<Relic> {
     name = "Circlet of Command";
-    static modifiedAction = CampaignAtttackAction;
+    modifiedAction = CampaignAtttackAction;
     action: CampaignAtttackAction;
     
     applyDuring(): void {
@@ -990,7 +990,7 @@ export class CircletOfCommandCampaign extends EnemyActionModifier<Relic> {
 
 export class DragonskinWardrum extends AccessedEffectModifier<Relic> {
     name = "Dragonskin Wardrum"
-    static modifiedEffect = TravelEffect;
+    modifiedEffect = TravelEffect;
     effect: TravelEffect;
 
     applyAfter(result: void): void {
@@ -1001,7 +1001,7 @@ export class DragonskinWardrum extends AccessedEffectModifier<Relic> {
 
 export class BookOfRecords extends AccessedEffectModifier<Relic> {
     name = "Book of Records";
-    static modifiedEffect = PlayDenizenAtSiteEffect;
+    modifiedEffect = PlayDenizenAtSiteEffect;
     effect: PlayDenizenAtSiteEffect;
 
     applyDuring(): void {
@@ -1023,7 +1023,7 @@ export abstract class BannerActionModifier<T extends Banner> extends ActionModif
 
 export class PeoplesFavorSearch extends BannerActionModifier<PeoplesFavor> {
     name = "People's Favor";
-    static modifiedAction = SearchPlayAction;
+    modifiedAction = SearchPlayAction;
     action: SearchPlayAction;
     mustUse = true;  // Not strictly true, but it involves a choice either way, so it's better to always include it
 
@@ -1038,7 +1038,7 @@ export class PeoplesFavorSearch extends BannerActionModifier<PeoplesFavor> {
 }
 export class PeoplesFavorWake extends BannerActionModifier<PeoplesFavor> {
     name = "People's Favor";
-    static modifiedAction = WakeAction;
+    modifiedAction = WakeAction;
     action: WakeAction;
     mustUse = true;
 
@@ -1055,7 +1055,7 @@ export class PeoplesFavorWake extends BannerActionModifier<PeoplesFavor> {
 
 export class DarkestSecretPower extends BannerActionModifier<DarkestSecret> {
     name = "Darkest Secret";
-    static modifiedAction = SearchAction;
+    modifiedAction = SearchAction;
     action: SearchAction;
     mustUse = true;
 
@@ -1079,7 +1079,7 @@ export abstract class ReliquaryModifier extends ActionModifier<Reliquary> {
 
 export class Brutal extends ReliquaryModifier {
     name = "Brutal";
-    static modifiedAction = CampaignAtttackAction;
+    modifiedAction = CampaignAtttackAction;
     action: CampaignAtttackAction;
 
     applyDuring() {
@@ -1090,7 +1090,7 @@ export class Brutal extends ReliquaryModifier {
 
 export class Greedy extends ReliquaryModifier {
     name = "Greedy";
-    static modifiedAction = SearchAction;
+    modifiedAction = SearchAction;
     action: SearchAction;
 
     applyDuring(): void {
@@ -1101,7 +1101,7 @@ export class Greedy extends ReliquaryModifier {
 
 export class Careless extends ReliquaryModifier {
     name = "Careless";
-    static modifiedAction = TradeAction;
+    modifiedAction = TradeAction;
     action: TradeAction;
 
     applyDuring(): void {
@@ -1112,7 +1112,7 @@ export class Careless extends ReliquaryModifier {
 
 export class Decadent extends ReliquaryModifier {
     name = "Decadent";
-    static modifiedAction = TravelAction;
+    modifiedAction = TravelAction;
     action: TravelAction;
 
     applyDuring(): void {

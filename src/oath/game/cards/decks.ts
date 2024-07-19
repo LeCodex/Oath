@@ -6,7 +6,7 @@ export class CardDeck<T extends OathCard> extends OathGameObject {
     cards: T[] = [];
 
     putCard(card: T, onBottom: boolean = false) {
-        card.hide();
+        if (!card.facedown) card.hide();
 
         if (!this.cards.includes(card))
             if (onBottom) this.cards.push(card); else this.cards.unshift(card);
@@ -41,7 +41,7 @@ export abstract class SearchableDeck extends CardDeck<WorldCard> {
 
     putCard(card: WorldCard, onBottom?: boolean): void {
         card.setOwner(undefined);
-        card.returnResources();
+        if (!card.empty) card.returnResources();
         super.putCard(card, onBottom);
     }
 }

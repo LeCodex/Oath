@@ -24,47 +24,56 @@ export class OathActionManager extends OathGameObject {
     noReturn: boolean = false;
 
     checkForNextAction(): object {
-        for (const action of this.futureActionsList) new AddActionToStackEffect(action).do();
-        this.futureActionsList.length = 0;
+        try {
+            for (const action of this.futureActionsList) new AddActionToStackEffect(action).do();
+            this.futureActionsList.length = 0;
 
-        if (!this.actionStack.length) this.game.checkForOathkeeper();
-        let action: OathAction | undefined = this.actionStack[this.actionStack.length - 1];
+            if (!this.actionStack.length) this.game.checkForOathkeeper();
+            let action = this.actionStack[this.actionStack.length - 1];
 
-        let values = action?.start();
-        if (values) {
-            action?.applyParameters(values);
-            return this.resolveTopAction();
-        }
+            let values = action?.start();
+            if (values) {
+                action?.applyParameters(values);
+                return this.resolveTopAction();
+            }
         
-        if (this.noReturn) {
-            this.currentEffectsStack.length = 0;
-            this.pastEffectsStack.length = 0;
+            if (this.noReturn) {
+                this.currentEffectsStack.length = 0;
+                this.pastEffectsStack.length = 0;
+            }
+            this.noReturn = false;
+            
+            const returnData = {
+                activeAction: action && {
+                    type: action.constructor.name,
+                    selects: Object.fromEntries(Object.entries(action.selects).map(([k, v]) => { return [k, { choices: [...v.choices.keys()], min: v.min, max: v.max }] }))
+                },
+                appliedEffects: this.currentEffectsStack.map(e => e.constructor.name),
+                cancelledEffects: this.cancelledEffects.map(e => e.constructor.name),
+                game: {}    // TODO: Make visitor that gets the global game state
+            }
+            this.cancelledEffects.length = 0;
+            return returnData;
+        } catch (e) {
+            this.revert();
+            throw e;
         }
-        this.noReturn = false;
-
-        const returnData = {
-            stack: [...this.actionStack],
-            cancelledEffects: [...this.cancelledEffects],
-            game: {}  // TODO: Make visitor that gets the global game state
-        }
-        this.cancelledEffects.length = 0;
-        return returnData;
     }
     
     continueAction(by: number, values: Record<string, string[]>): object {
-        const actionPlayer = this.actionStack[this.actionStack.length-1].player;
-        if (actionPlayer !== this.game.players[by]) throw new InvalidActionResolution(`Action cannot be resolved by player ${by}.`)
-
         const action = this.actionStack[this.actionStack.length - 1];
-        if (!action)
-            throw new InvalidActionResolution("No action to continue");
-    
+        if (!action) throw new InvalidActionResolution("No action to continue");
+        
+        const player = this.game.players[by];
+        if (action.player.original !== player) throw new InvalidActionResolution(`Action must be resolved by ${action.player.name}, not ${player.name}`)
+            
         if (this.currentEffectsStack.length) {
             this.pastEffectsStack.push([...this.currentEffectsStack]);
             this.currentEffectsStack.length = 0;
         }
-    
-        action.applyParameters(values);
+        
+        const parsed = action.parse(values);
+        action.applyParameters(parsed);
         return this.resolveTopAction();
     }
     
@@ -126,19 +135,19 @@ export class SelectNOf<T> {
 
         if (max === undefined) max = min == -1 ? Infinity : min;
         if (min > max) throw Error("Min is above max");
-        if (this.choices.size < min && exact) throw Error("Not enough choices");
+        if (this.choices.size < min && exact) throw new InvalidActionResolution("Not enough choices");
 
         this.min = min;
         this.max = max;
     }
 
-    parse(input: Iterable<string>): T[] | undefined {
-        const values = new Set<T>();  // TODO: For now, duplicate values are not allowed
+    parse(input: Iterable<string>): T[] {
+        const values = new Set<T>();
         for (const val of input) {
             const obj = this.choices.get(val);
             if (obj) values.add(obj);
         }
-        if (values.size < this.min || values.size > this.max) return undefined;
+        if (values.size < this.min || values.size > this.max) throw new InvalidActionResolution(`Invalid number of values for select`);
 
         return [...values];
     }
@@ -183,12 +192,11 @@ export abstract class OathAction extends OathGameObject {
         this.game.original.actionManager.futureActionsList.unshift(this);
     }
 
-    parse(data: Record<string, string[]>): Record<string, any[]> | undefined {
+    parse(data: Record<string, string[]>): Record<string, any[]> {
         const values: Record<string, any[]> = {};
         for (const [k, select] of Object.entries(this.selects)) {
-            if (!(k in data)) return undefined;
+            if (!(k in data)) throw new InvalidActionResolution(`${k} is not a valid select`);
             const value = select.parse(data[k]);
-            if (!value) return undefined;
             values[k] = value;
         }
 
@@ -202,8 +210,7 @@ export abstract class OathAction extends OathGameObject {
     }
 
     start(): Record<string, string[]> | undefined {
-        // Setup the selects here
-
+        // NOTE: Setup the selects before
         const values: Record<string, string[]> = {};
         if (this.autocompleteSelects) {
             for (const [key, select] of Object.entries(this.selects)) {
@@ -236,7 +243,7 @@ export class ChooseModifiers extends OathAction {
 
     start() {
         const choices = new Map<string, ActionModifier<any>>();
-        for (const modifier of ChooseModifiers.gatherModifiers(this.game, this.next)) {
+        for (const modifier of ChooseModifiers.gatherModifiers(this.next)) {
             if (modifier.mustUse)
                 this.parameters.modifiers.push(modifier);
             else
@@ -244,18 +251,17 @@ export class ChooseModifiers extends OathAction {
         }
         this.selects.modifiers = new SelectNOf(choices);
 
-        for (const modifier of choices.values())
-            modifier.applyImmediately([...choices.values()])
+        for (const modifier of choices.values()) modifier.applyImmediately([...choices.values()]);
 
         return super.start();
     }
 
-    static gatherModifiers(game: OathGame, action: ModifiableAction): ActionModifier<any>[] {
+    static gatherModifiers(action: ModifiableAction): ActionModifier<any>[] {
         const instances: ActionModifier<any>[] = [];
 
-        for (const [source, modifier] of game.getPowers(ActionModifier<any>)) {
-            if (!(action.constructor === modifier)) continue;
+        for (const [source, modifier] of action.game.getPowers(ActionModifier<any>)) {
             const instance = new modifier(source, action);
+            if (!(action instanceof instance.modifiedAction)) continue;
             if (instance.canUse()) instances.push(instance);
         };
 
@@ -264,7 +270,7 @@ export class ChooseModifiers extends OathAction {
 
     execute() {
         const modifiers = this.parameters.modifiers;
-        if (!this.executeImmediately) this.next.doNext();
+        if (!this.executeImmediately) this.next.doNextWithoutModifiers();
         if (!this.next.applyModifiers(modifiers)) return;
         if (this.executeImmediately) this.next.execute();
     }
@@ -830,7 +836,7 @@ export class CampaignAtttackAction extends ModifiableAction {
 
         // Bandits use all battle plans that are free
         const modifiers: ActionModifier<any>[] = [];
-        for (const modifier of ChooseModifiers.gatherModifiers(this.game, this)) {
+        for (const modifier of ChooseModifiers.gatherModifiers(this)) {
             if (modifier.mustUse || modifier.cost.free)
                 modifiers.push(modifier);
         };

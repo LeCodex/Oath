@@ -20,8 +20,8 @@ export abstract class OathEffect<T> extends OathGameObject {
     readonly playerColor: PlayerColor | undefined;
     modifiers: EffectModifier<any>[] = [];
 
-    constructor(game: OathGame, player: OathPlayer | undefined) {
-        super(getCopyWithOriginal(game));
+    constructor(game: OathGame, player: OathPlayer | undefined, dontCopyGame: boolean = false) {
+        super(dontCopyGame ? game : getCopyWithOriginal(game));
         this.playerColor = player?.color;
     }
 
@@ -41,7 +41,7 @@ export abstract class OathEffect<T> extends OathGameObject {
     applyModifiers() {
         for (const [source, modifier] of this.game.getPowers(EffectModifier<any>)) {
             const instance = new modifier(source, this);
-            if (instance.canUse()) {  // All Effect Modifiers are must-use
+            if (this instanceof instance.modifiedEffect && instance.canUse()) {  // All Effect Modifiers are must-use
                 this.modifiers.push(instance);
                 instance.applyDuring();
             }
@@ -75,7 +75,7 @@ export class AddActionToStackEffect extends OathEffect<void> {
     action: OathAction;
 
     constructor(action: OathAction) {
-        super(action.game, undefined);
+        super(action.game, undefined, true);
         this.action = action;
     }
 
@@ -92,7 +92,7 @@ export class PopActionFromStackEffect extends OathEffect<OathAction | undefined>
     action?: OathAction;
 
     constructor(game: OathGame) {
-        super(game, undefined);
+        super(game, undefined, true);
     }
     
     resolve(): OathAction | undefined {

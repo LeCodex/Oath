@@ -1,4 +1,4 @@
-import { Site } from "./cards/cards";
+import { Denizen, Site } from "./cards/cards";
 import { Discard } from "./cards/decks";
 import { RegionName } from "./enums";
 import { OathGame } from "./game";
@@ -6,7 +6,11 @@ import { OathGameObject } from "./gameObject";
 
 
 export class OathBoard extends OathGameObject {
-    travelCosts: Map<RegionName, Map<RegionName, number>>;
+    travelCosts = new Map<RegionName, Map<RegionName, number>>([
+        [RegionName.Cradle, new Map([[RegionName.Cradle, 1], [RegionName.Provinces, 2], [RegionName.Hinterland, 4]])],
+        [RegionName.Provinces, new Map([[RegionName.Cradle, 2], [RegionName.Provinces, 2], [RegionName.Hinterland, 2]])],
+        [RegionName.Hinterland, new Map([[RegionName.Cradle, 4], [RegionName.Provinces, 2], [RegionName.Hinterland, 3]])],
+    ]);
     nextRegionName = new Map<RegionName, RegionName>([
         [RegionName.Cradle, RegionName.Provinces],
         [RegionName.Provinces, RegionName.Hinterland],
@@ -49,7 +53,18 @@ export class Region extends OathGameObject {
             const site = this.game.siteDeck.drawSingleCard();
             if (!site) return;
             this.sites.push(site);
-            if (i == 0) site.reveal();
+            if (i == 0) {
+                site.reveal();
+                while (true) {
+                    const card = this.game.worldDeck.drawSingleCard();
+                    if (!card || card instanceof Denizen) {
+                        card?.reveal();
+                        card?.putAtSite(site);
+                        break;
+                    }
+                    this.game.worldDeck.putCard(card, true);
+                }
+            }
         }
     }
 }
