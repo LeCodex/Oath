@@ -83,11 +83,10 @@ export class OathActionManager extends OathGameObject {
     
         try {
             action.execute();
+            return this.checkForNextAction();
         } catch (e) {
             this.revert();
             throw e;
-        } finally {
-            return this.checkForNextAction();
         }
     }
     
@@ -195,9 +194,8 @@ export abstract class OathAction extends OathGameObject {
     parse(data: Record<string, string[]>): Record<string, any[]> {
         const values: Record<string, any[]> = {};
         for (const [k, select] of Object.entries(this.selects)) {
-            if (!(k in data)) throw new InvalidActionResolution(`${k} is not a valid select`);
-            const value = select.parse(data[k]);
-            values[k] = value;
+            if (!(k in data)) throw new InvalidActionResolution(`Missing choice for select ${k}`);
+            values[k] = select.parse(data[k]);
         }
 
         return values;
@@ -330,7 +328,7 @@ export abstract class MajorAction extends ModifiableAction {
 ////////////////////////////////////////////
 export class MusterAction extends MajorAction {
     readonly selects: { card: SelectNOf<Denizen> };
-    readonly parameters: { modifiers: ActionModifier<any>[], cards: Denizen[] };
+    readonly parameters: { modifiers: ActionModifier<any>[], card: Denizen[] };
 
     supplyCost = 1;
     card: Denizen;
@@ -346,7 +344,7 @@ export class MusterAction extends MajorAction {
     }
 
     execute() {
-        this.card = this.parameters.cards[0];
+        this.card = this.parameters.card[0];
         super.execute();
     }
 
@@ -362,7 +360,7 @@ export class MusterAction extends MajorAction {
 
 export class TradeAction extends MajorAction {
     readonly selects: { card: SelectNOf<Denizen>, forFavor: SelectBoolean };
-    readonly parameters: { modifiers: ActionModifier<any>[], cards: Denizen[], forFavor: boolean };
+    readonly parameters: { modifiers: ActionModifier<any>[], card: Denizen[], forFavor: boolean[] };
 
     supplyCost = 1;
     card: Denizen;
@@ -379,8 +377,8 @@ export class TradeAction extends MajorAction {
     }
 
     execute() {
-        this.card = this.parameters.cards[0];
-        this.forFavor = this.parameters.forFavor;
+        this.card = this.parameters.card[0];
+        this.forFavor = this.parameters.forFavor[0];
         this.paying = new Map([[this.forFavor ? OathResource.Secret : OathResource.Favor, this.forFavor ? 1 : 2]]);
         this.getting = new Map([[this.forFavor ? OathResource.Favor : OathResource.Secret, (this.forFavor ? 1 : 0) + this.player.adviserSuitCount(this.card.suit)]]);;
         super.execute();
@@ -400,7 +398,7 @@ export class TradeAction extends MajorAction {
 
 export class TravelAction extends MajorAction {
     readonly selects: { site: SelectNOf<Site> };
-    readonly parameters: { modifiers: ActionModifier<any>[], sites: Site[] };
+    readonly parameters: { modifiers: ActionModifier<any>[], site: Site[] };
 
     site: Site;
 
@@ -413,7 +411,7 @@ export class TravelAction extends MajorAction {
     }
 
     execute() {
-        this.site = this.parameters.sites[0];
+        this.site = this.parameters.site[0];
         this.supplyCost = this.game.board.travelCosts.get(this.player.site.region.regionName)?.get(this.site.region.regionName) || 2;
         super.execute();
     }
@@ -432,7 +430,7 @@ export interface RecoverActionTarget {
 
 export class RecoverAction extends MajorAction {
     readonly selects: { target: SelectNOf<RecoverActionTarget> };
-    readonly parameters: { modifiers: ActionModifier<any>[], targets: RecoverActionTarget[] };
+    readonly parameters: { modifiers: ActionModifier<any>[], target: RecoverActionTarget[] };
     
     supplyCost = 1;
     target: RecoverActionTarget;
@@ -446,7 +444,7 @@ export class RecoverAction extends MajorAction {
     }
 
     execute() {
-        this.target = this.parameters.targets[0];
+        this.target = this.parameters.target[0];
         super.execute();
     }
 
@@ -482,7 +480,7 @@ export class RecoverBannerPitchAction extends OathAction {
 
 export class SearchAction extends MajorAction {
     readonly selects: { deck: SelectNOf<SearchableDeck> };
-    readonly parameters: { modifiers: ActionModifier<any>[], decks: SearchableDeck[] };
+    readonly parameters: { modifiers: ActionModifier<any>[], deck: SearchableDeck[] };
 
     deck: SearchableDeck;
     amount = 3;
@@ -498,7 +496,7 @@ export class SearchAction extends MajorAction {
     }
 
     execute() {
-        this.deck = this.parameters.decks[0];
+        this.deck = this.parameters.deck[0];
         this.supplyCost = this.deck.searchCost;
         super.execute();
     }
@@ -598,7 +596,7 @@ export class SearchDiscardAction extends ModifiableAction {
 
 export class SearchPlayAction extends ModifiableAction {
     readonly selects: { site: SelectNOf<Site | undefined>, facedown: SelectBoolean }
-    readonly parameters: { modifiers: ActionModifier<any>[], sites: (Site | undefined)[], facedown: boolean[] }
+    readonly parameters: { modifiers: ActionModifier<any>[], site: (Site | undefined)[], facedown: boolean[] }
     
     card: WorldCard;
     site: Site | undefined;
@@ -623,7 +621,7 @@ export class SearchPlayAction extends ModifiableAction {
     }
 
     execute() {
-        this.site = this.parameters.sites[0];
+        this.site = this.parameters.site[0];
         this.facedown = this.parameters.facedown[0];
         this.canReplace = this.site === undefined;
         super.execute();
@@ -743,7 +741,7 @@ export class PeoplesFavorDiscardAction extends OathAction {
 
 export class CampaignAction extends MajorAction {
     readonly selects: { defender: SelectNOf<OathPlayer | undefined> };
-    readonly parameters: { modifiers: ActionModifier<any>[], defenders: (OathPlayer | undefined)[] };
+    readonly parameters: { modifiers: ActionModifier<any>[], defender: (OathPlayer | undefined)[] };
     
     supplyCost = 2;
     defender: OathPlayer | undefined;
@@ -757,7 +755,7 @@ export class CampaignAction extends MajorAction {
     }
 
     execute() {
-        this.defender = this.parameters.defenders[0];
+        this.defender = this.parameters.defender[0];
         super.execute();
     }
 
@@ -776,7 +774,7 @@ export interface CampaignActionTarget {
 
 export class CampaignAtttackAction extends ModifiableAction {
     readonly selects: { targets: SelectNOf<CampaignActionTarget>, pool: SelectNumber };
-    readonly parameters: { modifiers: ActionModifier<any>[], targets: CampaignActionTarget[], pool: number };
+    readonly parameters: { modifiers: ActionModifier<any>[], targets: CampaignActionTarget[], pool: number[] };
     readonly next: CampaignDefenseAction;
 
     constructor(player: OathPlayer, defender: OathPlayer | undefined) {
@@ -819,7 +817,7 @@ export class CampaignAtttackAction extends ModifiableAction {
 
     execute() {
         this.campaignResult.targets = this.parameters.targets;
-        this.campaignResult.atkPool = this.parameters.pool;
+        this.campaignResult.atkPool = this.parameters.pool[0];
         this.campaignResult.defPool = 0;
         for (const target of this.parameters.targets) this.campaignResult.defPool += target.defense;
 
@@ -865,7 +863,7 @@ export class CampaignDefenseAction extends ModifiableAction {
             return;
         };
 
-        this.next.parameters.doSacrifice = false;
+        this.next.parameters.doSacrifice = [false];
         this.next.doNext(true);
     }
 
@@ -966,7 +964,7 @@ class CampaignResult extends OathGameObject {
 
 export class CampaignEndAction extends ModifiableAction {
     readonly selects: { doSacrifice: SelectBoolean };
-    readonly parameters: { modifiers: ActionModifier<any>[], doSacrifice: boolean };
+    readonly parameters: { modifiers: ActionModifier<any>[], doSacrifice: boolean[] };
     
     campaignResult = new CampaignResult(this.game);
     doSacrifice: boolean
@@ -977,7 +975,7 @@ export class CampaignEndAction extends ModifiableAction {
     }
 
     execute() {
-        this.doSacrifice = this.parameters.doSacrifice;
+        this.doSacrifice = this.parameters.doSacrifice[0];
         super.execute();
     }
 
@@ -1003,7 +1001,7 @@ export class CampaignEndAction extends ModifiableAction {
 
 export class CampaignSeizeSiteAction extends OathAction {
     readonly selects: { amount: SelectNumber };
-    readonly parameters: { amount: number };
+    readonly parameters: { amount: number[] };
     
     site: Site;
 
@@ -1020,7 +1018,7 @@ export class CampaignSeizeSiteAction extends OathAction {
     }
 
     execute() {
-        new MoveOwnWarbandsEffect(this.player, this.player, this.site, this.parameters.amount).do();
+        new MoveOwnWarbandsEffect(this.player, this.player, this.site, this.parameters.amount[0]).do();
     }
 }
 
