@@ -885,7 +885,7 @@ export class CampaignDefenseAction extends ModifiableAction {
     }
 }
 
-class CampaignResult extends OathGameObject {
+export class CampaignResult extends OathGameObject {
     attacker: OathPlayer;
     defender: OathPlayer | undefined;
     targets: CampaignActionTarget[];
@@ -907,7 +907,7 @@ class CampaignResult extends OathGameObject {
 
     attackerLoss: number;
     defenderLoss: number;
-    discardAtEnd = new Set<Denizen>();
+    endEffects: OathEffect<any>[] = [];
 
     get atk() { 
         return AttackDie.getResult(this.atkRoll);
@@ -919,10 +919,15 @@ class CampaignResult extends OathGameObject {
     get requiredSacrifice() { return this.def - this.atk + 1; }
     get couldSacrifice() { return this.requiredSacrifice > 0 && this.requiredSacrifice < this.atkForce - AttackDie.getSkulls(this.atkRoll); }
 
-    get winner() { return this.successful ? this.attacker : this.defender }
-    get loser() { return this.successful ? this.defender : this.attacker }
-    get loserKillsNoWarbands() { return this.successful ? this.defenderKillsNoWarbands : this.attackerKillsNoWarbands }
-    get loserKillsEntireForce() { return this.successful ? this.defenderKillsEntireForce : this.attackerKillsEntireForce }
+    get winner() { return this.successful ? this.attacker : this.defender; }
+    get loser() { return this.successful ? this.defender : this.attacker; }
+    get loserKillsNoWarbands() { return this.successful ? this.defenderKillsNoWarbands : this.attackerKillsNoWarbands; }
+    get loserKillsEntireForce() { return this.successful ? this.defenderKillsEntireForce : this.attackerKillsEntireForce; }
+    get loserLoss() { return this.successful ? this.defenderLoss : this.attackerLoss; }
+
+    discardAtEnd(denizen: Denizen) {
+        this.endEffects.push(new DiscardCardEffect(denizen.ruler || this.attacker, denizen));
+    }
 
     resolveAtkForce() {
         this.atkForce = this.attacker.totalWarbands;
@@ -1007,8 +1012,8 @@ export class CampaignEndAction extends ModifiableAction {
         if (this.campaignResult.loser && !this.campaignResult.ignoreKilling && !this.campaignResult.loserKillsNoWarbands)
             this.campaignResult.loserKills(Math.floor(this.campaignResult.loser.totalWarbands / (this.campaignResult.loserKillsEntireForce ? 1 : 2)));
 
-        for (const denizen of this.campaignResult.discardAtEnd)
-            new DiscardCardEffect(denizen.ruler || this.campaignResult.attacker, denizen).do();
+        for (const effect of this.campaignResult.endEffects)
+            effect.do();
     }
 }
 
@@ -1080,8 +1085,9 @@ export class RestAction extends ModifiableAction {
 export class UsePowerAction extends ModifiableAction {
     readonly selects: { power: SelectNOf<ActivePower<any>> }
     readonly parameters: { power: ActivePower<any>[] };
+    readonly autocompleteSelects = false;
 
-    power: ActivePower<any>
+    power: ActivePower<any>;
 
     start() {
         const choices = new Map<string, ActivePower<any>>();
@@ -1089,7 +1095,13 @@ export class UsePowerAction extends ModifiableAction {
             const instance = new power(source, this);
             if (instance.canUse()) choices.set(instance.name, instance);
         }
+        this.selects.power = new SelectNOf(choices, 1);
         return super.start();
+    }
+
+    execute(): void {
+        this.power = this.parameters.power[0];
+        super.execute();
     }
 
     modifiedExecution(): void {

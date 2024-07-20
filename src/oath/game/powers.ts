@@ -2,7 +2,7 @@ import { CampaignAtttackAction, CampaignDefenseAction, InvalidActionResolution, 
 import { Conspiracy, Denizen, OwnableCard, Relic, Site, Vision, WorldCard } from "./cards/cards";
 import { BannerName, OathResource, OathSuit, RegionName } from "./enums";
 import { Banner, DarkestSecret, PeoplesFavor, ResourceCost } from "./resources";
-import { MoveResourcesToTargetEffect, OathEffect, PayCostToTargetEffect, PlayDenizenAtSiteEffect, PlayVisionEffect, PlayWorldCardEffect, PutResourcesOnTargetEffect, PutWarbandsFromBagEffect, RegionDiscardEffect, RollDiceEffect, SetNewOathkeeperEffect, TakeOwnableObjectEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect } from "./effects";
+import { CursedCauldronResolutionEffect, DiscardCardEffect, MoveResourcesToTargetEffect, OathEffect, PayCostToTargetEffect, PlayDenizenAtSiteEffect, PlayVisionEffect, PlayWorldCardEffect, PutResourcesOnTargetEffect, PutWarbandsFromBagEffect, RegionDiscardEffect, RollDiceEffect, SetNewOathkeeperEffect, TakeOwnableObjectEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect } from "./effects";
 import { OathPlayer, OwnableObject, Reliquary, isOwnable } from "./player";
 import { OathGameObject } from "./gameObject";
 import { AbstractConstructor } from "./utils";
@@ -375,7 +375,7 @@ export class HeartsAndMinds extends DefenderBattlePlan<Denizen> {
         this.action.next.doNext();
 
         if (this.action.game.banners.get(BannerName.PeoplesFavor)?.owner !== this.action.player)
-            this.action.campaignResult.discardAtEnd.add(this.source);
+            this.action.campaignResult.discardAtEnd(this.source);
 
         return false;
     }
@@ -1010,6 +1010,25 @@ export class BookOfRecords extends AccessedEffectModifier<Relic> {
     applyDuring(): void {
         this.effect.getting.set(OathResource.Secret, this.effect.getting.get(OathResource.Favor) || 0);
         this.effect.getting.delete(OathResource.Favor);
+    }
+}
+
+
+export class CursedCauldronAttack extends AttackerBattlePlan<Relic> {
+    name = "Cursed Cauldron";
+
+    applyDuring(): void {
+        if (!this.source.ruler) return;
+        this.action.campaignResult.endEffects.push(new CursedCauldronResolutionEffect(this.source.ruler, this.action.campaignResult));
+    }
+}
+
+export class CursedCauldronDefense extends DefenderBattlePlan<Relic> {
+    name = "Cursed Cauldron";
+
+    applyDuring(): void {
+        if (!this.source.ruler) return;
+        this.action.campaignResult.endEffects.push(new CursedCauldronResolutionEffect(this.source.ruler, this.action.campaignResult));
     }
 }
 

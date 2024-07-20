@@ -6,7 +6,7 @@ import { PeoplesFavor, ResourceBank, ResourceCost, ResourcesAndWarbands } from "
 import { OwnableObject } from "./player";
 import { OathGame } from "./game";
 import { OathGameObject } from "./gameObject";
-import { InvalidActionResolution, OathAction, SearchDiscardAction, SearchDiscardOptions, SearchPlayAction } from "./actions";
+import { CampaignEndAction, CampaignResult, InvalidActionResolution, OathAction, SearchDiscardAction, SearchDiscardOptions, SearchPlayAction } from "./actions";
 import { CardDeck } from "./cards/decks";
 import { getCopyWithOriginal, isExtended } from "./utils";
 import { Die } from "./dice";
@@ -60,8 +60,8 @@ export abstract class OathEffect<T> extends OathGameObject {
 export abstract class PlayerEffect<T> extends OathEffect<T> {
     readonly playerColor: PlayerColor;
 
-    constructor(player: OathPlayer) {
-        super(player.game, player);
+    constructor(player: OathPlayer, dontCopyGame: boolean = false) {
+        super(player.game, player, dontCopyGame);
     }
 
     get player() { return this.game.players[this.playerColor]; }
@@ -862,5 +862,24 @@ export class GainSupplyEffect extends PlayerEffect<void> {
 
     revert(): void {
         this.player.original.supply -= this.amount;
+    }
+}
+
+export class CursedCauldronResolutionEffect extends PlayerEffect<void> {
+    name = "Cursed Cauldron";
+    result: CampaignResult;
+
+    constructor(player: OathPlayer, result: CampaignResult) {
+        super(player, false);  // Don't copy, because it's part of the campaign chain
+        this.result = result;
+    }
+
+    resolve(): void {
+        if (this.result.winner?.original === this.player.original)
+            new PutWarbandsFromBagEffect(this.result.winner, this.result.loserLoss).do();
+    }
+
+    revert(): void {
+        // Doesn't do anything on its own
     }
 }

@@ -53,6 +53,7 @@ export class OathGame extends CopiableWithOriginal {
         this.relicDeck.shuffle();
 
         for (const data of Object.values(sitesData)) this.siteDeck.putCard(new Site(this, ...data));
+        this.siteDeck.shuffle();
 
         this.board = new OathBoard(this);
 
