@@ -78,6 +78,8 @@ export abstract class ActionModifier<T extends OathGameObject> extends ActionPow
 }
 
 export abstract class EnemyActionModifier<T extends OwnableCard> extends ActionModifier<T> {
+    mustUse = true;
+
     canUse(): boolean {
         return this.source.ruler === undefined || this.source.ruler.enemyWith(this.action.player);
     }
@@ -135,6 +137,8 @@ export abstract class EffectModifier<T extends OathGameObject> extends OathPower
 }
 
 export abstract class EnemyEffectModifier<T extends OwnableCard> extends EffectModifier<T> {
+    mustUse = true;
+    
     canUse(): boolean {
         return this.source.ruler === undefined || this.source.ruler.enemyWith(this.effect.player);
     }

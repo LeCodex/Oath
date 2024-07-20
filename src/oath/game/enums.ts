@@ -14,7 +14,7 @@ export enum OathSuit {
     Hearth,
     Beast,
     Nomad,
-    None
+    None = -1
 }
 
 export const OathSuitName = {

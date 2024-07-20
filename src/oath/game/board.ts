@@ -1,6 +1,6 @@
-import { Denizen, Site } from "./cards/cards";
+import { Denizen, Site, WorldCard } from "./cards/cards";
 import { Discard } from "./cards/decks";
-import { RegionName } from "./enums";
+import { CardRestriction, RegionName } from "./enums";
 import { OathGame } from "./game";
 import { OathGameObject } from "./gameObject";
 
@@ -60,16 +60,26 @@ export class Region extends OathGameObject {
             const site = this.game.siteDeck.drawSingleCard();
             if (!site) return;
             this.sites.push(site);
+            
             if (i == 0) {
                 site.reveal();
+                const cards: WorldCard[] = [];
                 while (true) {
-                    const card = this.game.worldDeck.drawSingleCard();
-                    if (!card || card instanceof Denizen) {
-                        card?.reveal();
-                        card?.putAtSite(site);
+                    const card = this.game.worldDeck.drawSingleCard(true);
+                    if (!card) break;
+                    
+                    if (card instanceof Denizen && card.restriction !== CardRestriction.Adviser) {
+                        card.reveal();
+                        card.putAtSite(site);
                         break;
+                    } else {
+                        cards.push(card);
                     }
-                    this.game.worldDeck.putCard(card, true);
+                }
+                
+                while (cards.length) {
+                    const card = cards.pop();
+                    if (card) this.game.worldDeck.putCard(card, true);
                 }
             }
         }

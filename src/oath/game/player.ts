@@ -37,14 +37,10 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
         super(game);
         this.site = site;
         this.color = color;
-
-        this.putResources(OathResource.Favor, 1);  // TODO: Take favor from supply
-        this.putResources(OathResource.Secret, 1);
-        this.moveWarbandsFromBagOnto(this, 3);
     }
 
     get isImperial(): boolean { return false; }
-    get leader(): OathPlayer { return this.isImperial ? this : this.game.chancellor; }
+    get leader(): OathPlayer { return this.isImperial ? this.game.chancellor : this; }
     get discard(): Discard { return this.game.board.nextRegion(this.site.region).discard; }
 
     adviserSuitCount(suit: OathSuit): number {
@@ -158,7 +154,6 @@ export class Chancellor extends OathPlayer {
 
     constructor(game: OathGame, site: Site) {
         super(game, site, PlayerColor.Purple);
-        this.putResources(OathResource.Favor, 1);  // TODO: Take favor from supply
     }
 
     get isImperial(): boolean { return true; }

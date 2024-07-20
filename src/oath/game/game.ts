@@ -5,7 +5,7 @@ import { CardDeck, RelicDeck, WorldDeck } from "./cards/decks";
 import { denizenData } from "./cards/denizens";
 import { relicsData } from "./cards/relics";
 import { sitesData } from "./cards/sites";
-import { BannerName, OathType, OathPhase, OathSuit, RegionName, PlayerColor } from "./enums";
+import { BannerName, OathType, OathPhase, OathSuit, RegionName, PlayerColor, OathResource } from "./enums";
 import { Oath, OathTypeToOath } from "./oaths";
 import { Chancellor, Exile, OathPlayer } from "./player";
 import { OathPower } from "./powers";
@@ -62,6 +62,12 @@ export class OathGame extends CopiableWithOriginal {
         for (let i = 1; i < playerCount; i++) {
             this.players[i] = new Exile(this, topCradleSite, i);
             this.order.push(i);
+        }
+
+        for (const [color, player] of Object.entries(this.players)) {
+            player.putResources(OathResource.Favor, Number(color) === PlayerColor.Purple ? 2 : 1);  // TODO: Take favor from supply
+            player.putResources(OathResource.Secret, 1);
+            player.moveWarbandsFromBagOnto(player, 3);
         }
         
         // TODO: Take favor from supply
