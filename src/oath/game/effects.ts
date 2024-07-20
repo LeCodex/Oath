@@ -827,6 +827,25 @@ export class SetPeoplesFavorMobState extends OathEffect<void> {
     }
 }
 
+export class PaySupplyEffect extends PlayerEffect<boolean> {
+    amount: number;
+
+    constructor(player: OathPlayer, amount: number) {
+        super(player);
+        this.amount = amount;
+    }
+
+    resolve(): boolean {
+        if (this.player.original.supply < this.amount) return false;
+        this.player.original.supply -= this.amount;
+        return true;
+    }
+
+    revert(): void {
+        this.player.original.supply += this.amount;
+    }
+}
+
 export class GainSupplyEffect extends PlayerEffect<void> {
     amount: number;
 
@@ -836,12 +855,12 @@ export class GainSupplyEffect extends PlayerEffect<void> {
     }
 
     resolve(): void {
-        const newSupply = Math.min(7, this.player.supply + this.amount);
-        this.amount = newSupply - this.player.supply;
-        this.player.supply += this.amount;
+        const newSupply = Math.min(7, this.player.original.supply + this.amount);
+        this.amount = newSupply - this.player.original.supply;
+        this.player.original.supply += this.amount;
     }
 
     revert(): void {
-        this.player.supply -= this.amount;
+        this.player.original.supply -= this.amount;
     }
 }

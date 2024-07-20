@@ -69,6 +69,8 @@ export class OathGame extends CopiableWithOriginal {
             player.putResources(OathResource.Secret, 1);
             player.moveWarbandsFromBagOnto(player, 3);
         }
+
+        for (const region of Object.values(this.board.regions)) this.chancellor.moveWarbandsFromBagOnto(region.sites[0], 1);
         
         // TODO: Take favor from supply
         const startingAmount = playerCount < 5 ? 3 : 4;

@@ -60,7 +60,8 @@ export class Region extends OathGameObject {
             const site = this.game.siteDeck.drawSingleCard();
             if (!site) return;
             this.sites.push(site);
-            
+            site.region = this;
+
             if (i == 0) {
                 site.reveal();
                 const cards: WorldCard[] = [];
@@ -83,6 +84,9 @@ export class Region extends OathGameObject {
                 }
             }
         }
+
+        const fromBottom = this.game.worldDeck.drawSingleCard(true);
+        if (fromBottom) this.discard.putCard(fromBottom);
     }
 
     serialize(): Record<string, any> {

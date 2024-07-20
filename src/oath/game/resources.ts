@@ -15,7 +15,7 @@ export abstract class ResourceBank extends OathGameObject {
 
     constructor(game: OathGame, amount: number = 0) {
         super(game);
-        this.amount = Math.min(this.min, amount);
+        this.amount = Math.max(this.min, amount);
     }
 
     put(amount: number): number {
@@ -45,7 +45,7 @@ export abstract class ResourceBank extends OathGameObject {
 }
 
 export class FavorBank extends ResourceBank {
-    static type = OathResource.Favor;
+    type = OathResource.Favor;
 }
 
 export abstract class Banner extends ResourceBank implements OwnableObject, RecoverActionTarget, CampaignActionTarget {

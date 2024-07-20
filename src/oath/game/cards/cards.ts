@@ -63,7 +63,7 @@ export class Site extends OathCard implements CampaignActionTarget {
 
     constructor(
         game: OathGame,
-        name: string, 
+        name: string,
         powers: Iterable<Constructor<OathPower<Site>>>,
         capacity: number,
         startingRelics: number = 0,

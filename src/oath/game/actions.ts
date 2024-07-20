@@ -1,7 +1,7 @@
 import { Denizen, Relic, Site, WorldCard } from "./cards/cards";
 import { SearchableDeck } from "./cards/decks";
 import { AttackDie, DefenseDie, Die } from "./dice";
-import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect, DiscardCardEffect, MoveOwnWarbandsEffect, AddActionToStackEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect, SetNewOathkeeperEffect, SetPeoplesFavorMobState, DiscardCardGroupEffect, OathEffect, PopActionFromStackEffect } from "./effects";
+import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect, DiscardCardEffect, MoveOwnWarbandsEffect, AddActionToStackEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect, SetNewOathkeeperEffect, SetPeoplesFavorMobState, DiscardCardGroupEffect, OathEffect, PopActionFromStackEffect, PaySupplyEffect } from "./effects";
 import { OathResource, OathResourceName, OathSuit, OathSuitName, PlayerColor } from "./enums";
 import { OathGame } from "./game";
 import { OathGameObject } from "./gameObject";
@@ -42,7 +42,7 @@ export class OathActionManager extends OathGameObject {
                 this.pastEffectsStack.length = 0;
             }
             this.noReturn = false;
-            
+        
             const returnData = {
                 activeAction: action && {
                     type: action.constructor.name,
@@ -91,7 +91,7 @@ export class OathActionManager extends OathGameObject {
         }
     }
     
-    cancelAction(): object {   
+    cancelAction(): object {
         if (this.currentEffectsStack.length == 0 && this.pastEffectsStack.length == 0) {
             throw new InvalidActionResolution("Cannot roll back");
         } else {
@@ -135,17 +135,18 @@ export class SelectNOf<T> {
 
         if (max === undefined) max = min == -1 ? Infinity : min;
         if (min > max) throw Error("Min is above max");
-        if (this.choices.size < min && exact) throw new InvalidActionResolution("Not enough choices");
+        if (this.choices.size < min && exact) throw new InvalidActionResolution(`Not enough choices: ${this.choices.size} is below ${min}`);
 
-        this.min = min;
+        this.min = min === -1 ? 0: min;
         this.max = max;
     }
 
     parse(input: Iterable<string>): T[] {
         const values = new Set<T>();
         for (const val of input) {
+            if (!this.choices.has(val)) throw new InvalidActionResolution(`Invalid choice for select: ${val}`);
             const obj = this.choices.get(val);
-            if (obj) values.add(obj);
+            values.add(obj as T);  // We know the value exists, and if it's undefined, then we want that
         }
         if (values.size < this.min || values.size > this.max) throw new InvalidActionResolution(`Invalid number of values for select`);
 
@@ -246,6 +247,7 @@ export class ChooseModifiers extends OathAction {
         super(next.player, true);  // Not copying for performance reasons, since this copy should never be accessed
         this.next = next;
         this.executeImmediately = executeImmediately;
+        this.parameters.modifiers = [];
     }
 
     start() {
@@ -326,7 +328,8 @@ export abstract class MajorAction extends ModifiableAction {
     get actualSupplyCost() { return this.noSupplyCost ? 0 : this.supplyCost + this.supplyCostModifier; }
 
     modifiedExecution() {
-        if (!this.player.paySupply(this.actualSupplyCost)) throw new InvalidActionResolution(`Cannot pay Supply cost (${this.actualSupplyCost}).`);
+        if (!new PaySupplyEffect(this.player, this.actualSupplyCost).do())
+            throw new InvalidActionResolution(`Cannot pay Supply cost (${this.actualSupplyCost}).`);
     }
 }
 
@@ -540,7 +543,7 @@ export class SearchChooseAction extends ModifiableAction {
         super(player);
         this.discardOptions = discardOptions || new SearchDiscardOptions(player.discard, false);
         this.cards = new Set(cards);
-        this.playingAmount = Math.max(amount, this.cards.size);
+        this.playingAmount = Math.min(amount, this.cards.size);
     }
 
     start() {
@@ -556,49 +559,43 @@ export class SearchChooseAction extends ModifiableAction {
     }
 
     modifiedExecution(): void {
-        // The action list is FIFO
+        for (const card of this.playing) this.cards.delete(card);
         new SearchDiscardAction(this.player, this.cards, Infinity, this.discardOptions).doNext();
-
-        for (const card of this.playing.reverse()) {  // Reversing so the stack order follows the expected order
-            new SearchPlayAction(this.player, card, this.discardOptions).doNext();
-            this.cards.delete(card);
-        }
+        for (const card of this.playing) new SearchPlayAction(this.player, card, this.discardOptions).doNext();
     }
 }
 
 export class SearchDiscardAction extends ModifiableAction {
     readonly selects: { cards: SelectNOf<WorldCard> }
     readonly parameters: { modifiers: ActionModifier<any>[], cards: WorldCard[] };
+    readonly autocompleteSelects = false;
 
-    cards: WorldCard[];  // For this action, order is important
+    cards: Set<WorldCard>;
+    discarding: WorldCard[];  // For this action, order is important
     amount: number;
     discardOptions: SearchDiscardOptions;
 
     constructor(player: OathPlayer, cards: Iterable<WorldCard>, amount?: number, discardOptions?: SearchDiscardOptions) {
         super(player);
         this.discardOptions = discardOptions || new SearchDiscardOptions(player.discard, false);
-        this.cards = [...cards];
-        this.amount = Math.max(this.cards.length, amount || this.cards.length);
+        this.cards = new Set(cards);
+        this.amount = Math.min(this.cards.size, amount || this.cards.size);
     }
 
     start() {
         const choices = new Map<string, WorldCard>();
-        for (const card of this.cards) {
-            this.cards.push(card);
-            choices.set(card.name, card);
-        }
-
+        for (const card of this.cards) choices.set(card.name, card);
         this.selects.cards = new SelectNOf(choices, this.amount);
         return super.start();
     }
 
     execute(): void {
-        this.cards = this.parameters.cards;
+        this.discarding = this.parameters.cards;
         super.execute();
     }
 
     modifiedExecution(): void {
-        for (const card of this.cards)
+        for (const card of this.discarding)
             new DiscardCardEffect(this.player, card, this.discardOptions).do();
     }
 }

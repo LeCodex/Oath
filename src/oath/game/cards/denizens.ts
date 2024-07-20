@@ -42,7 +42,7 @@ export const denizenData: Record<string, [string, OathSuit, Constructor<OathPowe
     "InsectSwarm":      ["Insect Swarm",        OathSuit.Beast,     [InsectSwarmAttack, InsectSwarmDefense]],
     "ThreateningRoar":  ["Threatening Roar",    OathSuit.Beast,     [ThreateningRoar]],
     "VowOfPoverty":     ["Vow of Poverty",      OathSuit.Beast,     [VowOfPoverty, VowOfPovertyRest], CardRestriction.Adviser, true],
-    "PiedPiper":        ["PiedPiper",           OathSuit.Beast,     [IgnoresCapacity, PiedPiperActive], CardRestriction.Adviser],
+    "PiedPiper":        ["Pied Piper",          OathSuit.Beast,     [IgnoresCapacity, PiedPiperActive], CardRestriction.Adviser],
     "SmallFriend":      ["Small Friends",       OathSuit.Beast,     [SmallFriends], CardRestriction.Adviser],
 
     "WayStation":       ["Way Station",         OathSuit.Nomad,     [WayStation], CardRestriction.Site],

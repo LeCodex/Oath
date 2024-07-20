@@ -59,7 +59,7 @@ export abstract class SearchableDeck extends CardDeck<WorldCard> {
 }
 
 export class WorldDeck extends SearchableDeck {
-    visionsDrawn: number;
+    visionsDrawn: number = 0;
     get searchCost() { return this.visionsDrawn < 3 ? this.visionsDrawn < 1 ? 2 : 3 : 4; }
 
     draw(amount: number, fromBottom: boolean = false): WorldCard[] {
