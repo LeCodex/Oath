@@ -34,6 +34,12 @@ export class CardDeck<T extends OathCard> extends OathGameObject {
             [this.cards[currentIndex], this.cards[randomIndex]] = [this.cards[randomIndex], this.cards[currentIndex]];
         }
     }
+
+    serialize(): Record<string, any> {
+        return {
+            cards: this.cards.map(e => e.serialize())
+        }
+    }
 }
 
 export abstract class SearchableDeck extends CardDeck<WorldCard> {
@@ -43,6 +49,12 @@ export abstract class SearchableDeck extends CardDeck<WorldCard> {
         card.setOwner(undefined);
         if (!card.empty) card.returnResources();
         super.putCard(card, onBottom);
+    }
+
+    serialize(): Record<string, any> {
+        const obj: Record<string, any> = super.serialize();
+        obj.searchCost = this.searchCost;
+        return obj;
     }
 }
 
@@ -64,6 +76,12 @@ export class WorldDeck extends SearchableDeck {
         }
 
         return cards;
+    }
+
+    serialize(): Record<string, any> {
+        const obj: Record<string, any> = super.serialize();
+        obj.visionsDrawn = this.visionsDrawn;
+        return obj;
     }
 }
 

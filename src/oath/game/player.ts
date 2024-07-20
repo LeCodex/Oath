@@ -1,13 +1,13 @@
-import { CampaignAction, CampaignActionTarget, CampaignBanishPlayerAction, ChooseModifiers, InvalidActionResolution, MusterAction, OathAction, RecoverAction, SearchAction, TradeAction, TravelAction } from "./actions";
+import { CampaignActionTarget, CampaignBanishPlayerAction } from "./actions";
 import { Denizen, OwnableCard, Relic, Site, Vision, WorldCard } from "./cards/cards";
 import { Discard } from "./cards/decks";
-import { AddActionToStackEffect, DiscardCardEffect, GainSupplyEffect, MoveResourcesToTargetEffect } from "./effects";
+import { DiscardCardEffect, GainSupplyEffect, MoveResourcesToTargetEffect } from "./effects";
 import { OathResource, OathSuit, PlayerColor } from "./enums";
 import { OathGame } from "./game";
 import { OathGameObject } from "./gameObject";
 import { Brutal, Careless, Decadent, Greedy } from "./powers";
 import { Banner, ResourcesAndWarbands } from "./resources";
-import { Constructor, CopiableWithOriginal } from "./utils";
+import { CopiableWithOriginal } from "./utils";
 
 export interface OwnableObject extends CopiableWithOriginal {
     owner?: OathPlayer;
@@ -40,6 +40,7 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
 
         this.putResources(OathResource.Favor, 1);  // TODO: Take favor from supply
         this.putResources(OathResource.Secret, 1);
+        this.moveWarbandsFromBagOnto(this, 3);
     }
 
     get isImperial(): boolean { return false; }
@@ -136,6 +137,18 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
     }
 
     abstract rest(): void;
+
+    serialize(): Record<string, any> {
+        const obj: Record<string, any> = super.serialize();
+        obj.name = this.name;
+        obj.warbandsInBag = this.warbandsInBag;
+        obj.supply = this.supply;
+        obj.site = this.site.name;
+        obj.advisers = [...this.advisers].map(e => e.serialize())
+        obj.relics = [...this.relics].map(e => e.serialize())
+        obj.banners = [...this.banners].map(e => e.name)
+        return obj;
+    }
 }
 
 export class Chancellor extends OathPlayer {
@@ -158,6 +171,12 @@ export class Chancellor extends OathPlayer {
         else amount = 3;
         new GainSupplyEffect(this, amount).do();
     }
+
+    serialize(): Record<string, any> {
+        const obj: Record<string, any> = super.serialize();
+        obj.reliquary = this.reliquary.serialize();
+        return obj;
+    }
 }
 
 export class Reliquary extends OathGameObject {
@@ -179,6 +198,12 @@ export class Reliquary extends OathGameObject {
         const relic = this.relics[index];
         this.relics[index] = undefined;
         return relic;
+    }
+
+    serialize() {
+        return {
+            relics: this.relics.map(e => e?.serialize()),
+        };
     }
 }
 
@@ -229,5 +254,12 @@ export class Exile extends OathPlayer {
         else if (this.warbandsInBag >= 4) amount = 5;
         else amount = 4;
         new GainSupplyEffect(this, amount).do();
+    }
+
+    serialize(): Record<string, any> {
+        const obj: Record<string, any> = super.serialize();
+        obj.isCitizen = this.isCitizen;
+        obj.vision = this.vision?.serialize();
+        return obj;
     }
 }

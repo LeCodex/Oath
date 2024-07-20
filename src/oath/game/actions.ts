@@ -46,11 +46,12 @@ export class OathActionManager extends OathGameObject {
             const returnData = {
                 activeAction: action && {
                     type: action.constructor.name,
-                    selects: Object.fromEntries(Object.entries(action.selects).map(([k, v]) => { return [k, { choices: [...v.choices.keys()], min: v.min, max: v.max }] }))
+                    selects: Object.fromEntries(Object.entries(action.selects).map(([k, v]) => [k, v.serialize()])),
+                    player: action.player.color
                 },
                 appliedEffects: this.currentEffectsStack.map(e => e.constructor.name),
                 cancelledEffects: this.cancelledEffects.map(e => e.constructor.name),
-                game: {}    // TODO: Make visitor that gets the global game state
+                game: this.game.serialize()
             }
             this.cancelledEffects.length = 0;
             return returnData;
@@ -149,6 +150,14 @@ export class SelectNOf<T> {
         if (values.size < this.min || values.size > this.max) throw new InvalidActionResolution(`Invalid number of values for select`);
 
         return [...values];
+    }
+
+    serialize(): Record <string, any> {
+        return {
+            choices: [...this.choices.keys()],
+            min: this.min,
+            max: this.max
+        };
     }
 }
 

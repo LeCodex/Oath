@@ -33,6 +33,13 @@ export class OathBoard extends OathGameObject {
             for (const site of region.sites)
                 yield site; 
     }
+
+    serialize(): Record<string, any> {
+        return {
+            regions: Object.fromEntries(Object.entries(this.regions).map(([k, v]) => [k, v.serialize()])),
+            travelCosts: Object.fromEntries([...this.travelCosts.entries()].map(([k, v]) => [k, Object.fromEntries([...v.entries()])])),
+        }
+    }
 }
 
 
@@ -66,5 +73,13 @@ export class Region extends OathGameObject {
                 }
             }
         }
+    }
+
+    serialize(): Record<string, any> {
+        return {
+            name: this.name,
+            discard: this.discard.serialize(),
+            sites: this.sites.map(e => e.serialize())
+        };
     }
 }

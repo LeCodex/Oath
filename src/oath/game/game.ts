@@ -140,5 +140,23 @@ export class OathGame extends CopiableWithOriginal {
         this.turn++;
         if (this.turn === Object.keys(this.players).length) this.turn = 0;
     }
+
+    serialize(): Record<string, any> {
+        return {
+            oath: this.oath.type,
+            oathkeeper: this.oathkeeper.color,
+            isUsurper: this.isUsurper,
+            turn: this.turn,
+            phase: this.phase,
+            round: this.round,
+            order: this.order,
+            players: Object.fromEntries(Object.entries(this.players).map(([k, v]) => [k, v.serialize()])),
+            banners: Object.fromEntries([...this.banners.entries()].map(([k, v]) => [k, v.serialize()])),
+            favorBanks: Object.fromEntries([...this.favorBanks.entries()].map(([k, v]) => [k, v.serialize()])),
+            worldDeck: this.worldDeck.serialize(),
+            relicDeck: this.relicDeck.serialize(),
+            board: this.board.serialize()
+        }
+    };
 }
 

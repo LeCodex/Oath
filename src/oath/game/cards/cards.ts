@@ -34,6 +34,14 @@ export abstract class OathCard extends ResourcesAndWarbands {
     peek(player: OathPlayer) {
         this.seenBy.add(player);
     }
+
+    serialize(): Record<string, any> {
+        const obj: Record<string, any> = super.serialize();
+        obj.name = this.name;
+        obj.facedown = this.facedown;
+        obj.seenBy = [...this.seenBy].map(e => e.color);
+        return obj;
+    }
 }
 
 
@@ -123,6 +131,16 @@ export class Site extends OathCard implements CampaignActionTarget {
         if (this.ruler) new MoveOwnWarbandsEffect(this.ruler, this, this.ruler).do();
         new CampaignSeizeSiteAction(player, this).doNext();
     }
+
+    serialize(): Record<string, any> {
+        const obj: Record<string, any> = super.serialize();
+        obj.capacity = this.capacity;
+        obj.recoverCost = this.recoverCost.serialize();
+        obj.recoverSuit = this.recoverSuit;
+        obj.denizens = [...this.denizens].map(e => e.serialize());
+        obj.relics = [...this.relics].map(e => e.serialize());
+        return obj;
+    }
 }
 
 export abstract class OwnableCard extends OathCard implements OwnableObject {
@@ -135,6 +153,12 @@ export abstract class OwnableCard extends OathCard implements OwnableObject {
     }
 
     abstract setOwner(newOwner?: OathPlayer): void;
+
+    // serialize(): Record<string, any> {
+    //     const obj: Record<string, any> = super.serialize();
+    //     obj.owner = this.owner?.color;
+    //     return obj;
+    // }
 }
 
 export class Relic extends OwnableCard implements RecoverActionTarget, CampaignActionTarget {
@@ -179,6 +203,12 @@ export class Relic extends OwnableCard implements RecoverActionTarget, CampaignA
         new TakeOwnableObjectEffect(this.game, player, this).do();
         this.facedown = false;
     }
+
+    // serialize(): Record<string, any> {
+    //     const obj: Record<string, any> = super.serialize();
+    //     obj.site = this.site?.name;
+    //     return obj;
+    // }
 }
 
 export abstract class WorldCard extends OwnableCard {
@@ -233,6 +263,15 @@ export class Denizen extends WorldCard {
         super.returnResources();
         this.game.favorBanks.get(this.suit)?.put(this.takeResources(OathResource.Favor));
     }
+
+    serialize(): Record<string, any> {
+        const obj: Record<string, any> = super.serialize();
+        obj.suit = this.suit;
+        // obj.site = this.site?.name;
+        obj.restriction = this.restriction;
+        obj.locked = this.activelyLocked;
+        return obj;
+    }
 }
 
 export abstract class Edifice extends Denizen {
@@ -241,6 +280,12 @@ export abstract class Edifice extends Denizen {
     ruined: boolean;
 
     get suit(): OathSuit { return this.ruined ? OathSuit.None : this._suit; }
+
+    serialize(): Record<string, any> {
+        const obj: Record<string, any> = super.serialize();
+        obj.ruined = this.ruined;
+        return obj;
+    }
 }
 
 export abstract class VisionBack extends WorldCard { }
@@ -251,6 +296,12 @@ export class Vision extends VisionBack {
     constructor(oath: Oath) {
         super(oath.game, `Vision of ${OathTypeVisionName[oath.type]}`, [VisionPower]);
         this.oath = oath;
+    }
+
+    serialize(): Record<string, any> {
+        const obj: Record<string, any> = super.serialize();
+        obj.oath = this.oath.type;
+        return obj;
     }
 }
 

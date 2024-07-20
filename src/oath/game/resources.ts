@@ -11,10 +11,11 @@ import { Constructor } from "./utils";
 export abstract class ResourceBank extends OathGameObject {
     type: OathResource;
     amount: number;
+    min = 0;
 
     constructor(game: OathGame, amount: number = 0) {
         super(game);
-        this.amount = amount;
+        this.amount = Math.min(this.min, amount);
     }
 
     put(amount: number): number {
@@ -23,7 +24,7 @@ export abstract class ResourceBank extends OathGameObject {
 
     take(amount: number = Infinity): number {
         const oldAmount = this.amount;
-        const newAmount = Math.max(this.amount - amount, 0);
+        const newAmount = Math.max(this.amount - amount, this.min);
         const diff = oldAmount - newAmount;
 
         this.amount -= diff;
@@ -35,6 +36,12 @@ export abstract class ResourceBank extends OathGameObject {
         other.put(amountMoved);
         return amountMoved;
     }
+
+    serialize(): Record<string, any> {
+        return {
+            amount: this.amount
+        };
+    }
 }
 
 export class FavorBank extends ResourceBank {
@@ -45,6 +52,7 @@ export abstract class Banner extends ResourceBank implements OwnableObject, Reco
     name: string
     owner?: OathPlayer;
     powers: Constructor<OathPower<Banner>>[];
+    min = 1;
 
     get defense() { return this.amount; }
     pawnMustBeAtSite = true;
@@ -77,6 +85,13 @@ export abstract class Banner extends ResourceBank implements OwnableObject, Reco
     }
 
     abstract handleRecovery(player: OathPlayer): void;
+
+    serialize(): Record<string, any> {
+        const obj: Record<string, any> = super.serialize();
+        obj.name = this.name;
+        obj.owner = this.owner?.color;
+        return obj;
+    }
 }
 
 export class PeoplesFavor extends Banner {
@@ -88,6 +103,12 @@ export class PeoplesFavor extends Banner {
     handleRecovery(player: OathPlayer) {
         new SetPeoplesFavorMobState(this.game, player, this, false).do();
         new PeoplesFavorReturnAction(player, this.take()).doNext();
+    }
+
+    serialize(): Record<string, any> {
+        const obj: Record<string, any> = super.serialize();
+        obj.isMob = this.isMob;
+        return obj;
     }
 }
 
@@ -191,6 +212,13 @@ export abstract class ResourcesAndWarbands extends OathGameObject {
         target.putWarbands(player, numberMoved);
         return numberMoved;
     }
+
+    serialize(): Record<string, any> {
+        return {
+            resources: Object.fromEntries([...this.resources.entries()]),
+            warbands: Object.fromEntries([...this.warbands.entries()].map(([k, v]) => [k.color, v])),
+        };
+    }
 }
 
 export class ResourceCost {
@@ -218,5 +246,12 @@ export class ResourceCost {
     add(other: ResourceCost) {
         for (const [resource, amount] of other.placedResources) this.placedResources.set(resource, (this.placedResources.get(resource) || 0) + amount);
         for (const [resource, amount] of other.burntResources) this.burntResources.set(resource, (this.burntResources.get(resource) || 0) + amount);
+    }
+
+    serialize(): Record<string, any> {
+        return {
+            placedResources: Object.fromEntries([...this.placedResources.entries()]),
+            burntResources: Object.fromEntries([...this.burntResources.entries()]),
+        };
     }
 }
