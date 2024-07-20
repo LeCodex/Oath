@@ -29,8 +29,8 @@ export class OathGame extends CopiableWithOriginal {
     order: PlayerColor[] = [PlayerColor.Purple];
 
     banners = new Map<BannerName, Banner>([
-        [BannerName.PeoplesFavor, new PeoplesFavor(this)],
-        [BannerName.DarkestSecret, new DarkestSecret(this)]
+        [BannerName.PeoplesFavor, new PeoplesFavor(this, 1)],
+        [BannerName.DarkestSecret, new DarkestSecret(this, 1)]
     ]);
     favorBanks: Map<OathSuit, FavorBank>;
     worldDeck = new WorldDeck(this);
@@ -129,7 +129,7 @@ export class OathGame extends CopiableWithOriginal {
         for (const banner of this.banners.values())
             for (const power of banner.powers)
                 if (isExtended(power, type)) powers.push([banner, power]);
-        
+
         return powers;
     }
 

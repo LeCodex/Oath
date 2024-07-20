@@ -30,4 +30,10 @@ export class OathController {
     continueAction(@Param('id', ParseIntPipe) id: number, @Param('player', ParseIntPipe) player: number, @Body() values: Record<string, string[]>): object {
         return this.service.continueAction(id, player, values);
     }
+
+    @Post(":id/:player/cancel")
+    @UsePipes(new ValidationPipe({ transform: true }))
+    cancelAction(@Param('id', ParseIntPipe) id: number, @Param('player', ParseIntPipe) player: number): object {
+        return this.service.cancelAction(id, player);
+    }
 }

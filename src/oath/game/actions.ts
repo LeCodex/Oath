@@ -56,8 +56,6 @@ export class OathActionManager extends OathGameObject {
                 game: this.game.serialize()
             }
             this.cancelledEffects.length = 0;
-            if (!action) this.storeEffects();
-            
             return returnData;
         } catch (e) {
             this.revert();
@@ -99,13 +97,10 @@ export class OathActionManager extends OathGameObject {
     }
     
     cancelAction(): object {
-        if (this.currentEffectsStack.length == 0 && this.pastEffectsStack.length == 0) {
-            throw new InvalidActionResolution("Cannot roll back");
-        } else {
-            const reverted = this.revert();
-            this.cancelledEffects.splice(0, 0, ...reverted);
-        }
-    
+        if (this.currentEffectsStack.length == 0 && this.pastEffectsStack.length == 0) throw new InvalidActionResolution("Cannot roll back");
+        
+        const reverted = this.revert();
+        this.cancelledEffects.splice(0, 0, ...reverted);
         return this.checkForNextAction();
     }
     
@@ -1176,23 +1171,28 @@ export abstract class ChooseSuit extends OathAction {
     }
 }
 
-export class PeoplesFavorReturnAction extends ChooseSuit {   
+export class PeoplesFavorReturnAction extends ChooseSuit {
+    banner: PeoplesFavor;
     amount: number;
 
-    constructor(player: OathPlayer, amount: number) {
+    constructor(player: OathPlayer, banner: PeoplesFavor) {
         super(player);
-        this.amount = amount;
+        this.banner = banner;
+        this.amount = banner.amount;
     }
 
     execute() {
         super.execute();
-        if (!this.suit) return;
+        if (this.suit === undefined) return;
 
         let amount = this.amount;
         while (amount) {
-            new PutResourcesIntoBankEffect(this.game, this.player, this.game.favorBanks.get(this.suit), 1, undefined).do();
-            amount--;
-            if (this.suit++ == OathSuit.None) this.suit = OathSuit.Discord;
+            const bank = this.game.favorBanks.get(this.suit);
+            if (bank) {
+                new MoveBankResourcesEffect(this.game, this.player, this.banner, bank, 1).do();
+                amount--;
+            }
+            if (++this.suit == OathSuit.None) this.suit = OathSuit.Discord;
         }
     }
 }
@@ -1215,7 +1215,7 @@ export class TakeFavorFromBankAction extends ChooseSuit {
 
     execute() {
         super.execute();
-        if (!this.suit) return;
+        if (this.suit === undefined) return;
         new TakeResourcesFromBankEffect(this.game, this.player, this.game.favorBanks.get(this.suit), 1).do();
     }
 }
@@ -1240,7 +1240,7 @@ export class PeoplesFavorWakeAction extends ChooseSuit {
 
     execute(): void {
         super.execute();
-        const bank = this.suit && this.game.favorBanks.get(this.suit);
+        const bank = this.suit !== undefined && this.game.favorBanks.get(this.suit);
 
         if (bank)
             new MoveBankResourcesEffect(this.game, this.player, this.banner, bank, 1).do();
@@ -1273,7 +1273,7 @@ export class ChooseResourceToTakeAction extends OathAction {
 
     execute(): void {
         const resource = this.parameters.resource[0];
-        if (!resource) return;
+        if (resource === undefined) return;
         new MoveResourcesToTargetEffect(this.game, this.player, resource, 1, this.player, this.source).do();   
     }
 }

@@ -59,7 +59,6 @@ export abstract class Banner extends ResourceBank implements OwnableObject, Reco
 
     setOwner(newOwner?: OathPlayer) {
         if (this.owner) this.owner.removeBanner(this);
-
         this.owner = newOwner;
         if (newOwner) newOwner.addBanner(this);
     }
@@ -73,9 +72,9 @@ export abstract class Banner extends ResourceBank implements OwnableObject, Reco
     }
     
     finishRecovery(player: OathPlayer, amount: number): void {
-        // Banner-specific logic
-        this.handleRecovery(player);
         new PutResourcesIntoBankEffect(this.game, player, this, amount).do();
+        // Banner-specific logic
+        this.handleRecovery(player, amount);
         new TakeOwnableObjectEffect(this.game, player, this).do();
     }
 
@@ -84,7 +83,7 @@ export abstract class Banner extends ResourceBank implements OwnableObject, Reco
         this.amount = Math.max(1, this.amount - 2);
     }
 
-    abstract handleRecovery(player: OathPlayer): void;
+    abstract handleRecovery(player: OathPlayer, amount: number): void;
 
     serialize(): Record<string, any> {
         const obj: Record<string, any> = super.serialize();
@@ -100,9 +99,9 @@ export class PeoplesFavor extends Banner {
     powers = [PeoplesFavorSearch, PeoplesFavorWake];
     isMob: boolean;
 
-    handleRecovery(player: OathPlayer) {
+    handleRecovery(player: OathPlayer, amount: number) {
         new SetPeoplesFavorMobState(this.game, player, this, false).do();
-        new PeoplesFavorReturnAction(player, this.take()).doNext();
+        new PeoplesFavorReturnAction(player, this).doNext();
     }
 
     serialize(): Record<string, any> {
@@ -130,9 +129,9 @@ export class DarkestSecret extends Banner {
         return false;
     }
 
-    handleRecovery(player: OathPlayer) {
+    handleRecovery(player: OathPlayer, amount: number) {
         new TakeResourcesFromBankEffect(this.game, player, this, 1).do();
-        if (this.owner) new TakeResourcesFromBankEffect(this.game, this.owner, this, Infinity).do();
+        if (this.owner) new TakeResourcesFromBankEffect(this.game, this.owner, this, this.amount - amount - 1).do();
     }
 }
 

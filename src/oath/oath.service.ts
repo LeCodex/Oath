@@ -61,5 +61,14 @@ export class OathService {
             throw e;
         }
     }
+
+    public cancelAction(gameId: number, playerIndex: number): object {
+        try {
+            return this._getGame(gameId).actionManager.cancelAction();
+        } catch (e) {
+            if (e instanceof InvalidActionResolution) throw new BadRequestException(e.message);
+            throw e;
+        }
+    }
 }
 

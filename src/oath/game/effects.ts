@@ -767,7 +767,7 @@ export class TakeOwnableObjectEffect extends OathEffect<void> {
     }
 
     revert(): void {
-        this.target.setOwner(this.oldOwner);
+        this.target.original.setOwner(this.oldOwner);
     }
 }
 
