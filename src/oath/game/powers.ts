@@ -138,7 +138,7 @@ export abstract class EffectModifier<T extends OathGameObject> extends OathPower
 
 export abstract class EnemyEffectModifier<T extends OwnableCard> extends EffectModifier<T> {
     mustUse = true;
-    
+
     canUse(): boolean {
         return this.source.ruler === undefined || this.source.ruler.enemyWith(this.effect.player);
     }
@@ -829,13 +829,6 @@ export class ConspiracyPower extends WhenPlayed<Conspiracy> {
 //////////////////////////////////////////////////
 //                    SITES                     //
 //////////////////////////////////////////////////
-export abstract class SiteActionModifier extends ActionModifier<Site> {
-    canUse(): boolean {
-        return this.action.player.site === this.source;
-    }
-}
-
-
 export abstract class HomelandSitePower extends EffectModifier<Site> {
     modifiedEffect = PlayWorldCardEffect;
     effect: PlayWorldCardEffect;
@@ -905,6 +898,12 @@ export class DeepWoods extends HomelandSitePower {
 }
 
 
+export abstract class SiteActionModifier extends ActionModifier<Site> {
+    canUse(): boolean {
+        return this.action.player.site === this.source;
+    }
+}
+
 export class CoastalSite extends SiteActionModifier {
     name = "Coastal Site";
     modifiedAction = TravelAction;
@@ -912,6 +911,8 @@ export class CoastalSite extends SiteActionModifier {
     mustUse = true;
 
     applyDuring(): void {
+        if (this.action.site.facedown) return;
+
         for (const power of this.action.site.powers) {
             if (power === CoastalSite) {
                 this.action.supplyCost = 1;
@@ -920,7 +921,6 @@ export class CoastalSite extends SiteActionModifier {
         }
     }
 }
-
 
 export class CharmingValley extends SiteActionModifier {
     name = "Charming Valley";
@@ -932,7 +932,6 @@ export class CharmingValley extends SiteActionModifier {
         this.action.supplyCostModifier += 1;
     }
 }
-
 
 export class ResourceSite extends SiteActionModifier {
     name = "Resource Site";
@@ -1120,7 +1119,10 @@ export class Decadent extends ReliquaryModifier {
     action: TravelAction;
 
     applyDuring(): void {
-        if (this.action.site.inRegion(RegionName.Cradle) && !this.action.player.site.inRegion(RegionName.Cradle)) this.action.noSupplyCost = true;
-        if (this.action.site.inRegion(RegionName.Hinterland)) this.action.supplyCostModifier += 1;
+        if (this.action.site.inRegion(RegionName.Cradle) && !this.action.player.site.inRegion(RegionName.Cradle))
+            this.action.noSupplyCost = true;
+        
+        if (this.action.site.inRegion(RegionName.Hinterland))
+            this.action.supplyCostModifier += 1;
     }
 }

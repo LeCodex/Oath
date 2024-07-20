@@ -95,6 +95,10 @@ export class OathGame extends CopiableWithOriginal {
         }
 
         for (const site of this.board.sites()) {
+            if (site.facedown) continue;
+            for (const power of site.powers)
+                if (isExtended(power, type)) powers.push([site, power]);
+
             for (const denizen of site.denizens) {
                 if (denizen.facedown) continue;
                 for (const power of denizen.powers)
@@ -125,7 +129,7 @@ export class OathGame extends CopiableWithOriginal {
         for (const banner of this.banners.values())
             for (const power of banner.powers)
                 if (isExtended(power, type)) powers.push([banner, power]);
-
+        
         return powers;
     }
 

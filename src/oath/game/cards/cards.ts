@@ -106,7 +106,7 @@ export class Site extends OathCard implements CampaignActionTarget {
     }
 
     inRegion(regionName: RegionName) {
-        return this.region.regionName = regionName;
+        return this.region.regionName === regionName;
     }
 
     addDenizen(card: Denizen) {
