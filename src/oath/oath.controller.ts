@@ -11,7 +11,7 @@ export class OathController {
     }
 
     @Post()
-    createGame(): number {
+    createGame(): object {
         return this.service.startNewGame();
     }
 

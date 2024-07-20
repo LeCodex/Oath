@@ -578,7 +578,7 @@ export class PlayWorldCardToAdviserEffect extends PlayerEffect<void> {
 
     resolve(): void {
         this.card.setOwner(this.player.original);
-        if (!this.card.original.facedown) this.card.original.reveal();
+        if (this.card.original.facedown && !this.facedown) this.card.original.reveal();
     }
 
     revert(): void {
@@ -801,7 +801,10 @@ export class PaySupplyEffect extends PlayerEffect<boolean> {
     }
 
     resolve(): boolean {
-        if (this.player.original.supply < this.amount) return false;
+        if (this.player.original.supply < this.amount) {
+            this.amount = 0;
+            return false;
+        }
         this.player.original.supply -= this.amount;
         return true;
     }

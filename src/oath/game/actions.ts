@@ -1,7 +1,7 @@
 import { Denizen, Relic, Site, WorldCard } from "./cards/cards";
 import { SearchableDeck } from "./cards/decks";
 import { AttackDie, DefenseDie, Die } from "./dice";
-import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect, DiscardCardEffect, MoveOwnWarbandsEffect, AddActionToStackEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect, SetNewOathkeeperEffect, SetPeoplesFavorMobState, DiscardCardGroupEffect, OathEffect, PopActionFromStackEffect, PaySupplyEffect, ChangePhaseEffect, NextTurnEffect } from "./effects";
+import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect, DiscardCardEffect, MoveOwnWarbandsEffect, AddActionToStackEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect, SetNewOathkeeperEffect, SetPeoplesFavorMobState, DiscardCardGroupEffect, OathEffect, PopActionFromStackEffect, PaySupplyEffect, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect } from "./effects";
 import { OathPhase, OathResource, OathResourceName, OathSuit, OathSuitName, PlayerColor } from "./enums";
 import { OathGame } from "./game";
 import { OathGameObject } from "./gameObject";
@@ -413,7 +413,7 @@ export class TradeAction extends MajorAction {
             throw new InvalidActionResolution("Cannot pay resource cost.");
 
         new TakeResourcesFromBankEffect(this.game, this.player, this.game.favorBanks.get(this.card.suit), this.getting.get(OathResource.Favor) || 0).do();
-        this.player.putResources(OathResource.Secret, this.getting.get(OathResource.Secret) || 0);
+        new PutResourcesOnTargetEffect(this.game, this.player, OathResource.Secret, this.getting.get(OathResource.Secret) || 0).do();
     }
 }
 
@@ -809,8 +809,8 @@ export class CampaignAtttackAction extends ModifiableAction {
 
     constructor(player: OathPlayer, defender: OathPlayer | undefined) {
         super(player);
-        this.campaignResult.defender = defender;
         this.next = new CampaignDefenseAction(defender || this.player, this.player);
+        this.campaignResult.defender = defender;
     }
 
     start() {
@@ -1349,7 +1349,8 @@ export abstract class ChoosePlayer extends OathAction {
     }
 
     start(none?: string) {
-        if (!this.players.size) this.players = new Set(Object.values(this.game.players));
+        if (!this.players.size)
+            this.players = new Set(Object.values(this.game.players).filter(e => e !== this.player));
 
         const choices = new Map<string, OathPlayer | undefined>();
         for (const player of this.players)

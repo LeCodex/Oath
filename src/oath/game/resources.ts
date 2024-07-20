@@ -39,7 +39,8 @@ export abstract class ResourceBank extends OathGameObject {
 
     serialize(): Record<string, any> {
         return {
-            amount: this.amount
+            amount: this.amount,
+            type: this.type
         };
     }
 }
