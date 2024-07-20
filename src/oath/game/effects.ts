@@ -1,15 +1,15 @@
 import { Denizen, OwnableCard, Site, Vision, WorldCard } from "./cards/cards";
-import { CardRestriction, OathResource, OathSuit, PlayerColor } from "./enums";
+import { CardRestriction, OathPhase, OathResource, OathSuit, PlayerColor } from "./enums";
 import { Exile, OathPlayer } from "./player";
 import { EffectModifier, WhenPlayed } from "./powers";
 import { PeoplesFavor, ResourceBank, ResourceCost, ResourcesAndWarbands } from "./resources";
 import { OwnableObject } from "./player";
 import { OathGame } from "./game";
 import { OathGameObject } from "./gameObject";
-import { CampaignEndAction, CampaignResult, InvalidActionResolution, OathAction, SearchDiscardAction, SearchDiscardOptions, SearchPlayAction } from "./actions";
+import { CampaignEndAction, CampaignResult, InvalidActionResolution, OathAction, ResolveEffectAction, SearchDiscardAction, SearchDiscardOptions, SearchPlayAction, WakeAction } from "./actions";
 import { CardDeck } from "./cards/decks";
 import { getCopyWithOriginal, isExtended } from "./utils";
-import { Die } from "./dice";
+import { D6, Die } from "./dice";
 
 
 //////////////////////////////////////////////////
@@ -26,6 +26,10 @@ export abstract class OathEffect<T> extends OathGameObject {
     }
 
     get player() { return this.playerColor !== undefined ? this.game.players[this.playerColor] : undefined; }
+
+    doNext() {
+        new ResolveEffectAction(this.player || this.game.currentPlayer, this).doNext();
+    }
 
     do(): T {
         this.applyModifiers();
@@ -294,7 +298,7 @@ export class PayCostToBankEffect extends OathEffect<boolean> {
         if (this.suit)
             new PutResourcesIntoBankEffect(this.game, this.player?.original, this.game.favorBanks.get(this.suit), this.cost.placedResources.get(OathResource.Favor) || 0, this.source).do();
         
-        new FlipSecretsEffect(this.game, this.player?.original, this.cost.placedResources.get(OathResource.Secret) || 0, this.source).do();
+        new FlipSecretsEffect(this.game, this.player?.original, this.cost.placedResources.get(OathResource.Secret) || 0, true, this.source).do();
 
         return true;
     }
@@ -306,27 +310,29 @@ export class PayCostToBankEffect extends OathEffect<boolean> {
 
 export class FlipSecretsEffect extends OathEffect<number> {
     amount: number;
-    source?: ResourcesAndWarbands
+    source?: ResourcesAndWarbands;
+    facedown: boolean;
 
-    constructor(game: OathGame, player: OathPlayer | undefined, amount: number, source?: ResourcesAndWarbands) {
+    constructor(game: OathGame, player: OathPlayer | undefined, amount: number, facedown: boolean = true, source?: ResourcesAndWarbands) {
         super(game, player);
         this.amount = Math.max(0, amount);
+        this.facedown = facedown;
         this.source = source || this.player;
     }
 
     resolve(): number {
         if (!this.source) return 0;
 
-        this.amount = this.source.original.takeResources(OathResource.Secret, this.amount);
-        this.source.original.putResources(OathResource.FlippedSecret, this.amount);
+        this.amount = this.source.original.takeResources(this.facedown ? OathResource.Secret : OathResource.FlippedSecret, this.amount);
+        this.source.original.putResources(this.facedown ? OathResource.FlippedSecret : OathResource.Secret, this.amount);
         return this.amount;
     }
 
     revert(): void {
         if (!this.source) return;
 
-        this.source.original.takeResources(OathResource.FlippedSecret, this.amount);
-        this.source.original.putResources(OathResource.Secret, this.amount);
+        this.source.original.takeResources(this.facedown ? OathResource.FlippedSecret : OathResource.Secret, this.amount);
+        this.source.original.putResources(this.facedown ? OathResource.Secret : OathResource.FlippedSecret, this.amount);
     }
 }
 
@@ -719,36 +725,16 @@ export class DiscardCardEffect extends PlayerEffect<void> {
 
     resolve(): void {
         if (this.card instanceof Denizen && this.card.activelyLocked) return;
+
         this.discardOptions.discard.original.putCard(this.card.original, this.discardOptions.onBottom);
+        this.card.original.returnResources();
+        for (const player of this.card.original.warbands.keys()) new TakeWarbandsIntoBagEffect(player, Infinity, this.card).do();
     }
 
     revert(): void {
         // The thing that calls this effect is in charge of putting the card back where it was
         // This just removes it from the deck
         this.discardOptions.discard.original.drawSingleCard(this.discardOptions.onBottom);
-    }
-}
-
-export class RegionDiscardEffect extends PlayerEffect<void> {
-    suits: OathSuit[];
-
-    constructor(player: OathPlayer, suits: OathSuit[]) {
-        super(player);
-        this.suits = suits;
-    }
-
-    resolve(): void {
-        const cards: Denizen[] = [];
-        for (const site of this.player.site.region.sites)
-            for (const denizen of site.denizens)
-                if (this.suits.includes(denizen.suit))
-                    cards.push(denizen);
-
-        new DiscardCardGroupEffect(this.player, cards).do();
-    }
-
-    revert(): void {
-        // DOesn't do anything on its own
     }
 }
 
@@ -806,27 +792,6 @@ export class SetNewOathkeeperEffect extends PlayerEffect<void> {
     }
 }
 
-export class SetPeoplesFavorMobState extends OathEffect<void> {
-    banner: PeoplesFavor;
-    state: boolean;
-    oldState: boolean;
-
-    constructor(game: OathGame, player: OathPlayer | undefined, banner: PeoplesFavor, state: boolean) {
-        super(game, player);
-        this.banner = banner;
-        this.state = state;
-    }
-
-    resolve(): void {
-        this.oldState = this.banner.original.isMob;
-        this.banner.original.isMob = this.state;
-    }
-
-    revert(): void {
-        this.banner.original.isMob = this.oldState;
-    }
-}
-
 export class PaySupplyEffect extends PlayerEffect<boolean> {
     amount: number;
 
@@ -865,8 +830,80 @@ export class GainSupplyEffect extends PlayerEffect<void> {
     }
 }
 
+export class ChangePhaseEffect extends OathEffect<void> {
+    phase: OathPhase;
+    oldPhase: OathPhase;
+
+    constructor(game: OathGame, phase: OathPhase) {
+        super(game, undefined);
+        this.phase = phase;
+    }
+
+    resolve(): void {
+        this.oldPhase = this.game.original.phase;
+        this.game.original.phase = this.phase;
+        this.game.original.checkForOathkeeper();
+    }
+    
+    revert(): void {
+        this.game.original.phase = this.oldPhase;
+    }
+}
+
+export class NextTurnEffect extends OathEffect<void> {
+    constructor(game: OathGame) {
+        super(game, undefined);
+    }
+
+    resolve(): void {
+        this.game.original.turn = (this.game.original.turn + 1) % this.game.original.order.length;
+        if (this.game.original.turn === 0) this.game.original.round++;
+
+        if (this.game.original.round > 5 && this.game.oathkeeper.isImperial) {
+            const result = new RollDiceEffect(this.game, this.game.chancellor, D6, 1).do();
+            new HandleD6ResultEffect(this.game, result).doNext();
+            return;
+        }
+
+        new ChangePhaseEffect(this.game, OathPhase.Wake).doNext();
+        new WakeAction(this.game.currentPlayer).doNext();
+    }
+
+    revert(): void {
+        if (this.game.original.turn === 0) this.game.original.round--;
+        this.game.original.turn = (this.game.original.turn - 1 + this.game.original.order.length) % this.game.original.order.length;
+    }
+}
+
+export class HandleD6ResultEffect extends OathEffect<void> {
+    result: number[];
+
+    constructor(game: OathGame, result: number[]) {
+        super(game, undefined);
+        this.result = result;
+    }
+
+    resolve(): void {
+        const threshold = [6, 5, 3][this.game.original.round - 6];
+        if (this.result[0] >= threshold) {
+            // TODO: EMPIRE WINS!
+        } else {
+            new ChangePhaseEffect(this.game, OathPhase.Wake).doNext();
+            new WakeAction(this.game.currentPlayer).doNext();
+        }
+    }
+
+    revert(): void {
+        // Doesn't do anything on its own
+    }
+}
+
+
+
+//////////////////////////////////////////////////
+//              SPECIFIC EFFECTS                //
+//////////////////////////////////////////////////
 export class CursedCauldronResolutionEffect extends PlayerEffect<void> {
-    name = "Cursed Cauldron";
     result: CampaignResult;
 
     constructor(player: OathPlayer, result: CampaignResult) {
@@ -881,5 +918,49 @@ export class CursedCauldronResolutionEffect extends PlayerEffect<void> {
 
     revert(): void {
         // Doesn't do anything on its own
+    }
+}
+
+export class SetPeoplesFavorMobState extends OathEffect<void> {
+    banner: PeoplesFavor;
+    state: boolean;
+    oldState: boolean;
+
+    constructor(game: OathGame, player: OathPlayer | undefined, banner: PeoplesFavor, state: boolean) {
+        super(game, player);
+        this.banner = banner;
+        this.state = state;
+    }
+
+    resolve(): void {
+        this.oldState = this.banner.original.isMob;
+        this.banner.original.isMob = this.state;
+    }
+
+    revert(): void {
+        this.banner.original.isMob = this.oldState;
+    }
+}
+
+export class RegionDiscardEffect extends PlayerEffect<void> {
+    suits: OathSuit[];
+
+    constructor(player: OathPlayer, suits: OathSuit[]) {
+        super(player);
+        this.suits = suits;
+    }
+
+    resolve(): void {
+        const cards: Denizen[] = [];
+        for (const site of this.player.site.region.sites)
+            for (const denizen of site.denizens)
+                if (this.suits.includes(denizen.suit))
+                    cards.push(denizen);
+
+        new DiscardCardGroupEffect(this.player, cards).do();
+    }
+
+    revert(): void {
+        // DOesn't do anything on its own
     }
 }

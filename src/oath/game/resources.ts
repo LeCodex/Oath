@@ -72,10 +72,10 @@ export abstract class Banner extends ResourceBank implements OwnableObject, Reco
     }
     
     finishRecovery(player: OathPlayer, amount: number): void {
-        new PutResourcesIntoBankEffect(this.game, player, this, amount).do();
         // Banner-specific logic
-        this.handleRecovery(player, amount);
+        this.handleRecovery(player);
         new TakeOwnableObjectEffect(this.game, player, this).do();
+        new PutResourcesIntoBankEffect(this.game, player, this, amount).doNext();
     }
 
     seize(player: OathPlayer) {
@@ -83,7 +83,7 @@ export abstract class Banner extends ResourceBank implements OwnableObject, Reco
         this.amount = Math.max(1, this.amount - 2);
     }
 
-    abstract handleRecovery(player: OathPlayer, amount: number): void;
+    abstract handleRecovery(player: OathPlayer): void;
 
     serialize(): Record<string, any> {
         const obj: Record<string, any> = super.serialize();
@@ -99,7 +99,7 @@ export class PeoplesFavor extends Banner {
     powers = [PeoplesFavorSearch, PeoplesFavorWake];
     isMob: boolean;
 
-    handleRecovery(player: OathPlayer, amount: number) {
+    handleRecovery(player: OathPlayer) {
         new SetPeoplesFavorMobState(this.game, player, this, false).do();
         new PeoplesFavorReturnAction(player, this).doNext();
     }
@@ -129,9 +129,9 @@ export class DarkestSecret extends Banner {
         return false;
     }
 
-    handleRecovery(player: OathPlayer, amount: number) {
+    handleRecovery(player: OathPlayer) {
         new TakeResourcesFromBankEffect(this.game, player, this, 1).do();
-        if (this.owner) new TakeResourcesFromBankEffect(this.game, this.owner, this, this.amount - amount - 1).do();
+        if (this.owner) new TakeResourcesFromBankEffect(this.game, this.owner, this, this.amount).do();
     }
 }
 

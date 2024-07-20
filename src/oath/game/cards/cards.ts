@@ -1,6 +1,6 @@
 import { CampaignActionTarget, CampaignSeizeSiteAction, InvalidActionResolution, RecoverAction, RecoverActionTarget } from "../actions";
 import { Region } from "../board";
-import { MoveOwnWarbandsEffect, PayCostToBankEffect, TakeOwnableObjectEffect } from "../effects";
+import { MoveOwnWarbandsEffect, MoveResourcesToTargetEffect, PayCostToBankEffect, PutResourcesIntoBankEffect, TakeOwnableObjectEffect, TakeWarbandsIntoBagEffect } from "../effects";
 import { CardRestriction, OathResource, OathSuit, OathTypeVisionName, RegionName } from "../enums";
 import { OathGame } from "../game";
 import { Oath } from "../oaths";
@@ -154,6 +154,11 @@ export abstract class OwnableCard extends OathCard implements OwnableObject {
 
     abstract setOwner(newOwner?: OathPlayer): void;
 
+    returnResources() {
+        if (this.getResources(OathResource.Secret))
+            new MoveResourcesToTargetEffect(this.game, this.game.currentPlayer, OathResource.Secret, Infinity, this.game.currentPlayer, this).do();
+    }
+
     // serialize(): Record<string, any> {
     //     const obj: Record<string, any> = super.serialize();
     //     obj.owner = this.owner?.color;
@@ -218,11 +223,6 @@ export abstract class WorldCard extends OwnableCard {
         this.owner = newOwner;
         if (newOwner) newOwner.addAdviser(this);
     }
-
-    returnResources(): void {
-        this.game.currentPlayer.putResources(OathResource.Secret, this.takeResources(OathResource.Secret));
-        for (const player of this.warbands.keys()) player.moveWarbandsIntoBagFrom(this);
-    }
 }
 
 export class Denizen extends WorldCard {
@@ -261,7 +261,8 @@ export class Denizen extends WorldCard {
 
     returnResources(): void {
         super.returnResources();
-        this.game.favorBanks.get(this.suit)?.put(this.takeResources(OathResource.Favor));
+        if (this.getResources(OathResource.Favor))
+            new PutResourcesIntoBankEffect(this.game, this.game.currentPlayer, this.game.favorBanks.get(this.suit), Infinity, this).do();
     }
 
     serialize(): Record<string, any> {

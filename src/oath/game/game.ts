@@ -140,6 +140,7 @@ export class OathGame extends CopiableWithOriginal {
         if (this.actionManager.actionStack.length) return new InvalidActionResolution("Cannot start an action while other actions are active");
 
         new action(this.currentPlayer).doNext();
+        this.actionManager.storeEffects();
         return this.actionManager.checkForNextAction();
     }
 
@@ -147,11 +148,6 @@ export class OathGame extends CopiableWithOriginal {
         const candidates = this.oath.getCandidates();
         if (candidates.has(this.oathkeeper)) return;
         if (candidates.size) new ChooseNewOathkeeper(this.oathkeeper, candidates).doNext();
-    }
-
-    endTurn() {
-        this.turn++;
-        if (this.turn === Object.keys(this.players).length) this.turn = 0;
     }
 
     serialize(): Record<string, any> {

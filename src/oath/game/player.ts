@@ -1,7 +1,7 @@
-import { CampaignActionTarget, CampaignBanishPlayerAction } from "./actions";
+import { CampaignActionTarget, CampaignBanishPlayerAction, RestAction } from "./actions";
 import { Denizen, OwnableCard, Relic, Site, Vision, WorldCard } from "./cards/cards";
 import { Discard } from "./cards/decks";
-import { DiscardCardEffect, GainSupplyEffect, MoveResourcesToTargetEffect } from "./effects";
+import { DiscardCardEffect, FlipSecretsEffect, GainSupplyEffect, MoveResourcesToTargetEffect, NextTurnEffect, PutWarbandsFromBagEffect, TakeWarbandsIntoBagEffect } from "./effects";
 import { OathResource, OathSuit, PlayerColor } from "./enums";
 import { OathGame } from "./game";
 import { OathGameObject } from "./gameObject";
@@ -132,7 +132,21 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
         new CampaignBanishPlayerAction(player, this).doNext();
     }
 
-    abstract rest(): void;
+    rest() {
+        for (const site of this.game.board.sites())
+            for (const denizen of site.denizens)
+                denizen.returnResources();
+
+        for (const player of Object.values(this.game.players)) {
+            for (const adviser of player.advisers)
+                adviser.returnResources();
+
+            for (const relic of player.relics)
+                relic.returnResources();
+        }
+
+        new FlipSecretsEffect(this.game, this, Infinity, false).do();
+    }
 
     serialize(): Record<string, any> {
         const obj: Record<string, any> = super.serialize();
@@ -159,11 +173,14 @@ export class Chancellor extends OathPlayer {
     get isImperial(): boolean { return true; }
 
     rest() {
+        super.rest();
+
         let amount: number;
         if (this.warbandsInBag >= 18) amount = 6;
         else if (this.warbandsInBag >= 11) amount = 5;
         else if (this.warbandsInBag >= 4) amount = 4;
         else amount = 3;
+
         new GainSupplyEffect(this, amount).do();
     }
 
@@ -220,8 +237,9 @@ export class Exile extends OathPlayer {
     becomeCitizen() {
         // TODO: Use effects for all of this
         for (const site of this.game.board.sites())
-            this.game.chancellor.moveWarbandsFromBagOnto(site, this.moveWarbandsIntoBagFrom(site));
-        this.game.chancellor.moveWarbandsFromBagOnto(this, this.moveWarbandsIntoBagFrom(this));
+            new PutWarbandsFromBagEffect(this.game.chancellor, new TakeWarbandsIntoBagEffect(this, Infinity, site).do(), site).do();
+        
+        new PutWarbandsFromBagEffect(this.game.chancellor, new TakeWarbandsIntoBagEffect(this, Infinity, this).do(), this).do();
 
         this.isCitizen = true;
         if (this.vision) {
@@ -229,16 +247,18 @@ export class Exile extends OathPlayer {
             this.vision = undefined;
         }
 
-        this.supply = 7;
-        if (this.game.currentPlayer == this) this.game.endTurn();
+        new GainSupplyEffect(this, Infinity).do();
+        if (this.game.currentPlayer == this) new RestAction(this).doNext();
     }
 
     becomeExile() {
         this.isCitizen = false;
-        this.moveWarbandsFromBagOnto(this, this.game.chancellor.moveWarbandsIntoBagFrom(this));
+        new PutWarbandsFromBagEffect(this, new TakeWarbandsIntoBagEffect(this.game.chancellor, Infinity, this).do(), this).do();
     }
 
     rest() {
+        super.rest();
+
         if (this.isImperial) {
             new GainSupplyEffect(this, this.game.chancellor.supply).do();
             return;
@@ -248,6 +268,7 @@ export class Exile extends OathPlayer {
         if (this.warbandsInBag >= 9) amount = 6;
         else if (this.warbandsInBag >= 4) amount = 5;
         else amount = 4;
+
         new GainSupplyEffect(this, amount).do();
     }
 

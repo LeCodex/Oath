@@ -1,8 +1,8 @@
 import { Denizen, Relic, Site, WorldCard } from "./cards/cards";
 import { SearchableDeck } from "./cards/decks";
 import { AttackDie, DefenseDie, Die } from "./dice";
-import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect, DiscardCardEffect, MoveOwnWarbandsEffect, AddActionToStackEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect, SetNewOathkeeperEffect, SetPeoplesFavorMobState, DiscardCardGroupEffect, OathEffect, PopActionFromStackEffect, PaySupplyEffect } from "./effects";
-import { OathResource, OathResourceName, OathSuit, OathSuitName, PlayerColor } from "./enums";
+import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect, DiscardCardEffect, MoveOwnWarbandsEffect, AddActionToStackEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect, SetNewOathkeeperEffect, SetPeoplesFavorMobState, DiscardCardGroupEffect, OathEffect, PopActionFromStackEffect, PaySupplyEffect, ChangePhaseEffect, NextTurnEffect } from "./effects";
+import { OathPhase, OathResource, OathResourceName, OathSuit, OathSuitName, PlayerColor } from "./enums";
 import { OathGame } from "./game";
 import { OathGameObject } from "./gameObject";
 import { OathPlayer } from "./player";
@@ -1068,13 +1068,17 @@ export class CampaignBanishPlayerAction extends OathAction {
 
 
 export class WakeAction extends ModifiableAction {
-    modifiedExecution(): void { }
+    modifiedExecution(): void {
+        new ChangePhaseEffect(this.game, OathPhase.Act).doNext();
+    }
 }
 
 
 export class RestAction extends ModifiableAction {
     modifiedExecution(): void {
-        this.player.rest();
+        new ChangePhaseEffect(this.game, OathPhase.Rest).do();
+        this.player.original.rest();
+        new NextTurnEffect(this.game).doNext();
     }
 }
 
@@ -1117,6 +1121,20 @@ export class UsePowerAction extends ModifiableAction {
 ////////////////////////////////////////////
 //              OTHER ACTIONS             //
 ////////////////////////////////////////////
+export class ResolveEffectAction extends OathAction {
+    effect: OathEffect<any>;
+
+    constructor(player: OathPlayer, effect: OathEffect<any>) {
+        super(player, false);  // Don't copy, not modifiable, and not an entry point
+        this.effect = effect;
+    }
+
+    execute(): void {
+        this.effect.do();
+    }
+}
+
+
 export class AskForRerollAction extends OathAction {
     readonly selects: { doReroll: SelectBoolean };
     readonly parameters: { doReroll: boolean[] };
