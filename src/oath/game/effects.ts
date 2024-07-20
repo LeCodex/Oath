@@ -6,10 +6,10 @@ import { PeoplesFavor, ResourceBank, ResourceCost, ResourcesAndWarbands } from "
 import { OwnableObject } from "./player";
 import { OathGame } from "./game";
 import { OathGameObject } from "./gameObject";
-import { CampaignEndAction, CampaignResult, InvalidActionResolution, OathAction, ResolveEffectAction, SearchDiscardAction, SearchDiscardOptions, SearchPlayAction, WakeAction } from "./actions";
+import { CampaignEndAction, CampaignResult, InvalidActionResolution, OathAction, ResolveEffectAction, SearchDiscardAction, SearchDiscardOptions, SearchPlayAction, TakeFavorFromBankAction, WakeAction } from "./actions";
 import { CardDeck } from "./cards/decks";
 import { getCopyWithOriginal, isExtended } from "./utils";
-import { D6, Die } from "./dice";
+import { D6, DefenseDie, Die } from "./dice";
 
 
 //////////////////////////////////////////////////
@@ -962,5 +962,22 @@ export class RegionDiscardEffect extends PlayerEffect<void> {
 
     revert(): void {
         // DOesn't do anything on its own
+    }
+}
+
+export class GamblingHallEffect extends PlayerEffect<void> {
+    faces: number[];
+
+    constructor(player: OathPlayer, faces: number[]) {
+        super(player);
+        this.faces = faces;
+    }
+
+    resolve(): void {
+        new TakeFavorFromBankAction(this.player, DefenseDie.getResult(this.faces)).doNext();
+    }
+
+    revert(): void {
+        // Doesn't do anything on its own
     }
 }

@@ -46,7 +46,7 @@ export class OathActionManager extends OathGameObject {
         
             const returnData = {
                 activeAction: action && {
-                    type: action.constructor.name,
+                    message: action.message,
                     player: action.player.color,
                     modifiers: action instanceof ModifiableAction ? action.modifiers.map(e => e.constructor.name) : undefined,
                     selects: Object.fromEntries(Object.entries(action.selects).map(([k, v]) => [k, v.serialize()])),
@@ -191,6 +191,7 @@ export abstract class OathAction extends OathGameObject {
     readonly selects: Record<string, SelectNOf<any>> = {};
     readonly parameters: Record<string, any> = {};
     readonly autocompleteSelects: boolean = true;
+    abstract readonly message: string;
 
     constructor(player: OathPlayer, dontCopyGame: boolean = false) {
         super(dontCopyGame ? player.game : getCopyWithOriginal(player.game));
@@ -244,6 +245,7 @@ export class ChooseModifiers extends OathAction {
     readonly parameters: { modifiers: ActionModifier<any>[] };
     readonly next: ModifiableAction;
     readonly executeImmediately: boolean;
+    readonly message = "Choose modifiers";
 
     modifiers: ActionModifier<any>[] = [];
 
@@ -347,6 +349,7 @@ export abstract class MajorAction extends ModifiableAction {
 export class MusterAction extends MajorAction {
     readonly selects: { card: SelectNOf<Denizen> };
     readonly parameters: { card: Denizen[] };
+    readonly message = "Put a favor on a card to muster";
 
     supplyCost = 1;
     card: Denizen;
@@ -379,6 +382,7 @@ export class MusterAction extends MajorAction {
 export class TradeAction extends MajorAction {
     readonly selects: { card: SelectNOf<Denizen>, forFavor: SelectBoolean };
     readonly parameters: { card: Denizen[], forFavor: boolean[] };
+    readonly message = "Put resources on a card to trade";
 
     supplyCost = 1;
     card: Denizen;
@@ -417,6 +421,7 @@ export class TradeAction extends MajorAction {
 export class TravelAction extends MajorAction {
     readonly selects: { site: SelectNOf<Site> };
     readonly parameters: { site: Site[] };
+    readonly message = "Choose a site to travel to";
 
     site: Site;
 
@@ -450,6 +455,7 @@ export interface RecoverActionTarget {
 export class RecoverAction extends MajorAction {
     readonly selects: { target: SelectNOf<RecoverActionTarget> };
     readonly parameters: { target: RecoverActionTarget[] };
+    readonly message = "Choose a target to recover";
     
     supplyCost = 1;
     target: RecoverActionTarget;
@@ -476,6 +482,7 @@ export class RecoverAction extends MajorAction {
 export class RecoverBannerPitchAction extends OathAction {
     readonly selects: { amount: SelectNumber };
     readonly parameters: { amount: number[] };
+    readonly message = "Put resources onto the banner";
 
     banner: Banner;
 
@@ -500,6 +507,7 @@ export class RecoverBannerPitchAction extends OathAction {
 export class SearchAction extends MajorAction {
     readonly selects: { deck: SelectNOf<SearchableDeck> };
     readonly parameters: { deck: SearchableDeck[] };
+    readonly message = "Draw 3 cards from a deck";
 
     deck: SearchableDeck;
     amount = 3;
@@ -540,6 +548,7 @@ export class SearchDiscardOptions {
 export class SearchChooseAction extends ModifiableAction {
     readonly selects: { cards: SelectNOf<WorldCard> }
     readonly parameters: { cards: WorldCard[] }
+    readonly message = "Choose which card(s) to keep";
 
     cards: Set<WorldCard>;
     playing: WorldCard[];  // For this action, order is important
@@ -576,6 +585,7 @@ export class SearchDiscardAction extends ModifiableAction {
     readonly selects: { cards: SelectNOf<WorldCard> }
     readonly parameters: { cards: WorldCard[] };
     readonly autocompleteSelects = false;
+    readonly message = "Choose the order of the discards";
 
     cards: Set<WorldCard>;
     discarding: WorldCard[];  // For this action, order is important
@@ -610,6 +620,7 @@ export class SearchDiscardAction extends ModifiableAction {
 export class SearchPlayAction extends ModifiableAction {
     readonly selects: { site: SelectNOf<Site | undefined>, facedown: SelectBoolean }
     readonly parameters: { site: (Site | undefined)[], facedown: boolean[] }
+    readonly message: string;
     
     card: WorldCard;
     site: Site | undefined;
@@ -620,6 +631,7 @@ export class SearchPlayAction extends ModifiableAction {
     constructor(player: OathPlayer, card: WorldCard, discardOptions?: SearchDiscardOptions) {
         super(player);
         this.card = card;
+        this.message = "Play " + this.card.name;
         this.discardOptions = discardOptions || new SearchDiscardOptions(player.discard, false);
     }
 
@@ -690,6 +702,7 @@ export class SearchPlayAction extends ModifiableAction {
 export class SearchReplaceAction extends OathAction {
     readonly selects: { discarding: SelectNOf<WorldCard> }
     readonly parameters: { discarding: WorldCard[] };
+    readonly message: string;
 
     playing: WorldCard;
     site?: Site;
@@ -703,6 +716,7 @@ export class SearchReplaceAction extends OathAction {
     constructor(player: OathPlayer, playing: WorldCard, facedown: boolean, site: Site | undefined, discardable: Iterable<WorldCard>, excess: number, discardOptions?: SearchDiscardOptions) {
         super(player);
         this.playing = playing;
+        this.message = "Discard cards to play " + playing.name;
         this.facedown = facedown;
         this.site = site;
         this.discardable = new Set(discardable);
@@ -727,6 +741,7 @@ export class SearchReplaceAction extends OathAction {
 export class PeoplesFavorDiscardAction extends OathAction {
     readonly selects: { card: SelectNOf<Denizen> };
     readonly parameters: { card: Denizen[] };
+    readonly message = "You may discard a card";
 
     discardOptions: SearchDiscardOptions;
 
@@ -755,6 +770,7 @@ export class PeoplesFavorDiscardAction extends OathAction {
 export class CampaignAction extends MajorAction {
     readonly selects: { defender: SelectNOf<OathPlayer | undefined> };
     readonly parameters: { defender: (OathPlayer | undefined)[] };
+    readonly message = "Choose a defender";
     
     supplyCost = 2;
     defender: OathPlayer | undefined;
@@ -789,6 +805,7 @@ export class CampaignAtttackAction extends ModifiableAction {
     readonly selects: { targets: SelectNOf<CampaignActionTarget>, pool: SelectNumber };
     readonly parameters: { targets: CampaignActionTarget[], pool: number[] };
     readonly next: CampaignDefenseAction;
+    readonly message = "Choose targets and attack pool";
 
     constructor(player: OathPlayer, defender: OathPlayer | undefined) {
         super(player);
@@ -859,6 +876,7 @@ export class CampaignAtttackAction extends ModifiableAction {
 
 export class CampaignDefenseAction extends ModifiableAction {
     readonly next: CampaignEndAction;
+    readonly message = "";
 
     constructor(player: OathPlayer, attacker: OathPlayer) {
         super(player, true);  // Don't copy because this is a big chain
@@ -983,6 +1001,7 @@ export class CampaignResult extends OathGameObject {
 export class CampaignEndAction extends ModifiableAction {
     readonly selects: { doSacrifice: SelectBoolean };
     readonly parameters: { doSacrifice: boolean[] };
+    readonly message = "Do you want to sacrifice to win?";
     
     campaignResult = new CampaignResult(this.game);
     doSacrifice: boolean
@@ -1020,12 +1039,14 @@ export class CampaignEndAction extends ModifiableAction {
 export class CampaignSeizeSiteAction extends OathAction {
     readonly selects: { amount: SelectNumber };
     readonly parameters: { amount: number[] };
+    readonly message: string;
     
     site: Site;
 
     constructor(player: OathPlayer, site: Site) {
         super(player);
         this.site = site;
+        this.message = "Choose how many warbands to move to " + site.name;
     }
 
     start() {
@@ -1043,12 +1064,14 @@ export class CampaignSeizeSiteAction extends OathAction {
 export class CampaignBanishPlayerAction extends OathAction {
     readonly selects: { site: SelectNOf<Site> };
     readonly parameters: { site: Site[] };
+    readonly message: string;
 
     target: OathPlayer;
 
     constructor(player: OathPlayer, target: OathPlayer) {
         super(player);
         this.target = target;
+        this.message = "Choose where to banish " + target.name;
     }
 
     start() {
@@ -1068,6 +1091,8 @@ export class CampaignBanishPlayerAction extends OathAction {
 
 
 export class WakeAction extends ModifiableAction {
+    readonly message = "";
+
     modifiedExecution(): void {
         new ChangePhaseEffect(this.game, OathPhase.Act).doNext();
     }
@@ -1075,6 +1100,8 @@ export class WakeAction extends ModifiableAction {
 
 
 export class RestAction extends ModifiableAction {
+    readonly message = "";
+
     modifiedExecution(): void {
         new ChangePhaseEffect(this.game, OathPhase.Rest).do();
         this.player.original.rest();
@@ -1090,6 +1117,7 @@ export class UsePowerAction extends ModifiableAction {
     readonly selects: { power: SelectNOf<ActivePower<any>> }
     readonly parameters: { power: ActivePower<any>[] };
     readonly autocompleteSelects = false;
+    readonly message = "Choose a power to use";
 
     power: ActivePower<any>;
 
@@ -1122,6 +1150,8 @@ export class UsePowerAction extends ModifiableAction {
 //              OTHER ACTIONS             //
 ////////////////////////////////////////////
 export class ResolveEffectAction extends OathAction {
+    readonly message = "";
+
     effect: OathEffect<any>;
 
     constructor(player: OathPlayer, effect: OathEffect<any>) {
@@ -1138,6 +1168,7 @@ export class ResolveEffectAction extends OathAction {
 export class AskForRerollAction extends OathAction {
     readonly selects: { doReroll: SelectBoolean };
     readonly parameters: { doReroll: boolean[] };
+    readonly message;
 
     faces: number[];
     die: typeof Die;
@@ -1145,6 +1176,7 @@ export class AskForRerollAction extends OathAction {
     constructor(player: OathPlayer, faces: number[], die: typeof Die) {
         super(player, false);  // Don't copy, not modifiable, and not an entry point
         this.faces = faces;
+        this.message = "Do you wish to reroll " + faces.join(",") + "?"
     }
 
     start() {
@@ -1155,20 +1187,6 @@ export class AskForRerollAction extends OathAction {
     execute(): void {
         if (this.parameters.doReroll[0])
             for (const [i, face] of this.die.roll(this.faces.length).entries()) this.faces[i] = face;
-    }
-}
-
-
-export class GamblingHallAction extends OathAction {
-    faces: number[];
-
-    constructor(player: OathPlayer, faces: number[]) {
-        super(player, false);  // Don't copy, not modifiable, and not an entry point
-        this.faces = faces;
-    }
-
-    execute(): void {
-        new TakeFavorFromBankAction(this.player, DefenseDie.getResult(this.faces)).doNext();
     }
 }
 
@@ -1202,13 +1220,16 @@ export abstract class ChooseSuit extends OathAction {
 }
 
 export class PeoplesFavorReturnAction extends ChooseSuit {
+    readonly message: string;
+
     banner: PeoplesFavor;
     amount: number;
 
     constructor(player: OathPlayer, banner: PeoplesFavor) {
         super(player);
         this.banner = banner;
-        this.amount = banner.amount;
+        this.amount = banner.amount; 
+        this.message = "Choose where to start returning the favor (" + this.amount + ")";
     }
 
     execute() {
@@ -1228,11 +1249,14 @@ export class PeoplesFavorReturnAction extends ChooseSuit {
 }
 
 export class TakeFavorFromBankAction extends ChooseSuit {
+    readonly message: string;
+
     amount: number;
 
     constructor(player: OathPlayer, amount?: number, suits?: Iterable<OathSuit>) {
         super(player, suits);
         this.amount = amount || 1;
+        this.message = "Take " + amount + " from a favor bank";
     }
 
     start(none?: string) {
@@ -1251,6 +1275,7 @@ export class TakeFavorFromBankAction extends ChooseSuit {
 }
 
 export class PeoplesFavorWakeAction extends ChooseSuit {
+    readonly message = "Put or return favor";
     readonly banner: PeoplesFavor;
 
     constructor(player: OathPlayer, banner: PeoplesFavor) {
@@ -1285,6 +1310,7 @@ export class PeoplesFavorWakeAction extends ChooseSuit {
 export class ChooseResourceToTakeAction extends OathAction {
     readonly selects: { resource: SelectNOf<OathResource> };
     readonly parameters: { resource: OathResource[] };
+    readonly message = "Take a resource";
 
     source: ResourcesAndWarbands;
 
@@ -1340,6 +1366,8 @@ export abstract class ChoosePlayer extends OathAction {
 }
 
 export class TakeResourceFromPlayerAction extends ChoosePlayer {
+    readonly message: string;
+
     resource: OathResource;
     amount: number;
 
@@ -1347,6 +1375,7 @@ export class TakeResourceFromPlayerAction extends ChoosePlayer {
         super(player, players);
         this.resource = resource;
         this.amount = amount || 1;
+        this.message = `Take ${amount} ${OathResourceName[resource]}(s) from a player`
     }
     
     execute() {
@@ -1376,6 +1405,8 @@ export class PiedPiperAction extends TakeResourceFromPlayerAction {
 }
 
 export class ChooseNewOathkeeper extends ChoosePlayer {
+    readonly message = "Choose the new Oathkeeper";
+
     execute(): void {
         super.execute();
         if (!this.target) return;
@@ -1384,6 +1415,8 @@ export class ChooseNewOathkeeper extends ChoosePlayer {
 }
 
 export class ConspiracyAction extends ChoosePlayer {
+    readonly message = "Choose a target for the Cosnpiracy";
+
     start() {
         return super.start("No one");
     }
@@ -1396,7 +1429,8 @@ export class ConspiracyAction extends ChoosePlayer {
 }
 export class ConspiracyStealAction extends OathAction {
     readonly selects: { taking: SelectNOf<Relic | Banner> };
-    parameters: { taking: (Relic | Banner)[] };
+    readonly parameters: { taking: (Relic | Banner)[] };
+    readonly message = "Take a relic or banner";
 
     target: OathPlayer;
 
@@ -1451,6 +1485,8 @@ export abstract class ChooseSite extends OathAction {
 }
 
 export class ActAsIfAtSiteAction extends ChooseSite {
+    readonly message = "Choose a site to act at";
+
     execute(): void {
         super.execute();
         if (!this.target) return;

@@ -1,8 +1,8 @@
-import { CampaignAtttackAction, CampaignDefenseAction, InvalidActionResolution, ModifiableAction, OathAction, PeoplesFavorDiscardAction, PeoplesFavorWakeAction, RestAction, SearchAction, SearchPlayAction, TakeFavorFromBankAction, ChooseResourceToTakeAction, TradeAction, TravelAction, UsePowerAction, WakeAction, TakeResourceFromPlayerAction, PiedPiperAction, CampaignEndAction, ConspiracyAction, ActAsIfAtSiteAction, GamblingHallAction, AskForRerollAction } from "./actions";
+import { CampaignAtttackAction, CampaignDefenseAction, InvalidActionResolution, ModifiableAction, OathAction, PeoplesFavorDiscardAction, PeoplesFavorWakeAction, RestAction, SearchAction, SearchPlayAction, TakeFavorFromBankAction, ChooseResourceToTakeAction, TradeAction, TravelAction, UsePowerAction, WakeAction, TakeResourceFromPlayerAction, PiedPiperAction, CampaignEndAction, ConspiracyAction, ActAsIfAtSiteAction, AskForRerollAction } from "./actions";
 import { Conspiracy, Denizen, OwnableCard, Relic, Site, Vision, WorldCard } from "./cards/cards";
 import { BannerName, OathResource, OathSuit, RegionName } from "./enums";
 import { Banner, DarkestSecret, PeoplesFavor, ResourceCost } from "./resources";
-import { CursedCauldronResolutionEffect, DiscardCardEffect, MoveResourcesToTargetEffect, OathEffect, PayCostToTargetEffect, PlayDenizenAtSiteEffect, PlayVisionEffect, PlayWorldCardEffect, PutResourcesOnTargetEffect, PutWarbandsFromBagEffect, RegionDiscardEffect, RollDiceEffect, SetNewOathkeeperEffect, TakeOwnableObjectEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect } from "./effects";
+import { CursedCauldronResolutionEffect, GamblingHallEffect, MoveResourcesToTargetEffect, OathEffect, PayCostToTargetEffect, PlayDenizenAtSiteEffect, PlayVisionEffect, PlayWorldCardEffect, PutResourcesOnTargetEffect, PutWarbandsFromBagEffect, RegionDiscardEffect, RollDiceEffect, SetNewOathkeeperEffect, TakeOwnableObjectEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect } from "./effects";
 import { OathPlayer, OwnableObject, Reliquary, isOwnable } from "./player";
 import { OathGameObject } from "./gameObject";
 import { AbstractConstructor } from "./utils";
@@ -691,7 +691,7 @@ export class GamblingHall extends ActivePower<Denizen> {
 
     usePower(action: UsePowerAction): void {
         const faces = new RollDiceEffect(action.game, action.player, DefenseDie, 4).do();
-        new GamblingHallAction(this.action.player, faces).doNext();
+        new GamblingHallEffect(this.action.player, faces).doNext();
     }
 }
 
@@ -703,7 +703,7 @@ export class Bracken extends AccessedActionModifier<Denizen> {
     action: SearchAction;
 
     applyDuring(): void {
-        // Action to change the discard options
+        // TODO: Action to change the discard options
     }
 }
 
