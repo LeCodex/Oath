@@ -871,8 +871,10 @@ export class CampaignAtttackAction extends ModifiableAction {
     execute() {
         this.campaignResult.targets.push(...this.parameters.targets);
         this.campaignResult.atkPool = this.parameters.pool[0];
+        
         this.campaignResult.defPool = 0;
         for (const target of this.campaignResult.targets) this.campaignResult.defPool += target.defense;
+        if (this.campaignResult.defender === this.game.oathkeeper) this.campaignResult.defPool += this.game.isUsurper ? 2 : 1;
 
         this.campaignResult.resolveDefForce();
         this.campaignResult.resolveAtkForce();

@@ -770,7 +770,7 @@ export class RollDiceEffect extends OathEffect<number[]> {
     constructor(game: OathGame, player: OathPlayer | undefined, die: typeof Die, amount: number) {
         super(game, player);
         this.die = die;
-        this.amount = amount;
+        this.amount = Math.max(0, amount);
     }
 
     resolve(): number[] {
