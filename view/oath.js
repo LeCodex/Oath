@@ -18,7 +18,7 @@ const setup = async () => {
 const oathNames = ["Supremacy", "Protection", "the People", "Devotion"];
 const pawnColors = ["💜", "❤️", "💙", "💛", "🤍", "🖤"];
 const suitColors = ["🔴", "🟣", "🔵", "🟠", "🟤", "🟢"];
-const resourceNames = ["🟡", "📘", "📗"];
+const resourceNames = ["🟡", "📘", "📖"];
 const render = () => {
     const infoNode = document.getElementById("info");
     infoNode.innerHTML = "";
@@ -130,6 +130,7 @@ const render = () => {
         actionNode.appendChild(renderText("[MINOR]"));
         actionNode.appendChild(renderButton("Use", () => startAction("use")));
         actionNode.appendChild(renderButton("Reveal", () => startAction("reveal")));
+        actionNode.appendChild(renderButton("Move warbands", () => startAction("moveWarbands")));
         actionNode.appendChild(renderButton("Rest", () => startAction("rest")));
     }
     actionNode.appendChild(renderButton("Cancel", () => cancelAction()));

@@ -362,16 +362,16 @@ export class Jinx extends EffectModifier<Denizen> {
     name = "Jinx";
     modifiedEffect = RollDiceEffect;
     effect: RollDiceEffect;
+    // TODO: This doesn't interface with Spell Breaker
+    cost = new ResourceCost([[OathResource.Secret, 1]]);
 
     canUse(): boolean {
-        return this.effect.player !== undefined && this.effect.player.rules(this.source);
+        return this.effect.player !== undefined && this.effect.player.rules(this.source) && !(!this.source.empty && this.game.currentPlayer.original === this.effect.player.original);
     }
 
     applyAfter(result: number[]): void {
-        if (!this.effect.player) return;
-        if (!new PayCostToTargetEffect(this.game, this.effect.player, new ResourceCost([[OathResource.Secret, 1]]), this.source).do()) return;
-        
-        new AskForRerollAction(this.effect.player, result, this.effect.die).doNext();
+        if (!this.effect.player) return;        
+        new AskForRerollAction(this.effect.player, result, this.effect.die, this.cost, this.source).doNext();
     }
 }
 

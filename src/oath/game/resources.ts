@@ -171,7 +171,7 @@ export abstract class ResourcesAndWarbands extends OathGameObject {
     }
 
     takeResources(resource: OathResource, amount: number = Infinity): number {
-        const oldAmount = (this.resources.get(resource) || 0);
+        const oldAmount = this.getResources(resource);
         const newAmount = Math.max(oldAmount - amount, 0);
         this.resources.set(resource, newAmount);
         return oldAmount - newAmount;
@@ -192,7 +192,7 @@ export abstract class ResourcesAndWarbands extends OathGameObject {
     }
 
     getWarbands(player: OathPlayer): number {
-        return this.warbands.get(player) || 0;
+        return this.warbands.get(player.original) || 0;
     }
 
     putWarbands(player: OathPlayer, amount: number): number {
@@ -202,7 +202,7 @@ export abstract class ResourcesAndWarbands extends OathGameObject {
     }
 
     takeWarbands(player: OathPlayer, amount: number = Infinity): number {
-        const oldAmount = (this.warbands.get(player) || 0);
+        const oldAmount = this.getWarbands(player);
         const newAmount = Math.max(oldAmount - amount, 0);
         this.warbands.set(player, newAmount);
         return oldAmount - newAmount;

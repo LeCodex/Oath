@@ -1,4 +1,4 @@
-import { Denizen, Relic, Site, WorldCard } from "./cards/cards";
+import { Denizen, OathCard, Relic, Site, WorldCard } from "./cards/cards";
 import { SearchableDeck } from "./cards/decks";
 import { AttackDie, DefenseDie, Die } from "./dice";
 import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect, DiscardCardEffect, MoveOwnWarbandsEffect, AddActionToStackEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect, SetNewOathkeeperEffect, SetPeoplesFavorMobState, DiscardCardGroupEffect, OathEffect, PopActionFromStackEffect, PaySupplyEffect, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect } from "./effects";
@@ -785,7 +785,7 @@ export class PeoplesFavorDiscardAction extends OathAction {
     execute(): void {
         if (this.parameters.card.length === 0) return;
         const card = this.parameters.card[0];
-        new DiscardCardEffect(this.player, card, this.discardOptions);
+        new DiscardCardEffect(this.player, card, this.discardOptions).do();
     }
 }
 
@@ -980,19 +980,19 @@ export class CampaignResult extends OathGameObject {
         let total = 0, pawnTargeted = false;
         for (const target of this.targets) {
             if (target.pawnMustBeAtSite) {
-                if (!pawnTargeted) total += this.defender?.totalWarbands || 0;
                 pawnTargeted = true;
                 continue;
             }
             
             // TODO: Make that modular
             if (target instanceof Site) {
+                if (this.defender?.site.original === target.original) pawnTargeted = true;
                 total += this.defender ? target.getWarbands(this.defender) : target.bandits;
                 continue;
             }
         }
 
-        this.defForce = total;
+        this.defForce = total + (this.defender && pawnTargeted ? this.defender.totalWarbands : 0);
     }
 
     rollAttack() {
@@ -1199,10 +1199,92 @@ export class PlayFacedownAdviserAction extends ModifiableAction {
     }
 
     modifiedExecution(): void {
-        new SearchPlayAction(this.player, this.playing).doNext();
+        new SearchPlayAction(this.player, new MoveAdviserEffect(this.player, this.playing).do()).doNext();
     }
 }
 
+
+export class MoveWarbandsAction extends ModifiableAction {
+    readonly selects: { target: SelectNOf<Site | OathPlayer>, amount: SelectNumber, giving: SelectBoolean };
+    readonly parameters: { target: (Site | OathPlayer)[], amount: number[], giving: boolean[] };
+    readonly message = "Give or take warbands";
+
+    target: Site | OathPlayer;
+    amount: number;
+    giving: boolean;
+
+    start(): Record<string, string[]> | undefined {
+        const choices = new Map<string, Site | OathPlayer>();
+        const site = this.player.site;
+        let max = this.player.getWarbands(this.player.leader);
+        if (this.player.isImperial) {
+            for (const player of Object.values(this.game.players)) {
+                if (player !== this.player && player.isImperial && player.site.original === site.original) {
+                    choices.set(player.name, player);
+                    max = Math.max(max, player.getWarbands(player.leader));
+                }
+            }
+        }
+        if (site.getWarbands(this.player.leader) > 0) {
+            choices.set(site.name, site);
+            max = Math.max(max, site.getWarbands(this.player.leader) - 1);
+        }
+        this.selects.target = new SelectNOf(choices, 1);
+        
+        const values = [];
+        for (let i = 1; i <= max; i++) values.push(i);
+        this.selects.amount = new SelectNumber(values);
+
+        this.selects.giving = new SelectBoolean(["Giving", "Taking"]);
+
+        return super.start();
+    }
+
+    execute(): void {
+        this.target = this.parameters.target[0];
+        this.amount = this.parameters.amount[0];
+        this.giving = this.parameters.giving[0];
+        super.execute();
+    }
+
+    modifiedExecution(): void {
+        const from = this.giving ? this.player : this.target;
+        const to = this.giving ? this.target : this.player;
+
+        if (from instanceof Site && from.getWarbands(this.player.leader) - this.amount < 1)
+            throw new InvalidActionResolution("Cannot take the last warband off a site.");
+
+        const effect = new MoveOwnWarbandsEffect(this.player, from, to, this.amount);
+        if (this.target instanceof OathPlayer || this.target.ruler && this.target.ruler.original !== this.player.original) {
+            const askTo = this.target instanceof OathPlayer ? this.target : this.target.ruler;
+            if (askTo) new AskForPermissionAction(askTo, effect).doNext();
+        } else {
+            effect.do();
+        }
+    }
+}
+
+export class AskForPermissionAction extends OathAction {
+    readonly selects: { allow: SelectBoolean };
+    readonly parameters: { allow: boolean[] };
+    readonly message = "Do you allow this action?";
+
+    effect: OathEffect<any>;
+
+    constructor(player: OathPlayer, effect: OathEffect<any>) {
+        super(player);
+        this.effect = effect;
+    }
+
+    start(): Record<string, string[]> | undefined {
+        this.selects.allow = new SelectBoolean(["Allow", "Deny"]);
+        return super.start();
+    }
+
+    execute(): void {
+        if (this.parameters.allow[0]) this.effect.do();
+    }
+}
 
 
 ////////////////////////////////////////////
@@ -1231,11 +1313,16 @@ export class AskForRerollAction extends OathAction {
 
     faces: number[];
     die: typeof Die;
+    cost?: ResourceCost;
+    target?: ResourcesAndWarbands;
 
-    constructor(player: OathPlayer, faces: number[], die: typeof Die) {
+    constructor(player: OathPlayer, faces: number[], die: typeof Die, cost?: ResourceCost, target?: ResourcesAndWarbands) {
         super(player, false);  // Don't copy, not modifiable, and not an entry point
         this.faces = faces;
-        this.message = "Do you wish to reroll " + faces.join(",") + "?"
+        this.message = "Do you wish to reroll " + faces.join(",") + "?";
+        this.die = die;
+        this.cost = cost;
+        this.target = target;
     }
 
     start() {
@@ -1244,8 +1331,10 @@ export class AskForRerollAction extends OathAction {
     }
 
     execute(): void {
-        if (this.parameters.doReroll[0])
+        if (this.parameters.doReroll[0]) {
+            if (this.cost && !new PayCostToTargetEffect(this.game, this.player, this.cost, this.target).do()) return;
             for (const [i, face] of this.die.roll(this.faces.length).entries()) this.faces[i] = face;
+        }
     }
 }
 

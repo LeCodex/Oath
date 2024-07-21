@@ -626,6 +626,7 @@ export class MoveAdviserEffect extends PlayerEffect<WorldCard> {
 
     resolve(): WorldCard {
         if (!this.player.original.advisers.has(this.card.original)) throw new InvalidActionResolution("Trying to move an adviser you don't have.");
+        this.card.original.setOwner(undefined);
         return this.card.original;
     }
 
@@ -646,6 +647,7 @@ export class MoveSiteDenizenEffect extends OathEffect<Denizen> {
     resolve(): Denizen {
         if (!this.card.original.site) throw new InvalidActionResolution("Trying to move a site card not at a site.");
         this.oldSite = this.card.original.site;
+        this.card.original.setOwner(undefined);
         return this.card.original;
     }
 
