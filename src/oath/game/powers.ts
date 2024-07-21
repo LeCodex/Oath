@@ -273,11 +273,15 @@ export class VowOfObedienceRest extends RestPower<Denizen> {
 
 
 // ------------------ ARCANE ------------------- //
-export class GleamingArmorAttack extends EnemyActionModifier<Denizen> {
+export class GleamingArmorAttack extends ActionModifier<Denizen> {
     name = "Gleaming Armor";
     modifiedAction = CampaignAtttackAction;
     action: CampaignAtttackAction;
     mustUse = true;
+
+    canUse(): boolean {
+        return this.action.campaignResult.defender?.original === this.source.ruler?.original;
+    }
 
     applyImmediately(modifiers: ActionModifier<any>[]): void {
         for (const modifier of modifiers) 
@@ -285,11 +289,15 @@ export class GleamingArmorAttack extends EnemyActionModifier<Denizen> {
                 modifier.cost.add(new ResourceCost([[OathResource.Secret, 1]]));
     }
 }
-export class GleamingArmorDefense extends EnemyActionModifier<Denizen> {
+export class GleamingArmorDefense extends ActionModifier<Denizen> {
     name = "Gleaming Armor";
     modifiedAction = CampaignDefenseAction;
     action: CampaignDefenseAction;
     mustUse = true;
+
+    canUse(): boolean {
+        return this.action.campaignResult.attacker.original === this.source.ruler?.original;
+    }
 
     applyImmediately(modifiers: ActionModifier<any>[]): void {
         for (const modifier of modifiers) 
@@ -313,7 +321,7 @@ export class Dazzle extends WhenPlayed<Denizen> {
     name = "Dazzle";
 
     whenPlayed(effect: PlayWorldCardEffect): void {
-        new RegionDiscardEffect(effect.player, [OathSuit.Hearth, OathSuit.Order]).do();
+        new RegionDiscardEffect(effect.player, [OathSuit.Hearth, OathSuit.Order], this.source).do();
     }
 }
 
@@ -712,11 +720,15 @@ export class Bracken extends AccessedActionModifier<Denizen> {
 }
 
 
-export class InsectSwarmAttack extends EnemyActionModifier<Denizen> {
+export class InsectSwarmAttack extends ActionModifier<Denizen> {
     name = "Insect Swarm";
     modifiedAction = CampaignAtttackAction;
     action: CampaignAtttackAction;
     mustUse = true;
+
+    canUse(): boolean {
+        return this.action.campaignResult.defender?.original === this.source.ruler?.original;
+    }
 
     applyImmediately(modifiers: ActionModifier<any>[]): void {
         for (const modifier of modifiers) 
@@ -724,11 +736,15 @@ export class InsectSwarmAttack extends EnemyActionModifier<Denizen> {
                 modifier.cost.add(new ResourceCost([], [[OathResource.Favor, 1]]));
     }
 }
-export class InsectSwarmDefense extends EnemyActionModifier<Denizen> {
+export class InsectSwarmDefense extends ActionModifier<Denizen> {
     name = "Insect Swarm";
     modifiedAction = CampaignDefenseAction;
     action: CampaignDefenseAction;
     mustUse = true;
+
+    canUse(): boolean {
+        return this.action.campaignResult.attacker.original === this.source.ruler?.original;
+    }
 
     applyImmediately(modifiers: ActionModifier<any>[]): void {
         for (const modifier of modifiers) 
@@ -742,7 +758,7 @@ export class ThreateningRoar extends WhenPlayed<Denizen> {
     name = "Threatening Roar";
 
     whenPlayed(effect: PlayWorldCardEffect): void {
-        new RegionDiscardEffect(effect.player, [OathSuit.Beast, OathSuit.Nomad]).do();
+        new RegionDiscardEffect(effect.player, [OathSuit.Beast, OathSuit.Nomad], this.source).do();
     }
 }
 

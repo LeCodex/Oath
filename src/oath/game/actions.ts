@@ -717,6 +717,8 @@ export class SearchPlayAction extends ModifiableAction {
                 new SearchReplaceAction(this.player, this.card, this.facedown, this.site, discardable, excess, this.discardOptions).doNext();
         else
             new PlayWorldCardEffect(this.player, this.card, this.facedown, this.site).do();
+
+        // TODO: Also check capacity AFTER playing the card
     }
 }
 
@@ -1050,7 +1052,7 @@ export class CampaignEndAction extends ModifiableAction {
             for (const target of this.campaignResult.targets) target.seize(this.campaignResult.attacker);
 
         if (this.campaignResult.loser && !this.campaignResult.ignoreKilling && !this.campaignResult.loserKillsNoWarbands)
-            this.campaignResult.loserKills(Math.floor(this.campaignResult.loser.totalWarbands / (this.campaignResult.loserKillsEntireForce ? 1 : 2)));
+            this.campaignResult.loserKills(Math.floor(this.campaignResult.loser.original.totalWarbands / (this.campaignResult.loserKillsEntireForce ? 1 : 2)));
 
         for (const effect of this.campaignResult.endEffects)
             effect.do();

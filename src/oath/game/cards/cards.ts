@@ -201,12 +201,12 @@ export class Relic extends OwnableCard implements RecoverActionTarget, CampaignA
         if (!new PayCostToBankEffect(this.game, player, this.site.recoverCost, this.site.recoverSuit).do()) throw new InvalidActionResolution("Cannot pay recover cost.");
 
         new TakeOwnableObjectEffect(this.game, player, this).do();
-        this.facedown = false;
+        this.original.facedown = false;
     }
 
     seize(player: OathPlayer) {
         new TakeOwnableObjectEffect(this.game, player, this).do();
-        this.facedown = false;
+        this.original.facedown = false;
     }
 
     // serialize(): Record<string, any> {

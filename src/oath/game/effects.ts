@@ -538,6 +538,7 @@ export class PlayDenizenAtSiteEffect extends PlayerEffect<void> {
     site: Site;
 
     getting = new Map([[OathResource.Favor, 1]]);
+    revealedCard: boolean;
 
     constructor(player: OathPlayer, card: Denizen, site: Site) {
         super(player);
@@ -547,7 +548,8 @@ export class PlayDenizenAtSiteEffect extends PlayerEffect<void> {
 
     resolve(): void {
         this.card.original.putAtSite(this.site.original);
-        this.card.original.reveal();
+        this.revealedCard = this.card.facedown;
+        if (this.revealedCard) this.card.original.reveal();
         
         // TODO: Put this in an effect?
         const bank = this.game.favorBanks.get(this.card.suit);
@@ -562,7 +564,7 @@ export class PlayDenizenAtSiteEffect extends PlayerEffect<void> {
     revert(): void {
         // The thing that calls this effect is in charge of putting the card back where it was
         // It should, if it calls setOwner, revert the placement at the site
-        // TODO: Revert facedown (?)
+        if (this.revealedCard) this.card.original.hide();
         this.card.setOwner(undefined);
     }
 }
@@ -570,6 +572,7 @@ export class PlayDenizenAtSiteEffect extends PlayerEffect<void> {
 export class PlayWorldCardToAdviserEffect extends PlayerEffect<void> {
     card: WorldCard;
     facedown: boolean;
+    revealedCard: boolean;
 
     constructor(player: OathPlayer, card: WorldCard, facedown: boolean) {
         super(player);
@@ -579,12 +582,13 @@ export class PlayWorldCardToAdviserEffect extends PlayerEffect<void> {
 
     resolve(): void {
         this.card.setOwner(this.player.original);
-        if (this.card.original.facedown && !this.facedown) this.card.original.reveal();
+        this.revealedCard = this.card.original.facedown && !this.facedown;
+        if (this.revealedCard) this.card.original.reveal();
     }
 
     revert(): void {
         // The thing that calls this effect is in charge of putting the card back where it was
-        // TODO: Revert facedown (?)
+        if (this.revealedCard) this.card.original.hide();
         this.card.setOwner(undefined);
     }
 }
@@ -954,17 +958,19 @@ export class SetPeoplesFavorMobState extends OathEffect<void> {
 
 export class RegionDiscardEffect extends PlayerEffect<void> {
     suits: OathSuit[];
+    source?: Denizen;
 
-    constructor(player: OathPlayer, suits: OathSuit[]) {
+    constructor(player: OathPlayer, suits: OathSuit[], source: Denizen | undefined = undefined) {
         super(player);
         this.suits = suits;
+        this.source = source;
     }
 
     resolve(): void {
         const cards: Denizen[] = [];
         for (const site of this.player.site.region.sites)
             for (const denizen of site.denizens)
-                if (this.suits.includes(denizen.suit))
+                if (this.suits.includes(denizen.suit) && denizen !== this.source)
                     cards.push(denizen);
 
         new DiscardCardGroupEffect(this.player, cards).do();
