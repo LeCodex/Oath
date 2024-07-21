@@ -54,6 +54,7 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
     }
 
     enemyWith(player: OathPlayer | undefined) {
+        if (player?.original === this.original) return false;
         if (!this.isImperial) return true;
         return !player || !player?.isImperial;
     }

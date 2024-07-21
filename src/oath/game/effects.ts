@@ -21,7 +21,7 @@ export abstract class OathEffect<T> extends OathGameObject {
     modifiers: EffectModifier<any>[] = [];
 
     constructor(game: OathGame, player: OathPlayer | undefined, dontCopyGame: boolean = false) {
-        super(dontCopyGame ? game : getCopyWithOriginal(game));
+        super(dontCopyGame ? game : getCopyWithOriginal(game.original));
         this.playerColor = player?.color;
     }
 
@@ -468,7 +468,7 @@ export class DrawFromDeckEffect<T extends OwnableCard> extends PlayerEffect<T[]>
     }
 
     revert(): void {
-        for (const card of this.cards) this.deck.original.putCard(card, this.fromBottom);
+        for (const card of this.cards.reverse()) this.deck.original.putCard(card, this.fromBottom);
     }
 }
 

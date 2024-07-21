@@ -201,7 +201,7 @@ export abstract class OathAction extends OathGameObject {
     abstract readonly message: string;
 
     constructor(player: OathPlayer, dontCopyGame: boolean = false) {
-        super(dontCopyGame ? player.game : getCopyWithOriginal(player.game));
+        super(dontCopyGame ? player.game : getCopyWithOriginal(player.game.original));
         this.playerColor = player.color;
     }
 
@@ -254,7 +254,7 @@ export class ChooseModifiers extends OathAction {
     readonly executeImmediately: boolean;
     readonly message = "Choose modifiers";
 
-    modifiers: ActionModifier<any>[] = [];
+    persistentModifiers: ActionModifier<any>[] = [];
 
     constructor(next: ModifiableAction, executeImmediately: boolean = false) {
         super(next.player, true);  // Not copying for performance reasons, since this copy should never be accessed
@@ -263,11 +263,11 @@ export class ChooseModifiers extends OathAction {
     }
 
     start() {
-        this.modifiers = [];
+        this.persistentModifiers = [];
         const choices = new Map<string, ActionModifier<any>>();
         for (const modifier of ChooseModifiers.gatherModifiers(this.next)) {
             if (modifier.mustUse)
-                this.modifiers.push(modifier);
+                this.persistentModifiers.push(modifier);
             else
                 choices.set(modifier.name, modifier);
         }
@@ -290,8 +290,8 @@ export class ChooseModifiers extends OathAction {
     }
 
     execute() {
-        this.modifiers.splice(this.modifiers.length, 0, ...this.parameters.modifiers);
-        if (!this.next.applyModifiers(this.modifiers)) return;
+        const modifiers = [...this.persistentModifiers, ...this.parameters.modifiers];
+        if (!this.next.applyModifiers(modifiers)) return;
 
         if (this.executeImmediately)
             this.next.execute();

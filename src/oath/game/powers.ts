@@ -147,7 +147,7 @@ export abstract class EnemyEffectModifier<T extends OwnableCard> extends EffectM
 
 export abstract class AccessedEffectModifier<T extends OwnableCard> extends EffectModifier<T> {
     canUse(): boolean {
-        return this.source.accessibleBy(this.effect.player);
+        return !!this.effect.player && this.source.accessibleBy(this.effect.player);
     }
 }
 
@@ -251,7 +251,7 @@ export class RoyalTax extends WhenPlayed<Denizen> {
 }
 
 
-export class VowOfObedience extends ActionModifier<Denizen> {
+export class VowOfObedience extends AccessedActionModifier<Denizen> {
     name = "Vow of Obedience";
     modifiedAction = SearchPlayAction;
     action: SearchPlayAction;
@@ -604,10 +604,10 @@ export class KeyToTheCity extends WhenPlayed<Denizen> {
 
     whenPlayed(effect: PlayWorldCardEffect): void {
         if (!this.source.site) return;
-        
-        if (this.source.site.ruler?.site !== this.source.site)
-            for (const [player, amount] of this.source.site.warbands)
-                new TakeWarbandsIntoBagEffect(player, amount, this.source.site).do();
+        if (this.source.site.ruler?.site === this.source.site) return;
+
+        for (const [player, amount] of this.source.site.warbands)
+            new TakeWarbandsIntoBagEffect(player, amount, this.source.site).do();
 
         new PutWarbandsFromBagEffect(effect.player, 1, this.source.site).do();
     }
@@ -940,7 +940,7 @@ export class ResourceSite extends SiteActionModifier {
     action: WakeAction;
 
     applyBefore(): boolean {
-        new ChooseResourceToTakeAction(this.action.player, this.source).doNext();
+        if (!this.source.empty) new ChooseResourceToTakeAction(this.action.player, this.source).doNext();
         return true;
     }
 }
