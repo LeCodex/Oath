@@ -19,7 +19,8 @@ export abstract class ResourceBank extends OathGameObject {
     }
 
     put(amount: number): number {
-        return this.amount += amount;
+        this.amount += amount;
+        return this.amount;
     }
 
     take(amount: number = Infinity): number {
@@ -74,9 +75,9 @@ export abstract class Banner extends ResourceBank implements OwnableObject, Reco
     
     finishRecovery(player: OathPlayer, amount: number): void {
         // Banner-specific logic
+        new PutResourcesIntoBankEffect(this.game, player, this, amount).doNext();
         this.handleRecovery(player);
         new TakeOwnableObjectEffect(this.game, player, this).do();
-        new PutResourcesIntoBankEffect(this.game, player, this, amount).doNext();
     }
 
     seize(player: OathPlayer) {
@@ -131,8 +132,8 @@ export class DarkestSecret extends Banner {
     }
 
     handleRecovery(player: OathPlayer) {
-        new TakeResourcesFromBankEffect(this.game, player, this, 1).do();
-        if (this.owner) new TakeResourcesFromBankEffect(this.game, this.owner, this, this.amount).do();
+        new TakeResourcesFromBankEffect(this.game, player, this, 1).doNext();
+        if (this.owner) new TakeResourcesFromBankEffect(this.game, this.owner, this, this.amount).doNext();
     }
 }
 

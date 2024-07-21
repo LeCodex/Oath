@@ -50,7 +50,7 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
     }
 
     rules(card: OwnableCard) {
-        return card.ruler === (this.isImperial ? this.game.chancellor : this);
+        return card.ruler?.original === this.leader.original;
     }
 
     enemyWith(player: OathPlayer | undefined) {
@@ -220,11 +220,15 @@ export class Reliquary extends OathGameObject {
 }
 
 export class Exile extends OathPlayer {
-    name = "Exile";
     warbandsInBag = 14;
 
     isCitizen: boolean;
     vision?: Vision;
+
+    constructor(game: OathGame, site: Site, color: PlayerColor) {
+        super(game, site, color);
+        this.name = "Exile " + color;
+    }
 
     get isImperial(): boolean { return this.isCitizen; }
 

@@ -6,7 +6,7 @@ import { PeoplesFavor, ResourceBank, ResourceCost, ResourcesAndWarbands } from "
 import { OwnableObject } from "./player";
 import { OathGame } from "./game";
 import { OathGameObject } from "./gameObject";
-import { CampaignEndAction, CampaignResult, InvalidActionResolution, OathAction, ResolveEffectAction, SearchDiscardAction, SearchDiscardOptions, SearchPlayAction, TakeFavorFromBankAction, WakeAction } from "./actions";
+import { CampaignResult, InvalidActionResolution, OathAction, ResolveEffectAction, SearchDiscardAction, SearchDiscardOptions, SearchPlayAction, TakeFavorFromBankAction, WakeAction } from "./actions";
 import { CardDeck } from "./cards/decks";
 import { getCopyWithOriginal, isExtended } from "./utils";
 import { D6, DefenseDie, Die } from "./dice";
@@ -563,6 +563,7 @@ export class PlayDenizenAtSiteEffect extends PlayerEffect<void> {
         // The thing that calls this effect is in charge of putting the card back where it was
         // It should, if it calls setOwner, revert the placement at the site
         // TODO: Revert facedown (?)
+        this.card.setOwner(undefined);
     }
 }
 
@@ -584,6 +585,7 @@ export class PlayWorldCardToAdviserEffect extends PlayerEffect<void> {
     revert(): void {
         // The thing that calls this effect is in charge of putting the card back where it was
         // TODO: Revert facedown (?)
+        this.card.setOwner(undefined);
     }
 }
 
@@ -862,14 +864,19 @@ export class NextTurnEffect extends OathEffect<void> {
         this.game.original.turn = (this.game.original.turn + 1) % this.game.original.order.length;
         if (this.game.original.turn === 0) this.game.original.round++;
 
-        if (this.game.original.round > 5 && this.game.oathkeeper.isImperial) {
+        if (this.game.round > 8) {
+            // TODO: War Exhaustion
+            return;
+        }
+
+        if (this.game.round > 5 && this.game.oathkeeper.isImperial) {
             const result = new RollDiceEffect(this.game, this.game.chancellor, D6, 1).do();
             new HandleD6ResultEffect(this.game, result).doNext();
             return;
         }
 
         new ChangePhaseEffect(this.game, OathPhase.Wake).doNext();
-        new WakeAction(this.game.currentPlayer).doNext();
+        new WakeAction(this.game.original.currentPlayer).doNext();
     }
 
     revert(): void {

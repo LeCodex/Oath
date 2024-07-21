@@ -95,7 +95,7 @@ export class Site extends OathCard implements CampaignActionTarget {
 
     reveal(): void {
         super.reveal();
-        for (const relic of this.game.relicDeck.draw(this.startingRelics)) this.addRelic(relic);
+        for (const relic of this.game.relicDeck.draw(this.startingRelics)) relic.putAtSite(this);
         for (const [resource, amount] of this.startingResources) this.putResources(resource, amount);
     }
 
@@ -129,7 +129,7 @@ export class Site extends OathCard implements CampaignActionTarget {
 
     seize(player: OathPlayer) {
         if (this.ruler) new MoveOwnWarbandsEffect(this.ruler, this, this.ruler).do();
-        new CampaignSeizeSiteAction(player, this).doNext();
+        new CampaignSeizeSiteAction(player.original, this).doNext();
     }
 
     serialize(): Record<string, any> {
@@ -149,14 +149,14 @@ export abstract class OwnableCard extends OathCard implements OwnableObject {
     get ruler() { return this.owner; }
 
     accessibleBy(player: OathPlayer | undefined): boolean {
-        return player?.leader === this.ruler;
+        return player?.leader.original === this.ruler?.original;
     }
 
     abstract setOwner(newOwner?: OathPlayer): void;
 
     returnResources() {
         if (this.getResources(OathResource.Secret))
-            new MoveResourcesToTargetEffect(this.game, this.game.currentPlayer, OathResource.Secret, Infinity, this.game.currentPlayer, this).do();
+            new MoveResourcesToTargetEffect(this.game, this.game.currentPlayer, OathResource.Secret, this.getResources(OathResource.Secret), this.game.currentPlayer, this).do();
     }
 
     // serialize(): Record<string, any> {
@@ -193,7 +193,7 @@ export class Relic extends OwnableCard implements RecoverActionTarget, CampaignA
     }
 
     canRecover(action: RecoverAction): boolean {
-        return action.player.site === this.site;
+        return !!this.site;
     }
 
     recover(player: OathPlayer): void {
@@ -244,7 +244,7 @@ export class Denizen extends WorldCard {
     }
 
     accessibleBy(player: OathPlayer): boolean {
-        return super.accessibleBy(player) || this.site === player.site;
+        return super.accessibleBy(player) || this.site?.original === player.site.original;
     }
 
     setOwner(newOwner?: OathPlayer): void {
@@ -262,7 +262,7 @@ export class Denizen extends WorldCard {
     returnResources(): void {
         super.returnResources();
         if (this.getResources(OathResource.Favor))
-            new PutResourcesIntoBankEffect(this.game, this.game.currentPlayer, this.game.favorBanks.get(this.suit), Infinity, this).do();
+            new PutResourcesIntoBankEffect(this.game, this.game.currentPlayer, this.game.favorBanks.get(this.suit), this.getResources(OathResource.Favor), this).do();
     }
 
     serialize(): Record<string, any> {

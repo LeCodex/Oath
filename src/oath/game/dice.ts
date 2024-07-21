@@ -21,7 +21,7 @@ export class AttackDie extends Die {
 
     static getSkulls(faces: number[]): number {
         let total = 0;
-        for (const value of faces) total += value === 2 ? 1 : 0;
+        for (const value of faces) total += (value === 2 ? 1 : 0);
         return Math.floor(total);
     }
 }

@@ -8,7 +8,7 @@ import { OathGameObject } from "./gameObject";
 import { OathPlayer } from "./player";
 import { ActionModifier, ActivePower, CapacityModifier } from "./powers";
 import { Banner, PeoplesFavor, ResourceCost, ResourcesAndWarbands } from "./resources";
-import { getCopyWithOriginal, isExtended } from "./utils";
+import { Constructor, getCopyWithOriginal, isExtended } from "./utils";
 
 
 
@@ -24,49 +24,55 @@ export class OathActionManager extends OathGameObject {
     noReturn: boolean = false;
 
     checkForNextAction(): object {
-        try {
-            for (const action of this.futureActionsList) new AddActionToStackEffect(action).do();
-            this.futureActionsList.length = 0;
+        for (const action of this.futureActionsList) new AddActionToStackEffect(action).do();
+        this.futureActionsList.length = 0;
 
-            if (!this.actionStack.length) this.game.checkForOathkeeper();
-            let action = this.actionStack[this.actionStack.length - 1];
-        
-            let values = action?.start();
-            if (values) {
-                action?.applyParameters(values);
-                return this.resolveTopAction();
-            }
-
-        
-            if (this.noReturn) {
-                this.currentEffectsStack.length = 0;
-                this.pastEffectsStack.length = 0;
-            }
-            this.noReturn = false;
-        
-            const returnData = {
-                activeAction: action && {
-                    message: action.message,
-                    player: action.player.color,
-                    modifiers: action instanceof ModifiableAction ? action.modifiers.map(e => e.constructor.name) : undefined,
-                    selects: Object.fromEntries(Object.entries(action.selects).map(([k, v]) => [k, v.serialize()])),
-                },
-                appliedEffects: this.currentEffectsStack.map(e => e.constructor.name),
-                cancelledEffects: this.cancelledEffects.map(e => e.constructor.name),
-                game: this.game.serialize()
-            }
-            this.cancelledEffects.length = 0;
-            return returnData;
-        } catch (e) {
-            this.revert();
-            throw e;
+        if (!this.actionStack.length) this.game.checkForOathkeeper();
+        let action = this.actionStack[this.actionStack.length - 1];
+    
+        let values = action?.start();
+        if (values) {
+            action?.applyParameters(values);
+            return this.resolveTopAction();
         }
+    
+        if (this.noReturn) {
+            this.currentEffectsStack.length = 0;
+            this.pastEffectsStack.length = 0;
+        }
+        this.noReturn = false;
+    
+        const returnData = {
+            activeAction: action && {
+                message: action.message,
+                player: action.player.color,
+                modifiers: action instanceof ModifiableAction ? action.modifiers.map(e => e.constructor.name) : undefined,
+                selects: Object.fromEntries(Object.entries(action.selects).map(([k, v]) => [k, v.serialize()])),
+            },
+            appliedEffects: this.currentEffectsStack.map(e => e.constructor.name),
+            cancelledEffects: this.cancelledEffects.map(e => e.constructor.name),
+            game: this.game.serialize()
+        }
+        this.cancelledEffects.length = 0;
+        return returnData;
     }
 
     storeEffects() {
         if (this.currentEffectsStack.length) {
             this.pastEffectsStack.push([...this.currentEffectsStack]);
             this.currentEffectsStack.length = 0;
+        }
+    }
+
+    startAction(action: Constructor<OathAction>): object {
+        this.storeEffects();
+        new action(this.game.currentPlayer).doNext();
+
+        try {
+            return this.checkForNextAction();
+        } catch (e) {
+            this.revert();
+            throw e;
         }
     }
     
@@ -76,24 +82,25 @@ export class OathActionManager extends OathGameObject {
         
         const player = this.game.players[by];
         if (action.player.original !== player) throw new InvalidActionResolution(`Action must be resolved by ${action.player.name}, not ${player.name}`)
-            
+        
         this.storeEffects();
         const parsed = action.parse(values);
         action.applyParameters(parsed);
-        return this.resolveTopAction();
+
+        try {
+            return this.resolveTopAction();
+        } catch (e) {
+            this.revert();
+            throw e;
+        }
     }
     
     resolveTopAction(): object {
         const action = new PopActionFromStackEffect(this.game).do();
         if (!action) return this.checkForNextAction();
     
-        try {
-            action.execute();
-            return this.checkForNextAction();
-        } catch (e) {
-            this.revert();
-            throw e;
-        }
+        action.execute();
+        return this.checkForNextAction();
     }
     
     cancelAction(): object {
@@ -111,6 +118,8 @@ export class OathActionManager extends OathGameObject {
         while (this.currentEffectsStack.length) {
             const effect = this.currentEffectsStack.pop();
             if (!effect) break;
+
+            console.log("Reverting", effect.constructor.name);
             effect.revert();
             reverted.push(effect);
         }
@@ -135,7 +144,7 @@ export class SelectNOf<T> {
     constructor(choices: Iterable<[string, T]>, min: number = -1, max?: number, exact: boolean = true) {
         this.choices = new Map(choices);
 
-        if (max === undefined) max = min == -1 ? Infinity : min;
+        if (max === undefined) max = min == -1 ? this.choices.size : min;
         if (min > max) throw Error("Min is above max");
         if (this.choices.size < min && exact) throw new InvalidActionResolution(`Not enough choices: ${this.choices.size} is below ${min}`);
 
@@ -171,7 +180,7 @@ export class SelectBoolean extends SelectNOf<boolean> {
 }
 
 export class SelectNumber extends SelectNOf<number> {
-    constructor(values: number[], min?: number, max?: number) {
+    constructor(values: number[], min: number = 1, max?: number) {
         const choices = new Map<string, number>();
         for (const i of values) choices.set(String(i), i);
         super(choices, min, max);
@@ -319,6 +328,11 @@ export abstract class ModifiableAction extends OathAction {
         return true;
     }
 
+    start(): Record<string, string[]> | undefined {
+        for (const modifier of this.modifiers) modifier.applyAtStart();
+        return super.start();
+    }
+
     execute() {
         for (const modifier of this.modifiers) modifier.applyDuring();
         this.modifiedExecution();
@@ -334,6 +348,11 @@ export abstract class MajorAction extends ModifiableAction {
     supplyCostModifier = 0;     // Use this for linear modifications to the Supply cost
     noSupplyCost: boolean;
     get actualSupplyCost() { return this.noSupplyCost ? 0 : this.supplyCost + this.supplyCostModifier; }
+
+    start(): Record<string, string[]> | undefined {
+        this.supplyCostModifier = 0;
+        return super.start();
+    }
 
     modifiedExecution() {
         if (!new PaySupplyEffect(this.player, this.actualSupplyCost).do())
@@ -810,19 +829,19 @@ export class CampaignAtttackAction extends ModifiableAction {
     constructor(player: OathPlayer, defender: OathPlayer | undefined) {
         super(player);
         this.next = new CampaignDefenseAction(defender || this.player, this.player);
+        this.campaignResult.attacker = player;
         this.campaignResult.defender = defender;
     }
 
     start() {
         const defender = this.campaignResult.defender;
 
-        let targetingOwnSite = false
+        this.campaignResult.targets = [];
         const choices = new Map<string, CampaignActionTarget>();
         for (const site of this.game.board.sites()) { 
-            if (site.ruler === defender) {
+            if (!site.facedown && site.ruler?.original === defender?.original) {
                 if (this.player.site === site) {
-                    this.parameters.targets.push(site);
-                    targetingOwnSite = true;
+                    this.campaignResult.targets.push(site);
                 } else {
                     choices.set(site.name, site);
                 }
@@ -834,7 +853,7 @@ export class CampaignAtttackAction extends ModifiableAction {
             for (const relic of defender.relics) choices.set(relic.name, relic)
             for (const banner of defender.banners) choices.set(banner.name, banner);
         }
-        this.selects.targets = new SelectNOf(choices, targetingOwnSite ? 0 : 1);
+        this.selects.targets = new SelectNOf(choices, 1 - this.campaignResult.targets.length, choices.size);
 
         const values: number[] = [];
         for (let i = 0; i <= this.player.totalWarbands; i++) values.push(i);
@@ -846,10 +865,10 @@ export class CampaignAtttackAction extends ModifiableAction {
     get campaignResult() { return this.next.campaignResult; }
 
     execute() {
-        this.campaignResult.targets = this.parameters.targets;
+        this.campaignResult.targets.push(...this.parameters.targets);
         this.campaignResult.atkPool = this.parameters.pool[0];
         this.campaignResult.defPool = 0;
-        for (const target of this.parameters.targets) this.campaignResult.defPool += target.defense;
+        for (const target of this.campaignResult.targets) this.campaignResult.defPool += target.defense;
 
         this.campaignResult.resolveDefForce();
         this.campaignResult.resolveAtkForce();
@@ -906,25 +925,25 @@ export class CampaignDefenseAction extends ModifiableAction {
 export class CampaignResult extends OathGameObject {
     attacker: OathPlayer;
     defender: OathPlayer | undefined;
-    targets: CampaignActionTarget[];
+    targets: CampaignActionTarget[] = [];
     atkPool: number;
     defPool: number;
-    atkForce: number;  // TODO: Handle forces correctly, in particular for killing
+    atkForce: number;   // TODO: Handle forces correctly, in particular for killing
     defForce: number;
     
     atkRoll: number[];
     defRoll: number[];
     successful: boolean;
     
-    ignoreSkulls: boolean;
-    ignoreKilling: boolean;
-    attackerKillsNoWarbands: boolean;
-    defenderKillsNoWarbands: boolean;
-    attackerKillsEntireForce: boolean;
-    defenderKillsEntireForce: boolean;
+    ignoreSkulls: boolean = false;
+    ignoreKilling: boolean = false;
+    attackerKillsNoWarbands: boolean = false;
+    defenderKillsNoWarbands: boolean = false;
+    attackerKillsEntireForce: boolean = false;
+    defenderKillsEntireForce: boolean = false;
 
-    attackerLoss: number;
-    defenderLoss: number;
+    attackerLoss: number = 0;
+    defenderLoss: number = 0;
     endEffects: OathEffect<any>[] = [];
 
     get atk() { 
@@ -1001,7 +1020,7 @@ export class CampaignResult extends OathGameObject {
 export class CampaignEndAction extends ModifiableAction {
     readonly selects: { doSacrifice: SelectBoolean };
     readonly parameters: { doSacrifice: boolean[] };
-    readonly message = "Do you want to sacrifice to win?";
+    readonly message = "Sacrifice is needed to win";
     
     campaignResult = new CampaignResult(this.game);
     doSacrifice: boolean
@@ -1033,6 +1052,8 @@ export class CampaignEndAction extends ModifiableAction {
 
         for (const effect of this.campaignResult.endEffects)
             effect.do();
+
+        console.log(this.campaignResult);
     }
 }
 
@@ -1040,6 +1061,7 @@ export class CampaignSeizeSiteAction extends OathAction {
     readonly selects: { amount: SelectNumber };
     readonly parameters: { amount: number[] };
     readonly message: string;
+    readonly autocompleteSelects = false;
     
     site: Site;
 
@@ -1237,13 +1259,13 @@ export class PeoplesFavorReturnAction extends ChooseSuit {
         if (this.suit === undefined) return;
 
         let amount = this.amount;
-        while (amount) {
+        while (amount > 0) {
             const bank = this.game.favorBanks.get(this.suit);
             if (bank) {
                 new MoveBankResourcesEffect(this.game, this.player, this.banner, bank, 1).do();
                 amount--;
             }
-            if (++this.suit == OathSuit.None) this.suit = OathSuit.Discord;
+            if (++this.suit > OathSuit.Nomad) this.suit = OathSuit.Discord;
         }
     }
 }
@@ -1253,9 +1275,9 @@ export class TakeFavorFromBankAction extends ChooseSuit {
 
     amount: number;
 
-    constructor(player: OathPlayer, amount?: number, suits?: Iterable<OathSuit>) {
+    constructor(player: OathPlayer, amount: number, suits?: Iterable<OathSuit>) {
         super(player, suits);
-        this.amount = amount || 1;
+        this.amount = amount;
         this.message = "Take " + amount + " from a favor bank";
     }
 
@@ -1270,7 +1292,7 @@ export class TakeFavorFromBankAction extends ChooseSuit {
     execute() {
         super.execute();
         if (this.suit === undefined) return;
-        new TakeResourcesFromBankEffect(this.game, this.player, this.game.favorBanks.get(this.suit), 1).do();
+        new TakeResourcesFromBankEffect(this.game, this.player, this.game.favorBanks.get(this.suit), this.amount).do();
     }
 }
 

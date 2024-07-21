@@ -12,7 +12,6 @@ const setup = async () => {
     game = await response.json();
     gameId = game.id;
     window.alert(`Created game ${game.id}`);
-    console.log(game);
     render();
 }
 
@@ -20,21 +19,31 @@ const oathNames = ["Supremacy", "Protection", "the People", "Devotion"];
 const suitColors = ["🔴", "🟣", "🔵", "🟠", "🟤", "🟢"];
 const resourceNames = ["🟡", "📘", "📗"];
 const render = () => {
-    const bannersDecksNode = document.getElementById("bannersDecks");
-    bannersDecksNode.innerHTML = "";
-    bannersDecksNode.appendChild(renderText("[BANNERS]"));
+    const infoNode = document.getElementById("info");
+    infoNode.innerHTML = "";
+    infoNode.appendChild(renderText("[BANNERS]"));
     for (const [i, banner] of Object.entries(game.banners)) {
-        const bannerNode = bannersDecksNode.appendChild(document.createElement("li"));
+        const bannerNode = infoNode.appendChild(document.createElement("li"));
         bannerNode.id = "bank" + i;
         bannerNode.innerText = banner.name + ": " + resourceNames[banner.type].repeat(banner.amount);
     }
-    bannersDecksNode.appendChild(renderText("[DECKS]"));
-    const worldDeckNode = bannersDecksNode.appendChild(document.createElement("li"));
+
+    const banksNode = infoNode.appendChild(renderText("[BANKS]"));
+    const banksList = banksNode.appendChild(document.createElement("ul"));
+    for (const [i, bank] of Object.entries(game.favorBanks)) {
+        const bankNode = banksList.appendChild(document.createElement("li"));
+        bankNode.id = "bank" + i
+        bankNode.innerText = suitColors[i] + ": " + "🟡".repeat(bank.amount);
+    }
+
+    infoNode.appendChild(renderText("[DECKS]"));
+    const worldDeckNode = infoNode.appendChild(document.createElement("li"));
     worldDeckNode.id = "worldDeck";
     worldDeckNode.innerText = "World Deck (" + game.worldDeck.cards.length + ", " + game.worldDeck.searchCost + ")";
-    const relicdDeckNode = bannersDecksNode.appendChild(document.createElement("li"));
+    const relicdDeckNode = infoNode.appendChild(document.createElement("li"));
     relicdDeckNode.id = "relicDeck";
     relicdDeckNode.innerText = "Relic Deck (" + game.relicDeck.cards.length + ")";
+
 
     const boardNode = document.getElementById("board");
     boardNode.innerHTML = "";
@@ -53,19 +62,11 @@ const render = () => {
             for (const relic of site.relics) siteList.appendChild(renderCard(relic));
         }
 
-        const discardNode = bannersDecksNode.appendChild(document.createElement("li"));
+        const discardNode = infoNode.appendChild(document.createElement("li"));
         discardNode.id = "discard" + i;
-        discardNode.innerText = region.name + "Discard (" + region.discard.cards.length + ", " + region.discard.searchCost + ")";
+        discardNode.innerText = region.name + " Discard (" + region.discard.cards.length + ", " + region.discard.searchCost + ")";
     }
-    const banksNode = boardNode.appendChild(document.createElement("li"));
-    banksNode.id = "banks"
-    banksNode.innerText = "Banks"
-    const banksList = banksNode.appendChild(document.createElement("ul"));
-    for (const [i, bank] of Object.entries(game.favorBanks)) {
-        const bankNode = banksList.appendChild(document.createElement("li"));
-        bankNode.id = "bank" + i
-        bankNode.innerText = suitColors[i] + ": " + "🟡".repeat(bank.amount);
-    }
+
 
     const playersNode = document.getElementById("players");
     playersNode.innerHTML = "";
@@ -78,7 +79,7 @@ const render = () => {
         playerList.appendChild(renderText("At " + player.site));
         playerList.appendChild(renderText("Supply: " + player.supply));
         playerList.appendChild(renderText("Bag: " + player.warbandsInBag));
-        playerList.append(...renderResourcesAndWarbands(player));
+        playerList.appendChild(renderText("Resources: " + getResourcesAndWarbandsText(player)));
 
         const thingsNode = playerList.appendChild(document.createElement("li"));
         thingsNode.id = "playerThings" + i;
@@ -88,7 +89,17 @@ const render = () => {
         for (const adviser of player.advisers) thingsList.appendChild(renderCard(adviser));
         for (const relic of player.relics) thingsList.appendChild(renderCard(relic));
         for (const banner of player.banners) thingsList.appendChild(renderText(banner));
+
+        if (player.reliquary) {
+            const reliquaryNode = playerList.appendChild(document.createElement("li"));
+            reliquaryNode.id = "reliquary";
+            reliquaryNode.innerText = "Reliquary:";
+            
+            const reliquaryList = reliquaryNode.appendChild(document.createElement("ul"));
+            for (const relic of player.reliquary.relics) reliquaryList.appendChild(relic ? renderCard(relic) : renderText("Empty"));
+        }
     }
+
 
     const actionNode = document.getElementById("action");
     actionNode.innerHTML = "";
@@ -125,35 +136,17 @@ const render = () => {
 const renderCard = (card) => {
     const cardNode = document.createElement("li");
     cardNode.id = "card" + card.name;
-    cardNode.innerText = card.facedown && !card.seenBy.includes(game.order[game.turn]) ? "???" : card.name;
-    
-    cardList = cardNode.appendChild(document.createElement("ul"));
-    cardList.append(...renderResourcesAndWarbands(card));
-
+    cardNode.innerText = card.facedown && !card.seenBy.includes(game.order[game.turn]) ? "???" : (card.suit !== undefined ? suitColors[card.suit] + " " : "") + card.name  + " " + getResourcesAndWarbandsText(card);
     return cardNode;
 }
 
 const playerColors = ["🟪", "🟥", "🟦", "🟨", "⬜", "⬛"]
-const renderResourcesAndWarbands = (thing) => {
-    let nodes = [];
-
-    let resources = Object.entries(thing.resources).filter(([_, v]) => v > 0).map(([k, v]) => resourceNames[k].repeat(v)).join("");
-    if (resources.length) {
-        const resourcesNode = document.createElement("li");
-        resourcesNode.id = "resources";
-        resourcesNode.innerText = "Resources: " + resources;
-        nodes.push(resourcesNode);
-    }
-
-    let warbands = Object.entries(thing.warbands).filter(([_, v]) => v > 0).map(([k, v]) => playerColors[k].repeat(v)).join("");
-    if (warbands.length) {
-        const warbandsNode = document.createElement("li");
-        warbandsNode.id = "warbands";
-        warbandsNode.innerText = "Warbands: " + warbands;
-        nodes.push(warbandsNode);
-    }
-
-    return nodes;
+const getResourcesAndWarbandsText = (thing) => {
+    let text = "";
+    text += Object.entries(thing.resources).filter(([_, v]) => v > 0).map(([k, v]) => resourceNames[k].repeat(v)).join("");
+    text += " ";
+    text += Object.entries(thing.warbands).filter(([_, v]) => v > 0).map(([k, v]) => playerColors[k].repeat(v)).join("");
+    return text;
 }
 
 const renderText = (text) => {
@@ -195,13 +188,11 @@ const continueAction = async () => {
     for (const [k, select] of Object.entries(action.selects)) {
         body[k] = [];
         const selectNode = document.getElementById("select" + k);
-        for (const input of selectNode.childNodes[1].childNodes) {
-            console.log(input);
+        for (const input of selectNode.childNodes[1].childNodes)
             if (input.checked) body[k].push(input.value);
-        }
     }
 
-    const response = await fetch("http://localhost:3000/oath/" + gameId + "/" + game.turn + "/continue", { 
+    const response = await fetch("http://localhost:3000/oath/" + gameId + "/" + action.player + "/continue", { 
         method: "POST", 
         mode: "cors", 
         headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' },

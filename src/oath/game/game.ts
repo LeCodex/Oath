@@ -5,6 +5,7 @@ import { CardDeck, RelicDeck, WorldDeck } from "./cards/decks";
 import { denizenData } from "./cards/denizens";
 import { relicsData } from "./cards/relics";
 import { sitesData } from "./cards/sites";
+import { AddActionToStackEffect } from "./effects";
 import { BannerName, OathType, OathPhase, OathSuit, RegionName, PlayerColor, OathResource } from "./enums";
 import { Oath, OathTypeToOath } from "./oaths";
 import { Chancellor, Exile, OathPlayer } from "./player";
@@ -137,17 +138,15 @@ export class OathGame extends CopiableWithOriginal {
     startAction(by: number, action: Constructor<OathAction>): object {
         if (this.turn !== by) throw new InvalidActionResolution(`Cannot begin an action outside your turn`);
         if (this.phase !== OathPhase.Act) throw new InvalidActionResolution(`Cannot begin an action outside the Act phase`);
-        if (this.actionManager.actionStack.length) return new InvalidActionResolution("Cannot start an action while other actions are active");
-
-        new action(this.currentPlayer).doNext();
-        this.actionManager.storeEffects();
-        return this.actionManager.checkForNextAction();
+        if (this.actionManager.actionStack.length) throw new InvalidActionResolution("Cannot start an action while other actions are active");
+        
+        return this.actionManager.startAction(action);
     }
 
     checkForOathkeeper(): OathAction | undefined {
         const candidates = this.oath.getCandidates();
         if (candidates.has(this.oathkeeper)) return;
-        if (candidates.size) new ChooseNewOathkeeper(this.oathkeeper, candidates).doNext();
+        if (candidates.size) new AddActionToStackEffect(new ChooseNewOathkeeper(this.oathkeeper, candidates)).do();
     }
 
     serialize(): Record<string, any> {

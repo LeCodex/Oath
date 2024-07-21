@@ -73,6 +73,7 @@ export abstract class ActionModifier<T extends OathGameObject> extends ActionPow
 
     applyImmediately(modifiers: ActionModifier<any>[]) { }  // Applied right after all the possible modifiers are collected
     applyBefore(): boolean { return true; }                 // Applied before the action is added to the list. If returns false, it will not be added
+    applyAtStart(): void { }                                // Applied when the action starts and selects are setup (before choices are made)
     applyDuring(): void { }                                 // Applied right before the execution of the action
     applyAfter(): void { }                                  // Applied after the execution of the action
 }
@@ -265,7 +266,7 @@ export class VowOfObedienceRest extends RestPower<Denizen> {
     name = "Vow of Obedience";
 
     applyBefore(): boolean {
-        new TakeFavorFromBankAction(this.action.player).doNext();
+        new TakeFavorFromBankAction(this.action.player, 1).doNext();
         return true;
     }
 }
@@ -303,7 +304,7 @@ export class SpiritSnare extends ActivePower<Denizen> {
     cost = new ResourceCost([[OathResource.Secret, 1]]);
 
     usePower(action: UsePowerAction): void {
-        new TakeFavorFromBankAction(action.player).doNext();
+        new TakeFavorFromBankAction(action.player, 1).doNext();
     }
 }
 
@@ -332,7 +333,7 @@ export class Alchemist extends ActivePower<Denizen> {
     cost = new ResourceCost([[OathResource.Secret, 1]], [[OathResource.Secret, 1]]);
 
     usePower(action: UsePowerAction): void {
-        for (let i = 0; i < 4; i++) new TakeFavorFromBankAction(action.player).doNext();
+        for (let i = 0; i < 4; i++) new TakeFavorFromBankAction(action.player, 1).doNext();
     }
 }
 
@@ -547,7 +548,7 @@ export class SpellBreaker extends EnemyActionModifier<Denizen> {
     modifiedAction = ModifiableAction;
 
     applyBefore(): boolean {
-        for (const modifier of this.action.parameters.modifiers)
+        for (const modifier of this.action.modifiers)
             if (modifier.cost.totalResources.get(OathResource.Secret))
                 throw new InvalidActionResolution("Cannot use powers that cost Secrets under the Spell Breaker");
 
@@ -1050,12 +1051,14 @@ export class PeoplesFavorSearch extends BannerActionModifier<PeoplesFavor> {
     mustUse = true;  // Not strictly true, but it involves a choice either way, so it's better to always include it
 
     applyBefore(): boolean {
+        new PeoplesFavorDiscardAction(this.action.player, this.action.discardOptions).doNext();
+        return true;
+    }
+
+    applyAtStart(): void {
         for (const site of this.action.player.site.region.sites) {
             this.action.selects.site.choices.set(site.name, site);
         }
-
-        new PeoplesFavorDiscardAction(this.action.player, this.action.discardOptions).doNext();
-        return true;
     }
 }
 export class PeoplesFavorWake extends BannerActionModifier<PeoplesFavor> {

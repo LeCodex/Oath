@@ -1,5 +1,5 @@
 import { CardRestriction, OathSuit } from "../enums";
-import { ActingTroupe, Alchemist, Assassin, AwaitedReturn, BookBinders, Bracken, ChaosCult, CharmingFriend, Curfew, Dazzle, Elders, FabledFeast, ForcedLabor, GamblingHall, GleamingArmorAttack, GleamingArmorDefense, HeartsAndMinds, Herald, IgnoresCapacity, InsectSwarmAttack, InsectSwarmDefense, Insomnia, KeyToTheCity, LongbowArchersAttack, LongbowArchersDefense, LostTongue, LostTongueCampaign, MarriageActionModifier, MarriageEffectModifier, Naysayers, OathPower, OnlyTwoAdvisers, PiedPiperActive, RelicThief, RoyalTax, SaddleMakers, ShieldWall, SilverTongue, SleightOfHand, SmallFriends, SpellBreaker, SpellBreakerActive, SpiritSnare, ThreateningRoar, TollRoads, Tutor, VowOfObedience, VowOfObedienceRest, VowOfPoverty, VowOfPovertyRest, WayStation } from "../powers";
+import { ActingTroupe, Alchemist, Assassin, AwaitedReturn, BookBinders, Bracken, ChaosCult, CharmingFriend, Curfew, Dazzle, Elders, FabledFeast, FamilyWagon, ForcedLabor, GamblingHall, GleamingArmorAttack, GleamingArmorDefense, HeartsAndMinds, Herald, IgnoresCapacity, InsectSwarmAttack, InsectSwarmDefense, Insomnia, KeyToTheCity, LongbowArchersAttack, LongbowArchersDefense, LostTongue, LostTongueCampaign, MarriageActionModifier, MarriageEffectModifier, Naysayers, OathPower, OnlyTwoAdvisers, PiedPiperActive, RelicThief, RoyalTax, SaddleMakers, ShieldWall, SilverTongue, SleightOfHand, SmallFriends, SpellBreaker, SpellBreakerActive, SpiritSnare, ThreateningRoar, TollRoads, Tutor, VowOfObedience, VowOfObedienceRest, VowOfPoverty, VowOfPovertyRest, WayStation } from "../powers";
 import { Constructor } from "../utils";
 import { Denizen } from "./cards";
 
@@ -30,7 +30,7 @@ export const denizenData: Record<string, [string, OathSuit, Constructor<OathPowe
     "VowOfObedience":   ["Vow of Obedience",    OathSuit.Order,     [VowOfObedience, VowOfObedienceRest], CardRestriction.Adviser, true],
 
     "HeartsAndMinds":   ["Hearts and Minds",    OathSuit.Hearth,    [HeartsAndMinds], CardRestriction.Site],
-    "AwaitedReturn":    ["AwaitedReturn",       OathSuit.Hearth,    [AwaitedReturn]],
+    "AwaitedReturn":    ["Awaited Return",      OathSuit.Hearth,    [AwaitedReturn]],
     "CharmingFriend":   ["Charming Friend",     OathSuit.Hearth,    [CharmingFriend], CardRestriction.Adviser],
     "FabledFeast":      ["Fabled Feast",        OathSuit.Hearth,    [FabledFeast]],
     "BookBinders":      ["Book Binders",        OathSuit.Hearth,    [BookBinders], CardRestriction.Adviser],
@@ -49,4 +49,5 @@ export const denizenData: Record<string, [string, OathSuit, Constructor<OathPowe
     "LostTongue":       ["Lost Tongue",         OathSuit.Nomad,     [LostTongue, LostTongueCampaign], CardRestriction.Adviser],
     "Elders":           ["Elders",              OathSuit.Nomad,     [Elders]],
     "SpellBreaker":     ["Spell Breaker",       OathSuit.Nomad,     [SpellBreaker, SpellBreakerActive], CardRestriction.Site],
+    "FamilyWagon":      ["Family Wagon",        OathSuit.Nomad,     [FamilyWagon], CardRestriction.Adviser],
 }
