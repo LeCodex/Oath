@@ -419,15 +419,18 @@ export class TradeAction extends MajorAction {
         this.card = this.parameters.card[0];
         this.forFavor = this.parameters.forFavor[0];
         this.paying = new Map([[this.forFavor ? OathResource.Secret : OathResource.Favor, this.forFavor ? 1 : 2]]);
-        this.getting = new Map([[this.forFavor ? OathResource.Favor : OathResource.Secret, (this.forFavor ? 1 : 0) + this.player.adviserSuitCount(this.card.suit)]]);;
+        this.getting = new Map([[this.forFavor ? OathResource.Favor : OathResource.Secret, (this.forFavor ? 1 : 0)]]);
         super.execute();
     }
 
     modifiedExecution() {
-        super.modifiedExecution();        
+        super.modifiedExecution();
         // TODO: Make costs easily printable. Potentially get the error from the ResourceCost class?
         if (!new PayCostToTargetEffect(this.game, this.player, new ResourceCost(this.paying), this.card).do())
             throw new InvalidActionResolution("Cannot pay resource cost.");
+
+        const resource = this.forFavor ? OathResource.Favor : OathResource.Secret;
+        this.getting.set(resource, (this.getting.get(resource) || 0) + this.player.adviserSuitCount(this.card.suit));
 
         new TakeResourcesFromBankEffect(this.game, this.player, this.game.favorBanks.get(this.card.suit), this.getting.get(OathResource.Favor) || 0).do();
         new PutResourcesOnTargetEffect(this.game, this.player, OathResource.Secret, this.getting.get(OathResource.Secret) || 0).do();
@@ -592,8 +595,9 @@ export class SearchChooseAction extends ModifiableAction {
     }
 
     modifiedExecution(): void {
-        for (const card of this.playing) this.cards.delete(card);
-        new SearchDiscardAction(this.player, this.cards, Infinity, this.discardOptions).doNext();
+        const discarding = new Set(this.cards);
+        for (const card of this.playing) discarding.delete(card);
+        new SearchDiscardAction(this.player, discarding, Infinity, this.discardOptions).doNext();
         for (const card of this.playing) new SearchPlayAction(this.player, card, this.discardOptions).doNext();
     }
 }
@@ -929,8 +933,8 @@ export class CampaignResult extends OathGameObject {
     atkForce: number;   // TODO: Handle forces correctly, in particular for killing
     defForce: number;
     
-    atkRoll: number[];
-    defRoll: number[];
+    atkRoll: number[] = [];
+    defRoll: number[] = [];
     successful: boolean;
     
     ignoreSkulls: boolean = false;
@@ -1071,7 +1075,7 @@ export class CampaignSeizeSiteAction extends OathAction {
 
     start() {
         const values: number[] = [];
-        for (let i = 0; i <= this.player.totalWarbands; i++) values.push(i);
+        for (let i = 0; i <= this.player.original.totalWarbands; i++) values.push(i);
         this.selects.amount = new SelectNumber(values);
         return super.start();
     }

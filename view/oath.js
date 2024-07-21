@@ -213,7 +213,7 @@ const cancelAction = async () => {
 
 const handleResponse = async (response) => {
     const info = await response.json();
-    if (!response.ok) return window.alert(JSON.stringify(info));
+    if (!response.ok) return window.alert(info.message);
     console.log(info);
     
     game = info.game;

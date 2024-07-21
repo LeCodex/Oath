@@ -361,6 +361,8 @@ export class Jinx extends EffectModifier<Denizen> {
 
     applyAfter(result: number[]): void {
         if (!this.effect.player) return;
+        if (!new PayCostToTargetEffect(this.game, this.effect.player, new ResourceCost([[OathResource.Secret, 1]]), this.source).do()) return;
+        
         new AskForRerollAction(this.effect.player, result, this.effect.die).doNext();
     }
 }
@@ -372,6 +374,7 @@ export class HeartsAndMinds extends DefenderBattlePlan<Denizen> {
     cost = new ResourceCost([[OathResource.Favor, 3]]);
 
     applyBefore(): boolean {
+        // TODO: Put this in an effect
         this.action.campaignResult.successful = false;
         this.action.next.doNext();
 
@@ -464,7 +467,7 @@ export class MarriageActionModifier extends AccessedActionModifier<Denizen> {
     mustUse = true;
 
     applyDuring(): void {
-        const originalFn = this.action.player.original.adviserSuitCount
+        const originalFn = this.action.player.original.adviserSuitCount;
         this.action.player.adviserSuitCount = (suit: OathSuit) => {
             return originalFn(suit) + (suit === OathSuit.Hearth ? 1 : 0);
         }
