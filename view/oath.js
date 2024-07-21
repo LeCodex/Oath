@@ -129,6 +129,7 @@ const render = () => {
         actionNode.appendChild(renderButton("Campaign", () => startAction("campaign")));
         actionNode.appendChild(renderText("[MINOR]"));
         actionNode.appendChild(renderButton("Use", () => startAction("use")));
+        actionNode.appendChild(renderButton("Reveal", () => startAction("reveal")));
         actionNode.appendChild(renderButton("Rest", () => startAction("rest")));
     }
     actionNode.appendChild(renderButton("Cancel", () => cancelAction()));

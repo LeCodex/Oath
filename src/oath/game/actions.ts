@@ -143,8 +143,8 @@ export class SelectNOf<T> {
         this.choices = new Map(choices);
 
         if (max === undefined) max = min == -1 ? this.choices.size : min;
-        if (min > max) throw Error("Min is above max");
-        if (this.choices.size < min && exact) throw new InvalidActionResolution(`Not enough choices: ${this.choices.size} is below ${min}`);
+        if (min > max) throw new InvalidActionResolution("Min is above max");
+        if (this.choices.size < min && exact) throw new InvalidActionResolution(`Not enough choices`);
 
         this.min = min === -1 ? 0: min;
         this.max = max;
@@ -852,7 +852,7 @@ export class CampaignAtttackAction extends ModifiableAction {
             }
         }
 
-        if (defender && defender.site === this.player.site) {
+        if (defender && defender.site.original === this.player.site.original) {
             choices.set("Banish " + defender.name, defender);
             for (const relic of defender.relics) choices.set(relic.name, relic)
             for (const banner of defender.banners) choices.set(banner.name, banner);
@@ -871,7 +871,7 @@ export class CampaignAtttackAction extends ModifiableAction {
     execute() {
         this.campaignResult.targets.push(...this.parameters.targets);
         this.campaignResult.atkPool = this.parameters.pool[0];
-        
+
         this.campaignResult.defPool = 0;
         for (const target of this.campaignResult.targets) this.campaignResult.defPool += target.defense;
         if (this.campaignResult.defender === this.game.oathkeeper) this.campaignResult.defPool += this.game.isUsurper ? 2 : 1;
@@ -1169,6 +1169,37 @@ export class UsePowerAction extends ModifiableAction {
             throw new InvalidActionResolution("Cannot pay the resource cost.");
 
         this.power.usePower(this);
+    }
+}
+
+
+export class PlayFacedownAdviserAction extends ModifiableAction {
+    readonly selects: { cards: SelectNOf<WorldCard> }
+    readonly parameters: { cards: WorldCard[] }
+    readonly message = "Choose an adviser to play";
+
+    cards: Set<WorldCard>;
+    playing: WorldCard;
+
+    constructor(player: OathPlayer) {
+        super(player);
+        this.cards = new Set([...player.advisers].filter(e => e.facedown));
+    }
+
+    start() {
+        const cardsChoice = new Map<string, WorldCard>();
+        for (const card of this.cards) cardsChoice.set(card.name, card);
+        this.selects.cards = new SelectNOf(cardsChoice, 1);
+        return super.start();
+    }
+
+    execute(): void {
+        this.playing = this.parameters.cards[0];
+        super.execute();
+    }
+
+    modifiedExecution(): void {
+        new SearchPlayAction(this.player, this.playing).doNext();
     }
 }
 

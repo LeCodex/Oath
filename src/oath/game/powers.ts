@@ -415,7 +415,7 @@ export class CharmingFriend extends ActivePower<Denizen> {
     cost = new ResourceCost([[OathResource.Secret, 1]]);
 
     usePower(action: UsePowerAction): void {
-        new TakeResourceFromPlayerAction(action.player, OathResource.Favor, 1).doNext();
+        new TakeResourceFromPlayerAction(action.player, OathResource.Favor, 1, Object.values(this.game.players).filter(e => e.site === action.player.site)).doNext();
     }
 }
 
@@ -671,7 +671,7 @@ export class SleightOfHand extends ActivePower<Denizen> {
     cost = new ResourceCost([[OathResource.Favor, 1]]);
 
     usePower(action: UsePowerAction): void {
-        new TakeResourceFromPlayerAction(action.player, OathResource.Secret, 1).doNext()
+        new TakeResourceFromPlayerAction(action.player, OathResource.Secret, 1, Object.values(this.game.players).filter(e => e.site === action.player.site)).doNext()
     }
 }
 

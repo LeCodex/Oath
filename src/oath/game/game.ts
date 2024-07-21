@@ -70,9 +70,11 @@ export class OathGame extends CopiableWithOriginal {
             player.putResources(OathResource.Favor, Number(color) === PlayerColor.Purple ? 2 : 1);  // TODO: Take favor from supply
             player.putResources(OathResource.Secret, 1);
             player.moveWarbandsFromBagOnto(player, 3);
+            this.worldDeck.drawSingleCard(true)?.setOwner(player);
         }
 
         for (const region of Object.values(this.board.regions)) this.chancellor.moveWarbandsFromBagOnto(region.sites[0], 1);
+        this.chancellor.moveWarbandsFromBagOnto(topCradleSite, 1);
         
         // TODO: Take favor from supply
         const startingAmount = playerCount < 5 ? 3 : 4;

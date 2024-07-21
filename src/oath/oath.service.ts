@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { OathGame } from './game/game';
 import { OathType } from './game/enums';
-import { CampaignAction, InvalidActionResolution, MusterAction, OathAction, RecoverAction, RestAction, SearchAction, TradeAction, TravelAction, UsePowerAction } from './game/actions';
+import { CampaignAction, InvalidActionResolution, MusterAction, OathAction, PlayFacedownAdviserAction, RecoverAction, RestAction, SearchAction, TradeAction, TravelAction, UsePowerAction } from './game/actions';
 import { Constructor } from './game/utils';
 
 @Injectable()
@@ -38,6 +38,7 @@ export class OathService {
             "search": SearchAction,
             "campaign": CampaignAction,
             "use": UsePowerAction,
+            "reveal": PlayFacedownAdviserAction,
             "rest": RestAction
         }
         const action = nameToAction[actionName];
