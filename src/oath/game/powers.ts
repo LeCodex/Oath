@@ -837,7 +837,7 @@ export abstract class HomelandSitePower extends EffectModifier<Site> {
 
     applyAfter(result: void): void {
         // TODO: "and if you have not discarded a <suit> card here during this turn"
-        if (this.effect.site === this.source && this.effect.card instanceof Denizen && this.effect.card.suit === this.suit)
+        if (this.effect.site?.original === this.source.original && this.effect.card instanceof Denizen && this.effect.card.suit === this.suit)
             this.giveReward(this.effect.player);
     }
 

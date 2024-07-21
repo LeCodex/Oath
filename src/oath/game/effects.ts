@@ -701,12 +701,12 @@ export class DiscardCardGroupEffect extends PlayerEffect<void> {
             const site = origin instanceof Site ? origin : undefined;
             const player = origin instanceof OathPlayer ? origin : origin.ruler || this.player;
             
-            const [capacity, takesSpace, _] = SearchPlayAction.getCapacityInformation(player, site);
-            const excess = Math.max(0, takesSpace.length - capacity);
-            if (excess > takesSpace.length)
+            const [capacity, takesNoSpace, takesSpaceInTarget, _] = SearchPlayAction.getCapacityInformation(player, site);
+            const excess = Math.max(0, takesSpaceInTarget.length - capacity);
+            if (excess > takesSpaceInTarget.length)
                 throw new InvalidActionResolution(`Cannot satisfy the capacity of ${origin.name}'s cards`);
             else if (excess)
-                new SearchDiscardAction(origin instanceof OathPlayer ? origin : this.player, takesSpace, excess, this.discardOptions).doNext();
+                new SearchDiscardAction(origin instanceof OathPlayer ? origin : this.player, takesSpaceInTarget, excess, this.discardOptions).doNext();
         }
     }
 

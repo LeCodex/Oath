@@ -118,8 +118,6 @@ export class OathActionManager extends OathGameObject {
         while (this.currentEffectsStack.length) {
             const effect = this.currentEffectsStack.pop();
             if (!effect) break;
-
-            console.log("Reverting", effect.constructor.name);
             effect.revert();
             reverted.push(effect);
         }
@@ -671,7 +669,7 @@ export class SearchPlayAction extends ModifiableAction {
         super.execute();
     }
 
-    static getCapacityInformation(player: OathPlayer, site?: Site, playing?: WorldCard, facedown: boolean = !!playing && playing.facedown): [number, WorldCard[], boolean] {
+    static getCapacityInformation(player: OathPlayer, site?: Site, playing?: WorldCard, facedown: boolean = !!playing && playing.facedown): [number, Set<WorldCard>, WorldCard[], boolean] {
         const capacityModifiers: CapacityModifier<any>[] = [];
         for (const [source, modifier] of player.game.getPowers(CapacityModifier)) {
             const instance = new modifier(source);
@@ -699,14 +697,14 @@ export class SearchPlayAction extends ModifiableAction {
             if (playing) ignoresCapacity ||= capacityModifier.ignoreCapacity(playing, facedown);
         }
 
-        return [capacity, [...target].filter(e => !takesNoSpace.has(e)), ignoresCapacity];
+        return [capacity, takesNoSpace, [...target].filter(e => !takesNoSpace.has(e)), ignoresCapacity];
     }
 
     modifiedExecution() {
-        const [capacity, takesSpace, ignoresCapacity] = SearchPlayAction.getCapacityInformation(this.player, this.site, this.card, this.facedown);
+        const [capacity, takesNoSpace, takesSpaceInTarget, ignoresCapacity] = SearchPlayAction.getCapacityInformation(this.player, this.site, this.card, this.facedown);
 
-        const excess = Math.max(0, takesSpace.length - capacity + (takesSpace.includes(this.card) ? 1 : 0));  // +1 because we are playing a card there, if it counts
-        const discardable = takesSpace.filter(e => !(e instanceof Denizen && e.activelyLocked));
+        const excess = Math.max(0, takesSpaceInTarget.length - capacity + (takesNoSpace.has(this.card) ? 0 : 1));  // +1 because we are playing a card there, if it counts
+        const discardable = takesSpaceInTarget.filter(e => !(e instanceof Denizen && e.activelyLocked));
 
         if (!ignoresCapacity && excess)
             if (!this.canReplace || excess > discardable.length)
@@ -1407,7 +1405,7 @@ export class TakeResourceFromPlayerAction extends ChoosePlayer {
 
         // TODO: Where should this check be?
         if (this.resource === OathResource.Secret && this.target.getResources(OathResource.Secret) <= 1) return;
-        new MoveResourcesToTargetEffect(this.game, this.player, this.resource, 1, this.player, this.target).do();
+        new MoveResourcesToTargetEffect(this.game, this.player, this.resource, this.amount, this.player, this.target).do();
     }
 }
 

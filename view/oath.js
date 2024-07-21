@@ -16,6 +16,7 @@ const setup = async () => {
 }
 
 const oathNames = ["Supremacy", "Protection", "the People", "Devotion"];
+const pawnColors = ["💜", "❤️", "💙", "💛", "🤍", "🖤"];
 const suitColors = ["🔴", "🟣", "🔵", "🟠", "🟤", "🟢"];
 const resourceNames = ["🟡", "📘", "📗"];
 const render = () => {
@@ -56,6 +57,7 @@ const render = () => {
         const regionList = regionNode.appendChild(document.createElement("ul"));
         for (const site of region.sites) {
             const siteNode = regionList.appendChild(renderCard(site));
+            siteNode.innerText +=  " " + Object.entries(game.players).filter(([k, v]) => v.site == site.name).map(([k, v]) => pawnColors[k]).join("");
 
             const siteList = siteNode.appendChild(document.createElement("ul"));
             for (const denizen of site.denizens) siteList.appendChild(renderCard(denizen));
@@ -76,9 +78,8 @@ const render = () => {
         playerNode.innerText = player.name + (game.turn == i ? " 🔄" : "") + (game.oathkeeper == i ? game.isUsurper ? " 🥇" : " 🏅": "");
 
         const playerList = playerNode.appendChild(document.createElement("ul"));
-        playerList.appendChild(renderText("At " + player.site));
-        playerList.appendChild(renderText("Supply: " + player.supply));
-        playerList.appendChild(renderText("Bag: " + player.warbandsInBag));
+        // playerList.appendChild(renderText("At " + player.site));
+        playerList.appendChild(renderText("Supply: " + player.supply + " / Bag: " + player.warbandsInBag));
         playerList.appendChild(renderText("Resources: " + getResourcesAndWarbandsText(player)));
 
         const thingsNode = playerList.appendChild(document.createElement("li"));
@@ -140,12 +141,12 @@ const renderCard = (card) => {
     return cardNode;
 }
 
-const playerColors = ["🟪", "🟥", "🟦", "🟨", "⬜", "⬛"]
+const warbandsColors = ["🟪", "🟥", "🟦", "🟨", "⬜", "⬛"];
 const getResourcesAndWarbandsText = (thing) => {
     let text = "";
     text += Object.entries(thing.resources).filter(([_, v]) => v > 0).map(([k, v]) => resourceNames[k].repeat(v)).join("");
     text += " ";
-    text += Object.entries(thing.warbands).filter(([_, v]) => v > 0).map(([k, v]) => playerColors[k].repeat(v)).join("");
+    text += Object.entries(thing.warbands).filter(([_, v]) => v > 0).map(([k, v]) => warbandsColors[k].repeat(v)).join("");
     return text;
 }
 

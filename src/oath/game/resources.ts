@@ -133,7 +133,7 @@ export class DarkestSecret extends Banner {
 
     handleRecovery(player: OathPlayer) {
         new TakeResourcesFromBankEffect(this.game, player, this, 1).doNext();
-        if (this.owner) new TakeResourcesFromBankEffect(this.game, this.owner, this, this.amount).doNext();
+        if (this.owner) new TakeResourcesFromBankEffect(this.game, this.owner, this, this.amount - 1).doNext();
     }
 }
 

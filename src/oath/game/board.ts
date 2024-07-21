@@ -24,7 +24,7 @@ export class OathBoard extends OathGameObject {
 
     nextRegion(region: Region): Region {
         const name = this.nextRegionName.get(region.regionName);
-        if (!name) throw new Error(`Couldn't find the next region of ${region.name}`);
+        if (name === undefined) throw new Error(`Couldn't find the next region of ${region.name}`);
         return this.regions[name];
     }
 
