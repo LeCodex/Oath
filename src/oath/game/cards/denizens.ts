@@ -1,5 +1,5 @@
 import { CardRestriction, OathSuit } from "../enums";
-import { ActingTroupe, Alchemist, Assassin, AwaitedReturn, BookBinders, Bracken, ChaosCult, CharmingFriend, Curfew, Dazzle, Elders, FabledFeast, FamilyWagon, ForcedLabor, GamblingHall, GleamingArmorAttack, GleamingArmorDefense, HeartsAndMinds, Herald, IgnoresCapacity, InsectSwarmAttack, InsectSwarmDefense, Insomnia, Jinx, KeyToTheCity, LongbowArchersAttack, LongbowArchersDefense, LostTongue, LostTongueCampaign, MarriageActionModifier, MarriageEffectModifier, Naysayers, OathPower, OnlyTwoAdvisers, PiedPiperActive, RelicThief, RoyalTax, SaddleMakers, ShieldWall, SilverTongue, SleightOfHand, SmallFriends, SpellBreaker, SpellBreakerActive, SpiritSnare, ThreateningRoar, TollRoads, Tutor, VowOfObedience, VowOfObedienceRest, VowOfPoverty, VowOfPovertyRest, WayStation } from "../powers";
+import { ActingTroupe, Alchemist, Assassin, AwaitedReturn, BookBinders, Bracken, ChaosCult, CharmingFriend, Curfew, Dazzle, Elders, FabledFeast, FamilyWagon, ForcedLabor, GamblingHall, GleamingArmorAttack, GleamingArmorDefense, HeartsAndMinds, Herald, IgnoresCapacity, InsectSwarmAttack, InsectSwarmDefense, Insomnia, Jinx, KeyToTheCity, LongbowArchersAttack, LongbowArchersDefense, LostTongue, LostTongueCampaign, MarriageActionModifier, MarriageEffectModifier, Naysayers, OathPower, OnlyTwoAdvisers, PiedPiperActive, RelicThief, RoyalTax, SaddleMakers, ShieldWall, SilverTongue, SleightOfHand, SmallFriends, SpellBreaker, SpiritSnare, ThreateningRoar, TollRoads, Tutor, VowOfObedience, VowOfObedienceRest, VowOfPoverty, VowOfPovertyRest, WayStation } from "../powers";
 import { Constructor } from "../utils";
 import { Denizen } from "./cards";
 
@@ -49,6 +49,6 @@ export const denizenData: Record<string, [string, OathSuit, Constructor<OathPowe
     "WayStation":       ["Way Station",         OathSuit.Nomad,     [WayStation], CardRestriction.Site],
     "LostTongue":       ["Lost Tongue",         OathSuit.Nomad,     [LostTongue, LostTongueCampaign], CardRestriction.Adviser],
     "Elders":           ["Elders",              OathSuit.Nomad,     [Elders]],
-    "SpellBreaker":     ["Spell Breaker",       OathSuit.Nomad,     [SpellBreaker, SpellBreakerActive], CardRestriction.Site],
+    "SpellBreaker":     ["Spell Breaker",       OathSuit.Nomad,     [SpellBreaker], CardRestriction.Site],
     "FamilyWagon":      ["Family Wagon",        OathSuit.Nomad,     [FamilyWagon], CardRestriction.Adviser],
 }

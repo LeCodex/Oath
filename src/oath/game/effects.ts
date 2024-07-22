@@ -1,7 +1,7 @@
 import { Denizen, OwnableCard, Site, Vision, WorldCard } from "./cards/cards";
 import { CardRestriction, OathPhase, OathResource, OathSuit, PlayerColor } from "./enums";
 import { Exile, OathPlayer } from "./player";
-import { EffectModifier, WhenPlayed } from "./powers";
+import { EffectModifier, OathPower, WhenPlayed } from "./powers";
 import { PeoplesFavor, ResourceBank, ResourceCost, ResourcesAndWarbands } from "./resources";
 import { OwnableObject } from "./player";
 import { OathGame } from "./game";
@@ -307,6 +307,24 @@ export class PayCostToBankEffect extends OathEffect<boolean> {
         // Doesn't do anything on its own
     }
 }
+
+export class PayPowerCost extends PlayerEffect<boolean> {
+    power: OathPower<any>;
+
+    constructor(player: OathPlayer, power: OathPower<any>) {
+        super(player);
+        this.power = power;
+    }
+
+    resolve(): boolean {
+        return new PayCostToTargetEffect(this.game, this.player, this.power.cost, this.power.source).do();
+    }
+
+    revert(): void {
+        // Doesn't do anything on its own
+    }
+}
+
 
 export class FlipSecretsEffect extends OathEffect<number> {
     amount: number;

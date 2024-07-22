@@ -6,7 +6,7 @@ import { OathPhase, OathResource, OathResourceName, OathSuit, OathSuitName, Play
 import { OathGame } from "./game";
 import { OathGameObject } from "./gameObject";
 import { OathPlayer } from "./player";
-import { ActionModifier, ActivePower, CapacityModifier } from "./powers";
+import { ActionModifier, ActivePower, CapacityModifier, OathPower } from "./powers";
 import { Banner, PeoplesFavor, ResourceCost, ResourcesAndWarbands } from "./resources";
 import { Constructor, getCopyWithOriginal, isExtended } from "./utils";
 
@@ -194,7 +194,7 @@ export class InvalidActionResolution extends Error { }
 
 export abstract class OathAction extends OathGameObject {
     readonly game: OathGame;
-    readonly playerColor: PlayerColor;
+    readonly player: OathPlayer;
     readonly selects: Record<string, SelectNOf<any>> = {};
     readonly parameters: Record<string, any> = {};
     readonly autocompleteSelects: boolean = true;
@@ -202,10 +202,8 @@ export abstract class OathAction extends OathGameObject {
 
     constructor(player: OathPlayer, dontCopyGame: boolean = false) {
         super(dontCopyGame ? player.game : getCopyWithOriginal(player.game.original));
-        this.playerColor = player.color;
+        this.player = dontCopyGame ? player : this.game.players[player.color];
     }
-
-    get player() { return this.game.players[this.playerColor]; }
 
     doNext(): void {
         this.game.original.actionManager.futureActionsList.unshift(this);
@@ -316,7 +314,7 @@ export abstract class ModifiableAction extends OathAction {
 
         let interrupt = false;
         for (const modifier of modifiers) {
-            if (!new PayCostToTargetEffect(this.game, this.player, modifier.cost, modifier.source).do())
+            if (!modifier.payCost(this.player))
                 throw new InvalidActionResolution("Cannot pay the resource cost of all the modifiers.");
 
             if (!modifier.applyBefore()) interrupt = true;
@@ -409,7 +407,8 @@ export class TradeAction extends MajorAction {
 
     start() {
         const choices = new Map<string, Denizen>();
-        for (const denizen of this.player.site.denizens) if (denizen.suit !== OathSuit.None && denizen.empty) choices.set(denizen.name, denizen);
+        for (const denizen of this.player.site.denizens)
+            if (denizen.suit !== OathSuit.None && denizen.empty) choices.set(denizen.name, denizen);
         this.selects.card = new SelectNOf(choices, 1);
         this.selects.forFavor = new SelectBoolean(["For favors", "For secrets"]);
         return super.start();
@@ -705,7 +704,7 @@ export class SearchPlayAction extends ModifiableAction {
     }
 
     modifiedExecution() {
-        const [capacity, takesNoSpace, takesSpaceInTarget, ignoresCapacity] = SearchPlayAction.getCapacityInformation(this.player, this.site, this.card, this.facedown);
+        const [capacity, takesNoSpace, takesSpaceInTarget, ignoresCapacity] = SearchPlayAction.getCapacityInformation(this.player, this.site?.original, this.card, this.facedown);
 
         const excess = Math.max(0, takesSpaceInTarget.length - capacity + (takesNoSpace.has(this.card) ? 0 : 1));  // +1 because we are playing a card there, if it counts
         const discardable = takesSpaceInTarget.filter(e => !(e instanceof Denizen && e.activelyLocked));
@@ -1165,7 +1164,7 @@ export class UsePowerAction extends ModifiableAction {
     }
 
     modifiedExecution(): void {
-        if (!new PayCostToTargetEffect(this.game, this.player, this.power.cost, this.power.source).do())
+        if (!this.power.payCost(this.player))
             throw new InvalidActionResolution("Cannot pay the resource cost.");
 
         this.power.usePower(this);
@@ -1313,16 +1312,14 @@ export class AskForRerollAction extends OathAction {
 
     faces: number[];
     die: typeof Die;
-    cost?: ResourceCost;
-    target?: ResourcesAndWarbands;
+    power?: OathPower<any>;
 
-    constructor(player: OathPlayer, faces: number[], die: typeof Die, cost?: ResourceCost, target?: ResourcesAndWarbands) {
+    constructor(player: OathPlayer, faces: number[], die: typeof Die, power?: OathPower<any>) {
         super(player, false);  // Don't copy, not modifiable, and not an entry point
         this.faces = faces;
         this.message = "Do you wish to reroll " + faces.join(",") + "?";
         this.die = die;
-        this.cost = cost;
-        this.target = target;
+        this.power = power;
     }
 
     start() {
@@ -1332,7 +1329,7 @@ export class AskForRerollAction extends OathAction {
 
     execute(): void {
         if (this.parameters.doReroll[0]) {
-            if (this.cost && !new PayCostToTargetEffect(this.game, this.player, this.cost, this.target).do()) return;
+            if (!this.power?.payCost(this.player)) return;
             for (const [i, face] of this.die.roll(this.faces.length).entries()) this.faces[i] = face;
         }
     }
@@ -1502,7 +1499,7 @@ export abstract class ChoosePlayer extends OathAction {
 
         const choices = new Map<string, OathPlayer | undefined>();
         for (const player of this.players)
-            if (!(player === this.player && !this.canChooseSelf)) choices.set(player.name, player);
+            if (player.original !== this.player.original || this.canChooseSelf) choices.set(player.name, player);
         if (none) choices.set(none, undefined);
         this.selects.player = new SelectNOf(choices, 1);
 

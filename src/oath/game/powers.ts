@@ -2,7 +2,7 @@ import { CampaignAtttackAction, CampaignDefenseAction, InvalidActionResolution, 
 import { Conspiracy, Denizen, OwnableCard, Relic, Site, Vision, WorldCard } from "./cards/cards";
 import { BannerName, OathResource, OathSuit, RegionName } from "./enums";
 import { Banner, DarkestSecret, PeoplesFavor, ResourceCost } from "./resources";
-import { CursedCauldronResolutionEffect, GamblingHallEffect, MoveResourcesToTargetEffect, OathEffect, PayCostToTargetEffect, PlayDenizenAtSiteEffect, PlayVisionEffect, PlayWorldCardEffect, PutResourcesOnTargetEffect, PutWarbandsFromBagEffect, RegionDiscardEffect, RollDiceEffect, SetNewOathkeeperEffect, TakeOwnableObjectEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect } from "./effects";
+import { CursedCauldronResolutionEffect, GamblingHallEffect, MoveResourcesToTargetEffect, OathEffect, PayCostToTargetEffect, PayPowerCost, PlayDenizenAtSiteEffect, PlayVisionEffect, PlayWorldCardEffect, PutResourcesOnTargetEffect, PutWarbandsFromBagEffect, RegionDiscardEffect, RollDiceEffect, SetNewOathkeeperEffect, TakeOwnableObjectEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect } from "./effects";
 import { OathPlayer, OwnableObject, Reliquary, isOwnable } from "./player";
 import { OathGameObject } from "./gameObject";
 import { AbstractConstructor } from "./utils";
@@ -20,6 +20,10 @@ export abstract class OathPower<T extends OathGameObject> extends OathGameObject
     constructor(source: T) {
         super(source.game);
         this.source = source;
+    }
+
+    payCost(player: OathPlayer): boolean {
+        return new PayPowerCost(player, this).do();
     }
 }
 
@@ -204,7 +208,7 @@ export class Curfew extends EnemyActionModifier<Denizen> {
     mustUse = true;
 
     applyDuring(): void {
-        if (this.action.player.site?.ruler === this.source.ruler) {
+        if (this.action.player.site?.ruler?.original === this.source.ruler?.original) {
             if (!new PayCostToTargetEffect(this.action.game, this.action.player, new ResourceCost([[OathResource.Favor, 1]]), this.source.ruler).do())
                 throw new InvalidActionResolution("Cannot pay the Curfew.");
         }
@@ -217,7 +221,7 @@ export class TollRoads extends EnemyEffectModifier<Denizen> {
     effect: TravelEffect;
 
     applyDuring(): void {
-        if (this.effect.site.ruler === this.source.ruler) {
+        if (this.effect.site.ruler?.original === this.source.ruler?.original) {
             if (!new PayCostToTargetEffect(this.effect.game, this.effect.player, new ResourceCost([[OathResource.Favor, 1]]), this.source.ruler).do())
                 throw new InvalidActionResolution("Cannot pay the Toll Roads.");
         }
@@ -231,7 +235,7 @@ export class ForcedLabor extends EnemyActionModifier<Denizen> {
     mustUse = true;
 
     applyDuring(): void {
-        if (this.action.player.site?.ruler === this.source.ruler) {
+        if (this.action.player.site?.ruler?.original === this.source.ruler?.original) {
             if (!new PayCostToTargetEffect(this.action.game, this.action.player, new ResourceCost([[OathResource.Favor, 1]]), this.source.ruler).do())
                 throw new InvalidActionResolution("Cannot pay the Forced Labor.");
         }
@@ -244,7 +248,7 @@ export class RoyalTax extends WhenPlayed<Denizen> {
 
     whenPlayed(effect: PlayWorldCardEffect): void {
         for (const player of Object.values(effect.game.players)) {
-            if (player.site.ruler === effect.player)
+            if (player.site.ruler?.original === effect.player.leader.original)
                 new MoveResourcesToTargetEffect(effect.game, effect.player, OathResource.Favor, 2, effect.player, player).do();
         }
     }
@@ -362,7 +366,6 @@ export class Jinx extends EffectModifier<Denizen> {
     name = "Jinx";
     modifiedEffect = RollDiceEffect;
     effect: RollDiceEffect;
-    // TODO: This doesn't interface with Spell Breaker
     cost = new ResourceCost([[OathResource.Secret, 1]]);
 
     canUse(): boolean {
@@ -371,7 +374,7 @@ export class Jinx extends EffectModifier<Denizen> {
 
     applyAfter(result: number[]): void {
         if (!this.effect.player) return;        
-        new AskForRerollAction(this.effect.player, result, this.effect.die, this.cost, this.source).doNext();
+        new AskForRerollAction(this.effect.player, result, this.effect.die, this).doNext();
     }
 }
 
@@ -554,25 +557,13 @@ export class Elders extends ActivePower<Denizen> {
 }
 
 
-export class SpellBreaker extends EnemyActionModifier<Denizen> {
+export class SpellBreaker extends EnemyEffectModifier<Denizen> {
     name = "Spell Breaker";
-    modifiedAction = ModifiableAction;
-
-    applyBefore(): boolean {
-        for (const modifier of this.action.modifiers)
-            if (modifier.cost.totalResources.get(OathResource.Secret))
-                throw new InvalidActionResolution("Cannot use powers that cost Secrets under the Spell Breaker");
-
-        return true;
-    }
-}
-export class SpellBreakerActive extends EnemyActionModifier<Denizen> {
-    name = "Spell Breaker";
-    modifiedAction = UsePowerAction;
-    action: UsePowerAction;
+    modifiedEffect = PayPowerCost;
+    effect: PayPowerCost;
 
     applyDuring(): void {
-        if (this.action.power.cost.totalResources.get(OathResource.Secret))
+        if (this.effect.power.cost.totalResources.get(OathResource.Secret))
             throw new InvalidActionResolution("Cannot use powers that cost Secrets under the Spell Breaker");
     }
 }
@@ -590,7 +581,7 @@ export class FamilyWagon extends CapacityModifier<Denizen> {
         // is by setting the capacity to 2, and making all *other* Nomad cards not count towards the limit (effectively
         // making you have 1 spot for a non Nomad card, and infinite ones for Nomad cards, while allowing you
         // to replace Family Wagon if you want to)
-        return [2, [...source].filter(e => e !== this.source && !e.facedown && e instanceof Denizen && e.suit === OathSuit.Nomad)];
+        return [2, [...source].filter(e => e !== this.source && e instanceof Denizen && e.suit === OathSuit.Nomad)];
     }
 }
 
@@ -799,7 +790,13 @@ export class SmallFriends extends AccessedActionModifier<Denizen> {
     action: TradeAction;
 
     applyBefore(): boolean {
-        new ActAsIfAtSiteAction(this.action.player).doNext();
+        const sites = new Set<Site>();
+        for (const site of this.game.board.sites())
+            for (const denizen of site.denizens)
+                if (denizen.suit === OathSuit.Beast)
+                    sites.add(site);
+
+        new ActAsIfAtSiteAction(this.action.player, sites).doNext();
         return true;
     }
 }
