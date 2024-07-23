@@ -239,28 +239,6 @@ export class Exile extends OathPlayer {
         return oldVision;
     }
 
-    becomeCitizen() {
-        // TODO: Use effects for all of this
-        for (const site of this.game.board.sites())
-            new PutWarbandsFromBagEffect(this.game.chancellor, new TakeWarbandsIntoBagEffect(this, Infinity, site).do(), site).do();
-        
-        new PutWarbandsFromBagEffect(this.game.chancellor, new TakeWarbandsIntoBagEffect(this, Infinity, this).do(), this).do();
-
-        this.isCitizen = true;
-        if (this.vision) {
-            new DiscardCardEffect(this, this.vision).do();
-            this.vision = undefined;
-        }
-
-        new GainSupplyEffect(this, Infinity).do();
-        if (this.game.currentPlayer == this) new RestAction(this).doNext();
-    }
-
-    becomeExile() {
-        this.isCitizen = false;
-        new PutWarbandsFromBagEffect(this, new TakeWarbandsIntoBagEffect(this.game.chancellor, Infinity, this).do(), this).do();
-    }
-
     rest() {
         super.rest();
 

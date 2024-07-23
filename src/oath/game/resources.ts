@@ -1,5 +1,5 @@
 import { CampaignActionTarget, PeoplesFavorReturnAction, RecoverAction, RecoverActionTarget, RecoverBannerPitchAction } from "./actions";
-import { PutResourcesIntoBankEffect, SetPeoplesFavorMobState, TakeOwnableObjectEffect, TakeResourcesFromBankEffect } from "./effects";
+import { MoveResourcesToTargetEffect, PutResourcesIntoBankEffect, SetPeoplesFavorMobState, TakeOwnableObjectEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect } from "./effects";
 import { OathResource } from "./enums"
 import { OathGame } from "./game";
 import { OathGameObject } from "./gameObject";
@@ -212,6 +212,14 @@ export abstract class ResourcesAndWarbands extends OathGameObject {
         const numberMoved = this.takeWarbands(player, amount);
         target.putWarbands(player, numberMoved);
         return numberMoved;
+    }
+
+    clear() {
+        for (const [resource, amount] of this.resources)
+            new MoveResourcesToTargetEffect(this.game, undefined, resource, amount, undefined, this).do();
+
+        for (const [player, amount] of this.warbands)
+            new TakeWarbandsIntoBagEffect(player, amount, this);
     }
 
     serialize(): Record<string, any> {

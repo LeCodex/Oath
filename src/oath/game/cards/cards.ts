@@ -5,9 +5,10 @@ import { CardRestriction, OathResource, OathSuit, OathTypeVisionName, RegionName
 import { OathGame } from "../game";
 import { Oath } from "../oaths";
 import { OathPlayer, OwnableObject } from "../player";
-import { ConspiracyPower, OathPower, VisionPower } from "../powers";
+import { ConspiracyPower, OathPower } from "../powers";
 import { ResourceCost, ResourcesAndWarbands } from "../resources";
 import { Constructor } from "../utils";
+import { DenizenData } from "./denizens";
 
 
 export abstract class OathCard extends ResourcesAndWarbands {
@@ -229,14 +230,16 @@ export class Denizen extends WorldCard {
     site?: Site;
     restriction: CardRestriction;
     locked: boolean;
+    powers: Set<Constructor<OathPower<Denizen>>>;
 
     protected _suit: OathSuit;
     get suit() { return this.facedown ? OathSuit.None : this._suit; }
     set suit(_suit: OathSuit) { this._suit = _suit; }
     get ruler() { return super.ruler || this.site?.ruler; }
     get activelyLocked() { return this.locked && !this.facedown; }
+    get data(): DenizenData { return [this._suit, this.name, [...this.powers], this.restriction, this.locked] }
 
-    constructor(game: OathGame, name: string, suit: OathSuit, powers: Iterable<Constructor<OathPower<Denizen>>>, restriction: CardRestriction = CardRestriction.None, locked: boolean = false) {
+    constructor(game: OathGame, suit: OathSuit, name: string, powers: Iterable<Constructor<OathPower<Denizen>>>, restriction: CardRestriction = CardRestriction.None, locked: boolean = false) {
         super(game, name, powers);
         this._suit = suit;
         this.restriction = restriction;
@@ -275,18 +278,9 @@ export class Denizen extends WorldCard {
     }
 }
 
-export abstract class Edifice extends Denizen {
+export class Edifice extends Denizen {
     restriction = CardRestriction.Site;
     locked = true;
-    ruined: boolean;
-
-    get suit(): OathSuit { return this.ruined ? OathSuit.None : this._suit; }
-
-    serialize(): Record<string, any> {
-        const obj: Record<string, any> = super.serialize();
-        obj.ruined = this.ruined;
-        return obj;
-    }
 }
 
 export abstract class VisionBack extends WorldCard { }
@@ -295,7 +289,7 @@ export class Vision extends VisionBack {
     oath: Oath;
 
     constructor(oath: Oath) {
-        super(oath.game, `Vision of ${OathTypeVisionName[oath.type]}`, [VisionPower]);
+        super(oath.game, `Vision of ${OathTypeVisionName[oath.type]}`, []);
         this.oath = oath;
     }
 

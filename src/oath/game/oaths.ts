@@ -60,7 +60,7 @@ export class OathOfProtection extends Oath {
     }
 
     isSuccessor(player: OathPlayer): boolean {
-        return this.game.banners.get(BannerName.PeoplesFavor)?.owner === player;
+        return this.game.banners.get(BannerName.PeoplesFavor)?.owner?.original === player.original;
     }
 }
 
@@ -72,11 +72,11 @@ export class OathOfThePeople extends Oath {
     }
 
     scorePlayer(player: OathPlayer): number {
-        return this.game.banners.get(BannerName.PeoplesFavor)?.owner === player ? 1 : 0;
+        return this.game.banners.get(BannerName.PeoplesFavor)?.owner?.original === player.original ? 1 : 0;
     }
 
     isSuccessor(player: OathPlayer): boolean {
-        return this.game.banners.get(BannerName.DarkestSecret)?.owner === player;
+        return this.game.banners.get(BannerName.DarkestSecret)?.owner?.original === player.original;
     }
 }
 
@@ -88,12 +88,11 @@ export class OathOfDevotion extends Oath {
     }
 
     scorePlayer(player: OathPlayer): number {
-        return this.game.banners.get(BannerName.DarkestSecret)?.owner === player ? 1 : 0;
+        return this.game.banners.get(BannerName.DarkestSecret)?.owner?.original === player.original ? 1 : 0;
     }
 
     isSuccessor(player: OathPlayer): boolean {
-        // TODO: Make this successor goal
-        return false;
+        return this.game.grandScepter.owner?.original === player.original;
     }
 }
 

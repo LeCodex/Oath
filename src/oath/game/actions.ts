@@ -1,14 +1,16 @@
-import { Denizen, OathCard, Relic, Site, WorldCard } from "./cards/cards";
+import { Denizen, Edifice, Relic, Site, VisionBack, WorldCard } from "./cards/cards";
 import { SearchableDeck } from "./cards/decks";
+import { DenizenData } from "./cards/denizens";
 import { AttackDie, DefenseDie, Die } from "./dice";
-import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect, DiscardCardEffect, MoveOwnWarbandsEffect, AddActionToStackEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect, SetNewOathkeeperEffect, SetPeoplesFavorMobState, DiscardCardGroupEffect, OathEffect, PopActionFromStackEffect, PaySupplyEffect, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect } from "./effects";
-import { OathPhase, OathResource, OathResourceName, OathSuit, OathSuitName, PlayerColor } from "./enums";
+import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect, DiscardCardEffect, MoveOwnWarbandsEffect, AddActionToStackEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect, SetNewOathkeeperEffect, SetPeoplesFavorMobState, DiscardCardGroupEffect, OathEffect, PopActionFromStackEffect, PaySupplyEffect, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, TurnToCitizenEffect, ExileCitizenEffect, BuildEdificeFromDenizenEffect, RepairEdificeEffect } from "./effects";
+import { OathPhase, OathResource, OathResourceName, OathSuit, OathSuitName } from "./enums";
 import { OathGame } from "./game";
 import { OathGameObject } from "./gameObject";
-import { OathPlayer } from "./player";
+import { Oath } from "./oaths";
+import { Exile, OathPlayer } from "./player";
 import { ActionModifier, ActivePower, CapacityModifier, OathPower } from "./powers";
 import { Banner, PeoplesFavor, ResourceCost, ResourcesAndWarbands } from "./resources";
-import { Constructor, getCopyWithOriginal, isExtended } from "./utils";
+import { Constructor, getCopyWithOriginal, isExtended, shuffleArray } from "./utils";
 
 
 
@@ -531,7 +533,7 @@ export class SearchAction extends MajorAction {
     deck: SearchableDeck;
     amount = 3;
     fromBottom = false;
-    discardOptions = new SearchDiscardOptions(this.player.discard, false);
+    discardOptions = new SearchDiscardOptions(this.player.discard);
 
     start() {
         const choices = new Map<string, SearchableDeck>();
@@ -557,10 +559,12 @@ export class SearchAction extends MajorAction {
 export class SearchDiscardOptions {
     discard: SearchableDeck;
     onBottom: boolean;
+    ignoreLocked: boolean;
 
-    constructor(discard: SearchableDeck, onBottom: boolean) {
+    constructor(discard: SearchableDeck, onBottom: boolean = false, ignoreLocked: boolean = false) {
         this.discard = discard;
         this.onBottom = onBottom;
+        this.ignoreLocked = ignoreLocked;
     }
 }
 
@@ -576,7 +580,7 @@ export class SearchChooseAction extends ModifiableAction {
 
     constructor(player: OathPlayer, cards: Iterable<WorldCard>, discardOptions?: SearchDiscardOptions, amount: number = 1) {
         super(player);
-        this.discardOptions = discardOptions || new SearchDiscardOptions(player.discard, false);
+        this.discardOptions = discardOptions || new SearchDiscardOptions(player.discard);
         this.cards = new Set(cards);
         this.playingAmount = Math.min(amount, this.cards.size);
     }
@@ -614,7 +618,7 @@ export class SearchDiscardAction extends ModifiableAction {
 
     constructor(player: OathPlayer, cards: Iterable<WorldCard>, amount?: number, discardOptions?: SearchDiscardOptions) {
         super(player);
-        this.discardOptions = discardOptions || new SearchDiscardOptions(player.discard, false);
+        this.discardOptions = discardOptions || new SearchDiscardOptions(player.discard);
         this.cards = new Set(cards);
         this.amount = Math.min(this.cards.size, amount || this.cards.size);
     }
@@ -652,7 +656,7 @@ export class SearchPlayAction extends ModifiableAction {
         super(player);
         this.card = card;
         this.message = "Play " + this.card.name;
-        this.discardOptions = discardOptions || new SearchDiscardOptions(player.discard, false);
+        this.discardOptions = discardOptions || new SearchDiscardOptions(player.discard);
     }
 
     start() {
@@ -743,7 +747,7 @@ export class SearchReplaceAction extends OathAction {
         this.site = site;
         this.discardable = new Set(discardable);
         this.excess = excess;
-        this.discardOptions = discardOptions || new SearchDiscardOptions(player.discard, false);
+        this.discardOptions = discardOptions || new SearchDiscardOptions(player.discard);
     }
 
     start() {
@@ -769,7 +773,7 @@ export class PeoplesFavorDiscardAction extends OathAction {
 
     constructor(player: OathPlayer, discardOptions?: SearchDiscardOptions) {
         super(player);
-        this.discardOptions = discardOptions || new SearchDiscardOptions(player.discard, false);
+        this.discardOptions = discardOptions || new SearchDiscardOptions(player.discard);
     }
 
     start() {
@@ -1121,6 +1125,21 @@ export class WakeAction extends ModifiableAction {
     readonly message = "";
 
     modifiedExecution(): void {
+        if (this.game.oathkeeper === this.player && !this.player.isImperial)
+            if (this.game.isUsurper)
+                // TODO: YOU WIN!
+                return;
+            else
+                new SetUsurperEffect(this.game, true).do();
+
+        if (this.player instanceof Exile && this.player.vision) {
+            const candidates = this.player.vision.oath.getCandidates();
+            if (candidates.size === 1 && candidates.has(this.player)) {
+                // TODO: YOU WIN!
+                return;
+            }
+        }
+
         new ChangePhaseEffect(this.game, OathPhase.Act).doNext();
     }
 }
@@ -1556,6 +1575,7 @@ export class ChooseNewOathkeeper extends ChoosePlayer {
     execute(): void {
         super.execute();
         if (!this.target) return;
+        new SetUsurperEffect(this.game, false).do();
         new SetNewOathkeeperEffect(this.target).do();
     }
 }
@@ -1637,5 +1657,175 @@ export class ActAsIfAtSiteAction extends ChooseSite {
         super.execute();
         if (!this.target) return;
         this.player.site = this.target;
+    }
+}
+
+
+
+////////////////////////////////////////////
+//             END OF THE GAME            //
+////////////////////////////////////////////
+export class VowOathAction extends OathAction {
+    readonly selects: { oath: SelectNOf<Oath> };
+    readonly parameters: { oath: Oath[] };
+    readonly message = "Vow an Oath";
+
+    execute(): void {
+        const oath = this.parameters.oath[0];
+        this.game.oath = oath;
+    }
+}
+
+export class ChooseNewCitizensAction extends OathAction {
+    readonly selects: { players: SelectNOf<OathPlayer> };
+    readonly parameters: { players: OathPlayer[] };
+    readonly message = "Propose Citizenship to other Exiles";
+
+    start() {
+        const choices = new Map<string, OathPlayer>();
+        const players = new Set(Object.values(this.game.players).filter(e => !e.isImperial && e.original !== this.player.original));
+        for (const player of players) choices.set(player.name, player);
+        this.selects.players = new SelectNOf(choices);
+        return super.start();
+    }
+
+    execute(): void {
+        const citizens = this.parameters.players;
+        for (const player of Object.values(this.game.players))
+            if (player instanceof Exile && player.isCitizen)
+                new ExileCitizenEffect(player).do();
+        
+        for (const citizen of citizens)
+            new AskForPermissionAction(citizen, new TurnToCitizenEffect(citizen)).doNext();
+    }
+}
+
+export class BuildOrRepairEdificeAction extends OathAction {
+    readonly selects: { card: SelectNOf<Denizen | undefined> };
+    readonly parameters: { card: (Denizen | undefined)[] };
+    readonly message = "Build or repair an edifice";
+
+    start(): Record<string, string[]> | undefined {
+        const choices = new Map<string, Denizen | undefined>();
+        for (const site of this.game.board.sites()) {
+            if (site.ruler?.isImperial) {
+                for (const denizen of site.denizens) {
+                    if (!(denizen instanceof Edifice && denizen.suit !== OathSuit.None))
+                        choices.set(denizen.name, denizen);
+                }
+            }
+        }
+        choices.set("None", undefined);
+        this.selects.card = new SelectNOf(choices, 1);
+        return super.start();
+    }
+
+    execute(): void {
+        const card = this.parameters.card[0];
+        if (!card) return;
+        if (!card.site) throw new InvalidActionResolution("Card is neither a ruined edifice nor at a site");
+        
+        if (card instanceof Edifice)
+            new RepairEdificeEffect(card).do();
+        else
+            new BuildEdificeFromDenizenEffect(card).do();
+    }
+}
+
+export class AddCardsToWorldDeckAction extends ChooseSuit {
+    readonly message = "Choose a suit to add to the World Deck";
+
+    constructor(player: OathPlayer) {
+        let max = 0;
+        const suits: OathSuit[] = [];
+        for (let i: OathSuit = 0; i < 6; i++) {
+            const count = player.adviserSuitCount(i);
+            if (count >= max) {
+                max = count;
+                suits.splice(0, suits.length, i);
+            } else if (count === max) {
+                suits.push(i);
+            }
+        }
+        super(player, suits);
+    }
+    
+    getRandomCardDataInArchive(suit: OathSuit): string[] {
+        const cardData: string[] = [];
+        for (const [key, data] of Object.entries(this.game.archive))
+            if (data[0] === suit) cardData.push(key);
+
+        shuffleArray(cardData);
+        return cardData;
+    }
+
+    execute(): void {
+        super.execute();
+        if (!this.suit) return;
+        
+        // Add cards from the archive
+        const worldDeck = this.game.original.worldDeck;
+        const worldDeckDiscardOptions = new SearchDiscardOptions(worldDeck);
+        for (let i = 3; i >= 1; i--) {
+            const cardData = this.getRandomCardDataInArchive(this.suit);
+            for (let j = 0; j < i; j++) {
+                const key = cardData.pop();
+                if (!key) break;
+                const data = this.game.archive[key];
+                if (!data) break;
+                delete this.game.archive[key];
+
+                new DiscardCardEffect(this.player, new Denizen(this.game.original, ...data), worldDeckDiscardOptions).do();
+            }
+
+            this.suit++;
+            if (this.suit > OathSuit.Nomad) this.suit = OathSuit.Discord;
+        }
+
+        // Remove cards to the Dispossessed
+        const firstDiscard = Object.values(this.game.original.board.regions)[0].discard;
+        const firstDiscardOptions = new SearchDiscardOptions(firstDiscard);
+        for (const player of Object.values(this.game.original.players)) {
+            let discardOptions = firstDiscardOptions;
+            if (player === this.player) discardOptions = worldDeckDiscardOptions;
+            new DiscardCardGroupEffect(this.player, player.advisers, discardOptions).do();
+        }
+        for (const region of Object.values(this.game.original.board.regions)) {
+            const cards = new DrawFromDeckEffect(this.player, region.discard, region.discard.cards.length).do();
+            new DiscardCardGroupEffect(this.player, cards, firstDiscardOptions).do();
+        }
+
+        firstDiscard.shuffle(); // TODO: Put this in effect
+        for (let i = 0; i < 6; i++) {
+            const cards = new DrawFromDeckEffect(this.player, firstDiscard, 1).do();
+            if (!cards.length) break;
+            const card = cards[0];
+
+            if (!(card instanceof Denizen)) {
+                new DiscardCardEffect(this.player, card, worldDeckDiscardOptions).do();
+                continue;
+            }
+            this.game.original.dispossessed.push(card.data);
+        }
+        const cards = new DrawFromDeckEffect(this.player, firstDiscard, firstDiscard.cards.length).do();
+        new DiscardCardGroupEffect(this.player, cards, worldDeckDiscardOptions).do();
+        worldDeck.shuffle();
+
+        // Rebuild the World Deck
+        const visions: VisionBack[] = [];
+        for (let i = worldDeck.cards.length - 1; i >= 0; i--) {
+            const card = worldDeck.cards[i];
+            if (card instanceof VisionBack) visions.push(worldDeck.cards.splice(i, 1)[0]);
+        }
+
+        const topPile = worldDeck.cards.splice(0, 10);
+        topPile.push(...visions.splice(0, 2));
+        shuffleArray(topPile);
+        const middlePile = worldDeck.cards.splice(0, 15);
+        middlePile.push(...visions.splice(0, 3));
+        shuffleArray(middlePile);
+
+        for (const card of middlePile) worldDeck.putCard(card);
+        for (const card of topPile) worldDeck.putCard(card);
     }
 }

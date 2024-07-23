@@ -45,6 +45,7 @@ export class OathBoard extends OathGameObject {
 
 export class Region extends OathGameObject {
     name: string;
+    size: number;
     regionName: RegionName;
     sites: Site[];
     discard = new Discard(this.game);
@@ -52,6 +53,7 @@ export class Region extends OathGameObject {
     constructor(game: OathGame, name: string, size: number, regionName: RegionName) {
         super(game);
         this.name = name;
+        this.size = size;
         this.regionName = regionName;
 
         this.sites = [];

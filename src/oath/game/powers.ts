@@ -796,6 +796,7 @@ export class SmallFriends extends AccessedActionModifier<Denizen> {
                 if (denizen.suit === OathSuit.Beast)
                     sites.add(site);
 
+        // FIXME: This doesn't work, why?
         new ActAsIfAtSiteAction(this.action.player, sites).doNext();
         return true;
     }
@@ -806,21 +807,6 @@ export class SmallFriends extends AccessedActionModifier<Denizen> {
 //////////////////////////////////////////////////
 //                   VISIONS                    //
 //////////////////////////////////////////////////
-export class VisionPower extends WakePower<Vision> {
-    name = "Vision Check";
-
-    applyBefore(): boolean {
-        const candidates = this.source.oath.getCandidates();
-        if (candidates.size === 1 && candidates.has(this.action.player)) {
-            // TODO: YOU WIN!
-            return false;
-        }
-
-        return true;
-    }
-}
-
-
 export class ConspiracyPower extends WhenPlayed<Conspiracy> {
     name = "Conspiracy";
 
@@ -841,6 +827,13 @@ export class ConspiracyPower extends WhenPlayed<Conspiracy> {
         new ConspiracyAction(effect.player, targets).doNext();
     }
 }
+
+
+
+//////////////////////////////////////////////////
+//                  EDIFICES                    //
+//////////////////////////////////////////////////
+
 
 
 //////////////////////////////////////////////////
@@ -950,8 +943,8 @@ export class CharmingValley extends SiteActionModifier {
     }
 }
 
-export class ResourceSite extends SiteActionModifier {
-    name = "Resource Site";
+export class OpportunitySite extends SiteActionModifier {
+    name = "Opportunity Site";
     modifiedAction = WakeAction;
     action: WakeAction;
 

@@ -2,7 +2,7 @@ import { ChooseNewOathkeeper, InvalidActionResolution, OathAction, OathActionMan
 import { OathBoard } from "./board";
 import { Conspiracy, Denizen, Relic, Site, Vision } from "./cards/cards";
 import { CardDeck, RelicDeck, WorldDeck } from "./cards/decks";
-import { denizenData } from "./cards/denizens";
+import { DenizenData, denizenData } from "./cards/denizens";
 import { relicsData } from "./cards/relics";
 import { sitesData } from "./cards/sites";
 import { AddActionToStackEffect } from "./effects";
@@ -26,8 +26,12 @@ export class OathGame extends CopiableWithOriginal {
     round = 1;
 
     chancellor: Chancellor;
+    grandScepter = new Relic(this, "Grand Scepter", [], 5);
     players: Record<number, OathPlayer> = {};
     order: PlayerColor[] = [PlayerColor.Purple];
+
+    archive: Record<string, DenizenData>;
+    dispossessed: DenizenData[];
 
     banners = new Map<BannerName, Banner>([
         [BannerName.PeoplesFavor, new PeoplesFavor(this, 1)],
@@ -44,8 +48,14 @@ export class OathGame extends CopiableWithOriginal {
         this.oath = new OathTypeToOath[oath](this);
         this.oath.setup();
 
+        this.archive = {...denizenData};
+        this.dispossessed = [];
+
         // TEMP: Just load every card and shuffle evertyhing for now
-        for (const data of Object.values(denizenData)) this.worldDeck.putCard(new Denizen(this, ...data));
+        for (const [key, data] of Object.entries(this.archive)) {
+            delete this.archive[key];
+            this.worldDeck.putCard(new Denizen(this, ...data));
+        }
         for (const oath of Object.values(OathTypeToOath)) this.worldDeck.putCard(new Vision(new oath(this)));
         this.worldDeck.putCard(new Conspiracy(this));
         this.worldDeck.shuffle();
@@ -72,6 +82,8 @@ export class OathGame extends CopiableWithOriginal {
             player.moveWarbandsFromBagOnto(player, 3);
             this.worldDeck.drawSingleCard(true)?.setOwner(player);
         }
+
+        this.grandScepter.setOwner(this.chancellor);
 
         for (const region of Object.values(this.board.regions)) this.chancellor.moveWarbandsFromBagOnto(region.sites[0], 1);
         this.chancellor.moveWarbandsFromBagOnto(topCradleSite, 1);

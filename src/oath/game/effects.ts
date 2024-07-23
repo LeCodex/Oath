@@ -1,4 +1,4 @@
-import { Denizen, OwnableCard, Site, Vision, WorldCard } from "./cards/cards";
+import { Denizen, Edifice, OwnableCard, Site, Vision, WorldCard } from "./cards/cards";
 import { CardRestriction, OathPhase, OathResource, OathSuit, PlayerColor } from "./enums";
 import { Exile, OathPlayer } from "./player";
 import { EffectModifier, OathPower, WhenPlayed } from "./powers";
@@ -6,10 +6,13 @@ import { PeoplesFavor, ResourceBank, ResourceCost, ResourcesAndWarbands } from "
 import { OwnableObject } from "./player";
 import { OathGame } from "./game";
 import { OathGameObject } from "./gameObject";
-import { CampaignResult, InvalidActionResolution, OathAction, ResolveEffectAction, SearchDiscardAction, SearchDiscardOptions, SearchPlayAction, TakeFavorFromBankAction, WakeAction } from "./actions";
+import { AddCardsToWorldDeckAction, BuildOrRepairEdificeAction, CampaignResult, ChooseNewCitizensAction, InvalidActionResolution, OathAction, ResolveEffectAction, RestAction, SearchDiscardAction, SearchDiscardOptions, SearchPlayAction, TakeFavorFromBankAction, VowOathAction, WakeAction } from "./actions";
 import { CardDeck } from "./cards/decks";
-import { getCopyWithOriginal, isExtended } from "./utils";
+import { getCopyWithOriginal, isExtended, shuffleArray } from "./utils";
 import { D6, DefenseDie, Die } from "./dice";
+import { Oath } from "./oaths";
+import { Region } from "./board";
+import { edificeData } from "./cards/denizens";
 
 
 //////////////////////////////////////////////////
@@ -692,6 +695,7 @@ export class MoveWorldCardToAdvisersEffect extends OathEffect<void> {
 
     revert(): void {
         // The thing that calls this effect is in charge of putting the card back where it was
+        this.card.original.setOwner(undefined);
     }
 }
 
@@ -746,11 +750,11 @@ export class DiscardCardEffect extends PlayerEffect<void> {
     constructor(player: OathPlayer, card: WorldCard, discardOptions?: SearchDiscardOptions) {
         super(player);
         this.card = card;
-        this.discardOptions = discardOptions || new SearchDiscardOptions(card.owner ? card.owner.discard : card instanceof Denizen && card.site ? this.game.board.nextRegion(card.site.region).discard : player.discard, false);
+        this.discardOptions = discardOptions || new SearchDiscardOptions(card.owner ? card.owner.discard : card instanceof Denizen && card.site ? this.game.board.nextRegion(card.site.region).discard : player.discard);
     }
 
     resolve(): void {
-        if (this.card instanceof Denizen && this.card.activelyLocked) return;
+        if (this.card instanceof Denizen && this.card.activelyLocked && !this.discardOptions.ignoreLocked) return;
 
         this.discardOptions.discard.original.putCard(this.card.original, this.discardOptions.onBottom);
         this.card.original.returnResources();
@@ -815,6 +819,25 @@ export class SetNewOathkeeperEffect extends PlayerEffect<void> {
 
     revert(): void {
         this.game.original.oathkeeper = this.oldOathkeeper;
+    }
+}
+
+export class SetUsurperEffect extends OathEffect<void> {
+    usurper: boolean;
+    oldUsurper: boolean;
+
+    constructor(game: OathGame, usurper: boolean) {
+        super(game, undefined);
+        this.usurper = usurper;
+    }
+
+    resolve(): void {
+        this.oldUsurper = this.game.original.isUsurper;
+        this.game.original.isUsurper = this.usurper;
+    }
+
+    revert(): void {
+        this.game.original.isUsurper = this.oldUsurper;
     }
 }
 
@@ -932,7 +955,57 @@ export class HandleD6ResultEffect extends OathEffect<void> {
     }
 }
 
+export class TurnToCitizenEffect extends PlayerEffect<void> {
+    oldVision: Vision | undefined;
+    resolved = false;
 
+    resolve(): void {
+        if (!(this.player instanceof Exile)) return;
+        if (this.player.isCitizen) return;
+        this.resolved = true;
+        this.player.isCitizen = true;
+        
+        for (const site of this.game.board.sites())
+            new PutWarbandsFromBagEffect(this.game.chancellor, new TakeWarbandsIntoBagEffect(this.player, Infinity, site).do(), site).do();
+        
+        new PutWarbandsFromBagEffect(this.game.chancellor, new TakeWarbandsIntoBagEffect(this.player, Infinity, this.player).do(), this.player).do();
+
+        if (this.player.original.vision) {
+            new DiscardCardEffect(this.player, this.player.original.vision).do();
+            this.oldVision = this.player.original.setVision(undefined);
+        }
+
+        new GainSupplyEffect(this.player, Infinity).do();
+        if (this.game.currentPlayer.original === this.player.original) new RestAction(this.player).doNext();
+    }
+
+    revert(): void {
+        if (!(this.player instanceof Exile)) return;
+        if (!this.resolved) return;
+        this.player.original.isCitizen = false;
+        this.player.original.setVision(this.oldVision);
+    }
+}
+
+export class ExileCitizenEffect extends PlayerEffect<void> {
+    resolved = false;
+
+    resolve(): void {
+        if (!(this.player instanceof Exile)) return;
+        if (!this.player.isCitizen) return;
+        this.resolved = true;
+        this.player.original.isCitizen = false;
+        new PutWarbandsFromBagEffect(this.player, new TakeWarbandsIntoBagEffect(this.game.chancellor, Infinity, this.player).do(), this.player).do();
+
+        if (this.game.currentPlayer.original === this.player.original) new RestAction(this.player).doNext();
+    }
+
+    revert(): void {
+        if (!(this.player instanceof Exile)) return;
+        if (!this.resolved) return;
+        this.player.original.isCitizen = true;
+    }
+}
 
 //////////////////////////////////////////////////
 //              SPECIFIC EFFECTS                //
@@ -1015,5 +1088,228 @@ export class GamblingHallEffect extends PlayerEffect<void> {
 
     revert(): void {
         // Doesn't do anything on its own
+    }
+}
+
+
+//////////////////////////////////////////////////
+//               END OF THE GAME                //
+//////////////////////////////////////////////////
+// NOTE: In theory, none of those should get rolled back, but you never know
+export class WinGameEffect extends PlayerEffect<void> {
+    oldOath: Oath;
+
+    resolve(): void {
+        this.oldOath = this.game.original.oath;
+        if (this.player instanceof Exile && this.player.vision)
+            this.game.original.oath = this.player.vision.oath.original;
+        else
+            new VowOathAction(this.player).doNext();
+
+        if (!this.player.isImperial)
+            new ChooseNewCitizensAction(this.player).doNext();
+        else
+            new BuildOrRepairEdificeAction(this.player).doNext();
+        
+        new CleanUpMapEffect(this.player).doNext();
+    }
+
+    revert(): void {
+        this.game.original.oath = this.oldOath;
+    }
+}
+
+export class BuildEdificeFromDenizenEffect extends OathEffect<void> {
+    denizen: Denizen;
+    site: Site;
+    edifice: Edifice;
+
+    constructor(denizen: Denizen) {
+        super(denizen.game, undefined);
+        this.denizen = denizen
+    }
+
+    resolve(): void {
+        if (!this.denizen.site) throw new InvalidActionResolution("Card is not at a site");
+        this.site = this.denizen.site;
+            
+        for (const data of Object.values(edificeData)) {
+            const suit = data[0];
+            if (suit === this.denizen.suit) {
+                this.edifice = new Edifice(this.game, data[0], ...data[1])
+                this.edifice.putAtSite(this.site);
+                break;
+            }
+        }
+        this.site.region.discard.putCard(this.denizen);
+    }
+
+    revert(): void {
+        if (!this.site) return;
+        this.site.region.discard.drawSingleCard();
+        this.denizen.putAtSite(this.site);
+        this.edifice.setOwner(undefined);
+    }
+}
+
+export class RuinEdificeEffect extends OathEffect<void> {
+    edifice: Edifice;
+    ruinedEdifice: Edifice;
+
+    constructor(edifice: Edifice) {
+        super(edifice.game, undefined);
+        this.edifice = edifice;
+    }
+
+    resolve(): void {
+        if (!this.edifice.site) throw new InvalidActionResolution("Card is not at a site (How?)");
+
+        for (const data of Object.values(edificeData)) {
+            const name = data[1][0];
+            if (name === this.edifice.name) {
+                this.ruinedEdifice = new Edifice(this.game, OathSuit.None, ...data[2]);
+                this.ruinedEdifice.putAtSite(this.edifice.site);
+                break;
+            }
+        }
+        this.edifice.setOwner(undefined);
+    }
+
+    revert(): void {
+        if (!this.ruinedEdifice?.site) return;
+        this.edifice.putAtSite(this.ruinedEdifice.site);
+        this.ruinedEdifice.setOwner(undefined);
+    }
+}
+
+export class RepairEdificeEffect extends OathEffect<void> {
+    ruinedEdifice: Edifice;
+    edifice: Edifice;
+
+    constructor(ruinedEdifice: Edifice) {
+        super(ruinedEdifice.game, undefined);
+        this.ruinedEdifice = ruinedEdifice;
+    }
+
+    resolve(): void {
+        if (!this.ruinedEdifice.site) throw new InvalidActionResolution("Card is not at a site (How?)");
+
+        for (const data of Object.values(edificeData)) {
+            const name = data[2][0];
+            if (name === this.ruinedEdifice.name) {
+                this.edifice = new Edifice(this.game, data[0], ...data[1]);
+                this.edifice.putAtSite(this.ruinedEdifice.site);
+                break;
+            }
+        }
+        this.ruinedEdifice.setOwner(undefined);
+    }
+
+    revert(): void {
+        if (!this.edifice?.site) return;
+        this.ruinedEdifice.putAtSite(this.edifice.site);
+        this.edifice.setOwner(undefined);
+    }
+}
+
+export class CleanUpMapEffect extends PlayerEffect<void> {
+    oldRegions = new Map<Region, Site[]>();
+    discardedDenizens = new Map<Site, Set<Denizen>>();
+
+    resolve(): void {
+        const storedSites: Site[] = [];
+        const pushedSites: Site[] = [];
+
+        // Discard and put aside sites 
+        for (const region of Object.values(this.game.original.board.regions)) {
+            this.oldRegions.set(region, [...region.sites]);
+
+            for (const site of region.sites) {
+                site.clear();
+                for (const denizen of site.denizens) denizen.clear();
+                
+                region.sites.splice(region.sites.indexOf(site), 1);
+                if (!site.ruler?.isImperial && site.ruler?.original !== this.player.original) {
+                    this.game.original.siteDeck.putCard(site);
+                    this.discardedDenizens.set(site, new Set(site.denizens));
+                    for (const denizen of site.denizens) {
+                        if (denizen instanceof Edifice && denizen.suit !== OathSuit.None) {
+                            new RuinEdificeEffect(denizen).do();
+                            pushedSites.push(site);
+                        } else {
+                            new DiscardCardEffect(this.player, denizen, new SearchDiscardOptions(region.discard, false, true));
+                        }
+                    }
+                } else {
+                    storedSites.push(site);
+                }
+            }
+        }
+        this.game.original.siteDeck.shuffle();
+        let total = Object.values(this.game.original.board.regions).reduce((a, e) => a + e.size, 0);
+        total -= storedSites.length + pushedSites.length;
+        for (var i = 0; i < total; i++) {
+            const site = this.game.original.siteDeck.drawSingleCard();
+            if (!site) throw Error("Not enough sites");
+            storedSites.push(site);
+        }
+        storedSites.push(...pushedSites);
+
+        // Rebuild the map
+        for (const region of Object.values(this.game.original.board.regions)) {
+            let hasFaceupSite = false;
+            while (region.sites.length < region.size) {
+                const site = storedSites.shift()
+                if (!site) break;
+                region.sites.push(site);
+                if (!site.facedown) hasFaceupSite = true;
+            }
+
+            if (!hasFaceupSite) region.sites[0].reveal();
+        }
+
+        // Collect and deal relics (technically not at this point of the Chronicle, but this has no impact)
+        const futureReliquary = [...this.game.original.chancellor.reliquary.relics.filter(e => e !== undefined)];
+        const relicDeck = this.game.original.relicDeck;
+        for (const player of Object.values(this.game.original.players)) {
+            for (const relic of player.relics) {
+                if (relic === this.game.original.grandScepter) continue;
+
+                if (player === this.player.original)
+                    futureReliquary.push(relic);
+                else
+                    relicDeck.putCard(relic);
+            }
+        }
+        relicDeck.shuffle();
+        for (const site of this.game.board.sites()) {
+            if (site.facedown) continue;
+            for (i = site.relics.size; i < site.startingRelics; i++) {
+                const relic = relicDeck.drawSingleCard();
+                relic?.putAtSite(site);
+            }
+        }
+
+        shuffleArray(futureReliquary);
+        while (futureReliquary.length) {
+            const relic = futureReliquary.pop();
+            if (relic) relicDeck.putCard(relic)
+        }
+        for (let i = 0; i < 4; i++) {
+            this.game.original.chancellor.reliquary.relics[i] = relicDeck.drawSingleCard();
+        }
+
+        new AddCardsToWorldDeckAction(this.player).doNext();
+    }
+
+    revert(): void {
+        // TODO: See if this is a good way of doing the revert
+        for (const [region, sites] of this.oldRegions) {
+            region.sites = sites;
+        }
+
+        for (const [site, denizens] of this.discardedDenizens) {
+            site.denizens = denizens;
+        }
     }
 }

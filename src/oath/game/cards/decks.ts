@@ -1,4 +1,5 @@
 import { OathGameObject } from "../gameObject";
+import { shuffleArray } from "../utils";
 import { WorldCard, VisionBack, Relic, OathCard } from "./cards";
 
 
@@ -27,12 +28,7 @@ export class CardDeck<T extends OathCard> extends OathGameObject {
     }
 
     shuffle() {
-        let currentIndex = this.cards.length;
-        while (currentIndex != 0) {
-            let randomIndex = Math.floor(Math.random() * currentIndex);
-            currentIndex--;
-            [this.cards[currentIndex], this.cards[randomIndex]] = [this.cards[randomIndex], this.cards[currentIndex]];
-        }
+        shuffleArray(this.cards);
     }
 
     serialize(): Record<string, any> {
