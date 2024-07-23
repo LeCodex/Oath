@@ -912,8 +912,21 @@ export class NextTurnEffect extends OathEffect<void> {
         if (this.game.original.turn === 0) this.game.original.round++;
 
         if (this.game.round > 8) {
-            // TODO: War Exhaustion
-            return;
+            if (this.game.oathkeeper.isImperial)
+                return this.game.original.empireWins();
+            
+            if (this.game.isUsurper)
+                return new WinGameEffect(this.game.oathkeeper).do();
+
+            for (const player of Object.values(this.game.players)) {
+                if (player instanceof Exile && player.vision) {
+                    const candidates = player.vision.oath.getCandidates();
+                    if (candidates.size === 1 && candidates.has(player))
+                        return new WinGameEffect(player).do();
+                }
+            }
+
+            return this.game.original.empireWins();
         }
 
         if (this.game.round > 5 && this.game.oathkeeper.isImperial) {
@@ -943,7 +956,7 @@ export class HandleD6ResultEffect extends OathEffect<void> {
     resolve(): void {
         const threshold = [6, 5, 3][this.game.original.round - 6];
         if (this.result[0] >= threshold) {
-            // TODO: EMPIRE WINS!
+            this.game.original.empireWins();
         } else {
             new ChangePhaseEffect(this.game, OathPhase.Wake).doNext();
             new WakeAction(this.game.currentPlayer).doNext();

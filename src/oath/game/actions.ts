@@ -2,7 +2,7 @@ import { Denizen, Edifice, Relic, Site, VisionBack, WorldCard } from "./cards/ca
 import { SearchableDeck } from "./cards/decks";
 import { DenizenData } from "./cards/denizens";
 import { AttackDie, DefenseDie, Die } from "./dice";
-import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect, DiscardCardEffect, MoveOwnWarbandsEffect, AddActionToStackEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect, SetNewOathkeeperEffect, SetPeoplesFavorMobState, DiscardCardGroupEffect, OathEffect, PopActionFromStackEffect, PaySupplyEffect, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, TurnToCitizenEffect, ExileCitizenEffect, BuildEdificeFromDenizenEffect, RepairEdificeEffect } from "./effects";
+import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect, DiscardCardEffect, MoveOwnWarbandsEffect, AddActionToStackEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect, SetNewOathkeeperEffect, SetPeoplesFavorMobState, DiscardCardGroupEffect, OathEffect, PopActionFromStackEffect, PaySupplyEffect, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, TurnToCitizenEffect, ExileCitizenEffect, BuildEdificeFromDenizenEffect, RepairEdificeEffect, WinGameEffect } from "./effects";
 import { OathPhase, OathResource, OathResourceName, OathSuit, OathSuitName } from "./enums";
 import { OathGame } from "./game";
 import { OathGameObject } from "./gameObject";
@@ -1127,19 +1127,16 @@ export class WakeAction extends ModifiableAction {
     modifiedExecution(): void {
         if (this.game.oathkeeper === this.player && !this.player.isImperial)
             if (this.game.isUsurper)
-                // TODO: YOU WIN!
-                return;
+                return new WinGameEffect(this.player).do();
             else
                 new SetUsurperEffect(this.game, true).do();
-
+        
         if (this.player instanceof Exile && this.player.vision) {
             const candidates = this.player.vision.oath.getCandidates();
-            if (candidates.size === 1 && candidates.has(this.player)) {
-                // TODO: YOU WIN!
-                return;
-            }
+            if (candidates.size === 1 && candidates.has(this.player))
+                return new WinGameEffect(this.player).do();
         }
-
+        
         new ChangePhaseEffect(this.game, OathPhase.Act).doNext();
     }
 }
@@ -1820,12 +1817,12 @@ export class AddCardsToWorldDeckAction extends ChooseSuit {
 
         const topPile = worldDeck.cards.splice(0, 10);
         topPile.push(...visions.splice(0, 2));
-        shuffleArray(topPile);
+        do { shuffleArray(topPile); } while (topPile[0] instanceof VisionBack);
         const middlePile = worldDeck.cards.splice(0, 15);
         middlePile.push(...visions.splice(0, 3));
         shuffleArray(middlePile);
 
-        for (const card of middlePile) worldDeck.putCard(card);
-        for (const card of topPile) worldDeck.putCard(card);
+        for (const card of middlePile.reverse()) worldDeck.putCard(card);
+        for (const card of topPile.reverse()) worldDeck.putCard(card);
     }
 }

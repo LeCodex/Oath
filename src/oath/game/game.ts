@@ -5,7 +5,7 @@ import { CardDeck, RelicDeck, WorldDeck } from "./cards/decks";
 import { DenizenData, denizenData } from "./cards/denizens";
 import { relicsData } from "./cards/relics";
 import { sitesData } from "./cards/sites";
-import { AddActionToStackEffect } from "./effects";
+import { AddActionToStackEffect, WinGameEffect } from "./effects";
 import { BannerName, OathType, OathPhase, OathSuit, RegionName, PlayerColor, OathResource } from "./enums";
 import { Oath, OathTypeToOath } from "./oaths";
 import { Chancellor, Exile, OathPlayer } from "./player";
@@ -161,6 +161,14 @@ export class OathGame extends CopiableWithOriginal {
         const candidates = this.oath.getCandidates();
         if (candidates.has(this.oathkeeper)) return;
         if (candidates.size) new AddActionToStackEffect(new ChooseNewOathkeeper(this.oathkeeper, candidates)).do();
+    }
+
+    empireWins() {
+        for (const player of Object.values(this.players))
+            if (player instanceof Exile && player.isCitizen && this.oath.isSuccessor(player))
+                return new WinGameEffect(player).do();
+
+        new WinGameEffect(this.chancellor).do();
     }
 
     serialize(): Record<string, any> {
