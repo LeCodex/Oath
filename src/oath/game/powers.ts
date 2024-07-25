@@ -67,19 +67,19 @@ export abstract class ActivePower<T extends OwnableCard> extends ActionPower<T> 
 }
 
 export abstract class ActionModifier<T extends OathGameObject> extends ActionPower<T> {
-    modifiedAction: AbstractConstructor<ModifiableAction>;
-    action: ModifiableAction;
+    abstract modifiedAction: AbstractConstructor<ModifiableAction>;
+    abstract action: ModifiableAction;
     mustUse = false;
 
     canUse(): boolean {
         return true;
     }
 
-    applyImmediately(modifiers: ActionModifier<any>[]) { }  // Applied right after all the possible modifiers are collected
-    applyBefore(): boolean { return true; }                 // Applied before the action is added to the list. If returns false, it will not be added
-    applyAtStart(): void { }                                // Applied when the action starts and selects are setup (before choices are made)
-    applyDuring(): void { }                                 // Applied right before the execution of the action
-    applyAfter(): void { }                                  // Applied after the execution of the action
+    applyImmediately(modifiers: ActionModifier<any>[]): Iterable<ActionModifier<any>> { return []; }    // Applied right after all the possible modifiers are collected
+    applyBefore(): boolean { return true; }                                                             // Applied before the action is added to the list. If returns false, it will not be added
+    applyAtStart(): void { }                                                                            // Applied when the action starts and selects are setup (before choices are made)
+    applyDuring(): void { }                                                                             // Applied right before the execution of the action
+    applyAfter(): void { }                                                                              // Applied after the execution of the action
 }
 
 export abstract class EnemyActionModifier<T extends OwnableCard> extends ActionModifier<T> {
@@ -287,10 +287,12 @@ export class GleamingArmorAttack extends ActionModifier<Denizen> {
         return this.action.campaignResult.defender?.original === this.source.ruler?.original;
     }
 
-    applyImmediately(modifiers: ActionModifier<any>[]): void {
+    applyImmediately(modifiers: ActionModifier<any>[]): Iterable<ActionModifier<any>> {
         for (const modifier of modifiers) 
             if (modifier instanceof AttackerBattlePlan)
                 modifier.cost.add(new ResourceCost([[OathResource.Secret, 1]]));
+
+        return [];
     }
 }
 export class GleamingArmorDefense extends ActionModifier<Denizen> {
@@ -303,10 +305,12 @@ export class GleamingArmorDefense extends ActionModifier<Denizen> {
         return this.action.campaignResult.attacker.original === this.source.ruler?.original;
     }
 
-    applyImmediately(modifiers: ActionModifier<any>[]): void {
+    applyImmediately(modifiers: ActionModifier<any>[]): Iterable<ActionModifier<any>> {
         for (const modifier of modifiers) 
             if (modifier instanceof DefenderBattlePlan)
                 modifier.cost.add(new ResourceCost([[OathResource.Secret, 1]]));
+
+        return [];
     }
 }
 
@@ -375,6 +379,24 @@ export class Jinx extends EffectModifier<Denizen> {
     applyAfter(result: number[]): void {
         if (!this.effect.player) return;        
         new AskForRerollAction(this.effect.player, result, this.effect.die, this).doNext();
+    }
+}
+
+export class Portal extends AccessedActionModifier<Denizen> {
+    name = "Portal"
+    modifiedAction = TravelAction;
+    action: TravelAction;
+    cost = new ResourceCost([[OathResource.Secret, 1]]);
+
+    applyImmediately(modifiers: ActionModifier<any>[]): Iterable<ActionModifier<any>> {
+        return modifiers.filter(e => e.source instanceof Site);
+    }
+
+    applyDuring(): void {
+        if (this.action.player.site.original !== this.source.site?.original && this.action.site.original !== this.source.site?.original)
+            throw new InvalidActionResolution("When using the Portal, you must travel to or from its site");
+
+        this.action.noSupplyCost = true;
     }
 }
 
@@ -721,10 +743,12 @@ export class InsectSwarmAttack extends ActionModifier<Denizen> {
         return this.action.campaignResult.defender?.original === this.source.ruler?.original;
     }
 
-    applyImmediately(modifiers: ActionModifier<any>[]): void {
+    applyImmediately(modifiers: ActionModifier<any>[]): Iterable<ActionModifier<any>> {
         for (const modifier of modifiers) 
             if (modifier instanceof AttackerBattlePlan)
                 modifier.cost.add(new ResourceCost([], [[OathResource.Favor, 1]]));
+
+        return [];
     }
 }
 export class InsectSwarmDefense extends ActionModifier<Denizen> {
@@ -737,10 +761,12 @@ export class InsectSwarmDefense extends ActionModifier<Denizen> {
         return this.action.campaignResult.attacker.original === this.source.ruler?.original;
     }
 
-    applyImmediately(modifiers: ActionModifier<any>[]): void {
+    applyImmediately(modifiers: ActionModifier<any>[]): Iterable<ActionModifier<any>> {
         for (const modifier of modifiers) 
             if (modifier instanceof DefenderBattlePlan)
                 modifier.cost.add(new ResourceCost([], [[OathResource.Favor, 1]]));
+
+        return [];
     }
 }
 
@@ -807,6 +833,7 @@ export class SmallFriends extends AccessedActionModifier<Denizen> {
 //////////////////////////////////////////////////
 //                   VISIONS                    //
 //////////////////////////////////////////////////
+// NOTE: Visions are directly integrated in the WakeAction
 export class ConspiracyPower extends WhenPlayed<Conspiracy> {
     name = "Conspiracy";
 
@@ -921,6 +948,20 @@ export class CoastalSite extends SiteActionModifier {
     action: TravelAction;
     mustUse = true;
 
+    canUse(): boolean {
+        for (const site of this.game.board.sites())
+            if (site.original !== this.source.original)
+                for (const power of site.powers)
+                    if (power === CoastalSite)
+                        return super.canUse();
+
+        return false;
+    }
+
+    applyImmediately(modifiers: ActionModifier<any>[]): Iterable<ActionModifier<any>> {
+        return modifiers.filter(e => e.source instanceof Site && e.source.original !== this.source.original);
+    }
+
     applyDuring(): void {
         if (this.action.site.facedown) return;
 
@@ -930,6 +971,8 @@ export class CoastalSite extends SiteActionModifier {
                 return;
             }
         }
+
+        throw new InvalidActionResolution("When using a Coastal Site, you must travel to another Coastal Site");
     }
 }
 

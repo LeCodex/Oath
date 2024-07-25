@@ -249,7 +249,7 @@ export class ChooseModifiers extends OathAction {
     readonly executeImmediately: boolean;
     readonly message = "Choose modifiers";
 
-    persistentModifiers: ActionModifier<any>[] = [];
+    persistentModifiers: Set<ActionModifier<any>>;
 
     constructor(next: ModifiableAction, executeImmediately: boolean = false) {
         super(next.player, true);  // Not copying for performance reasons, since this copy should never be accessed
@@ -258,17 +258,26 @@ export class ChooseModifiers extends OathAction {
     }
 
     start() {
-        this.persistentModifiers = [];
+        this.persistentModifiers = new Set();
         const choices = new Map<string, ActionModifier<any>>();
         for (const modifier of ChooseModifiers.gatherModifiers(this.next)) {
             if (modifier.mustUse)
-                this.persistentModifiers.push(modifier);
+                this.persistentModifiers.add(modifier);
             else
                 choices.set(modifier.name, modifier);
         }
         this.selects.modifiers = new SelectNOf(choices);
 
-        for (const modifier of choices.values()) modifier.applyImmediately([...choices.values()]);
+        // NOTE: For ignore loops, all powers in the loop are ignored.
+        const ignore = new Set<ActionModifier<any>>();
+        for (const modifier of choices.values())
+            for (const toIgnore of modifier.applyImmediately([...choices.values()]))
+                ignore.add(toIgnore);
+
+        for (const modifier of ignore) {
+            choices.delete(modifier.name);
+            this.persistentModifiers.delete(modifier);
+        }
 
         return super.start();
     }
@@ -344,6 +353,7 @@ export abstract class MajorAction extends ModifiableAction {
 
     start(): boolean {
         this.supplyCostModifier = 0;
+        this.noSupplyCost = false;
         return super.start();
     }
 

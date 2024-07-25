@@ -1,5 +1,5 @@
 import { CardRestriction, OathSuit } from "../enums";
-import { ActingTroupe, Alchemist, Assassin, AwaitedReturn, BookBinders, Bracken, ChaosCult, CharmingFriend, Curfew, Dazzle, Elders, FabledFeast, FamilyWagon, ForcedLabor, GamblingHall, GleamingArmorAttack, GleamingArmorDefense, HeartsAndMinds, Herald, IgnoresCapacity, InsectSwarmAttack, InsectSwarmDefense, Insomnia, Jinx, KeyToTheCity, LongbowArchersAttack, LongbowArchersDefense, LostTongue, LostTongueCampaign, MarriageActionModifier, MarriageEffectModifier, Naysayers, OathPower, OnlyTwoAdvisers, PiedPiperActive, RelicThief, RoyalTax, SaddleMakers, ShieldWall, SilverTongue, SleightOfHand, SmallFriends, SpellBreaker, SpiritSnare, ThreateningRoar, TollRoads, Tutor, VowOfObedience, VowOfObedienceRest, VowOfPoverty, VowOfPovertyRest, WayStation } from "../powers";
+import { ActingTroupe, Alchemist, Assassin, AwaitedReturn, BookBinders, Bracken, ChaosCult, CharmingFriend, Curfew, Dazzle, Elders, FabledFeast, FamilyWagon, ForcedLabor, GamblingHall, GleamingArmorAttack, GleamingArmorDefense, HeartsAndMinds, Herald, IgnoresCapacity, InsectSwarmAttack, InsectSwarmDefense, Insomnia, Jinx, KeyToTheCity, LongbowArchersAttack, LongbowArchersDefense, LostTongue, LostTongueCampaign, MarriageActionModifier, MarriageEffectModifier, Naysayers, OathPower, OnlyTwoAdvisers, PiedPiperActive, Portal, RelicThief, RoyalTax, SaddleMakers, ShieldWall, SilverTongue, SleightOfHand, SmallFriends, SpellBreaker, SpiritSnare, ThreateningRoar, TollRoads, Tutor, VowOfObedience, VowOfObedienceRest, VowOfPoverty, VowOfPovertyRest, WayStation } from "../powers";
 import { Constructor } from "../utils";
 import { Denizen, Edifice } from "./cards";
 
@@ -23,6 +23,7 @@ export const denizenData: Record<string, DenizenData> = {
     "Alchemist":        [OathSuit.Arcane,   "Alchemist",            [Alchemist]],
     "ActingTroupe":     [OathSuit.Arcane,   "Acting Troupe",        [ActingTroupe], CardRestriction.Adviser],
     "Jinx":             [OathSuit.Arcane,   "Jinx",                 [Jinx]],
+    "Portal":           [OathSuit.Arcane,   "Portal",               [Portal], CardRestriction.Site],
     
     "LongbowArchers":   [OathSuit.Order,    "Longbow Archers",      [LongbowArchersAttack, LongbowArchersDefense]],
     "ShieldWall":       [OathSuit.Order,    "Shield Wall",          [ShieldWall]],
