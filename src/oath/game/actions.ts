@@ -1,12 +1,11 @@
 import { Denizen, Edifice, Relic, Site, VisionBack, WorldCard } from "./cards/cards";
 import { SearchableDeck } from "./cards/decks";
-import { DenizenData } from "./cards/denizens";
 import { AttackDie, DefenseDie, Die } from "./dice";
-import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect, DiscardCardEffect, MoveOwnWarbandsEffect, AddActionToStackEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect, SetNewOathkeeperEffect, SetPeoplesFavorMobState, DiscardCardGroupEffect, OathEffect, PopActionFromStackEffect, PaySupplyEffect, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, TurnToCitizenEffect, ExileCitizenEffect, BuildEdificeFromDenizenEffect, RepairEdificeEffect, WinGameEffect } from "./effects";
-import { OathPhase, OathResource, OathResourceName, OathSuit, OathSuitName } from "./enums";
+import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect, DiscardCardEffect, MoveOwnWarbandsEffect, AddActionToStackEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect, SetNewOathkeeperEffect, SetPeoplesFavorMobState, DiscardCardGroupEffect, OathEffect, PopActionFromStackEffect, PaySupplyEffect, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, ChangeEdificeEffect } from "./effects";
+import { OathPhase, OathResource, OathResourceName, OathSuit, OathSuitName, OathType, OathTypeName } from "./enums";
 import { OathGame } from "./game";
 import { OathGameObject } from "./gameObject";
-import { Oath } from "./oaths";
+import { OathTypeToOath } from "./oaths";
 import { Exile, OathPlayer } from "./player";
 import { ActionModifier, ActivePower, CapacityModifier, OathPower } from "./powers";
 import { Banner, PeoplesFavor, ResourceCost, ResourcesAndWarbands } from "./resources";
@@ -32,11 +31,8 @@ export class OathActionManager extends OathGameObject {
         if (!this.actionStack.length) this.game.checkForOathkeeper();
         let action = this.actionStack[this.actionStack.length - 1];
     
-        let values = action?.start();
-        if (values) {
-            action?.applyParameters(values);
-            return this.resolveTopAction();
-        }
+        let contineNow = action?.start();
+        if (contineNow) return this.resolveTopAction();
     
         if (this.noReturn) {
             this.currentEffectsStack.length = 0;
@@ -227,21 +223,20 @@ export abstract class OathAction extends OathGameObject {
         }
     }
 
-    start(): Record<string, string[]> | undefined {
+    start(): boolean {
         // NOTE: Setup the selects before
         const values: Record<string, string[]> = {};
         if (this.autocompleteSelects) {
             for (const [key, select] of Object.entries(this.selects)) {
                 if (select.choices.size <= select.min) {
-                    values[key] = [...select.choices.values()];
-                } else if (select.choices.size === 0) {
-                    values[key] = [];
+                    this.parameters[key] = [...select.choices.values()];
+                    delete this.selects[key];
                 }
             }
         }
 
-        // If all needed parameters were filled out, just execute immediately
-        if (Object.keys(values).length === Object.keys(this.selects).length) return values;
+        // If all needed parameters were filled out (or there are no selects), just execute immediately
+        return Object.keys(this.selects).length === 0;
     }
 
     abstract execute(): void;
@@ -326,7 +321,7 @@ export abstract class ModifiableAction extends OathAction {
         return true;
     }
 
-    start(): Record<string, string[]> | undefined {
+    start(): boolean {
         for (const modifier of this.modifiers) modifier.applyAtStart();
         return super.start();
     }
@@ -347,7 +342,7 @@ export abstract class MajorAction extends ModifiableAction {
     noSupplyCost: boolean;
     get actualSupplyCost() { return this.noSupplyCost ? 0 : this.supplyCost + this.supplyCostModifier; }
 
-    start(): Record<string, string[]> | undefined {
+    start(): boolean {
         this.supplyCostModifier = 0;
         return super.start();
     }
@@ -1131,7 +1126,7 @@ export class WakeAction extends ModifiableAction {
             else
                 new SetUsurperEffect(this.game, true).do();
         
-        if (this.player instanceof Exile && this.player.vision) {
+        if (this.player instanceof Exile && this.player.vision && this.game.worldDeck.visionsDrawn >= 3) {
             const candidates = this.player.vision.oath.getCandidates();
             if (candidates.size === 1 && candidates.has(this.player))
                 return new WinGameEffect(this.player).do();
@@ -1228,7 +1223,7 @@ export class MoveWarbandsAction extends ModifiableAction {
     amount: number;
     giving: boolean;
 
-    start(): Record<string, string[]> | undefined {
+    start(): boolean {
         const choices = new Map<string, Site | OathPlayer>();
         const site = this.player.site;
         let max = this.player.getWarbands(this.player.leader);
@@ -1291,7 +1286,7 @@ export class AskForPermissionAction extends OathAction {
         this.effect = effect;
     }
 
-    start(): Record<string, string[]> | undefined {
+    start(): boolean {
         this.selects.allow = new SelectBoolean(["Allow", "Deny"]);
         return super.start();
     }
@@ -1663,13 +1658,27 @@ export class ActAsIfAtSiteAction extends ChooseSite {
 //             END OF THE GAME            //
 ////////////////////////////////////////////
 export class VowOathAction extends OathAction {
-    readonly selects: { oath: SelectNOf<Oath> };
-    readonly parameters: { oath: Oath[] };
+    readonly selects: { oath: SelectNOf<OathType> };
+    readonly parameters: { oath: OathType[] };
     readonly message = "Vow an Oath";
 
+    start(): boolean {
+        const choices = new Map<string, OathType>();
+        if (this.player instanceof Exile && this.player.vision) {
+            const oathType = this.player.vision.oath.type;
+            choices.set(OathTypeName[oathType], oathType);
+        } else {
+            for (let i: OathType = 0; i < 4; i++)
+                if (i !== this.game.original.oath.type)
+                    choices.set(OathTypeName[i], i);
+        }
+        this.selects.oath = new SelectNOf(choices);
+        return super.start();
+    }
+
     execute(): void {
-        const oath = this.parameters.oath[0];
-        this.game.oath = oath;
+        const oathType = this.parameters.oath[0];
+        this.game.oath = new OathTypeToOath[oathType](this.game.original);
     }
 }
 
@@ -1690,10 +1699,10 @@ export class ChooseNewCitizensAction extends OathAction {
         const citizens = this.parameters.players;
         for (const player of Object.values(this.game.players))
             if (player instanceof Exile && player.isCitizen)
-                new ExileCitizenEffect(player).do();
+                new BecomeExileEffect(player).do();
         
         for (const citizen of citizens)
-            new AskForPermissionAction(citizen, new TurnToCitizenEffect(citizen)).doNext();
+            new AskForPermissionAction(citizen, new BecomeCitizenEffect(citizen)).doNext();
     }
 }
 
@@ -1702,7 +1711,7 @@ export class BuildOrRepairEdificeAction extends OathAction {
     readonly parameters: { card: (Denizen | undefined)[] };
     readonly message = "Build or repair an edifice";
 
-    start(): Record<string, string[]> | undefined {
+    start(): boolean {
         const choices = new Map<string, Denizen | undefined>();
         for (const site of this.game.board.sites()) {
             if (site.ruler?.isImperial) {
@@ -1720,10 +1729,9 @@ export class BuildOrRepairEdificeAction extends OathAction {
     execute(): void {
         const card = this.parameters.card[0];
         if (!card) return;
-        if (!card.site) throw new InvalidActionResolution("Card is neither a ruined edifice nor at a site");
         
         if (card instanceof Edifice)
-            new RepairEdificeEffect(card).do();
+            new ChangeEdificeEffect(card, false).do();
         else
             new BuildEdificeFromDenizenEffect(card).do();
     }

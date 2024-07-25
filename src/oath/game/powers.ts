@@ -858,6 +858,7 @@ export class Wastes extends HomelandSitePower {
     suit = OathSuit.Discord;
 
     giveReward(player: OathPlayer): void {
+        // TODO: This doesn't reveal the card. Also should probably have an effect just for recovering
         for (const relic of this.source.relics) return new TakeOwnableObjectEffect(player.game, player, relic).do();
     }
 }
@@ -1059,15 +1060,14 @@ export class PeoplesFavorSearch extends BannerActionModifier<PeoplesFavor> {
     action: SearchPlayAction;
     mustUse = true;  // Not strictly true, but it involves a choice either way, so it's better to always include it
 
-    applyBefore(): boolean {
-        new PeoplesFavorDiscardAction(this.action.player, this.action.discardOptions).doNext();
-        return true;
-    }
-
     applyAtStart(): void {
         for (const site of this.action.player.site.region.sites) {
             this.action.selects.site.choices.set(site.name, site);
         }
+    }
+
+    applyDuring(): void {
+        if (this.action.site) new PeoplesFavorDiscardAction(this.action.player, this.action.discardOptions).doNext();
     }
 }
 export class PeoplesFavorWake extends BannerActionModifier<PeoplesFavor> {

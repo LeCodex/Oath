@@ -17,7 +17,7 @@ const setup = async () => {
 
 const oathNames = ["Supremacy", "Protection", "the People", "Devotion"];
 const pawnColors = ["💜", "❤️", "💙", "💛", "🤍", "🖤"];
-const suitColors = ["🔴", "🟣", "🔵", "🟠", "🟤", "🟢"];
+const suitColors = ["🚫", "🔴", "🟣", "🔵", "🟠", "🟤", "🟢"];
 const resourceNames = ["🟡", "📘", "📖"];
 const render = () => {
     const infoNode = document.getElementById("info");
@@ -34,7 +34,7 @@ const render = () => {
     for (const [i, bank] of Object.entries(game.favorBanks)) {
         const bankNode = banksList.appendChild(document.createElement("li"));
         bankNode.id = "bank" + i
-        bankNode.innerText = suitColors[i] + ": " + "🟡".repeat(bank.amount);
+        bankNode.innerText = suitColors[Number(i)+1] + ": " + "🟡".repeat(bank.amount);
     }
 
     infoNode.appendChild(renderText("[DECKS]"));
@@ -139,7 +139,7 @@ const render = () => {
 const renderCard = (card) => {
     const cardNode = document.createElement("li");
     cardNode.id = "card" + card.name;
-    cardNode.innerText = card.facedown && !card.seenBy.includes(game.order[game.turn]) ? "???" : (card.suit !== undefined ? suitColors[card.suit] + " " : "") + card.name  + " " + getResourcesAndWarbandsText(card);
+    cardNode.innerText = card.facedown && !card.seenBy.includes(game.order[game.turn]) ? "???" : (card.suit !== undefined ? suitColors[card.suit+1] + " " : "") + card.name  + " " + getResourcesAndWarbandsText(card);
     return cardNode;
 }
 

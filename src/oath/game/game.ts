@@ -26,7 +26,7 @@ export class OathGame extends CopiableWithOriginal {
     round = 1;
 
     chancellor: Chancellor;
-    grandScepter = new Relic(this, "Grand Scepter", [], 5);
+    grandScepter = new Relic(this, "The Grand Scepter", [], 5);
     players: Record<number, OathPlayer> = {};
     order: PlayerColor[] = [PlayerColor.Purple];
 
@@ -84,6 +84,7 @@ export class OathGame extends CopiableWithOriginal {
         }
 
         this.grandScepter.setOwner(this.chancellor);
+        this.grandScepter.facedown = false;
 
         for (const region of Object.values(this.board.regions)) this.chancellor.moveWarbandsFromBagOnto(region.sites[0], 1);
         this.chancellor.moveWarbandsFromBagOnto(topCradleSite, 1);
