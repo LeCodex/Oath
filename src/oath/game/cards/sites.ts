@@ -1,5 +1,6 @@
 import { OathResource, OathSuit } from "../enums";
-import { AncientCity, CharmingValley, CoastalSite, DeepWoods, FertileValley, OathPower, OpportunitySite, StandingStones, Steppe, Wastes } from "../powers";
+import { OathPower } from "../powers/powers";
+import { AncientCity, CharmingValley, CoastalSite, DeepWoods, FertileValley, OpportunitySite, StandingStones, Steppe, Wastes } from "../powers/sites";
 import { ResourceCost } from "../resources";
 import { Constructor } from "../utils";
 import { Site } from "./cards";

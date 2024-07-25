@@ -9,7 +9,7 @@ import { AddActionToStackEffect, WinGameEffect } from "./effects";
 import { BannerName, OathType, OathPhase, OathSuit, RegionName, PlayerColor, OathResource } from "./enums";
 import { Oath, OathTypeToOath } from "./oaths";
 import { Chancellor, Exile, OathPlayer } from "./player";
-import { OathPower } from "./powers";
+import { OathPower } from "./powers/powers";
 import { Banner, DarkestSecret, FavorBank, PeoplesFavor } from "./resources";
 import { AbstractConstructor, Constructor, CopiableWithOriginal, isExtended } from "./utils";
 

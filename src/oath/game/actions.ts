@@ -7,7 +7,7 @@ import { OathGame } from "./game";
 import { OathGameObject } from "./gameObject";
 import { OathTypeToOath } from "./oaths";
 import { Exile, OathPlayer } from "./player";
-import { ActionModifier, ActivePower, CapacityModifier, OathPower } from "./powers";
+import { ActionModifier, ActivePower, CapacityModifier, OathPower } from "./powers/powers";
 import { Banner, PeoplesFavor, ResourceCost, ResourcesAndWarbands } from "./resources";
 import { Constructor, getCopyWithOriginal, isExtended, shuffleArray } from "./utils";
 

@@ -5,7 +5,8 @@ import { OathGame } from "./game";
 import { OathGameObject } from "./gameObject";
 import { OwnableObject } from "./player";
 import { OathPlayer } from "./player";
-import { DarkestSecretPower as DarkestSecretSearch, OathPower, PeoplesFavorSearch, PeoplesFavorWake } from "./powers";
+import { OathPower } from "./powers/powers";
+import { DarkestSecretPower as DarkestSecretSearch, PeoplesFavorSearch, PeoplesFavorWake } from "./powers/banners";
 import { Constructor } from "./utils";
 
 export abstract class ResourceBank extends OathGameObject {

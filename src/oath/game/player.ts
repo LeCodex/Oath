@@ -5,7 +5,7 @@ import { FlipSecretsEffect, GainSupplyEffect, MoveResourcesToTargetEffect } from
 import { OathResource, OathSuit, PlayerColor } from "./enums";
 import { OathGame } from "./game";
 import { OathGameObject } from "./gameObject";
-import { Brutal, Careless, Decadent, Greedy } from "./powers";
+import { Brutal, Careless, Decadent, Greedy } from "./powers/reliquary";
 import { Banner, ResourcesAndWarbands } from "./resources";
 import { CopiableWithOriginal } from "./utils";
 

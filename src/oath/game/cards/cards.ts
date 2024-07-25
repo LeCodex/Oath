@@ -5,7 +5,8 @@ import { CardRestriction, OathResource, OathSuit, OathTypeVisionName, RegionName
 import { OathGame } from "../game";
 import { Oath } from "../oaths";
 import { OathPlayer, OwnableObject } from "../player";
-import { ConspiracyPower, OathPower } from "../powers";
+import { OathPower } from "../powers/powers";
+import { ConspiracyPower } from "../powers/visions";
 import { ResourceCost, ResourcesAndWarbands } from "../resources";
 import { Constructor } from "../utils";
 import { DenizenData } from "./denizens";

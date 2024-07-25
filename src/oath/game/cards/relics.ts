@@ -1,4 +1,5 @@
-import { BookOfRecords, CircletOfCommand, CupOfPlenty, CursedCauldronAttack, CursedCauldronDefense, DragonskinWardrum, OathPower } from "../powers";
+import { OathPower } from "../powers/powers";
+import { BookOfRecords, CircletOfCommand, CupOfPlenty, CursedCauldronAttack, CursedCauldronDefense, DragonskinWardrum } from "../powers/relics";
 import { Constructor } from "../utils";
 import { Relic } from "./cards";
 

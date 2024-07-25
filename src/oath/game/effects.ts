@@ -1,7 +1,7 @@
 import { Denizen, Edifice, OwnableCard, Site, Vision, WorldCard } from "./cards/cards";
 import { CardRestriction, OathPhase, OathResource, OathSuit, PlayerColor } from "./enums";
 import { Exile, OathPlayer } from "./player";
-import { EffectModifier, OathPower, WhenPlayed } from "./powers";
+import { EffectModifier, OathPower, WhenPlayed } from "./powers/powers";
 import { PeoplesFavor, ResourceBank, ResourceCost, ResourcesAndWarbands } from "./resources";
 import { OwnableObject } from "./player";
 import { OathGame } from "./game";
