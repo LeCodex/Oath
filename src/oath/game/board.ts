@@ -1,4 +1,6 @@
-import { Denizen, Site, WorldCard } from "./cards/cards";
+import { WorldCard } from "./cards/base";
+import { Site } from "./cards/sites";
+import { Denizen } from "./cards/denizens";
 import { Discard } from "./cards/decks";
 import { CardRestriction, RegionName } from "./enums";
 import { OathGame } from "./game";

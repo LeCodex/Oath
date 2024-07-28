@@ -1,12 +1,15 @@
-import { CampaignActionTarget, PeoplesFavorReturnAction, RecoverAction, RecoverActionTarget, RecoverBannerPitchAction } from "./actions";
-import { MoveResourcesToTargetEffect, PutResourcesIntoBankEffect, SetPeoplesFavorMobState, TakeOwnableObjectEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect } from "./effects";
+import { PeoplesFavorReturnAction } from "./actions/other";
+import { SetPeoplesFavorMobState } from "./effects/powers";
+import { RecoverAction, RecoverBannerPitchAction } from "./actions/major";
+import { CampaignActionTarget } from "./actions/types";
+import { RecoverActionTarget } from "./actions/types";
+import { MoveResourcesToTargetEffect, PutResourcesIntoBankEffect, TakeOwnableObjectEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect } from "./effects/basic";
 import { OathResource } from "./enums"
 import { OathGame } from "./game";
 import { OathGameObject } from "./gameObject";
-import { OwnableObject } from "./player";
-import { OathPlayer } from "./player";
-import { OathPower } from "./powers/powers";
-import { DarkestSecretPower as DarkestSecretSearch, PeoplesFavorSearch, PeoplesFavorWake } from "./powers/banners";
+import { OwnableObject, OathPlayer } from "./player";
+import { OathPower } from "./powers/base";
+import { DarkestSecretPower, PeoplesFavorSearch, PeoplesFavorWake } from "./powers/banners";
 import { Constructor } from "./utils";
 
 export abstract class ResourceBank extends OathGameObject {
@@ -117,7 +120,7 @@ export class PeoplesFavor extends Banner {
 export class DarkestSecret extends Banner {
     name = "Darkest Secret";
     type = OathResource.Secret;
-    powers = [DarkestSecretSearch];
+    powers = [DarkestSecretPower];
 
     canRecover(action: RecoverAction): boolean {
         if (!super.canRecover(action)) return false;

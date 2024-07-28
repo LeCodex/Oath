@@ -1,7 +1,12 @@
-import { CampaignActionTarget, CampaignBanishPlayerAction } from "./actions";
-import { Denizen, OwnableCard, Relic, Site, Vision, WorldCard } from "./cards/cards";
+import { CampaignBanishPlayerAction } from "./actions/major";
+import { CampaignActionTarget } from "./actions/types";
+import { OwnableCard, WorldCard } from "./cards/base";
+import { Relic } from "./cards/relics";
+import { Site } from "./cards/sites";
+import { Denizen } from "./cards/denizens";
+import { Vision } from "./cards/visions";
 import { Discard } from "./cards/decks";
-import { FlipSecretsEffect, GainSupplyEffect, MoveResourcesToTargetEffect } from "./effects";
+import { FlipSecretsEffect, GainSupplyEffect, MoveResourcesToTargetEffect } from "./effects/basic";
 import { OathResource, OathSuit, PlayerColor } from "./enums";
 import { OathGame } from "./game";
 import { OathGameObject } from "./gameObject";

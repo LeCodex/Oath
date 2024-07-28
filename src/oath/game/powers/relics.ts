@@ -1,9 +1,12 @@
-import { TradeAction, InvalidActionResolution, CampaignAtttackAction } from "../actions";
-import { Relic } from "../cards/cards";
-import { TakeOwnableObjectEffect, TravelEffect, PutWarbandsFromBagEffect, PlayDenizenAtSiteEffect, CursedCauldronResolutionEffect } from "../effects";
+import { InvalidActionResolution } from "../utils";
+import { TradeAction, CampaignAtttackAction } from "../actions/major";
+import { Relic } from "../cards/relics";
+import { CursedCauldronResolutionEffect } from "../effects/powers";
+import { TakeOwnableObjectEffect, TravelEffect, PutWarbandsFromBagEffect, PlayDenizenAtSiteEffect } from "../effects/basic";
 import { OathResource } from "../enums";
 import { OwnableObject, OathPlayer, isOwnable } from "../player";
-import { AccessedActionModifier, EnemyEffectModifier, EnemyActionModifier, AccessedEffectModifier, AttackerBattlePlan, DefenderBattlePlan } from "./powers";
+import { AccessedActionModifier, EnemyActionModifier, AttackerBattlePlan, DefenderBattlePlan } from "../actions/modifiers";
+import { EnemyEffectModifier, AccessedEffectModifier } from "../effects/modifiers";
 
 
 export class CupOfPlenty extends AccessedActionModifier<Relic> {

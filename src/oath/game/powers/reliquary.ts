@@ -1,7 +1,8 @@
-import { CampaignAtttackAction, SearchAction, InvalidActionResolution, TradeAction, TravelAction } from "../actions";
+import { InvalidActionResolution } from "../utils";
+import { CampaignAtttackAction, SearchAction, TradeAction, TravelAction } from "../actions/major";
 import { OathResource, RegionName } from "../enums";
 import { Reliquary } from "../player";
-import { ActionModifier } from "./powers";
+import { ActionModifier } from "../actions/modifiers";
 
 
 export abstract class ReliquaryModifier extends ActionModifier<Reliquary> {
@@ -40,7 +41,7 @@ export class Careless extends ReliquaryModifier {
     action: TradeAction;
 
     applyDuring(): void {
-        this.action.getting.set(OathResource.Secret, Math.max(0, (this.action.getting.get(OathResource.Secret) || 0) - 1));
+        if (!this.action.forFavor) this.action.getting.set(OathResource.Secret, (this.action.getting.get(OathResource.Secret) || 0) - 1);
         this.action.getting.set(OathResource.Favor, (this.action.getting.get(OathResource.Favor) || 0) + 1);
     }
 }

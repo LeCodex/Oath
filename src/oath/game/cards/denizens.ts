@@ -1,67 +1,67 @@
-import { CardRestriction, OathSuit } from "../enums";
-import { OathPower } from "../powers/powers";
-import { ActingTroupe, Alchemist, Assassin, AwaitedReturn, BookBinders, Bracken, ChaosCult, CharmingFriend, Curfew, Dazzle, Elders, FabledFeast, FamilyWagon, ForcedLabor, GamblingHall, GleamingArmorAttack, GleamingArmorDefense, HeartsAndMinds, Herald, IgnoresCapacity, InsectSwarmAttack, InsectSwarmDefense, Insomnia, Jinx, KeyToTheCity, LongbowArchersAttack, LongbowArchersDefense, LostTongue, LostTongueCampaign, MarriageActionModifier, MarriageEffectModifier, Naysayers, OnlyTwoAdvisers, PiedPiperActive, Portal, RelicThief, RoyalTax, SaddleMakers, ShieldWall, SilverTongue, SleightOfHand, SmallFriends, SpellBreaker, SpiritSnare, ThreateningRoar, TollRoads, Tutor, VowOfObedience, VowOfObedienceRest, VowOfPoverty, VowOfPovertyRest, WayStation } from "../powers/denizens";
+import { PutResourcesIntoBankEffect } from "../effects/basic";
+import { CardRestriction, OathSuit, OathResource } from "../enums";
+import { OathGame } from "../game";
+import { OathPlayer } from "../player";
+import { OathPower } from "../powers/base";
 import { Constructor } from "../utils";
-import { Denizen, Edifice } from "./cards";
+import { WorldCard } from "./base";
+import { Site } from "./sites";
+import { DenizenData } from "./data/denizens";
 
-export type DenizenData = [OathSuit, string, Constructor<OathPower<Denizen>>[], CardRestriction?, boolean?];
 
-export const denizenData: Record<string, DenizenData> = {
-    "RelicThief":       [OathSuit.Discord,  "Relic Thief",          [RelicThief]],
-    "KeyToTheCity":     [OathSuit.Discord,  "Key to the City",      [KeyToTheCity], CardRestriction.Site],
-    "Assassin":         [OathSuit.Discord,  "Assassin",             [OnlyTwoAdvisers, Assassin], CardRestriction.Adviser, true],
-    "Insomina":         [OathSuit.Discord,  "Insomnia",             [OnlyTwoAdvisers, Insomnia], CardRestriction.Adviser, true],
-    "SilverTongue":     [OathSuit.Discord,  "Silver Tongue",        [OnlyTwoAdvisers, SilverTongue], CardRestriction.Adviser, true],
-    "SleightOfHand":    [OathSuit.Discord,  "Sleight of Hand",      [SleightOfHand], CardRestriction.Adviser],
-    "Naysayers":        [OathSuit.Discord,  "Naysayers",            [Naysayers], CardRestriction.Adviser],
-    "ChaosCult":        [OathSuit.Discord,  "Chaos Cult",           [ChaosCult], CardRestriction.Adviser],
-    "GamblingHall":     [OathSuit.Discord,  "Gambling Hall",        [GamblingHall], CardRestriction.Site],
+export class Denizen extends WorldCard {
+    site?: Site;
+    restriction: CardRestriction;
+    locked: boolean;
+    powers: Set<Constructor<OathPower<Denizen>>>;
 
-    "GleamingArmor":    [OathSuit.Arcane,   "Gleaming Armor",       [GleamingArmorAttack, GleamingArmorDefense]],
-    "SpiritSnare":      [OathSuit.Arcane,   "Spirit Snare",         [SpiritSnare]],
-    "Dazzle":           [OathSuit.Arcane,   "Dazzle",               [Dazzle]],
-    "Tutor":            [OathSuit.Arcane,   "Tutor",                [Tutor], CardRestriction.Adviser],
-    "Alchemist":        [OathSuit.Arcane,   "Alchemist",            [Alchemist]],
-    "ActingTroupe":     [OathSuit.Arcane,   "Acting Troupe",        [ActingTroupe], CardRestriction.Adviser],
-    "Jinx":             [OathSuit.Arcane,   "Jinx",                 [Jinx]],
-    "Portal":           [OathSuit.Arcane,   "Portal",               [Portal], CardRestriction.Site],
-    
-    "LongbowArchers":   [OathSuit.Order,    "Longbow Archers",      [LongbowArchersAttack, LongbowArchersDefense]],
-    "ShieldWall":       [OathSuit.Order,    "Shield Wall",          [ShieldWall]],
-    "Curfew":           [OathSuit.Order,    "Curfew",               [Curfew], CardRestriction.Site],
-    "TollRoads":        [OathSuit.Order,    "Toll Roads",           [TollRoads], CardRestriction.Site],
-    "ForcedLabor":      [OathSuit.Order,    "Forced Labor",         [ForcedLabor], CardRestriction.Site],
-    "RoyalTax":         [OathSuit.Order,    "Royal Tax",            [RoyalTax]],
-    "VowOfObedience":   [OathSuit.Order,    "Vow of Obedience",     [VowOfObedience, VowOfObedienceRest], CardRestriction.Adviser, true],
+    protected _suit: OathSuit;
+    get suit() { return this.facedown ? OathSuit.None : this._suit; }
+    set suit(_suit: OathSuit) { this._suit = _suit; }
+    get ruler() { return super.ruler || this.site?.ruler; }
+    get activelyLocked() { return this.locked && !this.facedown; }
+    get data(): DenizenData { return [this._suit, this.name, [...this.powers], this.restriction, this.locked]; }
 
-    "HeartsAndMinds":   [OathSuit.Hearth,   "Hearts and Minds",     [HeartsAndMinds], CardRestriction.Site],
-    "AwaitedReturn":    [OathSuit.Hearth,   "Awaited Return",       [AwaitedReturn]],
-    "CharmingFriend":   [OathSuit.Hearth,   "Charming Friend",      [CharmingFriend], CardRestriction.Adviser],
-    "FabledFeast":      [OathSuit.Hearth,   "Fabled Feast",         [FabledFeast]],
-    "BookBinders":      [OathSuit.Hearth,   "Book Binders",         [BookBinders], CardRestriction.Adviser],
-    "SaddleMakers":     [OathSuit.Hearth,   "Saddle Makers",        [SaddleMakers], CardRestriction.Adviser],
-    "Herald":           [OathSuit.Hearth,   "Herald",               [Herald], CardRestriction.Adviser],
-    "Marriage":         [OathSuit.Hearth,   "Marriage",             [MarriageActionModifier, MarriageEffectModifier], CardRestriction.Adviser, true],
-    
-    "Bracken":          [OathSuit.Beast,    "Bracken",              [Bracken]],
-    "InsectSwarm":      [OathSuit.Beast,    "Insect Swarm",         [InsectSwarmAttack, InsectSwarmDefense]],
-    "ThreateningRoar":  [OathSuit.Beast,    "Threatening Roar",     [ThreateningRoar]],
-    "VowOfPoverty":     [OathSuit.Beast,    "Vow of Poverty",       [VowOfPoverty, VowOfPovertyRest], CardRestriction.Adviser, true],
-    "PiedPiper":        [OathSuit.Beast,    "Pied Piper",           [IgnoresCapacity, PiedPiperActive], CardRestriction.Adviser],
-    "SmallFriend":      [OathSuit.Beast,    "Small Friends",        [SmallFriends], CardRestriction.Adviser],
+    constructor(game: OathGame, suit: OathSuit, name: string, powers: Iterable<Constructor<OathPower<Denizen>>>, restriction: CardRestriction = CardRestriction.None, locked: boolean = false) {
+        super(game, name, powers);
+        this._suit = suit;
+        this.restriction = restriction;
+        this.locked = locked;
+    }
 
-    "WayStation":       [OathSuit.Nomad,    "Way Station",          [WayStation], CardRestriction.Site],
-    "LostTongue":       [OathSuit.Nomad,    "Lost Tongue",          [LostTongue, LostTongueCampaign], CardRestriction.Adviser],
-    "Elders":           [OathSuit.Nomad,    "Elders",               [Elders]],
-    "SpellBreaker":     [OathSuit.Nomad,    "Spell Breaker",        [SpellBreaker], CardRestriction.Site],
-    "FamilyWagon":      [OathSuit.Nomad,    "Family Wagon",         [FamilyWagon], CardRestriction.Adviser],
+    accessibleBy(player: OathPlayer): boolean {
+        return super.accessibleBy(player) || this.site?.original === player.site.original;
+    }
+
+    setOwner(newOwner?: OathPlayer): void {
+        if (this.site) this.site.removeDenizen(this);
+        super.setOwner(newOwner);
+    }
+
+    putAtSite(newSite: Site): void {
+        this.setOwner(undefined);
+
+        this.site = newSite;
+        newSite.addDenizen(this);
+    }
+
+    returnResources(): void {
+        super.returnResources();
+        if (this.getResources(OathResource.Favor))
+            new PutResourcesIntoBankEffect(this.game, this.game.currentPlayer, this.game.favorBanks.get(this.suit), this.getResources(OathResource.Favor), this).do();
+    }
+
+    serialize(): Record<string, any> {
+        const obj: Record<string, any> = super.serialize();
+        obj.suit = this.suit;
+        // obj.site = this.site?.name;
+        obj.restriction = this.restriction;
+        obj.locked = this.activelyLocked;
+        return obj;
+    }
 }
 
-export const edificeData: Record<string, [OathSuit, [string, Constructor<OathPower<Edifice>>[]], [string, Constructor<OathPower<Edifice>>[]]]> = {
-    "FestivalDistrict": [OathSuit.Discord,  ["Festival District",   []],    ["Squalid District",    []]],
-    "GreatSpire":       [OathSuit.Arcane,   ["Great Spire",         []],    ["Fallen Spire",        []]],
-    "SprawlingRampart": [OathSuit.Order,    ["Sprawling Rampart",   []],    ["Bandit Rampart",      []]],
-    "HallOfDebate":     [OathSuit.Hearth,   ["Hall of Debate",      []],    ["Hall of Mockery",     []]],
-    "ForestTemple":     [OathSuit.Beast,    ["Forest Temple",       []],    ["Ruined Temple",       []]],
-    "AncientForge":     [OathSuit.Nomad,    ["Ancient Forge",       []],    ["Broken Forge",        []]],
+export class Edifice extends Denizen {
+    restriction = CardRestriction.Site;
+    locked = true;
 }

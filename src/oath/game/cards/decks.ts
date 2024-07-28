@@ -1,6 +1,9 @@
 import { OathGameObject } from "../gameObject";
 import { shuffleArray } from "../utils";
-import { WorldCard, VisionBack, Relic, OathCard } from "./cards";
+import { WorldCard } from "./base";
+import { Relic } from "./relics";
+import { VisionBack } from "./visions";
+import { OathCard } from "./base";
 
 
 export class CardDeck<T extends OathCard> extends OathGameObject {

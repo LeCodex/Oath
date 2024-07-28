@@ -1,11 +1,25 @@
-import { TradeAction, InvalidActionResolution, SearchAction, SearchPlayAction, TakeFavorFromBankAction, CampaignAtttackAction, CampaignDefenseAction, UsePowerAction, AskForRerollAction, TravelAction, TakeResourceFromPlayerAction, CampaignEndAction, ModifiableAction, PiedPiperAction, ActAsIfAtSiteAction } from "../actions";
-import { Denizen, Site, WorldCard, Vision, Relic } from "../cards/cards";
+import { InvalidActionResolution } from "../utils";
+import { ModifiableAction } from "../actions/modifiers";
+import { UsePowerAction } from "../actions/minor";
+import { TakeFavorFromBankAction, AskForRerollAction, TakeResourceFromPlayerAction, PiedPiperAction, ActAsIfAtSiteAction } from "../actions/other";
+import { TradeAction, SearchAction, SearchPlayAction, CampaignAtttackAction, CampaignDefenseAction, TravelAction, CampaignEndAction } from "../actions/major";
+import { WorldCard } from "../cards/base";
+import { Relic } from "../cards/relics";
+import { Site } from "../cards/sites";
+import { Denizen } from "../cards/denizens";
+import { Vision } from "../cards/visions";
 import { DefenseDie } from "../dice";
-import { PayCostToTargetEffect, TravelEffect, PlayWorldCardEffect, MoveResourcesToTargetEffect, RegionDiscardEffect, PutResourcesOnTargetEffect, RollDiceEffect, TakeWarbandsIntoBagEffect, TakeResourcesFromBankEffect, PlayVisionEffect, OathEffect, TakeOwnableObjectEffect, PayPowerCost, PutWarbandsFromBagEffect, SetNewOathkeeperEffect, GamblingHallEffect } from "../effects";
+import { OathEffect } from "../effects/base";
+import { RegionDiscardEffect, GamblingHallEffect } from "../effects/powers";
+import { PayCostToTargetEffect, TravelEffect, PlayWorldCardEffect, MoveResourcesToTargetEffect, PutResourcesOnTargetEffect, RollDiceEffect, TakeWarbandsIntoBagEffect, TakeResourcesFromBankEffect, PlayVisionEffect, TakeOwnableObjectEffect, PayPowerCost, PutWarbandsFromBagEffect, SetNewOathkeeperEffect } from "../effects/basic";
 import { OathResource, OathSuit, BannerName } from "../enums";
 import { OathPlayer, OwnableObject, isOwnable } from "../player";
 import { ResourceCost } from "../resources";
-import { CapacityModifier, AttackerBattlePlan, DefenderBattlePlan, EnemyActionModifier, EnemyEffectModifier, WhenPlayed, AccessedActionModifier, RestPower, ActionModifier, ActivePower, EffectModifier, AccessedEffectModifier } from "./powers";
+import { CapacityModifier, WhenPlayed, ActivePower } from "./base";
+import { AttackerBattlePlan, DefenderBattlePlan, EnemyActionModifier, AccessedActionModifier, RestPower } from "../actions/modifiers";
+import { EffectModifier } from "../effects/modifiers";
+import { ActionModifier } from "../actions/modifiers";
+import { EnemyEffectModifier, AccessedEffectModifier } from "../effects/modifiers";
 
 
 // ------------------ GENERAL ------------------- //
@@ -232,6 +246,7 @@ export class Jinx extends EffectModifier<Denizen> {
     }
 }
 
+
 export class Portal extends AccessedActionModifier<Denizen> {
     name = "Portal";
     modifiedAction = TravelAction;
@@ -457,6 +472,10 @@ export class FamilyWagon extends CapacityModifier<Denizen> {
         // making you have 1 spot for a non Nomad card, and infinite ones for Nomad cards, while allowing you
         // to replace Family Wagon if you want to)
         return [2, [...source].filter(e => e !== this.source && e instanceof Denizen && e.suit === OathSuit.Nomad)];
+    }
+
+    ignoreCapacity(card: WorldCard, facedown?: boolean): boolean {
+        return card !== this.source && !facedown && card instanceof Denizen && card.suit === OathSuit.Nomad;
     }
 }
 

@@ -1,8 +1,9 @@
-import { ConspiracyAction } from "../actions";
-import { Conspiracy, Denizen } from "../cards/cards";
-import { PlayWorldCardEffect } from "../effects";
+import { ConspiracyAction } from "../actions/other";
+import { Denizen } from "../cards/denizens";
+import { Conspiracy } from "../cards/visions";
+import { PlayWorldCardEffect } from "../effects/basic";
 import { OathPlayer } from "../player";
-import { WhenPlayed } from "./powers";
+import { WhenPlayed } from "./base";
 
 
 // NOTE: Visions are directly integrated in the WakeAction
@@ -18,8 +19,7 @@ export class ConspiracyPower extends WhenPlayed<Conspiracy> {
                     if (!adviser.facedown && adviser instanceof Denizen)
                         totalAdviserSuitCount += effect.player.adviserSuitCount(adviser.suit);
 
-                if (totalAdviserSuitCount >= 2)
-                    targets.push(player);
+                if (totalAdviserSuitCount >= 2) targets.push(player);
             }
         }
 

@@ -1,9 +1,13 @@
-import { TravelAction, InvalidActionResolution, WakeAction, ChooseResourceToTakeAction } from "../actions";
-import { Site, Denizen } from "../cards/cards";
-import { PlayWorldCardEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PutWarbandsFromBagEffect, TakeResourcesFromBankEffect } from "../effects";
+import { InvalidActionResolution } from "../utils";
+import { ChooseResourceToTakeAction } from "../actions/other";
+import { TravelAction, WakeAction } from "../actions/major";
+import { Site } from "../cards/sites";
+import { Denizen } from "../cards/denizens";
+import { PlayWorldCardEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PutWarbandsFromBagEffect, TakeResourcesFromBankEffect } from "../effects/basic";
 import { OathSuit, OathResource } from "../enums";
 import { OathPlayer } from "../player";
-import { EffectModifier, ActionModifier } from "./powers";
+import { ActionModifier } from "../actions/modifiers";
+import { EffectModifier } from "../effects/modifiers";
 
 
 export abstract class HomelandSitePower extends EffectModifier<Site> {

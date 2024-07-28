@@ -1,5 +1,6 @@
 import { cloneDeepWith } from 'lodash';
 
+export class InvalidActionResolution extends Error { }
 export type AbstractConstructor<T> = abstract new (...args: any) => T;
 export type Constructor<T> = new (...args: any) => T;
 export const isExtended = <T>(constructor: Constructor<any>, type: AbstractConstructor<T>): constructor is Constructor<T> => { return constructor.prototype instanceof type };

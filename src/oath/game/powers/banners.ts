@@ -1,6 +1,7 @@
-import { SearchPlayAction, PeoplesFavorDiscardAction, WakeAction, PeoplesFavorWakeAction, SearchAction } from "../actions";
+import { PeoplesFavorWakeAction } from "../actions/other";
+import { SearchPlayAction, PeoplesFavorDiscardAction, WakeAction, SearchAction } from "../actions/major";
 import { Banner, PeoplesFavor, DarkestSecret } from "../resources";
-import { ActionModifier } from "./powers";
+import { ActionModifier } from "../actions/modifiers";
 
 
 export abstract class BannerActionModifier<T extends Banner> extends ActionModifier<T> {

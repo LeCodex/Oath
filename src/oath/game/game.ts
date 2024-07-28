@@ -1,17 +1,22 @@
-import { ChooseNewOathkeeper, InvalidActionResolution, OathAction, OathActionManager } from "./actions";
-import { OathBoard } from "./board";
-import { Conspiracy, Denizen, Relic, Site, Vision } from "./cards/cards";
-import { CardDeck, RelicDeck, WorldDeck } from "./cards/decks";
-import { DenizenData, denizenData } from "./cards/denizens";
-import { relicsData } from "./cards/relics";
-import { sitesData } from "./cards/sites";
-import { AddActionToStackEffect, WinGameEffect } from "./effects";
+import { AbstractConstructor, Constructor, CopiableWithOriginal, isExtended, InvalidActionResolution } from "./utils";
 import { BannerName, OathType, OathPhase, OathSuit, RegionName, PlayerColor, OathResource } from "./enums";
-import { Oath, OathTypeToOath } from "./oaths";
-import { Chancellor, Exile, OathPlayer } from "./player";
-import { OathPower } from "./powers/powers";
 import { Banner, DarkestSecret, FavorBank, PeoplesFavor } from "./resources";
-import { AbstractConstructor, Constructor, CopiableWithOriginal, isExtended } from "./utils";
+import { OathAction } from "./actions/base";
+import { OathPower } from "./powers/base";
+import { OathActionManager } from "./actions/manager";
+import { OathBoard } from "./board";
+import { Chancellor, Exile, OathPlayer } from "./player";
+import { CardDeck, RelicDeck, WorldDeck } from "./cards/decks";
+import { Oath, OathTypeToOath } from "./oaths";
+import { DenizenData, denizenData } from "./cards/data/denizens";
+import { relicsData } from "./cards/data/relics";
+import { sitesData } from "./cards/data/sites";
+import { Relic } from "./cards/relics";
+import { Site } from "./cards/sites";
+import { Denizen } from "./cards/denizens";
+import { Conspiracy, Vision } from "./cards/visions";
+import { ChooseNewOathkeeper } from "./actions/other";
+import { WinGameEffect } from "./effects/phases";
 
 
 export class OathGame extends CopiableWithOriginal {
@@ -161,7 +166,7 @@ export class OathGame extends CopiableWithOriginal {
     checkForOathkeeper(): OathAction | undefined {
         const candidates = this.oath.getCandidates();
         if (candidates.has(this.oathkeeper)) return;
-        if (candidates.size) new AddActionToStackEffect(new ChooseNewOathkeeper(this.oathkeeper, candidates)).do();
+        if (candidates.size) new ChooseNewOathkeeper(this.oathkeeper, candidates).doNext();
     }
 
     empireWins() {
