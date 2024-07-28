@@ -6,6 +6,7 @@ import { ResourceBank } from "./banks";
 
 
 export abstract class ResourcesAndWarbands extends OathGameObject {
+    abstract name: string;
     resources = new Map<OathResource, number>();
     warbands = new Map<OathPlayer, number>();
     
@@ -58,7 +59,8 @@ export abstract class ResourcesAndWarbands extends OathGameObject {
         return numberMoved;
     }
 
-    getWarbands(player: OathPlayer): number {
+    getWarbands(player: OathPlayer | undefined): number {
+        if (!player) return 0;
         return this.warbands.get(player.original) || 0;
     }
 

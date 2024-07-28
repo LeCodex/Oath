@@ -16,6 +16,7 @@ const setup = async () => {
 }
 
 const oathNames = ["Supremacy", "Protection", "the People", "Devotion"];
+const visionNames = ["Conquest", "Sanctuary", "Revolution", "Faith"];
 const pawnColors = ["💜", "❤️", "💙", "💛", "🤍", "🖤"];
 const suitColors = ["🚫", "🔴", "🟣", "🔵", "🟠", "🟤", "🟢"];
 const resourceNames = ["🟡", "📘", "📖"];
@@ -81,6 +82,7 @@ const render = () => {
         // playerList.appendChild(renderText("At " + player.site));
         playerList.appendChild(renderText("Supply: " + player.supply + " / Bag: " + player.warbandsInBag));
         playerList.appendChild(renderText("Resources: " + getResourcesAndWarbandsText(player)));
+        if (player.vision) playerList.appendChild(renderText("Vision of " + visionNames[player.vision.oath]));
 
         const thingsNode = playerList.appendChild(document.createElement("li"));
         thingsNode.id = "playerThings" + i;
@@ -110,7 +112,7 @@ const render = () => {
         for (const [k, select] of Object.entries(action.selects)) {
             const selectNode = actionNode.appendChild(document.createElement("li"));
             selectNode.id = "select" + k;
-            selectNode.innerText = "Choose " + select.min + "-" + select.max;
+            selectNode.innerText = select.name + ` (${select.min}-${select.max})`;
             
             const selectList = selectNode.appendChild(document.createElement("ul"));
             for (const [i, choice] of select.choices.entries()) {

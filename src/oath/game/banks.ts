@@ -58,7 +58,7 @@ export abstract class Banner extends ResourceBank implements OwnableObject, Reco
     min = 1;
 
     get defense() { return this.amount; }
-    pawnMustBeAtSite = true;
+    get force() { return this.owner; }
 
     setOwner(newOwner?: OathPlayer) {
         if (this.owner) this.owner.removeBanner(this);
@@ -82,8 +82,8 @@ export abstract class Banner extends ResourceBank implements OwnableObject, Reco
     }
 
     seize(player: OathPlayer) {
-        new TakeOwnableObjectEffect(this.game, player, this).do();
-        this.amount = Math.max(1, this.amount - 2);
+        new TakeOwnableObjectEffect(this.game, player, this).doNext();
+        new TakeResourcesFromBankEffect(this.game, undefined, this, 2).doNext();
     }
 
     abstract handleRecovery(player: OathPlayer): void;

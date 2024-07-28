@@ -32,7 +32,7 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
     banners = new Set<Banner>();
     
     defense = 2;
-    pawnMustBeAtSite = true;
+    force = this;
 
     constructor(game: OathGame, site: Site, color: PlayerColor) {
         super(game);
@@ -130,7 +130,7 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
 
     seize(player: OathPlayer) {
         // TODO: Move burnt favor to supply
-        new MoveResourcesToTargetEffect(this.game, this, OathResource.Favor, Math.floor(this.getResources(OathResource.Favor) / 2), undefined).do();
+        new MoveResourcesToTargetEffect(this.game, this, OathResource.Favor, Math.floor(this.getResources(OathResource.Favor) / 2), undefined).doNext();
         new CampaignBanishPlayerAction(player, this).doNext();
     }
 

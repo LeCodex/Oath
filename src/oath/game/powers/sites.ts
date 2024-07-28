@@ -86,7 +86,6 @@ export class CoastalSite extends SiteActionModifier {
     name = "Coastal Site";
     modifiedAction = TravelAction;
     action: TravelAction;
-    mustUse = true;
 
     canUse(): boolean {
         for (const site of this.game.board.sites())

@@ -61,7 +61,7 @@ export class Site extends OathCard implements CampaignActionTarget {
     relics = new Set<Relic>();
 
     defense = 1;
-    pawnMustBeAtSite = false;
+    force = this;
 
     constructor(
         game: OathGame,
@@ -93,6 +93,11 @@ export class Site extends OathCard implements CampaignActionTarget {
         }
 
         return ruler;
+    }
+
+    getWarbands(player: OathPlayer | undefined): number {
+        if (!player) return this.bandits;
+        return super.getWarbands(player);
     }
 
     reveal(): void {
@@ -130,7 +135,7 @@ export class Site extends OathCard implements CampaignActionTarget {
     }
 
     seize(player: OathPlayer) {
-        if (this.ruler) new MoveOwnWarbandsEffect(this.ruler, this, this.ruler).do();
+        if (this.ruler) new MoveOwnWarbandsEffect(this.ruler, this, this.ruler).doNext();
         new CampaignSeizeSiteAction(player.original, this).doNext();
     }
 
@@ -172,13 +177,13 @@ export class Relic extends OwnableCard implements RecoverActionTarget, CampaignA
     site?: Site;
 
     defense: number;
-    pawnMustBeAtSite = true;
+    get force() { return this.owner; }
 
     constructor(game: OathGame, name: string, powers: Iterable<Constructor<OathPower<Relic>>>, defense: number) {
         super(game, name, powers);
         this.defense = defense;
     }
-
+ 
     setOwner(newOwner?: OathPlayer) {
         if (this.owner) this.owner.removeRelic(this);
         if (this.site) this.site.removeRelic(this);
@@ -207,7 +212,7 @@ export class Relic extends OwnableCard implements RecoverActionTarget, CampaignA
     }
 
     seize(player: OathPlayer) {
-        new TakeOwnableObjectEffect(this.game, player, this).do();
+        new TakeOwnableObjectEffect(this.game, player, this).doNext();
         this.original.facedown = false;
     }
 
