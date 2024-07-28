@@ -1087,7 +1087,7 @@ export class CampaignKillWarbandsInForceAction extends OathAction {
             const sources: [string, number][] = [...this.force].map(e => [e.name, e.getWarbands(this.owner)]);
             for (const [key, warbands] of sources) {
                 const values = [];
-                const min = Math.max(0, this.amount - sources.filter(([k, _]) => k !== key).reduce((a, [_, v]) => a + Math.min(v, this.amount), 0)) - Math.min(warbands, this.amount);
+                const min = Math.max(0, warbands - sources.filter(([k, _]) => k !== key).reduce((a, [_, v]) => a + Math.min(v, this.amount), 0));
                 const max = Math.min(warbands, this.amount);
                 for (let i = min; i <= max; i++) values.push(i);
                 this.selects[key] = new SelectNumber(key, values);
