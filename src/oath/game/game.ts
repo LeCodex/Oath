@@ -10,7 +10,7 @@ import { BannerName, OathType, OathPhase, OathSuit, RegionName, PlayerColor, Oat
 import { Oath, OathTypeToOath } from "./oaths";
 import { Chancellor, Exile, OathPlayer } from "./player";
 import { OathPower } from "./powers/powers";
-import { Banner, DarkestSecret, FavorBank, PeoplesFavor } from "./resources";
+import { Banner, DarkestSecret, FavorBank, PeoplesFavor } from "./banks";
 import { AbstractConstructor, Constructor, CopiableWithOriginal, isExtended } from "./utils";
 
 

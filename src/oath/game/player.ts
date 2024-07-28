@@ -6,7 +6,8 @@ import { OathResource, OathSuit, PlayerColor } from "./enums";
 import { OathGame } from "./game";
 import { OathGameObject } from "./gameObject";
 import { Brutal, Careless, Decadent, Greedy } from "./powers/reliquary";
-import { Banner, ResourcesAndWarbands } from "./resources";
+import { ResourcesAndWarbands } from "./resources";
+import { Banner } from "./banks";
 import { CopiableWithOriginal } from "./utils";
 
 export interface OwnableObject extends CopiableWithOriginal {

@@ -1,5 +1,5 @@
 import { SearchPlayAction, PeoplesFavorDiscardAction, WakeAction, PeoplesFavorWakeAction, SearchAction } from "../actions";
-import { Banner, PeoplesFavor, DarkestSecret } from "../resources";
+import { Banner, PeoplesFavor, DarkestSecret } from "../banks";
 import { ActionModifier } from "./powers";
 
 
