@@ -988,7 +988,7 @@ export class CampaignResult extends OathGameObject {
     }
     
     resolveDefForce() {
-        this.defForce = new Set()
+        this.defForce = new Set();
         for (const target of this.targets) {
             const force = target.force;
             if (force) this.defForce.add(force);

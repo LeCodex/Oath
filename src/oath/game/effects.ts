@@ -1077,7 +1077,7 @@ export class RegionDiscardEffect extends PlayerEffect<void> {
         const cards: Denizen[] = [];
         for (const site of this.player.site.region.sites)
             for (const denizen of site.denizens)
-                if (this.suits.includes(denizen.suit) && denizen !== this.source)
+                if (this.suits.includes(denizen.suit) && denizen.original !== this.source?.original)
                     cards.push(denizen);
 
         new DiscardCardGroupEffect(this.player, cards).do();
