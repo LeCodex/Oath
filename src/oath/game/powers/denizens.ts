@@ -299,7 +299,9 @@ export class FabledFeast extends WhenPlayed<Denizen> {
     name = "FabledFeast";
 
     whenPlayed(effect: PlayWorldCardEffect): void {
-        new TakeResourcesFromBankEffect(effect.game, effect.player, effect.game.favorBanks.get(OathSuit.Hearth), effect.player.ruledSuitCount(OathSuit.Hearth)).do();
+        const amount = effect.player.ruledSuitCount(OathSuit.Hearth);
+        console.log(amount);
+        new TakeResourcesFromBankEffect(effect.game, effect.player, effect.game.favorBanks.get(OathSuit.Hearth), amount).do();
     }
 }
 
@@ -350,7 +352,8 @@ export class MarriageActionModifier extends AccessedActionModifier<Denizen> {
     mustUse = true;
 
     applyDuring(): void {
-        const originalFn = this.action.player.original.adviserSuitCount;
+        const original = this.action.player.original;
+        const originalFn = original.adviserSuitCount.bind(original);
         this.action.player.adviserSuitCount = (suit: OathSuit) => {
             return originalFn(suit) + (suit === OathSuit.Hearth ? 1 : 0);
         };
@@ -365,7 +368,8 @@ export class MarriageEffectModifier extends AccessedEffectModifier<Denizen> {
 
     applyDuring(): void {
         if (!this.effect.player) return;
-        const originalFn = this.effect.player.original.adviserSuitCount;
+        const original = this.effect.player.original;
+        const originalFn = original.adviserSuitCount.bind(original);
         this.effect.player.adviserSuitCount = (suit: OathSuit) => {
             return originalFn(suit) + (suit === OathSuit.Hearth ? 1 : 0);
         };

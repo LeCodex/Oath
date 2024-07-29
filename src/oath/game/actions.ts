@@ -144,8 +144,8 @@ export class SelectNOf<T> {
         this.choices = new Map(choices);
 
         if (max === undefined) max = min == -1 ? this.choices.size : min;
-        if (min > max) throw new InvalidActionResolution("Min is above max");
-        if (this.choices.size < min && exact) throw new InvalidActionResolution(`Not enough choices`);
+        if (min > max) throw new InvalidActionResolution(`Min is above max for select ${this.name}`);
+        if (this.choices.size < min && exact) throw new InvalidActionResolution(`Not enough choices for select ${this.name}`);
 
         this.min = min === -1 ? 0: min;
         this.max = max;
@@ -154,11 +154,11 @@ export class SelectNOf<T> {
     parse(input: Iterable<string>): T[] {
         const values = new Set<T>();
         for (const val of input) {
-            if (!this.choices.has(val)) throw new InvalidActionResolution(`Invalid choice for select: ${val}`);
+            if (!this.choices.has(val)) throw new InvalidActionResolution(`Invalid choice for select ${this.name}: ${val}`);
             const obj = this.choices.get(val);
             values.add(obj as T);  // We know the value exists, and if it's undefined, then we want that
         }
-        if (values.size < this.min || values.size > this.max) throw new InvalidActionResolution(`Invalid number of values for select`);
+        if (values.size < this.min || values.size > this.max) throw new InvalidActionResolution(`Invalid number of values for select ${this.name}`);
 
         return [...values];
     }
@@ -692,11 +692,11 @@ export class SearchPlayAction extends ModifiableAction {
             if (instance.canUse(player, site)) capacityModifiers.push(instance);
         }
 
-        if (playing) {
+        if (playing && !facedown) {
             for (const modifier of playing.powers) {
                 if (isExtended(modifier, CapacityModifier)) {
                     const instance = new modifier(playing);
-                    if (instance.canUse(player, site)) capacityModifiers.push(instance);
+                    capacityModifiers.push(instance);  // Always assume the card influences the capacity
                 }
             }
         }
@@ -926,13 +926,10 @@ export class CampaignDefenseAction extends ModifiableAction {
         super.execute();
         this.campaignResult.successful = this.campaignResult.atk > this.campaignResult.def;
 
-        if (this.campaignResult.couldSacrifice) {
-            this.next.doNext();
-            return;
-        };
+        if (!this.campaignResult.ignoreKilling && !this.campaignResult.ignoreSkulls)
+            this.campaignResult.attackerKills(AttackDie.getSkulls(this.campaignResult.atkRoll));
 
-        this.next.parameters.doSacrifice = [false];
-        this.next.doNext(true);
+        this.next.doNext();
     }
 
     modifiedExecution() {
@@ -971,10 +968,11 @@ export class CampaignResult extends OathGameObject {
     get def() { return DefenseDie.getResult(this.defRoll) + this.totalDefForce; }
 
     get requiredSacrifice() { return this.def - this.atk + 1; }
-    get couldSacrifice() { return this.requiredSacrifice > 0 && this.requiredSacrifice < this.totalAtkForce - AttackDie.getSkulls(this.atkRoll); }
+    get couldSacrifice() { return this.requiredSacrifice > 0 && this.requiredSacrifice < this.totalAtkForce; }
 
     get winner() { return this.successful ? this.attacker : this.defender; }
     get loser() { return this.successful ? this.defender : this.attacker; }
+    get loserTotalForce() { return this.successful ? this.totalDefForce : this.totalAtkForce; }
     get loserKillsNoWarbands() { return this.successful ? this.defenderKillsNoWarbands : this.attackerKillsNoWarbands; }
     get loserKillsEntireForce() { return this.successful ? this.defenderKillsEntireForce : this.attackerKillsEntireForce; }
     get loserLoss() { return this.successful ? this.defenderLoss : this.attackerLoss; }
@@ -1004,12 +1002,15 @@ export class CampaignResult extends OathGameObject {
     }
     
     attackerKills(amount: number) {
-        new CampaignKillWarbandsInForceAction(this, true, amount).doNext();
+        if (amount)
+            new CampaignKillWarbandsInForceAction(this, true, amount).doNext();
     }
 
     defenderKills(amount: number) {
         if (!this.defender) return;
-        new CampaignKillWarbandsInForceAction(this, false, amount).doNext();
+
+        if (amount)
+            new CampaignKillWarbandsInForceAction(this, false, amount).doNext();
     }
 
     loserKills(amount: number) {
@@ -1028,10 +1029,15 @@ export class CampaignEndAction extends ModifiableAction {
     readonly message = "Sacrifice is needed to win";
     
     campaignResult = new CampaignResult(this.game);
-    doSacrifice: boolean
+    doSacrifice: boolean;
 
     start() {
-        this.selects.doSacrifice = new SelectBoolean("Decision", [`Sacrifice ${this.campaignResult.requiredSacrifice} warbands`, "Abandon"]);
+        if (this.campaignResult.couldSacrifice) {
+            this.selects.doSacrifice = new SelectBoolean("Decision", [`Sacrifice ${this.campaignResult.requiredSacrifice} warbands`, "Abandon"]);
+        } else {
+            this.parameters.doSacrifice = [false];
+        }
+        
         return super.start();
     }
 
@@ -1041,16 +1047,13 @@ export class CampaignEndAction extends ModifiableAction {
     }
 
     modifiedExecution() {
-        if (!this.campaignResult.ignoreKilling && !this.campaignResult.ignoreSkulls)
-            this.campaignResult.attackerKills(AttackDie.getSkulls(this.campaignResult.atkRoll));
-
         if (this.doSacrifice) {
             this.campaignResult.attackerKills(this.campaignResult.requiredSacrifice);
             this.campaignResult.successful = true;
         }
 
         if (this.campaignResult.loser && !this.campaignResult.ignoreKilling && !this.campaignResult.loserKillsNoWarbands)
-            this.campaignResult.loserKills(Math.floor(this.campaignResult.loser.original.totalWarbands / (this.campaignResult.loserKillsEntireForce ? 1 : 2)));
+            this.campaignResult.loserKills(Math.floor(this.campaignResult.loserTotalForce / (this.campaignResult.loserKillsEntireForce ? 1 : 2)));
 
         if (this.campaignResult.successful)
             for (const target of this.campaignResult.targets) target.seize(this.campaignResult.attacker);
@@ -1074,10 +1077,10 @@ export class CampaignKillWarbandsInForceAction extends OathAction {
     amount: number;
 
     constructor(result: CampaignResult, attacker: boolean, amount: number) {
-        super(attacker ? result.attacker : result.defender || result.attacker, true);
+        super(attacker ? result.attacker.leader : result.defender?.leader || result.attacker.leader, true);
         this.message = `Kill ${amount} warbands`;
         this.result = result;
-        this.owner = attacker ? result.attacker : result.defender;
+        this.owner = attacker ? result.attacker.leader : result.defender?.leader;
         this.force = attacker ? result.atkForce : result.defForce;
         this.amount = amount;
     }
@@ -1087,7 +1090,7 @@ export class CampaignKillWarbandsInForceAction extends OathAction {
             const sources: [string, number][] = [...this.force].map(e => [e.name, e.getWarbands(this.owner)]);
             for (const [key, warbands] of sources) {
                 const values = [];
-                const min = Math.max(0, warbands - sources.filter(([k, _]) => k !== key).reduce((a, [_, v]) => a + Math.min(v, this.amount), 0));
+                const min = Math.min(warbands, Math.max(0, this.amount - sources.filter(([k, _]) => k !== key).reduce((a, [_, v]) => a + Math.min(v, this.amount), 0)));
                 const max = Math.min(warbands, this.amount);
                 for (let i = min; i <= max; i++) values.push(i);
                 this.selects[key] = new SelectNumber(key, values);
