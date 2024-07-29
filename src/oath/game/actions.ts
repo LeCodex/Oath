@@ -1,7 +1,7 @@
 import { Denizen, Edifice, Relic, Site, VisionBack, WorldCard } from "./cards/cards";
 import { SearchableDeck } from "./cards/decks";
 import { AttackDie, DefenseDie, Die } from "./dice";
-import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect, DiscardCardEffect, MoveOwnWarbandsEffect, AddActionToStackEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect, SetNewOathkeeperEffect, SetPeoplesFavorMobState, DiscardCardGroupEffect, OathEffect, PopActionFromStackEffect, PaySupplyEffect, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, ChangeEdificeEffect } from "./effects";
+import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect, DiscardCardEffect, MoveOwnWarbandsEffect, AddActionToStackEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect, SetNewOathkeeperEffect, SetPeoplesFavorMobState, DiscardCardGroupEffect, OathEffect, PopActionFromStackEffect, PaySupplyEffect, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, ChangeEdificeEffect, ModifiedExecutionEffect } from "./effects";
 import { OathPhase, OathResource, OathResourceName, OathSuit, OathSuitName, OathType, OathTypeName } from "./enums";
 import { OathGame } from "./game";
 import { OathGameObject } from "./gameObject";
@@ -327,7 +327,7 @@ export abstract class ModifiableAction extends OathAction {
             if (!modifier.payCost(this.player))
                 throw new InvalidActionResolution("Cannot pay the resource cost of all the modifiers.");
 
-            if (!modifier.applyBefore()) interrupt = true;
+            if (!modifier.applyWhenApplied()) interrupt = true;
         }
         if (interrupt) return false;
 
@@ -340,8 +340,8 @@ export abstract class ModifiableAction extends OathAction {
     }
 
     execute() {
-        for (const modifier of this.modifiers) modifier.applyDuring();
-        this.modifiedExecution();
+        for (const modifier of this.modifiers) modifier.applyBefore();
+        new ModifiedExecutionEffect(this).doNext();  // This allows actions to be slotted before the actual resolution of the action
         for (const modifier of this.modifiers) modifier.applyAfter();
     }
 
@@ -673,7 +673,6 @@ export class SearchPlayAction extends ModifiableAction {
         sitesChoice.set("Advisers", undefined);
         sitesChoice.set(this.player.site.name, this.player.site);
         this.selects.site = new SelectNOf("Place", sitesChoice, 1);
-
         this.selects.facedown = new SelectBoolean("Orientation", ["Facedown", "Faceup"]);
         return super.start();
     }
@@ -1361,7 +1360,7 @@ export class ResolveEffectAction extends OathAction {
     effect: OathEffect<any>;
 
     constructor(player: OathPlayer, effect: OathEffect<any>) {
-        super(player, false);  // Don't copy, not modifiable, and not an entry point
+        super(player, true);  // Don't copy, not modifiable, and not an entry point
         this.effect = effect;
     }
 
@@ -1381,7 +1380,7 @@ export class AskForRerollAction extends OathAction {
     power?: OathPower<any>;
 
     constructor(player: OathPlayer, faces: number[], die: typeof Die, power?: OathPower<any>) {
-        super(player, false);  // Don't copy, not modifiable, and not an entry point
+        super(player, true);  // Don't copy, not modifiable, and not an entry point
         this.faces = faces;
         this.message = "Do you wish to reroll " + faces.join(",") + "?";
         this.die = die;
@@ -1410,7 +1409,7 @@ export abstract class ChooseSuit extends OathAction {
     suit: OathSuit | undefined;
 
     constructor(player: OathPlayer, suits?: Iterable<OathSuit>) {
-        super(player, false);  // Don't copy, they're not modifiable, are not entry points, and can be used to modify data in other actions
+        super(player, true);  // Don't copy, they're not modifiable, are not entry points, and can be used to modify data in other actions
         this.suits = new Set(suits);
     }
 
@@ -1555,7 +1554,7 @@ export abstract class ChoosePlayer extends OathAction {
     target: OathPlayer | undefined;
 
     constructor(player: OathPlayer, players?: Iterable<OathPlayer>) {
-        super(player, false);  // Don't copy, they're not modifiable, are not entry points, and can be used to modify data in other actions
+        super(player, true);  // Don't copy, they're not modifiable, are not entry points, and can be used to modify data in other actions
         this.players = new Set(players);
     }
 
@@ -1676,7 +1675,7 @@ export abstract class ChooseSite extends OathAction {
     target: Site | undefined;
 
     constructor(player: OathPlayer, sites?: Iterable<Site>) {
-        super(player, false);  // Don't copy, they're not modifiable, are not entry points, and can be used to modify data in other actions
+        super(player, true);  // Don't copy, they're not modifiable, are not entry points, and can be used to modify data in other actions
         this.sites = new Set(sites);
     }
 
@@ -1703,6 +1702,7 @@ export class ActAsIfAtSiteAction extends ChooseSite {
     execute(): void {
         super.execute();
         if (!this.target) return;
+        console.log(this.target);
         this.player.site = this.target;
     }
 }

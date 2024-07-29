@@ -102,7 +102,7 @@ export class CoastalSite extends SiteActionModifier {
         return modifiers.filter(e => e.source instanceof Site && e.source.original !== this.source.original);
     }
 
-    applyDuring(): void {
+    applyBefore(): void {
         if (this.action.site.facedown) return;
 
         for (const power of this.action.site.powers) {
@@ -122,7 +122,7 @@ export class CharmingValley extends SiteActionModifier {
     action: TravelAction;
     mustUse = true;
 
-    applyDuring(): void {
+    applyBefore(): void {
         this.action.supplyCostModifier += 1;
     }
 }
@@ -132,8 +132,7 @@ export class OpportunitySite extends SiteActionModifier {
     modifiedAction = WakeAction;
     action: WakeAction;
 
-    applyBefore(): boolean {
+    applyBefore(): void {
         if (!this.source.empty) new ChooseResourceToTakeAction(this.action.player, this.source).doNext();
-        return true;
     }
 }

@@ -7,7 +7,7 @@ import { PeoplesFavor, ResourceBank } from "./banks";
 import { OwnableObject } from "./player";
 import { OathGame } from "./game";
 import { OathGameObject } from "./gameObject";
-import { AddCardsToWorldDeckAction, BuildOrRepairEdificeAction, CampaignResult, ChooseNewCitizensAction, InvalidActionResolution, OathAction, ResolveEffectAction, RestAction, SearchDiscardAction, SearchDiscardOptions, SearchPlayAction, TakeFavorFromBankAction, VowOathAction, WakeAction } from "./actions";
+import { AddCardsToWorldDeckAction, BuildOrRepairEdificeAction, CampaignResult, ChooseNewCitizensAction, InvalidActionResolution, ModifiableAction, OathAction, ResolveEffectAction, RestAction, SearchDiscardAction, SearchDiscardOptions, SearchPlayAction, TakeFavorFromBankAction, VowOathAction, WakeAction } from "./actions";
 import { CardDeck } from "./cards/decks";
 import { getCopyWithOriginal, isExtended, shuffleArray } from "./utils";
 import { D6, DefenseDie, Die } from "./dice";
@@ -115,6 +115,23 @@ export class PopActionFromStackEffect extends OathEffect<OathAction | undefined>
 
     revert(): void {
         if (this.action) this.game.original.actionManager.actionStack.push(this.action);
+    }
+}
+
+export class ModifiedExecutionEffect extends PlayerEffect<void> {
+    action: ModifiableAction;
+
+    constructor(action: ModifiableAction) {
+        super(action.player, true);
+        this.action = action;
+    }
+
+    resolve(): void {
+        this.action.modifiedExecution();
+    }
+
+    revert(): void {
+        // Doesn't do anything on its own
     }
 }
 
@@ -1048,7 +1065,7 @@ export class CursedCauldronResolutionEffect extends PlayerEffect<void> {
     result: CampaignResult;
 
     constructor(player: OathPlayer, result: CampaignResult) {
-        super(player, false);  // Don't copy, because it's part of the campaign chain
+        super(player, true);  // Don't copy, because it's part of the campaign chain
         this.result = result;
     }
 

@@ -26,7 +26,7 @@ export class IgnoresCapacity extends CapacityModifier<Denizen> {
 export class LongbowArchersAttack extends AttackerBattlePlan<Denizen> {
     name = "Longbow Archers";
 
-    applyDuring(): void {
+    applyBefore(): void {
         this.action.campaignResult.atkPool++;
     }
 }
@@ -34,7 +34,7 @@ export class LongbowArchersAttack extends AttackerBattlePlan<Denizen> {
 export class LongbowArchersDefense extends DefenderBattlePlan<Denizen> {
     name = "Longbow Archers";
 
-    applyDuring(): void {
+    applyBefore(): void {
         this.action.campaignResult.atkPool--;
     }
 }
@@ -44,7 +44,7 @@ export class ShieldWall extends DefenderBattlePlan<Denizen> {
     name = "Shield Wall";
     cost = new ResourceCost([[OathResource.Favor, 1]]);
 
-    applyDuring(): void {
+    applyBefore(): void {
         this.action.campaignResult.defPool += 2;
         this.action.campaignResult.defenderKillsEntireForce = true;
     }
@@ -57,7 +57,7 @@ export class Curfew extends EnemyActionModifier<Denizen> {
     action: TradeAction;
     mustUse = true;
 
-    applyDuring(): void {
+    applyBefore(): void {
         if (this.action.player.site?.ruler?.original === this.source.ruler?.original) {
             if (!new PayCostToTargetEffect(this.action.game, this.action.player, new ResourceCost([[OathResource.Favor, 1]]), this.source.ruler).do())
                 throw new InvalidActionResolution("Cannot pay the Curfew.");
@@ -84,7 +84,7 @@ export class ForcedLabor extends EnemyActionModifier<Denizen> {
     action: SearchAction;
     mustUse = true;
 
-    applyDuring(): void {
+    applyBefore(): void {
         if (this.action.player.site?.ruler?.original === this.source.ruler?.original) {
             if (!new PayCostToTargetEffect(this.action.game, this.action.player, new ResourceCost([[OathResource.Favor, 1]]), this.source.ruler).do())
                 throw new InvalidActionResolution("Cannot pay the Forced Labor.");
@@ -111,7 +111,7 @@ export class VowOfObedience extends AccessedActionModifier<Denizen> {
     action: SearchPlayAction;
     mustUse = true;
 
-    applyDuring(): void {
+    applyBefore(): void {
         if (!this.action.facedown && this.action.card instanceof Vision)
             throw new InvalidActionResolution("Playing a Vision faceup is disobedience.");
     }
@@ -119,9 +119,8 @@ export class VowOfObedience extends AccessedActionModifier<Denizen> {
 export class VowOfObedienceRest extends RestPower<Denizen> {
     name = "Vow of Obedience";
 
-    applyBefore(): boolean {
+    applyBefore(): void {
         new TakeFavorFromBankAction(this.action.player, 1).doNext();
-        return true;
     }
 }
 
@@ -209,7 +208,7 @@ export class ActingTroupe extends AccessedActionModifier<Denizen> {
     modifiedAction = TradeAction;
     action: TradeAction;
 
-    applyDuring(): void {
+    applyBefore(): void {
         if (this.action.card.suit === OathSuit.Order || this.action.card.suit === OathSuit.Beast)
             this.source.suit = this.action.card.suit;
     }
@@ -242,7 +241,7 @@ export class Portal extends AccessedActionModifier<Denizen> {
         return modifiers.filter(e => e.source instanceof Site);
     }
 
-    applyDuring(): void {
+    applyBefore(): void {
         if (this.action.player.site.original !== this.source.site?.original && this.action.site.original !== this.source.site?.original)
             throw new InvalidActionResolution("When using the Portal, you must travel to or from its site");
 
@@ -256,7 +255,7 @@ export class HeartsAndMinds extends DefenderBattlePlan<Denizen> {
     name = "Hearts and Minds";
     cost = new ResourceCost([[OathResource.Favor, 3]]);
 
-    applyBefore(): boolean {
+    applyWhenApplied(): boolean {
         // TODO: Put this in an effect
         this.action.campaignResult.successful = false;
         this.action.next.doNext();
@@ -274,7 +273,7 @@ export class AwaitedReturn extends AccessedActionModifier<Denizen> {
     modifiedAction = TradeAction;
     action: TradeAction;
 
-    applyDuring(): void {
+    applyBefore(): void {
         // NOTE: I am enforcing that you can only sacrifice warbands of your leader's color
         // while *technically* this restriction doesn't exist but making it an action seems overkill
         if (this.action.player.getWarbands(this.action.player.leader) > 0) {
@@ -299,9 +298,7 @@ export class FabledFeast extends WhenPlayed<Denizen> {
     name = "FabledFeast";
 
     whenPlayed(effect: ApplyWhenPlayedEffect): void {
-        const amount = effect.player.ruledSuitCount(OathSuit.Hearth);
-        console.log(amount);
-        new TakeResourcesFromBankEffect(effect.game, effect.player, effect.game.favorBanks.get(OathSuit.Hearth), amount).do();
+        new TakeResourcesFromBankEffect(effect.game, effect.player, effect.game.favorBanks.get(OathSuit.Hearth), effect.player.ruledSuitCount(OathSuit.Hearth)).do();
     }
 }
 
@@ -351,7 +348,7 @@ export class MarriageActionModifier extends AccessedActionModifier<Denizen> {
     action: ModifiableAction;
     mustUse = true;
 
-    applyDuring(): void {
+    applyBefore(): void {
         const original = this.action.player.original;
         const originalFn = original.adviserSuitCount.bind(original);
         this.action.player.adviserSuitCount = (suit: OathSuit) => {
@@ -383,7 +380,7 @@ export class WayStation extends ActionModifier<Denizen> {
     modifiedAction = TravelAction;
     action: TravelAction;
 
-    applyDuring(): void {
+    applyBefore(): void {
         if (!this.source.site) return;
         if (this.action.site === this.source.site) {
             if (this.source.ruler !== this.action.player && !new PayCostToTargetEffect(this.action.game, this.action.player, new ResourceCost([[OathResource.Favor, 1]]), this.source.ruler).do())
@@ -419,7 +416,7 @@ export class LostTongueCampaign extends EnemyActionModifier<Denizen> {
     modifiedAction = CampaignAtttackAction;
     action: CampaignAtttackAction;
 
-    applyDuring(): void {
+    applyBefore(): void {
         for (const target of this.action.campaignResult.targets)
             if (isOwnable(target)) lostTongueCheckOwnable(this.source, target, this.action.player);
     }
@@ -519,7 +516,7 @@ export class Assassin extends ActivePower<Denizen> {
 export class Insomnia extends RestPower<Denizen> {
     name = "Insomnia";
 
-    applyDuring(): void {
+    applyBefore(): void {
         new PutResourcesOnTargetEffect(this.action.game, this.action.player, OathResource.Secret, 1).do();
     }
 }
@@ -527,11 +524,10 @@ export class Insomnia extends RestPower<Denizen> {
 export class SilverTongue extends RestPower<Denizen> {
     name = "Silver Tongue";
 
-    applyBefore(): boolean {
+    applyBefore(): void {
         const suits: Set<OathSuit> = new Set();
         for (const denizen of this.action.player.site.denizens) suits.add(denizen.suit);
         new TakeFavorFromBankAction(this.action.player, 1, suits).doNext();
-        return true;
     }
 }
 
@@ -549,7 +545,7 @@ export class SleightOfHand extends ActivePower<Denizen> {
 export class Naysayers extends RestPower<Denizen> {
     name = "Naysayers";
 
-    applyDuring(): void {
+    applyBefore(): void {
         if (!this.action.game.oathkeeper.isImperial)
             new MoveResourcesToTargetEffect(this.action.game, this.action.player, OathResource.Favor, 1, this.action.player, this.action.game.chancellor).do();
     }
@@ -584,7 +580,7 @@ export class Bracken extends AccessedActionModifier<Denizen> {
     modifiedAction = SearchAction;
     action: SearchAction;
 
-    applyDuring(): void {
+    applyBefore(): void {
         // TODO: Action to change the discard options
     }
 }
@@ -644,7 +640,7 @@ export class VowOfPoverty extends AccessedActionModifier<Denizen> {
     action: TradeAction;
     mustUse = true;
 
-    applyDuring(): void {
+    applyBefore(): void {
         this.action.getting.set(OathResource.Favor, -Infinity);
     }
 }
@@ -652,9 +648,8 @@ export class VowOfPoverty extends AccessedActionModifier<Denizen> {
 export class VowOfPovertyRest extends RestPower<Denizen> {
     name = "Vow of Poverty";
 
-    applyBefore(): boolean {
+    applyBefore(): void {
         new TakeFavorFromBankAction(this.action.player, 2).doNext();
-        return true;
     }
 }
 
@@ -674,7 +669,7 @@ export class SmallFriends extends AccessedActionModifier<Denizen> {
     modifiedAction = TradeAction;
     action: TradeAction;
 
-    applyBefore(): boolean {
+    applyBefore(): void {
         const sites = new Set<Site>();
         for (const site of this.game.board.sites())
             for (const denizen of site.denizens)
@@ -683,6 +678,5 @@ export class SmallFriends extends AccessedActionModifier<Denizen> {
 
         // FIXME: This doesn't work, why?
         new ActAsIfAtSiteAction(this.action.player, sites).doNext();
-        return true;
     }
 }

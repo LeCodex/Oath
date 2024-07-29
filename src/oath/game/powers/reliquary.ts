@@ -17,7 +17,7 @@ export class Brutal extends ReliquaryModifier {
     modifiedAction = CampaignAtttackAction;
     action: CampaignAtttackAction;
 
-    applyDuring() {
+    applyBefore() {
         this.action.campaignResult.attackerKillsEntireForce = true;
         this.action.campaignResult.defenderKillsEntireForce = true;
     }
@@ -28,7 +28,7 @@ export class Greedy extends ReliquaryModifier {
     modifiedAction = SearchAction;
     action: SearchAction;
 
-    applyDuring(): void {
+    applyBefore(): void {
         if (this.action.actualSupplyCost > 2) throw new InvalidActionResolution("Cannot do a Greedy Search for more than 2 Supply.");
         this.action.amount += 2;
     }
@@ -39,7 +39,7 @@ export class Careless extends ReliquaryModifier {
     modifiedAction = TradeAction;
     action: TradeAction;
 
-    applyDuring(): void {
+    applyBefore(): void {
         this.action.getting.set(OathResource.Secret, Math.max(0, (this.action.getting.get(OathResource.Secret) || 0) - 1));
         this.action.getting.set(OathResource.Favor, (this.action.getting.get(OathResource.Favor) || 0) + 1);
     }
@@ -50,7 +50,7 @@ export class Decadent extends ReliquaryModifier {
     modifiedAction = TravelAction;
     action: TravelAction;
 
-    applyDuring(): void {
+    applyBefore(): void {
         if (this.action.site.inRegion(RegionName.Cradle) && !this.action.player.site.inRegion(RegionName.Cradle))
             this.action.noSupplyCost = true;
 

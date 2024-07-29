@@ -16,28 +16,27 @@ export class PeoplesFavorSearch extends BannerActionModifier<PeoplesFavor> {
     mustUse = true; // Not strictly true, but it involves a choice either way, so it's better to always include it
 
     applyAtStart(): void {
-        for (const site of this.action.player.site.region.sites) {
-            this.action.selects.site.choices.set(site.name, site);
-        }
+        for (const site of this.action.player.site.region.sites)
+            if (!site.facedown)
+                this.action.selects.site.choices.set(site.name, site);
     }
 
-    applyDuring(): void {
+    applyBefore(): void {
         if (this.action.site) new PeoplesFavorDiscardAction(this.action.player, this.action.discardOptions).doNext();
     }
 }
+
 export class PeoplesFavorWake extends BannerActionModifier<PeoplesFavor> {
     name = "People's Favor";
     modifiedAction = WakeAction;
     action: WakeAction;
     mustUse = true;
 
-    applyBefore(): boolean {
+    applyBefore(): void {
         if (this.source.owner) {
             new PeoplesFavorWakeAction(this.source.owner, this.source).doNext();
             if (this.source.isMob) new PeoplesFavorWakeAction(this.source.owner, this.source).doNext();
         }
-
-        return true;
     }
 }
 
@@ -48,7 +47,7 @@ export class DarkestSecretPower extends BannerActionModifier<DarkestSecret> {
     action: SearchAction;
     mustUse = true;
 
-    applyDuring(): void {
+    applyBefore(): void {
         this.action.supplyCost = 2;
     }
 }

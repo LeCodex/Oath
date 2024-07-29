@@ -82,7 +82,7 @@ const render = () => {
         // playerList.appendChild(renderText("At " + player.site));
         playerList.appendChild(renderText("Supply: " + player.supply + " / Bag: " + player.warbandsInBag));
         playerList.appendChild(renderText("Resources: " + getResourcesAndWarbandsText(player)));
-        if (player.vision) playerList.appendChild(renderText("Vision of " + visionNames[player.vision.oath]));
+        if (player.vision) playerList.appendChild(renderText(player.vision.name));
 
         const thingsNode = playerList.appendChild(document.createElement("li"));
         thingsNode.id = "playerThings" + i;

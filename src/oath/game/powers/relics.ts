@@ -11,7 +11,7 @@ export class CupOfPlenty extends AccessedActionModifier<Relic> {
     modifiedAction = TradeAction;
     action: TradeAction;
 
-    applyDuring(): void {
+    applyBefore(): void {
         if (this.action.player.adviserSuitCount(this.action.card.suit) > 0) this.action.noSupplyCost = true;
     }
 }
@@ -41,7 +41,7 @@ export class CircletOfCommandCampaign extends EnemyActionModifier<Relic> {
     modifiedAction = CampaignAtttackAction;
     action: CampaignAtttackAction;
 
-    applyDuring(): void {
+    applyBefore(): void {
         for (const target of this.action.campaignResult.targets) {
             if (isOwnable(target)) circletOfCommandCheckOwnable(this.source, target, this.action.player);
             if (target === this.source.ruler) this.action.campaignResult.defPool += 1;
@@ -76,7 +76,7 @@ export class BookOfRecords extends AccessedEffectModifier<Relic> {
 export class CursedCauldronAttack extends AttackerBattlePlan<Relic> {
     name = "Cursed Cauldron";
 
-    applyDuring(): void {
+    applyBefore(): void {
         if (!this.source.ruler) return;
         this.action.campaignResult.endEffects.push(new CursedCauldronResolutionEffect(this.source.ruler, this.action.campaignResult));
     }
@@ -85,7 +85,7 @@ export class CursedCauldronAttack extends AttackerBattlePlan<Relic> {
 export class CursedCauldronDefense extends DefenderBattlePlan<Relic> {
     name = "Cursed Cauldron";
 
-    applyDuring(): void {
+    applyBefore(): void {
         if (!this.source.ruler) return;
         this.action.campaignResult.endEffects.push(new CursedCauldronResolutionEffect(this.source.ruler, this.action.campaignResult));
     }
