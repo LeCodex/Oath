@@ -1,7 +1,7 @@
 import { CampaignAtttackAction, CampaignDefenseAction, ModifiableAction, OathAction, RestAction, UsePowerAction, WakeAction } from "../actions";
 import { OwnableCard, Site, WorldCard } from "../cards/cards";
 import { ResourceCost } from "../resources";
-import { OathEffect, PayPowerCost, PlayWorldCardEffect } from "../effects";
+import { ApplyWhenPlayedEffect, OathEffect, PayPowerCost, PlayWorldCardEffect } from "../effects";
 import { OathPlayer } from "../player";
 import { OathGameObject } from "../gameObject";
 import { AbstractConstructor } from "../utils";
@@ -26,9 +26,7 @@ export abstract class OathPower<T extends OathGameObject> extends OathGameObject
 }
 
 export abstract class WhenPlayed<T extends WorldCard> extends OathPower<T> {
-    modifiedEffect = PlayWorldCardEffect;
-
-    abstract whenPlayed(effect: PlayWorldCardEffect): void;
+    abstract whenPlayed(effect: ApplyWhenPlayedEffect): void;
 }
 
 export abstract class CapacityModifier<T extends WorldCard> extends OathPower<T> {

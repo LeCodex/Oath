@@ -1,6 +1,6 @@
 import { CampaignActionTarget, CampaignSeizeSiteAction, InvalidActionResolution, RecoverAction, RecoverActionTarget } from "../actions";
 import { Region } from "../board";
-import { MoveOwnWarbandsEffect, MoveResourcesToTargetEffect, PayCostToBankEffect, PutResourcesIntoBankEffect, TakeOwnableObjectEffect } from "../effects";
+import { FlipSecretsEffect, MoveOwnWarbandsEffect, MoveResourcesToTargetEffect, PayCostToBankEffect, PutResourcesIntoBankEffect, TakeOwnableObjectEffect } from "../effects";
 import { CardRestriction, OathResource, OathSuit, OathTypeVisionName, RegionName } from "../enums";
 import { OathGame } from "../game";
 import { Oath } from "../oaths";
@@ -162,8 +162,11 @@ export abstract class OwnableCard extends OathCard implements OwnableObject {
     abstract setOwner(newOwner?: OathPlayer): void;
 
     returnResources() {
-        if (this.getResources(OathResource.Secret))
-            new MoveResourcesToTargetEffect(this.game, this.game.currentPlayer, OathResource.Secret, this.getResources(OathResource.Secret), this.game.currentPlayer, this).do();
+        const amount = this.getResources(OathResource.Secret);
+        if (amount) {
+            new MoveResourcesToTargetEffect(this.game, this.game.currentPlayer, OathResource.Secret, amount, this.game.currentPlayer, this).do();
+            new FlipSecretsEffect(this.game, this.game.currentPlayer, amount).do();
+        }
     }
 
     // serialize(): Record<string, any> {

@@ -1,7 +1,7 @@
 import { TradeAction, InvalidActionResolution, SearchAction, SearchPlayAction, TakeFavorFromBankAction, CampaignAtttackAction, CampaignDefenseAction, UsePowerAction, AskForRerollAction, TravelAction, TakeResourceFromPlayerAction, CampaignEndAction, ModifiableAction, PiedPiperAction, ActAsIfAtSiteAction } from "../actions";
 import { Denizen, Site, WorldCard, Vision, Relic } from "../cards/cards";
 import { DefenseDie } from "../dice";
-import { PayCostToTargetEffect, TravelEffect, PlayWorldCardEffect, MoveResourcesToTargetEffect, RegionDiscardEffect, PutResourcesOnTargetEffect, RollDiceEffect, TakeWarbandsIntoBagEffect, TakeResourcesFromBankEffect, PlayVisionEffect, OathEffect, TakeOwnableObjectEffect, PayPowerCost, PutWarbandsFromBagEffect, SetNewOathkeeperEffect, GamblingHallEffect } from "../effects";
+import { PayCostToTargetEffect, TravelEffect, PlayWorldCardEffect, MoveResourcesToTargetEffect, RegionDiscardEffect, PutResourcesOnTargetEffect, RollDiceEffect, TakeWarbandsIntoBagEffect, TakeResourcesFromBankEffect, PlayVisionEffect, OathEffect, TakeOwnableObjectEffect, PayPowerCost, PutWarbandsFromBagEffect, SetNewOathkeeperEffect, GamblingHallEffect, ApplyWhenPlayedEffect } from "../effects";
 import { OathResource, OathSuit, BannerName } from "../enums";
 import { OathPlayer, OwnableObject, isOwnable } from "../player";
 import { ResourceCost } from "../resources";
@@ -96,7 +96,7 @@ export class ForcedLabor extends EnemyActionModifier<Denizen> {
 export class RoyalTax extends WhenPlayed<Denizen> {
     name = "Royal Tax";
 
-    whenPlayed(effect: PlayWorldCardEffect): void {
+    whenPlayed(effect: ApplyWhenPlayedEffect): void {
         for (const player of Object.values(effect.game.players)) {
             if (player.site.ruler?.original === effect.player.leader.original)
                 new MoveResourcesToTargetEffect(effect.game, effect.player, OathResource.Favor, 2, effect.player, player).do();
@@ -178,7 +178,7 @@ export class SpiritSnare extends ActivePower<Denizen> {
 export class Dazzle extends WhenPlayed<Denizen> {
     name = "Dazzle";
 
-    whenPlayed(effect: PlayWorldCardEffect): void {
+    whenPlayed(effect: ApplyWhenPlayedEffect): void {
         new RegionDiscardEffect(effect.player, [OathSuit.Hearth, OathSuit.Order], this.source).do();
     }
 }
@@ -298,7 +298,7 @@ export class CharmingFriend extends ActivePower<Denizen> {
 export class FabledFeast extends WhenPlayed<Denizen> {
     name = "FabledFeast";
 
-    whenPlayed(effect: PlayWorldCardEffect): void {
+    whenPlayed(effect: ApplyWhenPlayedEffect): void {
         const amount = effect.player.ruledSuitCount(OathSuit.Hearth);
         console.log(amount);
         new TakeResourcesFromBankEffect(effect.game, effect.player, effect.game.favorBanks.get(OathSuit.Hearth), amount).do();
@@ -483,7 +483,7 @@ export class RelicThief extends EnemyEffectModifier<Denizen> {
 export class KeyToTheCity extends WhenPlayed<Denizen> {
     name = "Key to the City";
 
-    whenPlayed(effect: PlayWorldCardEffect): void {
+    whenPlayed(effect: ApplyWhenPlayedEffect): void {
         if (!this.source.site) return;
         if (this.source.site.ruler?.site === this.source.site) return;
 
@@ -632,7 +632,7 @@ export class InsectSwarmDefense extends ActionModifier<Denizen> {
 export class ThreateningRoar extends WhenPlayed<Denizen> {
     name = "Threatening Roar";
 
-    whenPlayed(effect: PlayWorldCardEffect): void {
+    whenPlayed(effect: ApplyWhenPlayedEffect): void {
         new RegionDiscardEffect(effect.player, [OathSuit.Beast, OathSuit.Nomad], this.source).do();
     }
 }

@@ -546,12 +546,29 @@ export class PlayWorldCardEffect extends PlayerEffect<void> {
         }
         
         if (!this.facedown)
-            for (const power of this.card.powers)
-                if (isExtended(power, WhenPlayed)) new power(this.card).whenPlayed(this);
+            new ApplyWhenPlayedEffect(this.player, this.card).do();
     }
 
     revert(): void {
         // The thing that calls this effect is in charge of reverting the card back
+    }
+}
+
+export class ApplyWhenPlayedEffect extends PlayerEffect<void> {
+    card: WorldCard;
+
+    constructor(player: OathPlayer, card: WorldCard) {
+        super(player);
+        this.card = card;
+    }
+
+    resolve(): void {
+        for (const power of this.card.powers)
+            if (isExtended(power, WhenPlayed)) new power(this.card).whenPlayed(this);
+    }
+
+    revert(): void {
+        // Doesn't do anything on its own
     }
 }
 
@@ -743,6 +760,7 @@ export class DiscardCardGroupEffect extends PlayerEffect<void> {
 export class DiscardCardEffect extends PlayerEffect<void> {
     card: WorldCard;
     discardOptions: SearchDiscardOptions;
+    flipped: boolean;
 
     constructor(player: OathPlayer, card: WorldCard, discardOptions?: SearchDiscardOptions) {
         super(player);
@@ -757,6 +775,7 @@ export class DiscardCardEffect extends PlayerEffect<void> {
         }
         if (this.card.owner) new MoveAdviserEffect(this.player, this.card).do();
         
+        this.flipped = !this.card.original.facedown;
         this.discardOptions.discard.original.putCard(this.card.original, this.discardOptions.onBottom);
         this.card.original.returnResources();
         for (const player of this.card.original.warbands.keys()) new TakeWarbandsIntoBagEffect(player, Infinity, this.card).do();
@@ -766,6 +785,7 @@ export class DiscardCardEffect extends PlayerEffect<void> {
         // The thing that calls this effect is in charge of putting the card back where it was
         // This just removes it from the deck
         this.discardOptions.discard.original.drawSingleCard(this.discardOptions.onBottom);
+        if (this.flipped) this.card.original.reveal();
     }
 }
 

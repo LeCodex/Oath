@@ -1132,7 +1132,7 @@ export class CampaignSeizeSiteAction extends OathAction {
 
     start() {
         const values: number[] = [];
-        for (let i = 0; i <= this.player.original.totalWarbands; i++) values.push(i);
+        for (let i = 0; i <= this.player.original.getWarbands(this.player.original.leader); i++) values.push(i);
         this.selects.amount = new SelectNumber("Amount", values);
         return super.start();
     }
