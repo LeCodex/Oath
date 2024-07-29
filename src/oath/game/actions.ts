@@ -1639,6 +1639,7 @@ export class ConspiracyAction extends ChoosePlayer {
         new ConspiracyStealAction(this.player, this.target).doNext();
     }
 }
+
 export class ConspiracyStealAction extends OathAction {
     readonly selects: { taking: SelectNOf<Relic | Banner> };
     readonly parameters: { taking: (Relic | Banner)[] };
@@ -1655,7 +1656,7 @@ export class ConspiracyStealAction extends OathAction {
         const choices = new Map<string, Relic | Banner>();
         for (const relic of this.player.relics) choices.set(relic.name, relic);
         for (const banner of this.player.banners) choices.set(banner.name, banner);
-        this.selects.taking = new SelectNOf("Target", choices);
+        this.selects.taking = new SelectNOf("Target", choices, 1);
         return super.start();
     }
 

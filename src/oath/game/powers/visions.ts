@@ -1,6 +1,6 @@
 import { ConspiracyAction } from "../actions";
 import { Conspiracy, Denizen } from "../cards/cards";
-import { PlayWorldCardEffect } from "../effects";
+import { ApplyWhenPlayedEffect } from "../effects";
 import { OathPlayer } from "../player";
 import { WhenPlayed } from "./powers";
 
@@ -9,7 +9,7 @@ import { WhenPlayed } from "./powers";
 export class ConspiracyPower extends WhenPlayed<Conspiracy> {
     name = "Conspiracy";
 
-    whenPlayed(effect: PlayWorldCardEffect): void {
+    whenPlayed(effect: ApplyWhenPlayedEffect): void {
         const targets: OathPlayer[] = [];
         for (const player of Object.values(effect.game.players)) {
             if (player.site === effect.player.site) {

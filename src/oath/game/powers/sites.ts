@@ -132,6 +132,10 @@ export class OpportunitySite extends SiteActionModifier {
     modifiedAction = WakeAction;
     action: WakeAction;
 
+    canUse(): boolean {
+        return super.canUse() && this.source.totalResources > 0;
+    }
+
     applyBefore(): void {
         if (!this.source.empty) new ChooseResourceToTakeAction(this.action.player, this.source).doNext();
     }
