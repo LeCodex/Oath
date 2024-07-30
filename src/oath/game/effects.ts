@@ -7,10 +7,10 @@ import { PeoplesFavor, ResourceBank } from "./banks";
 import { OwnableObject } from "./player";
 import { OathGame } from "./game";
 import { OathGameObject } from "./gameObject";
-import { AddCardsToWorldDeckAction, BuildOrRepairEdificeAction, CampaignResult, ChooseNewCitizensAction, InvalidActionResolution, ModifiableAction, OathAction, ResolveEffectAction, RestAction, SearchDiscardAction, SearchDiscardOptions, SearchPlayAction, TakeFavorFromBankAction, VowOathAction, WakeAction } from "./actions";
+import { AddCardsToWorldDeckAction, BuildOrRepairEdificeAction, CampaignDefenseAction, CampaignResult, ChooseNewCitizensAction, InvalidActionResolution, ModifiableAction, OathAction, ResolveEffectAction, RestAction, SearchDiscardAction, SearchDiscardOptions, SearchPlayAction, TakeFavorFromBankAction, VowOathAction, WakeAction } from "./actions";
 import { CardDeck } from "./cards/decks";
 import { getCopyWithOriginal, isExtended, shuffleArray } from "./utils";
-import { D6, DefenseDie, Die } from "./dice";
+import { AttackDie, D6, DefenseDie, Die } from "./dice";
 import { Oath } from "./oaths";
 import { Region } from "./board";
 import { edificeData } from "./cards/denizens";
@@ -844,6 +844,27 @@ export class RollDiceEffect extends OathEffect<number[]> {
     revert(): void {
         // This is a "read" effect, and so cannot be reverted (and should not need to)
         // In this case, a dice roll should not get reverted
+    }
+}
+
+export class CampaignResolveSuccessfulAndSkullsEffect extends PlayerEffect<void> {
+    action: CampaignDefenseAction;
+
+    constructor(action: CampaignDefenseAction) {
+        super(action.player, true);
+        this.action = action;
+    }
+    
+    resolve(): void {
+        const campaignResult = this.action.campaignResult;
+        campaignResult.successful = campaignResult.atk > campaignResult.def;
+
+        if (!campaignResult.ignoreKilling && !campaignResult.ignoreSkulls)
+            campaignResult.attackerKills(AttackDie.getSkulls(campaignResult.atkRoll));
+    }
+
+    revert(): void {
+        // Doesn't do anything on its own
     }
 }
 
