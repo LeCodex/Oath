@@ -18,7 +18,7 @@ export class OathService {
         // TEMP: Forcefully set the number of players and oath
         const game = new OathGame(OathType.Supremacy, 4);
         this.games.set(id, game);
-        const obj = game.serialize();
+        const obj = game.actionManager.checkForNextAction();
         obj.id = id;
         return obj;
     }
@@ -29,24 +29,9 @@ export class OathService {
         return game;
     }
 
-    public beginAction(gameId: number, playerIndex: number, actionName: string): object {
-        const nameToAction: Record<string, Constructor<OathAction>> = {
-            "trade": TradeAction,
-            "muster": MusterAction,
-            "travel": TravelAction,
-            "recover": RecoverAction,
-            "search": SearchAction,
-            "campaign": CampaignAction,
-            "use": UsePowerAction,
-            "reveal": PlayFacedownAdviserAction,
-            "moveWarbands": MoveWarbandsAction,
-            "rest": RestAction
-        }
-        const action = nameToAction[actionName];
-        if (!action) throw new BadRequestException(`Invalid action name ${actionName}`);
-        
+    public beginAction(gameId: number, playerIndex: number, actionName: string): object {        
         try {
-            return this._getGame(gameId).startAction(playerIndex, action);
+            return this._getGame(gameId).startAction(playerIndex, actionName);
         } catch (e) {
             // TODO: Use exception filters
             if (e instanceof InvalidActionResolution) throw new BadRequestException(e.message);

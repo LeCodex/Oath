@@ -150,12 +150,12 @@ export class OathGame extends CopiableWithOriginal {
         return powers;
     }
 
-    startAction(by: number, action: Constructor<OathAction>): object {
+    startAction(by: number, actionName: string): object {
         if (this.turn !== by) throw new InvalidActionResolution(`Cannot begin an action outside your turn`);
         if (this.phase !== OathPhase.Act) throw new InvalidActionResolution(`Cannot begin an action outside the Act phase`);
-        if (this.actionManager.actionStack.length) throw new InvalidActionResolution("Cannot start an action while other actions are active");
+        if (this.actionManager.actionsStack.length) throw new InvalidActionResolution("Cannot start an action while other actions are active");
         
-        return this.actionManager.startAction(action);
+        return this.actionManager.startAction(actionName);
     }
 
     checkForOathkeeper(): OathAction | undefined {

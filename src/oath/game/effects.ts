@@ -88,11 +88,11 @@ export class AddActionToStackEffect extends OathEffect<void> {
     }
 
     resolve(): void {
-        this.game.original.actionManager.actionStack.push(this.action);
+        this.game.original.actionManager.actionsStack.push(this.action);
     }
 
     revert(): void {
-        this.game.original.actionManager.actionStack.pop();
+        this.game.original.actionManager.actionsStack.pop();
     }
 }
 
@@ -104,7 +104,7 @@ export class PopActionFromStackEffect extends OathEffect<OathAction | undefined>
     }
     
     resolve(): OathAction | undefined {
-        const action = this.game.original.actionManager.actionStack.pop();
+        const action = this.game.original.actionManager.actionsStack.pop();
         if (!action) {
             this.game.original.actionManager.currentEffectsStack.pop();
             return;
@@ -114,7 +114,7 @@ export class PopActionFromStackEffect extends OathEffect<OathAction | undefined>
     }
 
     revert(): void {
-        if (this.action) this.game.original.actionManager.actionStack.push(this.action);
+        if (this.action) this.game.original.actionManager.actionsStack.push(this.action);
     }
 }
 

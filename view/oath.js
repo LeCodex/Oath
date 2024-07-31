@@ -1,6 +1,7 @@
 let game = {};
 let action = undefined;
 let gameId = undefined;
+let startOptions = undefined;
 
 const setup = async () => {
     const response = await fetch("http://localhost:3000/oath", { 
@@ -9,10 +10,9 @@ const setup = async () => {
         headers: { 'Access-Control-Allow-Origin': '*' } 
     });
 
-    game = await response.json();
-    gameId = game.id;
-    window.alert(`Created game ${game.id}`);
-    render();
+    const info = await handleResponse(response);
+    gameId = info.id;
+    window.alert(`Created game ${gameId}`);
 }
 
 const oathNames = ["Supremacy", "Protection", "the People", "Devotion"];
@@ -122,18 +122,8 @@ const render = () => {
         actionNode.appendChild(renderButton("Submit", () => continueAction()));
     } else {
         actionNode.innerText = "[Start action]";
-        actionNode.appendChild(renderText("[MAJOR]"));
-        actionNode.appendChild(renderButton("Muster", () => startAction("muster")));
-        actionNode.appendChild(renderButton("Trade", () => startAction("trade")));
-        actionNode.appendChild(renderButton("Travel", () => startAction("travel")));
-        actionNode.appendChild(renderButton("Recover", () => startAction("recover")));
-        actionNode.appendChild(renderButton("Search", () => startAction("search")));
-        actionNode.appendChild(renderButton("Campaign", () => startAction("campaign")));
-        actionNode.appendChild(renderText("[MINOR]"));
-        actionNode.appendChild(renderButton("Use", () => startAction("use")));
-        actionNode.appendChild(renderButton("Reveal", () => startAction("reveal")));
-        actionNode.appendChild(renderButton("Move warbands", () => startAction("moveWarbands")));
-        actionNode.appendChild(renderButton("Rest", () => startAction("rest")));
+        for (const name of startOptions)
+            actionNode.appendChild(renderButton(name, () => startAction(name)));
     }
     actionNode.appendChild(renderButton("Cancel", () => cancelAction()));
 }
@@ -161,10 +151,11 @@ const renderText = (text) => {
 }
 
 const renderButton = (text, callback) => {
-    const buttonNode = document.createElement("button");
+    const parentNode = document.createElement("li");
+    const buttonNode = parentNode.appendChild(document.createElement("button"));
     buttonNode.innerText = text;
     buttonNode.onclick = callback;
-    return buttonNode;
+    return parentNode;
 }
 
 const renderCheckbox = (key, text) => {
@@ -222,7 +213,9 @@ const handleResponse = async (response) => {
     
     game = info.game;
     action = info.activeAction;
+    startOptions = info.startOptions;
     render();
+    return info;
 }
 
 setup();

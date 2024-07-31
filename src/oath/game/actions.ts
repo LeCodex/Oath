@@ -18,19 +18,20 @@ import { Constructor, getCopyWithOriginal, isExtended, shuffleArray } from "./ut
 //                MANAGER                 //
 ////////////////////////////////////////////
 export class OathActionManager extends OathGameObject {
-    readonly actionStack: OathAction[] = [];
+    readonly actionsStack: OathAction[] = [];
     readonly futureActionsList: OathAction[] = [];
     readonly currentEffectsStack: OathEffect<any>[] = [];
     readonly pastEffectsStack: OathEffect<any>[][] = [];
     readonly cancelledEffects: OathEffect<any>[] = [];
+    startOptions: Record<string, Constructor<OathAction>> = {};
     noReturn: boolean = false;
 
-    checkForNextAction(): object {
+    checkForNextAction(): Record<string, any> {
         for (const action of this.futureActionsList) new AddActionToStackEffect(action).do();
         this.futureActionsList.length = 0;
 
-        if (!this.actionStack.length) this.game.checkForOathkeeper();
-        let action = this.actionStack[this.actionStack.length - 1];
+        if (!this.actionsStack.length) this.game.checkForOathkeeper();
+        let action = this.actionsStack[this.actionsStack.length - 1];
     
         let contineNow = action?.start();
         if (contineNow) return this.resolveTopAction();
@@ -40,18 +41,16 @@ export class OathActionManager extends OathGameObject {
             this.pastEffectsStack.length = 0;
         }
         this.noReturn = false;
-    
+        
+        if (!action) this.startOptions = this.getStartOptions();
+
         const returnData = {
-            activeAction: action && {
-                message: action.message,
-                player: action.player.color,
-                modifiers: action instanceof ModifiableAction ? action.modifiers.map(e => e.constructor.name) : undefined,
-                selects: Object.fromEntries(Object.entries(action.selects).map(([k, v]) => [k, v.serialize()])),
-            },
+            activeAction: action?.serialize(),
+            startOptions: !action ? Object.keys(this.startOptions) : undefined,
             appliedEffects: this.currentEffectsStack.map(e => e.constructor.name),
             cancelledEffects: this.cancelledEffects.map(e => e.constructor.name),
             game: this.game.serialize()
-        }
+        };
         this.cancelledEffects.length = 0;
         return returnData;
     }
@@ -63,7 +62,27 @@ export class OathActionManager extends OathGameObject {
         }
     }
 
-    startAction(action: Constructor<OathAction>): object {
+    getStartOptions(): Record<string, Constructor<OathAction>> {
+        return {
+            "Muster": MusterAction,
+            "Trade": TradeAction,
+            "Travel": TravelAction,
+            "Recover": RecoverAction,
+            "Search": SearchAction,
+            "Campaign": CampaignAction,
+
+            "Use": UsePowerAction,
+            "Reveal": PlayFacedownAdviserAction,
+            "Move warbands": MoveWarbandsAction,
+            "Rest": RestAction
+        };
+    }
+
+    startAction(actionName: string): object {
+        const action = this.startOptions[actionName];
+        if (!action)
+            throw new InvalidActionResolution("Invalid starting action name");
+
         this.storeEffects();
         new action(this.game.currentPlayer).doNext();
 
@@ -76,7 +95,7 @@ export class OathActionManager extends OathGameObject {
     }
     
     continueAction(by: number, values: Record<string, string[]>): object {
-        const action = this.actionStack[this.actionStack.length - 1];
+        const action = this.actionsStack[this.actionsStack.length - 1];
         if (!action) throw new InvalidActionResolution("No action to continue");
         
         const player = this.game.players[by];
@@ -105,6 +124,7 @@ export class OathActionManager extends OathGameObject {
     cancelAction(): object {
         if (this.currentEffectsStack.length == 0 && this.pastEffectsStack.length == 0) throw new InvalidActionResolution("Cannot roll back");
         
+        this.startOptions = {};
         const reverted = this.revert();
         this.cancelledEffects.splice(0, 0, ...reverted);
         return this.checkForNextAction();
@@ -244,6 +264,14 @@ export abstract class OathAction extends OathGameObject {
     }
 
     abstract execute(): void;
+
+    serialize(): Record<string, any> {
+        return {
+            message: this.message,
+            player: this.player.color,
+            selects: Object.fromEntries(Object.entries(this.selects).map(([k, v]) => [k, v.serialize()])),
+        }
+    }
 }
 
 export class ChooseModifiers extends OathAction {
@@ -346,6 +374,12 @@ export abstract class ModifiableAction extends OathAction {
     }
 
     abstract modifiedExecution(): void;
+
+    serialize(): Record<string, any> {
+        const obj = super.serialize();
+        obj.modifiers = this.modifiers.map(e => e.constructor.name)
+        return obj;
+    }
 }
 
 export abstract class MajorAction extends ModifiableAction {
@@ -963,7 +997,7 @@ export class CampaignResult extends OathGameObject {
     get def() { return DefenseDie.getResult(this.defRoll) + this.totalDefForce; }
 
     get requiredSacrifice() { return this.def - this.atk + 1; }
-    get couldSacrifice() { return this.requiredSacrifice > 0 && this.requiredSacrifice < this.totalAtkForce; }
+    get couldSacrifice() { return this.requiredSacrifice > 0 && this.requiredSacrifice <= this.totalAtkForce; }
 
     get winner() { return this.successful ? this.attacker : this.defender; }
     get loser() { return this.successful ? this.defender : this.attacker; }
