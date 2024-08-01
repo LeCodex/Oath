@@ -199,7 +199,11 @@ export class Reliquary extends OathGameObject {
 
     constructor(game: OathGame) {
         super(game);
-        for (let i = 0; i < 4; i++) this.relics[i] = game.relicDeck.drawSingleCard();
+        for (let i = 0; i < 4; i++) {
+            const relic = game.relicDeck.drawSingleCard();
+            this.relics[i] = relic;
+            relic?.seenBy.add(this.game.chancellor.original);
+        }
     }
 
     putRelic(relic: Relic, index: number): Relic | undefined {
