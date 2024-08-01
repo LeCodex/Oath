@@ -16,7 +16,7 @@ export class IgnoresCapacity extends CapacityModifier<Denizen> {
         return player === this.source.ruler;
     }
 
-    ignoreCapacity(card: WorldCard, facedown?: boolean): boolean {
+    ignoreCapacity(card: WorldCard, facedown: boolean = card.facedown): boolean {
         return !facedown && card === this.source;
     }
 }
@@ -119,7 +119,7 @@ export class VowOfObedience extends AccessedActionModifier<Denizen> {
 export class VowOfObedienceRest extends RestPower<Denizen> {
     name = "Vow of Obedience";
 
-    applyBefore(): void {
+    applyAfter(): void {
         new TakeFavorFromBankAction(this.action.player, 1).doNext();
     }
 }
@@ -459,6 +459,10 @@ export class FamilyWagon extends CapacityModifier<Denizen> {
         // to replace Family Wagon if you want to)
         return [2, [...source].filter(e => e !== this.source && e instanceof Denizen && e.suit === OathSuit.Nomad)];
     }
+
+    ignoreCapacity(card: WorldCard, facedown: boolean = card.facedown): boolean {
+        return !facedown && card.original !== this.source.original && card instanceof Denizen && card.suit === OathSuit.Nomad;
+    }
 }
 
 
@@ -516,7 +520,7 @@ export class Assassin extends ActivePower<Denizen> {
 export class Insomnia extends RestPower<Denizen> {
     name = "Insomnia";
 
-    applyBefore(): void {
+    applyAfter(): void {
         new PutResourcesOnTargetEffect(this.action.game, this.action.player, OathResource.Secret, 1).do();
     }
 }
@@ -524,7 +528,7 @@ export class Insomnia extends RestPower<Denizen> {
 export class SilverTongue extends RestPower<Denizen> {
     name = "Silver Tongue";
 
-    applyBefore(): void {
+    applyAfter(): void {
         const suits: Set<OathSuit> = new Set();
         for (const denizen of this.action.player.site.denizens) suits.add(denizen.suit);
         new TakeFavorFromBankAction(this.action.player, 1, suits).doNext();
@@ -545,7 +549,7 @@ export class SleightOfHand extends ActivePower<Denizen> {
 export class Naysayers extends RestPower<Denizen> {
     name = "Naysayers";
 
-    applyBefore(): void {
+    applyAfter(): void {
         if (!this.action.game.oathkeeper.isImperial)
             new MoveResourcesToTargetEffect(this.action.game, this.action.player, OathResource.Favor, 1, this.action.player, this.action.game.chancellor).do();
     }
@@ -648,8 +652,9 @@ export class VowOfPoverty extends AccessedActionModifier<Denizen> {
 export class VowOfPovertyRest extends RestPower<Denizen> {
     name = "Vow of Poverty";
 
-    applyBefore(): void {
-        new TakeFavorFromBankAction(this.action.player, 2).doNext();
+    applyAfter(): void {
+        if (this.action.player.getResources(OathResource.Favor) === 0)
+            new TakeFavorFromBankAction(this.action.player, 2).doNext();
     }
 }
 

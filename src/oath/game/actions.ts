@@ -1224,10 +1224,14 @@ export class WakeAction extends ModifiableAction {
 export class RestAction extends ModifiableAction {
     readonly message = "";
 
+    execute(): void {
+        super.execute();
+        new NextTurnEffect(this.game).doNext();
+    }
+
     modifiedExecution(): void {
         new ChangePhaseEffect(this.game, OathPhase.Rest).do();
         this.player.original.rest();
-        new NextTurnEffect(this.game).doNext();
     }
 }
 
@@ -1440,12 +1444,10 @@ export abstract class ChooseSuit extends OathAction {
 
     constructor(player: OathPlayer, suits?: Iterable<OathSuit>) {
         super(player, true);  // Don't copy, they're not modifiable, are not entry points, and can be used to modify data in other actions
-        this.suits = new Set(suits);
+        this.suits = new Set(suits || [OathSuit.Discord, OathSuit.Arcane, OathSuit.Order, OathSuit.Hearth, OathSuit.Beast, OathSuit.Nomad]);
     }
 
     start(none?: string) {
-        if (!this.suits.size) this.suits = new Set([OathSuit.Discord, OathSuit.Arcane, OathSuit.Order, OathSuit.Hearth, OathSuit.Beast, OathSuit.Nomad]);
-
         const choices = new Map<string, OathSuit | undefined>();
         for (const suit of this.suits) choices.set(OathSuitName[suit], suit);
         if (none) choices.set(none, undefined);
@@ -1502,7 +1504,7 @@ export class TakeFavorFromBankAction extends ChooseSuit {
     start(none?: string) {
         for (const suit of this.suits) {
             const bank = this.game.favorBanks.get(suit);
-            if (bank && bank.amount) this.suits.delete(suit);
+            if (bank && !bank.amount) this.suits.delete(suit);
         }
         return super.start(none);
     }
@@ -1546,6 +1548,7 @@ export class PeoplesFavorWakeAction extends ChooseSuit {
             new SetPeoplesFavorMobState(this.game, this.player, this.banner, true).do();
     }
 }
+
 
 export class ChooseResourceToTakeAction extends OathAction {
     readonly selects: { resource: SelectNOf<OathResource> };
