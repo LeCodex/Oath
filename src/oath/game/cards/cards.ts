@@ -33,10 +33,6 @@ export abstract class OathCard extends ResourcesAndWarbands {
         this.facedown = true;
     }
 
-    peek(player: OathPlayer) {
-        this.seenBy.add(player);
-    }
-
     serialize(): Record<string, any> {
         const obj: Record<string, any> = super.serialize();
         obj.name = this.name;

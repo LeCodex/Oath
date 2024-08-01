@@ -1,4 +1,4 @@
-import { Denizen, Edifice, OwnableCard, Site, Vision, WorldCard } from "./cards/cards";
+import { Denizen, Edifice, OathCard, OwnableCard, Site, Vision, WorldCard } from "./cards/cards";
 import { CardRestriction, OathPhase, OathResource, OathSuit, PlayerColor } from "./enums";
 import { Exile, OathPlayer } from "./player";
 import { EffectModifier, OathPower, WhenPlayed } from "./powers/powers";
@@ -479,12 +479,66 @@ export class TravelEffect extends PlayerEffect<void> {
 
         this.revealedSite = this.site.original.facedown;
         if (this.revealedSite) this.site.original.reveal();
+        for (const relic of this.site.relics) new UpdateCardPeekEffect(this.player, relic, true).do();
     }
 
     revert(): void {
         // This effect SHOULD NOT get reverted
         this.player.original.site = this.oldSite;
         if (this.revealedSite) this.site.original.hide();
+    }
+}
+
+export class UpdateCardPeekEffect extends PlayerEffect<void> {
+    card: OathCard;
+    peeking: boolean;
+    done: boolean;
+
+    constructor(player: OathPlayer, card: OathCard, peeking: boolean) {
+        super(player);
+        this.card = card;
+        this.peeking = peeking;
+    }
+
+    resolve(): void {
+        if (this.peeking === this.card.seenBy.has(this.player.original)) {
+            this.done = false;
+            return;
+        }
+        this.done = true;
+
+        if (this.peeking)
+            this.card.seenBy.add(this.player.original);
+        else
+            this.card.seenBy.delete(this.player.original);
+    }
+
+    revert(): void {
+        if (!this.done) return;
+
+        if (this.peeking)
+            this.card.seenBy.delete(this.player.original);
+        else
+            this.card.seenBy.add(this.player.original);
+    }
+}
+
+export class ClearCardPeekEffect extends PlayerEffect<void> {
+    card: OathCard;
+    oldPeeks: Set<OathPlayer>;
+
+    constructor(player: OathPlayer, card: OathCard) {
+        super(player);
+        this.card = card;
+    }
+
+    resolve(): void {
+        this.oldPeeks = new Set(this.card.seenBy);
+        this.card.seenBy.clear();
+    }
+
+    revert(): void {
+        this.card.seenBy = this.oldPeeks;
     }
 }
 
@@ -503,6 +557,11 @@ export class DrawFromDeckEffect<T extends OwnableCard> extends PlayerEffect<T[]>
 
     resolve(): T[] {
         this.cards = this.deck.original.draw(this.amount, this.fromBottom);
+        for (const card of this.cards) {
+            if (this.cards.length > 1) new ClearCardPeekEffect(this.player, card).do();
+            new UpdateCardPeekEffect(this.player, card, true).do();
+        }
+
         return this.cards;
     }
 
