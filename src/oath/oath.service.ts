@@ -18,6 +18,7 @@ export class OathService {
         // TEMP: Forcefully set the number of players and oath
         const game = new OathGame(OathType.Supremacy, 4);
         this.games.set(id, game);
+        
         const obj = game.actionManager.checkForNextAction();
         obj.id = id;
         return obj;

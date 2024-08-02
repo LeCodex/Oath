@@ -479,7 +479,7 @@ export class TravelEffect extends PlayerEffect<void> {
 
         this.revealedSite = this.site.original.facedown;
         if (this.revealedSite) this.site.original.reveal();
-        for (const relic of this.site.relics) new UpdateCardPeekEffect(this.player, relic, true).do();
+        for (const relic of this.site.relics) new PeekAtCardEffect(this.player, relic).do();
     }
 
     revert(): void {
@@ -489,37 +489,23 @@ export class TravelEffect extends PlayerEffect<void> {
     }
 }
 
-export class UpdateCardPeekEffect extends PlayerEffect<void> {
+export class PeekAtCardEffect extends PlayerEffect<void> {
     card: OathCard;
-    peeking: boolean;
-    done: boolean;
+    peeked: boolean;
 
-    constructor(player: OathPlayer, card: OathCard, peeking: boolean) {
+    constructor(player: OathPlayer, card: OathCard) {
         super(player);
         this.card = card;
-        this.peeking = peeking;
     }
 
     resolve(): void {
-        if (this.peeking === this.card.seenBy.has(this.player.original)) {
-            this.done = false;
-            return;
-        }
-        this.done = true;
-
-        if (this.peeking)
-            this.card.seenBy.add(this.player.original);
-        else
-            this.card.seenBy.delete(this.player.original);
+        this.peeked = !this.card.original.seenBy.has(this.player.original);
+        if (this.peeked) this.card.original.seenBy.add(this.player.original);
     }
 
     revert(): void {
-        if (!this.done) return;
-
-        if (this.peeking)
-            this.card.seenBy.delete(this.player.original);
-        else
-            this.card.seenBy.add(this.player.original);
+        if (!this.peeked) return;
+        this.card.original.seenBy.delete(this.player.original);
     }
 }
 
@@ -559,7 +545,7 @@ export class DrawFromDeckEffect<T extends OwnableCard> extends PlayerEffect<T[]>
         this.cards = this.deck.original.draw(this.amount, this.fromBottom);
         for (const card of this.cards) {
             if (this.cards.length > 1) new ClearCardPeekEffect(this.player, card).do();
-            new UpdateCardPeekEffect(this.player, card, true).do();
+            new PeekAtCardEffect(this.player, card).do();
         }
 
         return this.cards;
@@ -1039,7 +1025,7 @@ export class NextTurnEffect extends OathEffect<void> {
             // TODO: Break ties according to the rules. Maybe have constant references to the Visions?
             for (const player of Object.values(this.game.players)) {
                 if (player instanceof Exile && player.vision) {
-                    const candidates = player.vision.oath.getCandidates();
+                    const candidates = player.vision.oath.getOathkeeperCandidates();
                     if (candidates.size === 1 && candidates.has(player))
                         return new WinGameEffect(player).do();
                 }

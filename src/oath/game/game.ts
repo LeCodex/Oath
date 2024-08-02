@@ -1,4 +1,4 @@
-import { ChooseNewOathkeeper, InvalidActionResolution, OathAction, OathActionManager } from "./actions";
+import { ChooseNewOathkeeper, ChooseSuccessor, InvalidActionResolution, OathAction, OathActionManager } from "./actions";
 import { OathBoard } from "./board";
 import { Conspiracy, Denizen, Relic, Site, Vision } from "./cards/cards";
 import { CardDeck, RelicDeck, WorldDeck } from "./cards/decks";
@@ -80,7 +80,7 @@ export class OathGame extends CopiableWithOriginal {
             player.putResources(OathResource.Favor, Number(color) === PlayerColor.Purple ? 2 : 1);  // TODO: Take favor from supply
             player.putResources(OathResource.Secret, 1);
             player.moveWarbandsFromBagOnto(player, 3);
-            
+
             const card = this.worldDeck.drawSingleCard(true);
             if (card) {
                 card.seenBy.add(player);
@@ -164,17 +164,15 @@ export class OathGame extends CopiableWithOriginal {
     }
 
     checkForOathkeeper(): OathAction | undefined {
-        const candidates = this.oath.getCandidates();
+        const candidates = this.oath.getOathkeeperCandidates();
         if (candidates.has(this.oathkeeper)) return;
-        if (candidates.size) new AddActionToStackEffect(new ChooseNewOathkeeper(this.oathkeeper, candidates)).do();
+        if (candidates.size) new ChooseNewOathkeeper(this.oathkeeper, candidates).doNext();
     }
 
     empireWins() {
-        for (const player of Object.values(this.players))
-            if (player instanceof Exile && player.isCitizen && this.oath.isSuccessor(player))
-                return new WinGameEffect(player).do();
-
-        new WinGameEffect(this.chancellor).do();
+        const candidates = this.oath.getSuccessorCandidates();
+        if (candidates.has(this.chancellor)) new WinGameEffect(this.chancellor).do();
+        new ChooseSuccessor(this.chancellor, candidates).doNext();
     }
 
     serialize(): Record<string, any> {

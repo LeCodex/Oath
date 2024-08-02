@@ -7,14 +7,14 @@ export abstract class Oath extends OathGameObject {
     type: OathType;
 
     abstract setup(): void;
-    abstract scorePlayer(player: OathPlayer): number;
-    abstract isSuccessor(player: OathPlayer): boolean;
+    abstract scoreForOathkeeper(player: OathPlayer): number;
+    abstract scoreForSuccessor(player: OathPlayer): number;
 
-    getCandidates(): Set<OathPlayer> {
+    getCandidates(evaluation: (player: OathPlayer) => number): Set<OathPlayer> {
         let max = 0;
         const candidates = new Set<OathPlayer>();
         for (const player of Object.values(this.game.players)) {
-            const score = this.scorePlayer(player);
+            const score = evaluation(player);
             if (score > max) {
                 candidates.clear();
                 candidates.add(player);
@@ -26,6 +26,14 @@ export abstract class Oath extends OathGameObject {
 
         return candidates;
     }
+
+    getOathkeeperCandidates(): Set<OathPlayer> {
+        return this.getCandidates(this.scoreForOathkeeper.bind(this));
+    }
+
+    getSuccessorCandidates(): Set<OathPlayer> {
+        return this.getCandidates(this.scoreForSuccessor.bind(this));
+    }
 }
 
 export class OathOfSupremacy extends Oath {
@@ -35,7 +43,7 @@ export class OathOfSupremacy extends Oath {
         // Chancellor already rules most sites
     }
 
-    scorePlayer(player: OathPlayer): number {
+    scoreForOathkeeper(player: OathPlayer): number {
         let total = 0;
         for (const site of this.game.board.sites())
             if (site.ruler === player) total++;
@@ -43,8 +51,8 @@ export class OathOfSupremacy extends Oath {
         return total;
     }
 
-    isSuccessor(player: OathPlayer): boolean {
-        return player.relics.size + player.banners.size > this.game.chancellor.relics.size + this.game.chancellor.banners.size;
+    scoreForSuccessor(player: OathPlayer): number {
+        return player.relics.size + player.banners.size;
     }
 }
 
@@ -55,12 +63,12 @@ export class OathOfProtection extends Oath {
         // Chancellor already has the Scepter
     }
 
-    scorePlayer(player: OathPlayer): number {
+    scoreForOathkeeper(player: OathPlayer): number {
         return player.relics.size + player.banners.size;
     }
 
-    isSuccessor(player: OathPlayer): boolean {
-        return this.game.banners.get(BannerName.PeoplesFavor)?.owner?.original === player.original;
+    scoreForSuccessor(player: OathPlayer): number {
+        return this.game.banners.get(BannerName.PeoplesFavor)?.owner?.original === player.original ? 1 : 0;
     }
 }
 
@@ -71,12 +79,12 @@ export class OathOfThePeople extends Oath {
         this.game.banners.get(BannerName.PeoplesFavor)?.setOwner(this.game.chancellor);
     }
 
-    scorePlayer(player: OathPlayer): number {
+    scoreForOathkeeper(player: OathPlayer): number {
         return this.game.banners.get(BannerName.PeoplesFavor)?.owner?.original === player.original ? 1 : 0;
     }
 
-    isSuccessor(player: OathPlayer): boolean {
-        return this.game.banners.get(BannerName.DarkestSecret)?.owner?.original === player.original;
+    scoreForSuccessor(player: OathPlayer): number {
+        return this.game.banners.get(BannerName.DarkestSecret)?.owner?.original === player.original ? 1 : 0;
     }
 }
 
@@ -87,12 +95,12 @@ export class OathOfDevotion extends Oath {
         this.game.banners.get(BannerName.DarkestSecret)?.setOwner(this.game.chancellor);
     }
 
-    scorePlayer(player: OathPlayer): number {
+    scoreForOathkeeper(player: OathPlayer): number {
         return this.game.banners.get(BannerName.DarkestSecret)?.owner?.original === player.original ? 1 : 0;
     }
 
-    isSuccessor(player: OathPlayer): boolean {
-        return this.game.grandScepter.owner?.original === player.original;
+    scoreForSuccessor(player: OathPlayer): number {
+        return this.game.grandScepter.owner?.original === player.original ? 1 : 0;
     }
 }
 

@@ -1211,7 +1211,7 @@ export class WakeAction extends ModifiableAction {
                 new SetUsurperEffect(this.game, true).do();
         
         if (this.player instanceof Exile && this.player.vision && this.game.worldDeck.visionsDrawn >= 3) {
-            const candidates = this.player.vision.oath.getCandidates();
+            const candidates = this.player.vision.oath.getOathkeeperCandidates();
             if (candidates.size === 1 && candidates.has(this.player))
                 return new WinGameEffect(this.player).do();
         }
@@ -1746,6 +1746,32 @@ export class ActAsIfAtSiteAction extends ChooseSite {
 ////////////////////////////////////////////
 //             END OF THE GAME            //
 ////////////////////////////////////////////
+export class ChooseSuccessor extends OathAction {
+    readonly selects: { successor: SelectNOf<OathPlayer> };
+    readonly parameters: { successor: OathPlayer[] };
+    readonly message = "Choose a Successor";
+    candidates: Set<OathPlayer>;
+
+    constructor(player: OathPlayer, candidates: Set<OathPlayer>) {
+        super(player);
+        this.candidates = candidates;
+    }
+
+    start(): boolean {
+        const choices = new Map<string, OathPlayer>();
+        for (const player of Object.values(this.candidates))
+            if (player instanceof Exile && player.isCitizen)
+                choices.set(player.name, player);
+        this.selects.successor = new SelectNOf("Successor", choices);
+        return super.start();
+    }
+
+    execute(): void {
+        const successor = this.parameters.successor[0];
+        new WinGameEffect(successor).do();
+    }
+}
+
 export class VowOathAction extends OathAction {
     readonly selects: { oath: SelectNOf<OathType> };
     readonly parameters: { oath: OathType[] };
