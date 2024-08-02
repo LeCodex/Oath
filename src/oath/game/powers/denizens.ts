@@ -70,7 +70,7 @@ export class TollRoads extends EnemyEffectModifier<Denizen> {
     modifiedEffect = TravelEffect;
     effect: TravelEffect;
 
-    applyDuring(): void {
+    applyBefore(): void {
         if (this.effect.site.ruler?.original === this.source.ruler?.original) {
             if (!new PayCostToTargetEffect(this.effect.game, this.effect.player, new ResourceCost([[OathResource.Favor, 1]]), this.source.ruler).do())
                 throw new InvalidActionResolution("Cannot pay the Toll Roads.");
@@ -363,7 +363,7 @@ export class MarriageEffectModifier extends AccessedEffectModifier<Denizen> {
     effect: OathEffect<any>;
     mustUse = true;
 
-    applyDuring(): void {
+    applyBefore(): void {
         if (!this.effect.player) return;
         const original = this.effect.player.original;
         const originalFn = original.adviserSuitCount.bind(original);
@@ -406,7 +406,7 @@ export class LostTongue extends EnemyEffectModifier<Denizen> {
     modifiedEffect = TakeOwnableObjectEffect;
     effect: TakeOwnableObjectEffect;
 
-    applyDuring(): void {
+    applyBefore(): void {
         lostTongueCheckOwnable(this.source, this.effect.target, this.effect.player);
     }
 }
@@ -438,7 +438,7 @@ export class SpellBreaker extends EnemyEffectModifier<Denizen> {
     modifiedEffect = PayPowerCost;
     effect: PayPowerCost;
 
-    applyDuring(): void {
+    applyBefore(): void {
         if (this.effect.power.cost.totalResources.get(OathResource.Secret))
             throw new InvalidActionResolution("Cannot use powers that cost Secrets under the Spell Breaker");
     }

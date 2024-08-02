@@ -275,7 +275,7 @@ export class Denizen extends WorldCard {
 
     serialize(): Record<string, any> {
         const obj: Record<string, any> = super.serialize();
-        obj.suit = this.suit;
+        obj.suit = this._suit;
         // obj.site = this.site?.name;
         obj.restriction = this.restriction;
         obj.locked = this.activelyLocked;

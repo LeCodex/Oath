@@ -133,7 +133,7 @@ export abstract class EffectModifier<T extends OathGameObject> extends OathPower
         return true;
     }
 
-    applyDuring(): void { }             // Applied right before the resolution of the effect
+    applyBefore(): void { }             // Applied right before the resolution of the effect
     applyAfter(result: any): void { }   // Applied after the resolution of the effect
 }
 

@@ -51,7 +51,7 @@ export abstract class OathEffect<T> extends OathGameObject {
             const instance = new modifier(source, this);
             if (this instanceof instance.modifiedEffect && instance.canUse()) {  // All Effect Modifiers are must-use
                 this.modifiers.push(instance);
-                instance.applyDuring();
+                instance.applyBefore();
             }
         };
     }
