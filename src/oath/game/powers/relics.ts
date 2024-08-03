@@ -1,10 +1,67 @@
-import { TradeAction, InvalidActionResolution, CampaignAtttackAction, MusterAction } from "../actions";
-import { Relic, Site } from "../cards/cards";
-import { TakeOwnableObjectEffect, TravelEffect, PutWarbandsFromBagEffect, PlayDenizenAtSiteEffect, CursedCauldronResolutionEffect, MoveOwnWarbandsEffect } from "../effects";
+import { TradeAction, InvalidActionResolution, CampaignAtttackAction, MusterAction, UsePowerAction, CitizenshipOfferAction, StartBindingExchangeAction, ExileCitizenAction } from "../actions";
+import { GrandScepter, Relic, Site } from "../cards/cards";
+import { TakeOwnableObjectEffect, TravelEffect, PutWarbandsFromBagEffect, PlayDenizenAtSiteEffect, CursedCauldronResolutionEffect, MoveOwnWarbandsEffect, PeekAtCardEffect, SetGrandScepterLockEffect } from "../effects";
 import { OathResource } from "../enums";
-import { OwnableObject, OathPlayer, isOwnable } from "../player";
-import { AccessedActionModifier, EnemyEffectModifier, EnemyActionModifier, AccessedEffectModifier, AttackerBattlePlan, DefenderBattlePlan, ActionModifier, EffectModifier } from "./powers";
+import { OwnableObject, OathPlayer, isOwnable, Exile } from "../player";
+import { AccessedActionModifier, EnemyEffectModifier, EnemyActionModifier, AccessedEffectModifier, AttackerBattlePlan, DefenderBattlePlan, ActionModifier, EffectModifier, ActivePower, RestPower } from "./powers";
 
+
+export class GrandScepterSeize extends EffectModifier<GrandScepter> {
+    name = "Lock the Grand Scepter";
+    modifiedEffect = TakeOwnableObjectEffect;
+    effect: TakeOwnableObjectEffect;
+
+    canUse(): boolean {
+        return this.effect.target.original === this.source.original;
+    }
+    
+    applyAfter(): void {
+        new SetGrandScepterLockEffect(this.game, true).do();
+    }
+}
+export class GrandScepterRest extends RestPower<GrandScepter> {
+    name = "Unlock the Grand Scepter";
+
+    applyAfter(): void {
+        new SetGrandScepterLockEffect(this.game, false).do();
+    }
+}
+export class GrandScepterPeek extends ActivePower<GrandScepter> {
+    name = "Peek at the Reliquary";
+
+    canUse(): boolean {
+        return super.canUse() && !this.source.seizedThisTurn;
+    }
+
+    usePower(action: UsePowerAction): void {
+        for (const relic of this.game.chancellor.reliquary.relics) 
+            if (relic)
+                new PeekAtCardEffect(action.player, relic).do(); 
+    }
+}
+export class GrandScepterGrantCitizenship extends ActivePower<GrandScepter> {
+    name = "Grant Citizenship";
+
+    canUse(): boolean {
+        return super.canUse() && !this.source.seizedThisTurn;
+    }
+
+    usePower(action: UsePowerAction): void {
+        const players = Object.values(this.game.players).filter(e => e instanceof Exile && !e.isCitizen);
+        new StartBindingExchangeAction(action.player, CitizenshipOfferAction, players).doNext();
+    }
+}
+export class GrandScepterExileCitizen extends ActivePower<GrandScepter> {
+    name = "Exile a Citizen";
+
+    canUse(): boolean {
+        return super.canUse() && !this.source.seizedThisTurn;
+    }
+
+    usePower(action: UsePowerAction): void {
+        new ExileCitizenAction(action.player).doNext();
+    }
+}
 
 export class CupOfPlenty extends AccessedActionModifier<Relic> {
     name = "Cup of Plenty";

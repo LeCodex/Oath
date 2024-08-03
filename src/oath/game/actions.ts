@@ -1,8 +1,8 @@
 import { Denizen, Edifice, Relic, Site, VisionBack, WorldCard } from "./cards/cards";
 import { SearchableDeck } from "./cards/decks";
 import { AttackDie, DefenseDie, Die } from "./dice";
-import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect, DiscardCardEffect, MoveOwnWarbandsEffect, AddActionToStackEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect, SetNewOathkeeperEffect, SetPeoplesFavorMobState, DiscardCardGroupEffect, OathEffect, PopActionFromStackEffect, PaySupplyEffect, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, ChangeEdificeEffect, ModifiedExecutionEffect, CampaignResolveSuccessfulAndSkullsEffect } from "./effects";
-import { OathPhase, OathResource, OathResourceName, OathSuit, OathSuitName, OathType, OathTypeName } from "./enums";
+import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect, DiscardCardEffect, MoveOwnWarbandsEffect, AddActionToStackEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect, SetNewOathkeeperEffect, SetPeoplesFavorMobState, DiscardCardGroupEffect, OathEffect, PopActionFromStackEffect, PaySupplyEffect, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, ChangeEdificeEffect, ModifiedExecutionEffect, CampaignResolveSuccessfulAndSkullsEffect, BindingExchangeEffect, CitizenshipOfferEffect } from "./effects";
+import { BannerName, OathPhase, OathResource, OathResourceName, OathSuit, OathSuitName, OathType, OathTypeName } from "./enums";
 import { OathGame } from "./game";
 import { OathGameObject } from "./gameObject";
 import { OathTypeToOath } from "./oaths";
@@ -1588,16 +1588,14 @@ export abstract class ChoosePlayer extends OathAction {
 
     constructor(player: OathPlayer, players?: Iterable<OathPlayer>) {
         super(player, true);  // Don't copy, they're not modifiable, are not entry points, and can be used to modify data in other actions
-        this.players = new Set(players);
+        this.players = players ? new Set(players) : new Set(Object.values(this.game.players));
     }
 
     start(none?: string) {
-        if (!this.players.size)
-            this.players = new Set(Object.values(this.game.players).filter(e => e !== this.player));
-
         const choices = new Map<string, OathPlayer | undefined>();
         for (const player of this.players)
-            if (player.original !== this.player.original || this.canChooseSelf) choices.set(player.name, player);
+            if (player.original !== this.player.original || this.canChooseSelf)
+                choices.set(player.name, player);
         if (none) choices.set(none, undefined);
         this.selects.player = new SelectNOf("Player", choices, 1);
 
@@ -1699,6 +1697,52 @@ export class ConspiracyStealAction extends OathAction {
     }
 }
 
+export class StartBindingExchangeAction extends ChoosePlayer {
+    readonly message = "Start a binding exchange with another player";
+
+    next: Constructor<MakeBindingExchangeOfferAction>;
+
+    constructor(player: OathPlayer, next: Constructor<MakeBindingExchangeOfferAction>, players?: Iterable<OathPlayer>) {
+        super(player, players);
+        this.next = next;
+    }
+
+    execute(): void {
+        super.execute();
+        if (!this.target) return;
+        new this.next(this.player, this.target, new this.next(this.target, this.player)).doNext();
+    }
+}
+
+export class ExileCitizenAction extends ChoosePlayer {
+    readonly message = "Exile a Citizen";
+
+    constructor(player: OathPlayer) {
+        const players = [];
+        for (const citizen of Object.values(player.game.players))
+            if (citizen instanceof Exile && citizen.isCitizen)
+                players.push(citizen);
+        
+        super(player, players);
+    }
+
+    execute(): void {
+        super.execute();
+        if (!this.target) return;
+
+        let amount = 5;
+        const peoplesFavor = this.game.banners.get(BannerName.PeoplesFavor);
+        if (this.player.original === this.game.oathkeeper) amount--;
+        if (peoplesFavor?.owner?.original === this.player.original) amount--;
+        if (this.target.original === this.game.oathkeeper) amount++;
+        if (peoplesFavor?.owner?.original === this.target.original) amount++;
+        if (!new PayCostToTargetEffect(this.game, this.player, new ResourceCost([[OathResource.Favor, amount]]), this.target).do())
+            throw new InvalidActionResolution("Cannot pay resource cost");
+
+        new BecomeExileEffect(this.target).do();
+    }
+}
+
 
 export abstract class ChooseSite extends OathAction {
     readonly selects: { site: SelectNOf<Site | undefined> };
@@ -1738,6 +1782,90 @@ export class ActAsIfAtSiteAction extends ChooseSite {
         if (!this.target) return;
         console.log(this.target);
         this.player.site = this.target;
+    }
+}
+
+
+export class MakeBindingExchangeOfferAction extends OathAction {
+    readonly selects: { favors: SelectNumber, secrets: SelectNumber };
+    readonly parameters: { favors: number[], secrets: number[] };
+    readonly message = "Choose what you want in the exchange";
+
+    other: OathPlayer;
+    effect: BindingExchangeEffect;
+    next?: MakeBindingExchangeOfferAction;
+
+    constructor(player: OathPlayer, other: OathPlayer, next?: MakeBindingExchangeOfferAction) {
+        super(player);
+        this.other = other;
+        this.next = next;
+        this.effect = next?.effect || new BindingExchangeEffect(other, player);
+    }
+
+    start(): boolean {
+        const values = [];
+        for (let i = 0; i <= this.other.getResources(OathResource.Favor); i++) values.push(i);
+        this.selects.favors = new SelectNumber("Favors", values);
+        
+        values.length = 0;
+        for (let i = 0; i <= this.other.getResources(OathResource.Secret); i++) values.push(i);
+        this.selects.secrets = new SelectNumber("Secrets", values);
+
+        return super.start();
+    }
+
+    execute(): void {
+        const favors = this.parameters.favors[0];
+        const secrets = this.parameters.secrets[0];
+
+        if (this.next) {
+            this.effect.resourcesTaken.set(OathResource.Favor, favors);
+            this.effect.resourcesTaken.set(OathResource.Secret, secrets);
+            this.next.doNext();
+        } else {
+            this.effect.resourcesGiven.set(OathResource.Favor, favors);
+            this.effect.resourcesGiven.set(OathResource.Secret, secrets);
+            new AskForPermissionAction(this.other, this.effect).doNext();
+        }
+    }
+}
+
+export class CitizenshipOfferAction extends MakeBindingExchangeOfferAction {
+    readonly selects: { favors: SelectNumber, secrets: SelectNumber, reliquaryRelic: SelectNumber, things: SelectNOf<Relic | Banner> };
+    readonly parameters: { favors: number[], secrets: number[], reliquaryRelic: number[], things: (Relic | Banner)[] };
+
+    effect: CitizenshipOfferEffect;
+
+    constructor(player: OathPlayer, other: OathPlayer, next?: CitizenshipOfferAction) {
+        super(player, other, next);
+        this.effect = next?.effect || new CitizenshipOfferEffect(other, player);
+    }
+
+    start(): boolean {
+        if (!this.next) {
+            const values = [];
+            for (let i = 0; i < 4; i++) if (this.game.chancellor.reliquary.relics[i]) values.push(i);
+            this.selects.reliquaryRelic = new SelectNumber("Reliquary slot", values);
+        }
+
+        const choices = new Map<string, Relic | Banner>();
+        for (const relic of this.other.relics) choices.set(relic.name, relic);
+        for (const banner of this.other.banners) choices.set(banner.name, banner);
+        this.selects.things = new SelectNOf("Relics and banners", choices);
+
+        return super.start();
+    }
+
+    execute(): void {
+        const things = new Set(this.parameters.things);
+        if (this.next) {
+            this.effect.thingsTaken = things;
+        } else {
+            this.effect.thingsGiven = things;
+            this.effect.reliquaryIndex = this.parameters.reliquaryRelic[0];
+        }
+
+        super.execute();
     }
 }
 

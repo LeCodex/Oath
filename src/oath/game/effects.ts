@@ -1,9 +1,9 @@
-import { Denizen, Edifice, OathCard, OwnableCard, Site, Vision, WorldCard } from "./cards/cards";
+import { Denizen, Edifice, OathCard, OwnableCard, Relic, Site, Vision, WorldCard } from "./cards/cards";
 import { CardRestriction, OathPhase, OathResource, OathSuit, PlayerColor } from "./enums";
 import { Exile, OathPlayer } from "./player";
 import { EffectModifier, OathPower, WhenPlayed } from "./powers/powers";
 import { ResourceCost, ResourcesAndWarbands } from "./resources";
-import { PeoplesFavor, ResourceBank } from "./banks";
+import { Banner, PeoplesFavor, ResourceBank } from "./banks";
 import { OwnableObject } from "./player";
 import { OathGame } from "./game";
 import { OathGameObject } from "./gameObject";
@@ -853,6 +853,33 @@ export class DiscardCardEffect extends PlayerEffect<void> {
 
 export class TakeOwnableObjectEffect extends OathEffect<void> {
     target: OwnableObject;
+    flipFaceup: boolean;
+    oldOwner: OathPlayer | undefined;
+
+    constructor(game: OathGame, player: OathPlayer | undefined, target: OwnableObject, flipFaceup: boolean = true) {
+        super(game, player);
+        this.target = target;
+        this.flipFaceup = flipFaceup
+    }
+
+    resolve(): void {
+        this.oldOwner = this.target.original.owner;
+        this.target.original.setOwner(this.player?.original);
+
+        if (this.target instanceof OwnableCard) {
+            this.flipFaceup = this.flipFaceup && this.target.facedown;
+            if (this.flipFaceup) this.target.reveal();
+        }
+    }
+
+    revert(): void {
+        this.target.original.setOwner(this.oldOwner);
+        if (this.target instanceof OwnableCard && this.flipFaceup) this.target.hide();
+    }
+}
+
+export class GiveOwnableObjectEffect extends OathEffect<void> {
+    target: OwnableObject;
     oldOwner: OathPlayer | undefined;
 
     constructor(game: OathGame, player: OathPlayer | undefined, target: OwnableObject) {
@@ -1077,10 +1104,9 @@ export class BecomeCitizenEffect extends PlayerEffect<void> {
     resolved = false;
 
     resolve(): void {
-        if (!(this.player instanceof Exile)) return;
-        if (this.player.isCitizen) return;
+        if (!(this.player instanceof Exile) || this.player.isCitizen) return;
         this.resolved = true;
-        this.player.isCitizen = true;
+        this.player.original.isCitizen = true;
         
         for (const site of this.game.board.sites())
             new PutWarbandsFromBagEffect(this.game.chancellor, new TakeWarbandsIntoBagEffect(this.player, Infinity, site).do(), site).do();
@@ -1097,8 +1123,7 @@ export class BecomeCitizenEffect extends PlayerEffect<void> {
     }
 
     revert(): void {
-        if (!(this.player instanceof Exile)) return;
-        if (!this.resolved) return;
+        if (!(this.player instanceof Exile) || !this.resolved) return;
         this.player.original.isCitizen = false;
         this.player.original.setVision(this.oldVision);
     }
@@ -1108,8 +1133,7 @@ export class BecomeExileEffect extends PlayerEffect<void> {
     resolved = false;
 
     resolve(): void {
-        if (!(this.player instanceof Exile)) return;
-        if (!this.player.isCitizen) return;
+        if (!(this.player instanceof Exile) || !this.player.isCitizen) return;
         this.resolved = true;
         this.player.original.isCitizen = false;
         new PutWarbandsFromBagEffect(this.player, new TakeWarbandsIntoBagEffect(this.game.chancellor, Infinity, this.player).do(), this.player).do();
@@ -1118,11 +1142,11 @@ export class BecomeExileEffect extends PlayerEffect<void> {
     }
 
     revert(): void {
-        if (!(this.player instanceof Exile)) return;
-        if (!this.resolved) return;
+        if (!(this.player instanceof Exile) || !this.resolved) return;
         this.player.original.isCitizen = true;
     }
 }
+
 
 //////////////////////////////////////////////////
 //              SPECIFIC EFFECTS                //
@@ -1166,6 +1190,25 @@ export class SetPeoplesFavorMobState extends OathEffect<void> {
     }
 }
 
+export class SetGrandScepterLockEffect extends OathEffect<void> {
+    state: boolean;
+    oldState: boolean;
+
+    constructor(game: OathGame,state: boolean) {
+        super(game, undefined);
+        this.state = state;
+    }
+   
+    resolve(): void {
+        this.oldState = this.game.grandScepter.original.seizedThisTurn;
+        this.game.grandScepter.original.seizedThisTurn = this.state;
+    }
+
+    revert(): void {
+        this.game.grandScepter.original.seizedThisTurn = this.oldState;
+    }
+}
+
 export class RegionDiscardEffect extends PlayerEffect<void> {
     suits: OathSuit[];
     source?: Denizen;
@@ -1205,6 +1248,70 @@ export class GamblingHallEffect extends PlayerEffect<void> {
 
     revert(): void {
         // Doesn't do anything on its own
+    }
+}
+
+export class BindingExchangeEffect extends PlayerEffect<void> {
+    other: OathPlayer;
+    resourcesGiven = new Map<OathResource, number>();
+    resourcesTaken = new Map<OathResource, number>();
+
+    constructor(player: OathPlayer, other: OathPlayer) {
+        super(player);
+        this.other = other;
+    }
+
+    resolve(): void {
+        for (const [resource, amount]of this.resourcesGiven)
+            new MoveResourcesToTargetEffect(this.game, this.player, resource, amount, this.other).do();
+
+        for (const [resource, amount]of this.resourcesTaken)
+            new MoveResourcesToTargetEffect(this.game, this.other, resource, amount, this.player).do();
+    }
+
+    revert(): void {
+        // Doesn't do anything on its own
+    }
+}
+
+export class CitizenshipOfferEffect extends BindingExchangeEffect {
+    reliquaryIndex: number;
+    thingsGiven = new Set<Relic | Banner>();
+    thingsTaken = new Set<Relic | Banner>();
+
+    resolve(): void {
+        super.resolve();
+
+        for (const thing of this.thingsGiven)
+            new GiveOwnableObjectEffect(this.game, this.other, thing).do();
+
+        for (const thing of this.thingsTaken)
+            new GiveOwnableObjectEffect(this.game, this.player, thing).do();
+
+        new TakeReliquaryRelicEffect(this.other, this.reliquaryIndex).do();
+        new BecomeCitizenEffect(this.other).do();
+    }
+}
+
+export class TakeReliquaryRelicEffect extends PlayerEffect<void> {
+    index: number;
+    relic: Relic | undefined;
+
+    constructor(player: OathPlayer, index: number) {
+        super(player);
+        this.index = index;
+    }
+
+    resolve(): void {
+        this.relic = this.game.chancellor.reliquary.original.takeRelic(this.index);
+        if (!this.relic)
+            throw new InvalidActionResolution("No relics at the designated Reliquary slot");
+
+        new TakeOwnableObjectEffect(this.game, this.player, this.relic).do();
+    }
+
+    revert(): void {
+        if (this.relic) this.game.chancellor.reliquary.original.putRelic(this.relic, this.index);
     }
 }
 

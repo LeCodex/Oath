@@ -166,7 +166,7 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
 export class Chancellor extends OathPlayer {
     name = "Chancellor";
     warbandsInBag = 24;
-    reliquary = new Reliquary(this, this.game);
+    reliquary = new Reliquary(this.game);
 
     constructor(game: OathGame, site: Site) {
         super(game, site, PlayerColor.Purple);
@@ -194,20 +194,17 @@ export class Chancellor extends OathPlayer {
 }
 
 export class Reliquary extends OathGameObject {
-    owner: OathPlayer;
     relics: [Relic?, Relic?, Relic?, Relic?] = [];
     powers = [Brutal, Greedy, Careless, Decadent];
 
-    constructor(owner: OathPlayer, game: OathGame) {
+    constructor(game: OathGame) {
         super(game);
-        this.owner = owner;
         for (let i = 0; i < 4; i++) this.putRelic(this.game.relicDeck.drawSingleCard(), i);
     }
 
     putRelic(relic: Relic | undefined, index: number): Relic | undefined {
         const oldRelic = this.relics[index];
         this.relics[index] = relic;
-        relic?.seenBy.add(this.owner.original);
         return oldRelic;
     }
 

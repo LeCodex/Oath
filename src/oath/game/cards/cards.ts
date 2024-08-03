@@ -6,6 +6,7 @@ import { OathGame } from "../game";
 import { Oath } from "../oaths";
 import { OathPlayer, OwnableObject } from "../player";
 import { OathPower } from "../powers/powers";
+import { GrandScepterExileCitizen, GrandScepterGrantCitizenship, GrandScepterPeek, GrandScepterRest, GrandScepterSeize } from "../powers/relics";
 import { ConspiracyPower } from "../powers/visions";
 import { ResourceCost, ResourcesAndWarbands } from "../resources";
 import { Constructor } from "../utils";
@@ -220,6 +221,15 @@ export class Relic extends OwnableCard implements RecoverActionTarget, CampaignA
     //     obj.site = this.site?.name;
     //     return obj;
     // }
+}
+
+export class GrandScepter extends Relic {
+    seizedThisTurn = false;
+
+    constructor(game: OathGame) {
+        // TODO: Add allowing peeking for other players
+        super(game, "The Grand Scepter", [GrandScepterSeize, GrandScepterRest, GrandScepterPeek, GrandScepterGrantCitizenship, GrandScepterExileCitizen], 5);
+    }
 }
 
 export abstract class WorldCard extends OwnableCard {

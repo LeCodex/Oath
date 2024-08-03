@@ -1,6 +1,6 @@
 import { ChooseNewOathkeeper, ChooseSuccessor, InvalidActionResolution, OathAction, OathActionManager } from "./actions";
 import { OathBoard } from "./board";
-import { Conspiracy, Denizen, Relic, Site, Vision } from "./cards/cards";
+import { Conspiracy, Denizen, GrandScepter, Relic, Site, Vision } from "./cards/cards";
 import { CardDeck, RelicDeck, WorldDeck } from "./cards/decks";
 import { DenizenData, denizenData } from "./cards/denizens";
 import { relicsData } from "./cards/relics";
@@ -26,7 +26,7 @@ export class OathGame extends CopiableWithOriginal {
     round = 1;
 
     chancellor: Chancellor;
-    grandScepter = new Relic(this, "The Grand Scepter", [], 5);
+    grandScepter = new GrandScepter(this);
     players: Record<number, OathPlayer> = {};
     order: PlayerColor[] = [PlayerColor.Purple];
 

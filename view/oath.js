@@ -76,7 +76,7 @@ const render = () => {
     for (const [i, player] of Object.entries(game.players)) {
         const playerNode = playersNode.appendChild(document.createElement("li"));
         playerNode.id = "player" + i;
-        playerNode.innerText = player.name + (game.turn == i ? " 🔄" : "") + (game.oathkeeper == i ? game.isUsurper ? " 🥇" : " 🏅": "");
+        playerNode.innerText = player.name + (player.isCitizen ? " 💜" : "") + (game.turn == i ? " 🔄" : "") + (game.oathkeeper == i ? game.isUsurper ? " 🥇" : " 🏅": "");
 
         const playerList = playerNode.appendChild(document.createElement("ul"));
         // playerList.appendChild(renderText("At " + player.site));
