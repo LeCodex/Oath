@@ -1673,7 +1673,7 @@ export class ExileCitizenAction extends ChoosePlayer {
 export abstract class ChooseSite extends OathAction {
     readonly selects: { site: SelectNOf<Site | undefined> };
     readonly parameters: { site: (Site | undefined)[] };
-    readonly canChooseCurrentSite = false;
+    readonly canChooseCurrentSite: boolean = false;
 
     sites: Set<Site>;
     target: Site | undefined;
@@ -1687,9 +1687,10 @@ export abstract class ChooseSite extends OathAction {
         if (!this.sites.size) this.sites = new Set([...this.game.board.sites()].filter(e => !e.facedown));
 
         const choices = new Map<string, Site | undefined>();
-        for (const site of this.sites)
-            if (!(site === this.player.site && !this.canChooseCurrentSite)) choices.set(site.name, site);
         if (none) choices.set(none, undefined);
+        for (const site of this.sites)
+            if (!(site === this.player.site && !this.canChooseCurrentSite))
+                choices.set(site.name, site);
         this.selects.site = new SelectNOf("Site", choices, 1);
 
         return super.start();
@@ -1712,7 +1713,7 @@ export class CampaignBanishPlayerAction extends ChooseSite {
     }
 
     execute() {
-        super.execute()
+        super.execute();
         if (!this.target) return;
         new TravelEffect(this.banished, this.target, this.player).do();
     }
@@ -1721,10 +1722,10 @@ export class CampaignBanishPlayerAction extends ChooseSite {
 export class ActAsIfAtSiteAction extends ChooseSite {
     readonly message = "Choose a site to act at";
     readonly autocompleteSelects = false;
+    readonly canChooseCurrentSite = true;
 
     execute(): void {
         super.execute();
-        console.log(this.target);
         if (!this.target) return;
         this.player.site = this.target;
     }
