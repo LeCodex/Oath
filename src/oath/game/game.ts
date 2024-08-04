@@ -58,7 +58,7 @@ export class OathGame extends CopiableWithOriginal {
             delete this.archive[key];
             this.worldDeck.putCard(new Denizen(this, ...data));
         }
-        this.worldDeck.shuffle();
+        // this.worldDeck.shuffle();
         
         for (const data of Object.values(relicsData)) this.relicDeck.putCard(new Relic(this, ...data));
         this.relicDeck.shuffle();

@@ -710,14 +710,14 @@ export class SearchPlayAction extends ModifiableAction {
         super.execute();
     }
 
-    static getCapacityInformation(player: OathPlayer, site?: Site, playing?: WorldCard, facedown: boolean = !!playing && playing.facedown): [number, WorldCard[], boolean] {
+    static getCapacityInformation(player: OathPlayer, site?: Site, playing?: WorldCard): [number, WorldCard[], boolean] {
         const capacityModifiers: CapacityModifier<any>[] = [];
         for (const [source, modifier] of player.game.getPowers(CapacityModifier)) {
             const instance = new modifier(source);
             if (instance.canUse(player, site)) capacityModifiers.push(instance);
         }
 
-        if (playing && !facedown) {
+        if (playing && !playing.facedown) {
             for (const modifier of playing.powers) {
                 if (isExtended(modifier, CapacityModifier)) {
                     const instance = new modifier(playing);
@@ -735,14 +735,15 @@ export class SearchPlayAction extends ModifiableAction {
             const [cap, noSpace] = capacityModifier.updateCapacityInformation(target);
             capacity = Math.min(capacity, cap);
             for (const card of noSpace) takesNoSpace.add(card);
-            if (playing) ignoresCapacity ||= capacityModifier.ignoreCapacity(playing, facedown);
+            if (playing) ignoresCapacity ||= capacityModifier.ignoreCapacity(playing);
         }
 
         return [capacity, [...target].filter(e => !takesNoSpace.has(e)), ignoresCapacity];
     }
 
     modifiedExecution() {
-        const [capacity, takesSpaceInTarget, ignoresCapacity] = SearchPlayAction.getCapacityInformation(this.player, this.site?.original, this.card, this.facedown);
+        this.card.facedown = this.facedown;  // Editing the copy to reflect the new state
+        const [capacity, takesSpaceInTarget, ignoresCapacity] = SearchPlayAction.getCapacityInformation(this.player, this.site?.original, this.card);
 
         const excess = Math.max(0, takesSpaceInTarget.length - capacity + 1);  // +1 because we are playing a card there
         const discardable = takesSpaceInTarget.filter(e => !(e instanceof Denizen && e.activelyLocked));

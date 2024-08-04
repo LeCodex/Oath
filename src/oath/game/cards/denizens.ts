@@ -7,7 +7,6 @@ import { Denizen, Edifice } from "./cards";
 export type DenizenData = [OathSuit, string, Constructor<OathPower<Denizen>>[], CardRestriction?, boolean?];
 
 export const denizenData: Record<string, DenizenData> = {
-    
     "RelicThief":       [OathSuit.Discord,  "Relic Thief",          [RelicThief]],
     "KeyToTheCity":     [OathSuit.Discord,  "Key to the City",      [KeyToTheCity], CardRestriction.Site],
     "Assassin":         [OathSuit.Discord,  "Assassin",             [OnlyTwoAdvisers, Assassin], CardRestriction.Adviser, true],

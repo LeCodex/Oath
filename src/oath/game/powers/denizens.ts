@@ -13,11 +13,11 @@ export class IgnoresCapacity extends CapacityModifier<Denizen> {
     name = "Ignores Capacity";
 
     canUse(player: OathPlayer, site?: Site): boolean {
-        return player === this.source.ruler;
+        return player.original === this.source.ruler?.original;
     }
 
-    ignoreCapacity(card: WorldCard, facedown: boolean = card.facedown): boolean {
-        return !facedown && card === this.source;
+    ignoreCapacity(card: WorldCard): boolean {
+        return !card.facedown && card.original === this.source.original;
     }
 }
 
@@ -449,7 +449,7 @@ export class FamilyWagon extends CapacityModifier<Denizen> {
     name = "Family Wagon";
 
     canUse(player: OathPlayer, site?: Site): boolean {
-        return player === this.source.ruler && !site;
+        return player.original === this.source.ruler?.original && !site;
     }
 
     updateCapacityInformation(source: Set<WorldCard>): [number, Iterable<WorldCard>] {
@@ -457,11 +457,11 @@ export class FamilyWagon extends CapacityModifier<Denizen> {
         // is by setting the capacity to 2, and making all *other* Nomad cards not count towards the limit (effectively
         // making you have 1 spot for a non Nomad card, and infinite ones for Nomad cards, while allowing you
         // to replace Family Wagon if you want to)
-        return [2, [...source].filter(e => e !== this.source && e instanceof Denizen && e.suit === OathSuit.Nomad)];
+        return [2, [...source].filter(e => e.original !== this.source.original && e instanceof Denizen && e.suit === OathSuit.Nomad)];
     }
 
-    ignoreCapacity(card: WorldCard, facedown: boolean = card.facedown): boolean {
-        return !facedown && card.original !== this.source.original && card instanceof Denizen && card.suit === OathSuit.Nomad;
+    ignoreCapacity(card: WorldCard): boolean {
+        return card.original !== this.source.original && card instanceof Denizen && card.suit === OathSuit.Nomad;
     }
 }
 
@@ -474,7 +474,7 @@ export class RelicThief extends EnemyEffectModifier<Denizen> {
 
     applyAfter(result: void): void {
         if (!this.source.ruler) return;
-        if (this.effect.target instanceof Relic && this.effect.player?.site.region === this.source.ruler.site.region) {
+        if (this.effect.target instanceof Relic && this.effect.player?.site.region.original === this.source.ruler.site.region.original) {
             // Roll dice and do stuff, probably after an action to pay the cost
         }
     }
@@ -486,7 +486,7 @@ export class KeyToTheCity extends WhenPlayed<Denizen> {
 
     whenPlayed(effect: ApplyWhenPlayedEffect): void {
         if (!this.source.site) return;
-        if (this.source.site.ruler?.site === this.source.site) return;
+        if (this.source.site.ruler?.site.original === this.source.site.original) return;
 
         for (const [player, amount] of this.source.site.warbands)
             new TakeWarbandsIntoBagEffect(player, amount, this.source.site).do();
@@ -500,7 +500,7 @@ export class OnlyTwoAdvisers extends CapacityModifier<Denizen> {
     name = "Only Two Advisers";
 
     canUse(player: OathPlayer, site?: Site): boolean {
-        return player === this.source.ruler && !site;
+        return player.original === this.source.ruler?.original && !site;
     }
 
     updateCapacityInformation(source: Set<WorldCard>): [number, Iterable<WorldCard>] {
