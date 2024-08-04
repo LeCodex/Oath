@@ -5,7 +5,7 @@ import { CardDeck, RelicDeck, WorldDeck } from "./cards/decks";
 import { DenizenData, denizenData } from "./cards/denizens";
 import { relicsData } from "./cards/relics";
 import { sitesData } from "./cards/sites";
-import { AddActionToStackEffect, WinGameEffect } from "./effects";
+import { WinGameEffect } from "./effects";
 import { BannerName, OathType, OathPhase, OathSuit, RegionName, PlayerColor, OathResource } from "./enums";
 import { Oath, OathTypeToOath } from "./oaths";
 import { Chancellor, Exile, OathPlayer } from "./player";
@@ -52,12 +52,12 @@ export class OathGame extends CopiableWithOriginal {
         this.dispossessed = [];
 
         // TEMP: Just load every card and shuffle evertyhing for now
+        for (const oath of Object.values(OathTypeToOath)) this.worldDeck.putCard(new Vision(new oath(this)));
+        this.worldDeck.putCard(new Conspiracy(this));
         for (const [key, data] of Object.entries(this.archive)) {
             delete this.archive[key];
             this.worldDeck.putCard(new Denizen(this, ...data));
         }
-        for (const oath of Object.values(OathTypeToOath)) this.worldDeck.putCard(new Vision(new oath(this)));
-        this.worldDeck.putCard(new Conspiracy(this));
         this.worldDeck.shuffle();
         
         for (const data of Object.values(relicsData)) this.relicDeck.putCard(new Relic(this, ...data));

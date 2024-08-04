@@ -381,7 +381,7 @@ export abstract class ModifiableAction extends OathAction {
 
     serialize(): Record<string, any> {
         const obj = super.serialize();
-        obj.modifiers = this.modifiers.map(e => e.constructor.name)
+        obj.modifiers = this.modifiers.map(e => e.constructor.name);
         return obj;
     }
 }
@@ -518,7 +518,7 @@ export class TravelAction extends MajorAction {
 export interface RecoverActionTarget {
     canRecover(action: RecoverAction): boolean;
     recover(player: OathPlayer): void;
-};
+}
 
 export class RecoverAction extends MajorAction {
     readonly selects: { target: SelectNOf<RecoverActionTarget> };
@@ -1720,11 +1720,12 @@ export class CampaignBanishPlayerAction extends ChooseSite {
 
 export class ActAsIfAtSiteAction extends ChooseSite {
     readonly message = "Choose a site to act at";
+    readonly autocompleteSelects = false;
 
     execute(): void {
         super.execute();
-        if (!this.target) return;
         console.log(this.target);
+        if (!this.target) return;
         this.player.site = this.target;
     }
 }

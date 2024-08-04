@@ -153,7 +153,7 @@ export abstract class OwnableCard extends OathCard implements OwnableObject {
     get ruler() { return this.owner; }
 
     accessibleBy(player: OathPlayer | undefined): boolean {
-        return player?.leader.original === this.ruler?.original;
+        return player?.original === this.owner?.original;
     }
 
     abstract setOwner(newOwner?: OathPlayer): void;
@@ -206,14 +206,11 @@ export class Relic extends OwnableCard implements RecoverActionTarget, CampaignA
     recover(player: OathPlayer): void {
         if (!this.site) return;
         if (!new PayCostToBankEffect(this.game, player, this.site.recoverCost, this.site.recoverSuit).do()) throw new InvalidActionResolution("Cannot pay recover cost.");
-
         new TakeOwnableObjectEffect(this.game, player, this).do();
-        this.original.facedown = false;
     }
 
     seize(player: OathPlayer) {
         new TakeOwnableObjectEffect(this.game, player, this).doNext();
-        this.original.facedown = false;
     }
 
     // serialize(): Record<string, any> {
@@ -262,7 +259,7 @@ export class Denizen extends WorldCard {
     }
 
     accessibleBy(player: OathPlayer): boolean {
-        return super.accessibleBy(player) || this.site?.original === player.site.original;
+        return super.accessibleBy(player) || player.leader.original === this.site?.ruler?.original || this.site?.original === player.site.original;
     }
 
     setOwner(newOwner?: OathPlayer): void {

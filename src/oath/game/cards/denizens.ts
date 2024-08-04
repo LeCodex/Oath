@@ -7,6 +7,7 @@ import { Denizen, Edifice } from "./cards";
 export type DenizenData = [OathSuit, string, Constructor<OathPower<Denizen>>[], CardRestriction?, boolean?];
 
 export const denizenData: Record<string, DenizenData> = {
+    
     "RelicThief":       [OathSuit.Discord,  "Relic Thief",          [RelicThief]],
     "KeyToTheCity":     [OathSuit.Discord,  "Key to the City",      [KeyToTheCity], CardRestriction.Site],
     "Assassin":         [OathSuit.Discord,  "Assassin",             [OnlyTwoAdvisers, Assassin], CardRestriction.Adviser, true],
@@ -33,7 +34,7 @@ export const denizenData: Record<string, DenizenData> = {
     "ForcedLabor":      [OathSuit.Order,    "Forced Labor",         [ForcedLabor], CardRestriction.Site],
     "RoyalTax":         [OathSuit.Order,    "Royal Tax",            [RoyalTax]],
     "VowOfObedience":   [OathSuit.Order,    "Vow of Obedience",     [VowOfObedience, VowOfObedienceRest], CardRestriction.Adviser, true],
-
+    
     "HeartsAndMinds":   [OathSuit.Hearth,   "Hearts and Minds",     [HeartsAndMinds], CardRestriction.Site],
     "AwaitedReturn":    [OathSuit.Hearth,   "Awaited Return",       [AwaitedReturn]],
     "CharmingFriend":   [OathSuit.Hearth,   "Charming Friend",      [CharmingFriend], CardRestriction.Adviser],
@@ -48,7 +49,7 @@ export const denizenData: Record<string, DenizenData> = {
     "ThreateningRoar":  [OathSuit.Beast,    "Threatening Roar",     [ThreateningRoar]],
     "VowOfPoverty":     [OathSuit.Beast,    "Vow of Poverty",       [VowOfPoverty, VowOfPovertyRest], CardRestriction.Adviser, true],
     "PiedPiper":        [OathSuit.Beast,    "Pied Piper",           [IgnoresCapacity, PiedPiperActive], CardRestriction.Adviser],
-    "SmallFriend":      [OathSuit.Beast,    "Small Friends",        [SmallFriends], CardRestriction.Adviser],
+    "SmallFriends":     [OathSuit.Beast,    "Small Friends",        [SmallFriends], CardRestriction.Adviser],
 
     "WayStation":       [OathSuit.Nomad,    "Way Station",          [WayStation], CardRestriction.Site],
     "LostTongue":       [OathSuit.Nomad,    "Lost Tongue",          [LostTongue, LostTongueCampaign], CardRestriction.Adviser],

@@ -89,7 +89,7 @@ export class CoastalSite extends SiteActionModifier {
 
     canUse(): boolean {
         for (const site of this.game.board.sites())
-            if (site.original !== this.source.original)
+            if (!site.facedown && site.original !== this.source.original)
                 for (const power of site.powers)
                     if (power === CoastalSite)
                         return super.canUse();

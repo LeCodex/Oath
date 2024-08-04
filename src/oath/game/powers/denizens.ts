@@ -674,7 +674,7 @@ export class SmallFriends extends AccessedActionModifier<Denizen> {
     modifiedAction = TradeAction;
     action: TradeAction;
 
-    applyBefore(): void {
+    applyWhenApplied(): boolean {
         const sites = new Set<Site>();
         for (const site of this.game.board.sites())
             for (const denizen of site.denizens)
@@ -682,6 +682,8 @@ export class SmallFriends extends AccessedActionModifier<Denizen> {
                     sites.add(site);
 
         // FIXME: This doesn't work, why?
+        console.log(sites);
         new ActAsIfAtSiteAction(this.action.player, sites).doNext();
+        return true;
     }
 }
