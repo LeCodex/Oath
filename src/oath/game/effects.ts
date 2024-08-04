@@ -480,7 +480,7 @@ export class TravelEffect extends PlayerEffect<void> {
 
         this.revealedSite = this.site.original.facedown;
         if (this.revealedSite) this.site.original.reveal();
-        for (const relic of this.site.relics) new PeekAtCardEffect(this.player, relic).do();
+        for (const relic of this.site.original.relics) new PeekAtCardEffect(this.player, relic).do();
     }
 
     revert(): void {

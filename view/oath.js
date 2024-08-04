@@ -39,8 +39,8 @@ const render = () => {
     }
 
     infoNode.appendChild(renderText("[DECKS]"));
-    infoNode.appendChild(renderDeck(game.worldDeck, "World Deck"));
     infoNode.appendChild(renderDeck(game.relicDeck, "Relic Deck"));
+    infoNode.appendChild(renderDeck(game.worldDeck, "World Deck"));
 
 
     const boardNode = document.getElementById("board");
@@ -133,7 +133,7 @@ const renderDeck = (deck, name) => {
     const deckNode = document.createElement("li");
     deckNode.id = name;
     deckNode.innerText = name + " (" + deck.cards.length + ")";
-    if (deck.searchCost) deckNode.innerText += " : " + deck.searchCost;
+    if (deck.searchCost) deckNode.innerText += " : " + deck.searchCost + " Supply";
 
     const deckList = deckNode.appendChild(document.createElement("ul"));
     let facedownTotal = 0;
