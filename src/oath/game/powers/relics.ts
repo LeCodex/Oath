@@ -1,4 +1,5 @@
-import { TradeAction, InvalidActionResolution, CampaignAtttackAction, MusterAction, UsePowerAction, CitizenshipOfferAction, StartBindingExchangeAction, ExileCitizenAction, SkeletonKeyAction, SearchDiscardOptions } from "../actions";
+import { TradeAction, InvalidActionResolution, CampaignAtttackAction, MusterAction, UsePowerAction, CitizenshipOfferAction, StartBindingExchangeAction, ExileCitizenAction, SkeletonKeyAction } from "../actions";
+import { DiscardOptions } from "../cards/decks";
 import { GrandScepter, Relic, Site } from "../cards/cards";
 import { TakeOwnableObjectEffect, TravelEffect, PutWarbandsFromBagEffect, PlayDenizenAtSiteEffect, CursedCauldronResolutionEffect, MoveOwnWarbandsEffect, PeekAtCardEffect, SetGrandScepterLockEffect, GainSupplyEffect, DiscardCardEffect } from "../effects";
 import { OathResource } from "../enums";
@@ -176,7 +177,7 @@ export class MapRelic extends ActivePower<Relic> {
     name = "Map";
 
     usePower(action: UsePowerAction): void {
-        new DiscardCardEffect(action.player, this.source, new SearchDiscardOptions(this.game.relicDeck, true)).do();
+        new DiscardCardEffect(action.player, this.source, new DiscardOptions(this.game.relicDeck, true)).do();
         new GainSupplyEffect(action.player, 4).do();
     }
 }

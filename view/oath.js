@@ -39,12 +39,8 @@ const render = () => {
     }
 
     infoNode.appendChild(renderText("[DECKS]"));
-    const worldDeckNode = infoNode.appendChild(document.createElement("li"));
-    worldDeckNode.id = "worldDeck";
-    worldDeckNode.innerText = "World Deck (" + game.worldDeck.cards.length + ", " + game.worldDeck.searchCost + ")";
-    const relicdDeckNode = infoNode.appendChild(document.createElement("li"));
-    relicdDeckNode.id = "relicDeck";
-    relicdDeckNode.innerText = "Relic Deck (" + game.relicDeck.cards.length + ")";
+    infoNode.appendChild(renderDeck(game.worldDeck, "World Deck"));
+    infoNode.appendChild(renderDeck(game.relicDeck, "Relic Deck"));
 
 
     const boardNode = document.getElementById("board");
@@ -58,16 +54,14 @@ const render = () => {
         const regionList = regionNode.appendChild(document.createElement("ul"));
         for (const site of region.sites) {
             const siteNode = regionList.appendChild(renderCard(site));
-            siteNode.innerText +=  " " + Object.entries(game.players).filter(([k, v]) => v.site == site.name).map(([k, v]) => pawnColors[k]).join("");
+            siteNode.innerText +=  " " + Object.entries(game.players).filter(([_, v]) => v.site == site.name).map(([k, _]) => pawnColors[k]).join("");
 
             const siteList = siteNode.appendChild(document.createElement("ul"));
             for (const denizen of site.denizens) siteList.appendChild(renderCard(denizen));
             for (const relic of site.relics) siteList.appendChild(renderCard(relic));
         }
 
-        const discardNode = infoNode.appendChild(document.createElement("li"));
-        discardNode.id = "discard" + i;
-        discardNode.innerText = region.name + " Discard (" + region.discard.cards.length + ", " + region.discard.searchCost + ")";
+        infoNode.appendChild(renderDeck(region.discard, region.name + " Discard"));
     }
 
 
@@ -133,6 +127,28 @@ const renderCard = (card) => {
     cardNode.id = "card" + card.name;
     cardNode.innerText = (card.facedown ? "❔ " : "") + (!card.facedown || card.seenBy.includes(game.order[game.turn]) ? (card.suit !== undefined ? suitColors[card.suit+1] + " " : "") + card.name  + " " + getResourcesAndWarbandsText(card) : "");
     return cardNode;
+}
+
+const renderDeck = (deck, name) => {
+    const deckNode = document.createElement("li");
+    deckNode.id = name;
+    deckNode.innerText = name + " (" + deck.cards.length + ")";
+    if (deck.searchCost) deckNode.innerText += " : " + deck.searchCost;
+
+    const deckList = deckNode.appendChild(document.createElement("ul"));
+    let facedownTotal = 0;
+    for (const card of deck.cards) {
+        if (card.facedown && !card.seenBy.includes(game.order[game.turn])) {
+            facedownTotal++;
+        } else {
+            if (facedownTotal) deckList.appendChild(renderText(facedownTotal + " ❔"));
+            deckList.appendChild(renderCard(card));
+            facedownTotal = 0;
+        }
+    }
+    if (facedownTotal) deckList.append(renderText(facedownTotal + " ❔"));
+
+    return deckNode;
 }
 
 const warbandsColors = ["🟪", "🟥", "🟦", "🟨", "⬜", "⬛"];

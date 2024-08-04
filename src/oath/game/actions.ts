@@ -1,5 +1,5 @@
-import { Denizen, Edifice, OathCard, Relic, Site, VisionBack, WorldCard } from "./cards/cards";
-import { CardDeck, SearchableDeck } from "./cards/decks";
+import { Denizen, Edifice, Relic, Site, VisionBack, WorldCard } from "./cards/cards";
+import { DiscardOptions, SearchableDeck } from "./cards/decks";
 import { AttackDie, DefenseDie, Die } from "./dice";
 import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect, DiscardCardEffect, MoveOwnWarbandsEffect, AddActionToStackEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect, SetNewOathkeeperEffect, SetPeoplesFavorMobState, DiscardCardGroupEffect, OathEffect, PopActionFromStackEffect, PaySupplyEffect, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, ChangeEdificeEffect, ModifiedExecutionEffect, CampaignResolveSuccessfulAndSkullsEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect } from "./effects";
 import { BannerName, OathPhase, OathResource, OathResourceName, OathSuit, OathSuitName, OathType, OathTypeName } from "./enums";
@@ -580,7 +580,7 @@ export class SearchAction extends MajorAction {
     deck: SearchableDeck;
     amount = 3;
     fromBottom = false;
-    discardOptions = new SearchDiscardOptions(this.player.discard);
+    discardOptions = new DiscardOptions(this.player.discard);
 
     start() {
         const choices = new Map<string, SearchableDeck>();
@@ -603,18 +603,6 @@ export class SearchAction extends MajorAction {
     }
 }
 
-export class SearchDiscardOptions<T extends OathCard> {
-    discard: CardDeck<T>;
-    onBottom: boolean;
-    ignoreLocked: boolean;
-
-    constructor(discard: CardDeck<T>, onBottom: boolean = false, ignoreLocked: boolean = false) {
-        this.discard = discard;
-        this.onBottom = onBottom;
-        this.ignoreLocked = ignoreLocked;
-    }
-}
-
 export class SearchChooseAction extends ModifiableAction {
     readonly selects: { cards: SelectNOf<WorldCard> }
     readonly parameters: { cards: WorldCard[] }
@@ -623,11 +611,11 @@ export class SearchChooseAction extends ModifiableAction {
     cards: Set<WorldCard>;
     playing: WorldCard[];  // For this action, order is important
     playingAmount: number;
-    discardOptions: SearchDiscardOptions<any>;
+    discardOptions: DiscardOptions<any>;
 
-    constructor(player: OathPlayer, cards: Iterable<WorldCard>, discardOptions?: SearchDiscardOptions<any>, amount: number = 1) {
+    constructor(player: OathPlayer, cards: Iterable<WorldCard>, discardOptions?: DiscardOptions<any>, amount: number = 1) {
         super(player);
-        this.discardOptions = discardOptions || new SearchDiscardOptions(player.discard);
+        this.discardOptions = discardOptions || new DiscardOptions(player.discard);
         this.cards = new Set(cards);
         this.playingAmount = Math.min(amount, this.cards.size);
     }
@@ -661,11 +649,11 @@ export class SearchDiscardAction extends ModifiableAction {
     cards: Set<WorldCard>;
     discarding: WorldCard[];  // For this action, order is important
     amount: number;
-    discardOptions: SearchDiscardOptions<any>;
+    discardOptions: DiscardOptions<any>;
 
-    constructor(player: OathPlayer, cards: Iterable<WorldCard>, amount?: number, discardOptions?: SearchDiscardOptions<any>) {
+    constructor(player: OathPlayer, cards: Iterable<WorldCard>, amount?: number, discardOptions?: DiscardOptions<any>) {
         super(player);
-        this.discardOptions = discardOptions || new SearchDiscardOptions(player.discard);
+        this.discardOptions = discardOptions || new DiscardOptions(player.discard);
         this.cards = new Set(cards);
         this.amount = Math.min(this.cards.size, amount || this.cards.size);
     }
@@ -696,14 +684,14 @@ export class SearchPlayAction extends ModifiableAction {
     card: WorldCard;
     site: Site | undefined;
     facedown: boolean;
-    discardOptions: SearchDiscardOptions<any>;
+    discardOptions: DiscardOptions<any>;
     canReplace: boolean;
 
-    constructor(player: OathPlayer, card: WorldCard, discardOptions?: SearchDiscardOptions<any>) {
+    constructor(player: OathPlayer, card: WorldCard, discardOptions?: DiscardOptions<any>) {
         super(player);
         this.card = card;
         this.message = "Play " + this.card.name;
-        this.discardOptions = discardOptions || new SearchDiscardOptions(player.discard);
+        this.discardOptions = discardOptions || new DiscardOptions(player.discard);
     }
 
     start() {
@@ -776,11 +764,11 @@ export class PeoplesFavorDiscardAction extends OathAction {
     readonly parameters: { card: Denizen[] };
     readonly message = "You may discard a card";
 
-    discardOptions: SearchDiscardOptions<any>;
+    discardOptions: DiscardOptions<any>;
 
-    constructor(player: OathPlayer, discardOptions?: SearchDiscardOptions<any>) {
+    constructor(player: OathPlayer, discardOptions?: DiscardOptions<any>) {
         super(player);
-        this.discardOptions = discardOptions || new SearchDiscardOptions(player.discard);
+        this.discardOptions = discardOptions || new DiscardOptions(player.discard);
     }
 
     start() {
@@ -1989,7 +1977,7 @@ export class AddCardsToWorldDeckAction extends ChooseSuit {
         
         // Add cards from the archive
         const worldDeck = this.game.original.worldDeck;
-        const worldDeckDiscardOptions = new SearchDiscardOptions(worldDeck, false, true);
+        const worldDeckDiscardOptions = new DiscardOptions(worldDeck, false, true);
         for (let i = 3; i >= 1; i--) {
             const cardData = this.getRandomCardDataInArchive(this.suit);
             for (let j = 0; j < i; j++) {
@@ -2008,7 +1996,7 @@ export class AddCardsToWorldDeckAction extends ChooseSuit {
 
         // Remove cards to the Dispossessed
         const firstDiscard = Object.values(this.game.original.board.regions)[0].discard;
-        const firstDiscardOptions = new SearchDiscardOptions(firstDiscard, false, true);
+        const firstDiscardOptions = new DiscardOptions(firstDiscard, false, true);
         for (const player of Object.values(this.game.original.players)) {
             let discardOptions = firstDiscardOptions;
             if (player === this.player) discardOptions = worldDeckDiscardOptions;

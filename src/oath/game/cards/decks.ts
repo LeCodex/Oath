@@ -82,10 +82,18 @@ export class WorldDeck extends SearchableDeck {
     }
 }
 
-export class Discard extends SearchableDeck {
+export class Discard extends SearchableDeck { }
 
-}
+export class RelicDeck extends CardDeck<Relic> { }
 
-export class RelicDeck extends CardDeck<Relic> {
+export class DiscardOptions<T extends OathCard> {
+    discard: CardDeck<T>;
+    onBottom: boolean;
+    ignoreLocked: boolean;
 
+    constructor(discard: CardDeck<T>, onBottom: boolean = false, ignoreLocked: boolean = false) {
+        this.discard = discard;
+        this.onBottom = onBottom;
+        this.ignoreLocked = ignoreLocked;
+    }
 }

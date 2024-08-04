@@ -7,7 +7,8 @@ import { Banner, PeoplesFavor, ResourceBank } from "./banks";
 import { OwnableObject } from "./player";
 import { OathGame } from "./game";
 import { OathGameObject } from "./gameObject";
-import { AddCardsToWorldDeckAction, BuildOrRepairEdificeAction, CampaignDefenseAction, CampaignResult, ChooseNewCitizensAction, InvalidActionResolution, ModifiableAction, OathAction, ResolveEffectAction, RestAction, SearchDiscardAction, SearchDiscardOptions, SearchPlayAction, TakeFavorFromBankAction, VowOathAction, WakeAction } from "./actions";
+import { AddCardsToWorldDeckAction, BuildOrRepairEdificeAction, CampaignDefenseAction, CampaignResult, ChooseNewCitizensAction, InvalidActionResolution, ModifiableAction, OathAction, ResolveEffectAction, RestAction, SearchDiscardAction, SearchPlayAction, TakeFavorFromBankAction, VowOathAction, WakeAction } from "./actions";
+import { DiscardOptions } from "./cards/decks";
 import { CardDeck } from "./cards/decks";
 import { getCopyWithOriginal, isExtended, shuffleArray } from "./utils";
 import { AttackDie, D6, DefenseDie, Die } from "./dice";
@@ -803,9 +804,9 @@ export class MoveDenizenToSiteEffect extends OathEffect<void> {
 
 export class DiscardCardGroupEffect extends PlayerEffect<void> {
     cards: Set<WorldCard>;
-    discardOptions?: SearchDiscardOptions<any>;
+    discardOptions?: DiscardOptions<any>;
 
-    constructor(player: OathPlayer, cards: Iterable<WorldCard>, discardOptions?: SearchDiscardOptions<any>) {
+    constructor(player: OathPlayer, cards: Iterable<WorldCard>, discardOptions?: DiscardOptions<any>) {
         super(player);
         this.cards = new Set(cards);
         this.discardOptions = discardOptions;
@@ -832,10 +833,10 @@ export class DiscardCardGroupEffect extends PlayerEffect<void> {
 
 export class CheckCapacityEffect extends PlayerEffect<void> {
     origins: Set<OathPlayer | Site>;
-    discardOptions?: SearchDiscardOptions<any>;
+    discardOptions?: DiscardOptions<any>;
 
     // TODO: Interface for elements that house cards?
-    constructor(player: OathPlayer, origins: Iterable<OathPlayer | Site>, discardOptions?: SearchDiscardOptions<any>, dontCopyGame?: boolean) {
+    constructor(player: OathPlayer, origins: Iterable<OathPlayer | Site>, discardOptions?: DiscardOptions<any>, dontCopyGame?: boolean) {
         super(player, dontCopyGame);
         this.origins = new Set(origins);
         this.discardOptions = discardOptions;
@@ -862,13 +863,13 @@ export class CheckCapacityEffect extends PlayerEffect<void> {
 
 export class DiscardCardEffect extends PlayerEffect<void> {
     card: WorldCard;
-    discardOptions: SearchDiscardOptions<any>;
+    discardOptions: DiscardOptions<any>;
     flipped: boolean;
 
-    constructor(player: OathPlayer, card: WorldCard, discardOptions?: SearchDiscardOptions<any>) {
+    constructor(player: OathPlayer, card: WorldCard, discardOptions?: DiscardOptions<any>) {
         super(player);
         this.card = card;
-        this.discardOptions = discardOptions || new SearchDiscardOptions(card.owner ? card.owner.discard : card instanceof Denizen && card.site ? this.game.board.nextRegion(card.site.region).discard : player.discard);
+        this.discardOptions = discardOptions || new DiscardOptions(card.owner ? card.owner.discard : card instanceof Denizen && card.site ? this.game.board.nextRegion(card.site.region).discard : player.discard);
     }
 
     resolve(): void {
@@ -1479,7 +1480,7 @@ export class CleanUpMapEffect extends PlayerEffect<void> {
                             new ChangeEdificeEffect(denizen, true).do();
                             pushedSites.push(site);
                         } else {
-                            new DiscardCardEffect(this.player, denizen, new SearchDiscardOptions(region.discard, false, true));
+                            new DiscardCardEffect(this.player, denizen, new DiscardOptions(region.discard, false, true));
                         }
                     }
                 } else {
