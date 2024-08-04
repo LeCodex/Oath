@@ -803,9 +803,9 @@ export class MoveDenizenToSiteEffect extends OathEffect<void> {
 
 export class DiscardCardGroupEffect extends PlayerEffect<void> {
     cards: Set<WorldCard>;
-    discardOptions?: SearchDiscardOptions;
+    discardOptions?: SearchDiscardOptions<any>;
 
-    constructor(player: OathPlayer, cards: Iterable<WorldCard>, discardOptions?: SearchDiscardOptions) {
+    constructor(player: OathPlayer, cards: Iterable<WorldCard>, discardOptions?: SearchDiscardOptions<any>) {
         super(player);
         this.cards = new Set(cards);
         this.discardOptions = discardOptions;
@@ -832,10 +832,10 @@ export class DiscardCardGroupEffect extends PlayerEffect<void> {
 
 export class CheckCapacityEffect extends PlayerEffect<void> {
     origins: Set<OathPlayer | Site>;
-    discardOptions?: SearchDiscardOptions;
+    discardOptions?: SearchDiscardOptions<any>;
 
     // TODO: Interface for elements that house cards?
-    constructor(player: OathPlayer, origins: Iterable<OathPlayer | Site>, discardOptions?: SearchDiscardOptions, dontCopyGame?: boolean) {
+    constructor(player: OathPlayer, origins: Iterable<OathPlayer | Site>, discardOptions?: SearchDiscardOptions<any>, dontCopyGame?: boolean) {
         super(player, dontCopyGame);
         this.origins = new Set(origins);
         this.discardOptions = discardOptions;
@@ -862,10 +862,10 @@ export class CheckCapacityEffect extends PlayerEffect<void> {
 
 export class DiscardCardEffect extends PlayerEffect<void> {
     card: WorldCard;
-    discardOptions: SearchDiscardOptions;
+    discardOptions: SearchDiscardOptions<any>;
     flipped: boolean;
 
-    constructor(player: OathPlayer, card: WorldCard, discardOptions?: SearchDiscardOptions) {
+    constructor(player: OathPlayer, card: WorldCard, discardOptions?: SearchDiscardOptions<any>) {
         super(player);
         this.card = card;
         this.discardOptions = discardOptions || new SearchDiscardOptions(card.owner ? card.owner.discard : card instanceof Denizen && card.site ? this.game.board.nextRegion(card.site.region).discard : player.discard);

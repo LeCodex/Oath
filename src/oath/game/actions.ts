@@ -1,7 +1,7 @@
-import { Denizen, Edifice, Relic, Site, VisionBack, WorldCard } from "./cards/cards";
-import { SearchableDeck } from "./cards/decks";
+import { Denizen, Edifice, OathCard, Relic, Site, VisionBack, WorldCard } from "./cards/cards";
+import { CardDeck, SearchableDeck } from "./cards/decks";
 import { AttackDie, DefenseDie, Die } from "./dice";
-import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect, DiscardCardEffect, MoveOwnWarbandsEffect, AddActionToStackEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect, SetNewOathkeeperEffect, SetPeoplesFavorMobState, DiscardCardGroupEffect, OathEffect, PopActionFromStackEffect, PaySupplyEffect, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, ChangeEdificeEffect, ModifiedExecutionEffect, CampaignResolveSuccessfulAndSkullsEffect, BindingExchangeEffect, CitizenshipOfferEffect } from "./effects";
+import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect, DiscardCardEffect, MoveOwnWarbandsEffect, AddActionToStackEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect, SetNewOathkeeperEffect, SetPeoplesFavorMobState, DiscardCardGroupEffect, OathEffect, PopActionFromStackEffect, PaySupplyEffect, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, ChangeEdificeEffect, ModifiedExecutionEffect, CampaignResolveSuccessfulAndSkullsEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect } from "./effects";
 import { BannerName, OathPhase, OathResource, OathResourceName, OathSuit, OathSuitName, OathType, OathTypeName } from "./enums";
 import { OathGame } from "./game";
 import { OathGameObject } from "./gameObject";
@@ -222,7 +222,7 @@ export abstract class OathAction extends OathGameObject {
     readonly autocompleteSelects: boolean = true;
     abstract readonly message: string;
 
-    constructor(player: OathPlayer, dontCopyGame: boolean = false) {
+    constructor(player: OathPlayer, dontCopyGame: boolean = true) {
         super(dontCopyGame ? player.game : getCopyWithOriginal(player.game.original));
         this.player = dontCopyGame ? player : this.game.players[player.color];
     }
@@ -338,6 +338,10 @@ export class ChooseModifiers extends OathAction {
 
 export abstract class ModifiableAction extends OathAction {
     modifiers: ActionModifier<any>[];
+
+    constructor(player: OathPlayer, dontCopyGame: boolean = false) {
+        super(player, dontCopyGame);
+    }
 
     doNext(executeImmediately: boolean = false): void {
         new ChooseModifiers(this, executeImmediately).doNext();
@@ -599,12 +603,12 @@ export class SearchAction extends MajorAction {
     }
 }
 
-export class SearchDiscardOptions {
-    discard: SearchableDeck;
+export class SearchDiscardOptions<T extends OathCard> {
+    discard: CardDeck<T>;
     onBottom: boolean;
     ignoreLocked: boolean;
 
-    constructor(discard: SearchableDeck, onBottom: boolean = false, ignoreLocked: boolean = false) {
+    constructor(discard: CardDeck<T>, onBottom: boolean = false, ignoreLocked: boolean = false) {
         this.discard = discard;
         this.onBottom = onBottom;
         this.ignoreLocked = ignoreLocked;
@@ -619,9 +623,9 @@ export class SearchChooseAction extends ModifiableAction {
     cards: Set<WorldCard>;
     playing: WorldCard[];  // For this action, order is important
     playingAmount: number;
-    discardOptions: SearchDiscardOptions;
+    discardOptions: SearchDiscardOptions<any>;
 
-    constructor(player: OathPlayer, cards: Iterable<WorldCard>, discardOptions?: SearchDiscardOptions, amount: number = 1) {
+    constructor(player: OathPlayer, cards: Iterable<WorldCard>, discardOptions?: SearchDiscardOptions<any>, amount: number = 1) {
         super(player);
         this.discardOptions = discardOptions || new SearchDiscardOptions(player.discard);
         this.cards = new Set(cards);
@@ -657,9 +661,9 @@ export class SearchDiscardAction extends ModifiableAction {
     cards: Set<WorldCard>;
     discarding: WorldCard[];  // For this action, order is important
     amount: number;
-    discardOptions: SearchDiscardOptions;
+    discardOptions: SearchDiscardOptions<any>;
 
-    constructor(player: OathPlayer, cards: Iterable<WorldCard>, amount?: number, discardOptions?: SearchDiscardOptions) {
+    constructor(player: OathPlayer, cards: Iterable<WorldCard>, amount?: number, discardOptions?: SearchDiscardOptions<any>) {
         super(player);
         this.discardOptions = discardOptions || new SearchDiscardOptions(player.discard);
         this.cards = new Set(cards);
@@ -692,10 +696,10 @@ export class SearchPlayAction extends ModifiableAction {
     card: WorldCard;
     site: Site | undefined;
     facedown: boolean;
-    discardOptions: SearchDiscardOptions;
+    discardOptions: SearchDiscardOptions<any>;
     canReplace: boolean;
 
-    constructor(player: OathPlayer, card: WorldCard, discardOptions?: SearchDiscardOptions) {
+    constructor(player: OathPlayer, card: WorldCard, discardOptions?: SearchDiscardOptions<any>) {
         super(player);
         this.card = card;
         this.message = "Play " + this.card.name;
@@ -772,9 +776,9 @@ export class PeoplesFavorDiscardAction extends OathAction {
     readonly parameters: { card: Denizen[] };
     readonly message = "You may discard a card";
 
-    discardOptions: SearchDiscardOptions;
+    discardOptions: SearchDiscardOptions<any>;
 
-    constructor(player: OathPlayer, discardOptions?: SearchDiscardOptions) {
+    constructor(player: OathPlayer, discardOptions?: SearchDiscardOptions<any>) {
         super(player);
         this.discardOptions = discardOptions || new SearchDiscardOptions(player.discard);
     }
@@ -1796,7 +1800,7 @@ export class CitizenshipOfferAction extends MakeBindingExchangeOfferAction {
     start(): boolean {
         if (!this.next) {
             const values = [];
-            for (let i = 0; i < 4; i++) if (this.game.chancellor.reliquary.relics[i]) values.push(i);
+            for (const [i, relic] of this.game.chancellor.reliquary.relics.entries()) if (relic) values.push(i);
             this.selects.reliquaryRelic = new SelectNumber("Reliquary slot", values);
         }
 
@@ -1822,6 +1826,27 @@ export class CitizenshipOfferAction extends MakeBindingExchangeOfferAction {
 }
 
 
+export class SkeletonKeyAction extends OathAction {
+    readonly selects: { index: SelectNumber };
+    readonly parameters: { index: number[] };
+    readonly message = "Peek at a relic in the Reliquary";
+
+    start(): boolean {
+        const values = [];
+        for (const [i, relic] of this.game.chancellor.reliquary.relics.entries()) if (relic) values.push(i);
+        this.selects.index = new SelectNumber("Reliquary slot", values);
+        return super.start();
+    }
+
+    execute(): void {
+        const index = this.parameters.index[0];
+        const relic = this.game.chancellor.reliquary.relics[index];
+        if (relic) new PeekAtCardEffect(this.player, relic).do();
+        new AskForPermissionAction(this.player, new TakeReliquaryRelicEffect(this.player, index)).doNext();
+    }
+}
+
+
 
 ////////////////////////////////////////////
 //             END OF THE GAME            //
@@ -1830,6 +1855,7 @@ export class ChooseSuccessor extends OathAction {
     readonly selects: { successor: SelectNOf<OathPlayer> };
     readonly parameters: { successor: OathPlayer[] };
     readonly message = "Choose a Successor";
+
     candidates: Set<OathPlayer>;
 
     constructor(player: OathPlayer, candidates: Set<OathPlayer>) {

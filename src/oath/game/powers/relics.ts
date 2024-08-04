@@ -1,8 +1,9 @@
-import { TradeAction, InvalidActionResolution, CampaignAtttackAction, MusterAction, UsePowerAction, CitizenshipOfferAction, StartBindingExchangeAction, ExileCitizenAction } from "../actions";
+import { TradeAction, InvalidActionResolution, CampaignAtttackAction, MusterAction, UsePowerAction, CitizenshipOfferAction, StartBindingExchangeAction, ExileCitizenAction, SkeletonKeyAction, SearchDiscardOptions } from "../actions";
 import { GrandScepter, Relic, Site } from "../cards/cards";
-import { TakeOwnableObjectEffect, TravelEffect, PutWarbandsFromBagEffect, PlayDenizenAtSiteEffect, CursedCauldronResolutionEffect, MoveOwnWarbandsEffect, PeekAtCardEffect, SetGrandScepterLockEffect } from "../effects";
+import { TakeOwnableObjectEffect, TravelEffect, PutWarbandsFromBagEffect, PlayDenizenAtSiteEffect, CursedCauldronResolutionEffect, MoveOwnWarbandsEffect, PeekAtCardEffect, SetGrandScepterLockEffect, GainSupplyEffect, DiscardCardEffect } from "../effects";
 import { OathResource } from "../enums";
 import { OwnableObject, OathPlayer, isOwnable, Exile } from "../player";
+import { ResourceCost } from "../resources";
 import { AccessedActionModifier, EnemyEffectModifier, EnemyActionModifier, AccessedEffectModifier, AttackerBattlePlan, DefenderBattlePlan, ActionModifier, EffectModifier, ActivePower, RestPower } from "./powers";
 
 
@@ -158,5 +159,24 @@ export class RingOfDevotionRestriction extends EffectModifier<Relic> {
     applyBefore(): void {
         if (this.effect.to instanceof Site)
             throw new InvalidActionResolution("Cannot place warbands at site with the Ring of Devotion");
+    }
+}
+
+export class SkeletonKey extends ActivePower<Relic> {
+    name = "Skeleton Key";
+    cost = new ResourceCost([[OathResource.Secret, 1]], [[OathResource.Secret, 1]]);
+    
+    usePower(action: UsePowerAction): void {
+        if (action.player.site.ruler?.isImperial)
+            new SkeletonKeyAction(action.player).doNext();
+    }
+}
+
+export class MapRelic extends ActivePower<Relic> {
+    name = "Map";
+
+    usePower(action: UsePowerAction): void {
+        new DiscardCardEffect(action.player, this.source, new SearchDiscardOptions(this.game.relicDeck, true)).do();
+        new GainSupplyEffect(action.player, 4).do();
     }
 }
