@@ -718,7 +718,7 @@ export class SearchPlayAction extends ModifiableAction {
         super.execute();
     }
 
-    static getCapacityInformation(player: OathPlayer, site?: Site, playing?: WorldCard, facedown: boolean = !!playing && playing.facedown): [number, Set<WorldCard>, WorldCard[], boolean] {
+    static getCapacityInformation(player: OathPlayer, site?: Site, playing?: WorldCard, facedown: boolean = !!playing && playing.facedown): [number, WorldCard[], boolean] {
         const capacityModifiers: CapacityModifier<any>[] = [];
         for (const [source, modifier] of player.game.getPowers(CapacityModifier)) {
             const instance = new modifier(source);
@@ -746,63 +746,24 @@ export class SearchPlayAction extends ModifiableAction {
             if (playing) ignoresCapacity ||= capacityModifier.ignoreCapacity(playing, facedown);
         }
 
-        return [capacity, takesNoSpace, [...target].filter(e => !takesNoSpace.has(e)), ignoresCapacity];
+        return [capacity, [...target].filter(e => !takesNoSpace.has(e)), ignoresCapacity];
     }
 
     modifiedExecution() {
-        const [capacity, takesNoSpace, takesSpaceInTarget, ignoresCapacity] = SearchPlayAction.getCapacityInformation(this.player, this.site?.original, this.card, this.facedown);
+        const [capacity, takesSpaceInTarget, ignoresCapacity] = SearchPlayAction.getCapacityInformation(this.player, this.site?.original, this.card, this.facedown);
 
-        const excess = Math.max(0, takesSpaceInTarget.length - capacity + (takesNoSpace.has(this.card) ? 0 : 1));  // +1 because we are playing a card there, if it counts
+        const excess = Math.max(0, takesSpaceInTarget.length - capacity + 1);  // +1 because we are playing a card there
         const discardable = takesSpaceInTarget.filter(e => !(e instanceof Denizen && e.activelyLocked));
 
         if (!ignoresCapacity && excess)
             if (!this.canReplace || excess > discardable.length)
                 throw new InvalidActionResolution("Target is full and cards there cannot be replaced");
             else
-                new SearchReplaceAction(this.player, this.card, this.facedown, this.site, discardable, excess, this.discardOptions).doNext();
-        else
-            new PlayWorldCardEffect(this.player, this.card, this.facedown, this.site).do();
+                new SearchDiscardAction(this.player, discardable, excess, this.discardOptions).doNext();
+        
+        new PlayWorldCardEffect(this.player, this.card, this.facedown, this.site).doNext();
 
         // TODO: Also check capacity AFTER playing the card
-    }
-}
-
-export class SearchReplaceAction extends OathAction {
-    readonly selects: { discarding: SelectNOf<WorldCard> }
-    readonly parameters: { discarding: WorldCard[] };
-    readonly message: string;
-
-    playing: WorldCard;
-    site?: Site;
-    facedown: boolean;
-    discardable: Set<WorldCard>;
-    excess: number;
-    discardOptions: SearchDiscardOptions;
-    discarding: WorldCard[];  // For this action, order is important
-    onBottom = false;
-
-    constructor(player: OathPlayer, playing: WorldCard, facedown: boolean, site: Site | undefined, discardable: Iterable<WorldCard>, excess: number, discardOptions?: SearchDiscardOptions) {
-        super(player);
-        this.playing = playing;
-        this.message = "Discard cards to play " + playing.name;
-        this.facedown = facedown;
-        this.site = site;
-        this.discardable = new Set(discardable);
-        this.excess = excess;
-        this.discardOptions = discardOptions || new SearchDiscardOptions(player.discard);
-    }
-
-    start() {
-        const choices = new Map<string, WorldCard>();
-        for (const card of this.discardable) choices.set(card.name, card);
-        this.selects.discarding = new SelectNOf("Card(s)", choices, this.excess);
-        return super.start();
-    }
-
-    execute(): void {
-        this.discarding = this.parameters.discarding;
-        new DiscardCardGroupEffect(this.player, this.discarding, this.discardOptions).do();
-        new PlayWorldCardEffect(this.player, this.playing, this.facedown, this.site).do();
     }
 }
 
@@ -1732,10 +1693,11 @@ export class ExileCitizenAction extends ChoosePlayer {
 
         let amount = 5;
         const peoplesFavor = this.game.banners.get(BannerName.PeoplesFavor);
-        if (this.player.original === this.game.oathkeeper) amount--;
-        if (peoplesFavor?.owner?.original === this.player.original) amount--;
-        if (this.target.original === this.game.oathkeeper) amount++;
-        if (peoplesFavor?.owner?.original === this.target.original) amount++;
+        if (this.player.original === this.game.oathkeeper.original) amount--;
+        if (this.player.original === peoplesFavor?.owner?.original) amount--;
+        if (this.target.original === this.game.oathkeeper.original) amount++;
+        if (this.target.original === peoplesFavor?.owner?.original) amount++;
+
         if (!new PayCostToTargetEffect(this.game, this.player, new ResourceCost([[OathResource.Favor, amount]]), this.target).do())
             throw new InvalidActionResolution("Cannot pay resource cost");
 
@@ -1956,14 +1918,12 @@ export class BuildOrRepairEdificeAction extends OathAction {
 
     start(): boolean {
         const choices = new Map<string, Denizen | undefined>();
-        for (const site of this.game.board.sites()) {
-            if (site.ruler?.isImperial) {
-                for (const denizen of site.denizens) {
+        for (const site of this.game.board.sites())
+            if (site.ruler?.isImperial)
+                for (const denizen of site.denizens)
                     if (!(denizen instanceof Edifice && denizen.suit !== OathSuit.None))
                         choices.set(denizen.name, denizen);
-                }
-            }
-        }
+
         choices.set("None", undefined);
         this.selects.card = new SelectNOf("Card", choices, 1);
         return super.start();
@@ -2013,7 +1973,7 @@ export class AddCardsToWorldDeckAction extends ChooseSuit {
         
         // Add cards from the archive
         const worldDeck = this.game.original.worldDeck;
-        const worldDeckDiscardOptions = new SearchDiscardOptions(worldDeck);
+        const worldDeckDiscardOptions = new SearchDiscardOptions(worldDeck, false, true);
         for (let i = 3; i >= 1; i--) {
             const cardData = this.getRandomCardDataInArchive(this.suit);
             for (let j = 0; j < i; j++) {
@@ -2032,7 +1992,7 @@ export class AddCardsToWorldDeckAction extends ChooseSuit {
 
         // Remove cards to the Dispossessed
         const firstDiscard = Object.values(this.game.original.board.regions)[0].discard;
-        const firstDiscardOptions = new SearchDiscardOptions(firstDiscard);
+        const firstDiscardOptions = new SearchDiscardOptions(firstDiscard, false, true);
         for (const player of Object.values(this.game.original.players)) {
             let discardOptions = firstDiscardOptions;
             if (player === this.player) discardOptions = worldDeckDiscardOptions;

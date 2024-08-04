@@ -760,7 +760,6 @@ export class MoveSiteDenizenEffect extends OathEffect<Denizen> {
 export class MoveWorldCardToAdvisersEffect extends OathEffect<void> {
     card: WorldCard;
     target: OathPlayer | undefined;
-    oldOwner: OathPlayer | undefined;
 
     constructor(game: OathGame, player: OathPlayer | undefined, card: WorldCard, target?: OathPlayer) {
         super(game, player);
@@ -771,6 +770,29 @@ export class MoveWorldCardToAdvisersEffect extends OathEffect<void> {
     resolve(): void {
         if (!this.target) return;
         this.card.original.setOwner(this.target.original);
+        new CheckCapacityEffect(this.target, [this.target]).do();
+    }
+
+    revert(): void {
+        // The thing that calls this effect is in charge of putting the card back where it was
+        this.card.original.setOwner(undefined);
+    }
+}
+
+export class MoveDenizenToSiteEffect extends OathEffect<void> {
+    card: Denizen;
+    target: Site;
+
+    constructor(game: OathGame, player: OathPlayer | undefined, card: Denizen, target: Site) {
+        super(game, player);
+        this.card = card;
+        this.target = target;
+    }
+
+    resolve(): void {
+        if (!this.target) return;
+        this.card.original.putAtSite(this.target.original);
+        new CheckCapacityEffect(this.player || this.game.currentPlayer, [this.target]).do();
     }
 
     revert(): void {
@@ -800,12 +822,31 @@ export class DiscardCardGroupEffect extends PlayerEffect<void> {
             new DiscardCardEffect(this.player, card, this.discardOptions).do();
         }
 
-        // TODO: Move this to an effect
-        for (const origin of origins) {
+        new CheckCapacityEffect(this.player, origins, this.discardOptions).do();
+    }
+
+    revert(): void {
+        // Doesn't do anything on its own
+    }
+}
+
+export class CheckCapacityEffect extends PlayerEffect<void> {
+    origins: Set<OathPlayer | Site>;
+    discardOptions?: SearchDiscardOptions;
+
+    // TODO: Interface for elements that house cards?
+    constructor(player: OathPlayer, origins: Iterable<OathPlayer | Site>, discardOptions?: SearchDiscardOptions, dontCopyGame?: boolean) {
+        super(player, dontCopyGame);
+        this.origins = new Set(origins);
+        this.discardOptions = discardOptions;
+    }
+
+    resolve(): void {
+        for (const origin of this.origins) {
             const site = origin instanceof Site ? origin : undefined;
             const player = origin instanceof OathPlayer ? origin : origin.ruler || this.player;
             
-            const [capacity, takesNoSpace, takesSpaceInTarget, _] = SearchPlayAction.getCapacityInformation(player, site);
+            const [capacity, takesSpaceInTarget, _] = SearchPlayAction.getCapacityInformation(player, site);
             const excess = Math.max(0, takesSpaceInTarget.length - capacity);
             if (excess > takesSpaceInTarget.length)
                 throw new InvalidActionResolution(`Cannot satisfy the capacity of ${origin.name}'s cards`);
