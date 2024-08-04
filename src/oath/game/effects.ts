@@ -666,7 +666,7 @@ export class PlayDenizenAtSiteEffect extends PlayerEffect<void> {
         // The thing that calls this effect is in charge of putting the card back where it was
         // It should, if it calls setOwner, revert the placement at the site
         if (this.revealedCard) this.card.original.hide();
-        this.card.setOwner(undefined);
+        this.card.original.setOwner(undefined);
     }
 }
 
@@ -921,16 +921,18 @@ export class TakeOwnableObjectEffect extends OathEffect<void> {
 
 export class GiveOwnableObjectEffect extends OathEffect<void> {
     target: OwnableObject;
+    to: OathPlayer | undefined;
     oldOwner: OathPlayer | undefined;
 
     constructor(game: OathGame, player: OathPlayer | undefined, target: OwnableObject) {
-        super(game, player);
+        super(game, target.owner);
         this.target = target;
+        this.to = player;
     }
 
     resolve(): void {
         this.oldOwner = this.target.original.owner;
-        this.target.original.setOwner(this.player?.original);
+        this.target.original.setOwner(this.to?.original);
     }
 
     revert(): void {

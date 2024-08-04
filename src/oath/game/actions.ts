@@ -1132,34 +1132,6 @@ export class CampaignSeizeSiteAction extends OathAction {
     }
 }
 
-export class CampaignBanishPlayerAction extends OathAction {
-    readonly selects: { site: SelectNOf<Site> };
-    readonly parameters: { site: Site[] };
-    readonly message: string;
-
-    target: OathPlayer;
-
-    constructor(player: OathPlayer, target: OathPlayer) {
-        super(player);
-        this.target = target;
-        this.message = "Choose where to banish " + target.name;
-    }
-
-    start() {
-        const choices = new Map<string, Site>();
-        for (const site of this.game.board.sites())
-            choices.set(site.name, site);
-        
-        this.selects.site = new SelectNOf("Site", choices, 1);
-        return super.start();
-    }
-
-    execute() {
-        const site = this.parameters.site[0];
-        new TravelEffect(this.target, site, this.player).do();
-    }
-}
-
 
 export class WakeAction extends ModifiableAction {
     readonly message = "";
@@ -1720,7 +1692,7 @@ export abstract class ChooseSite extends OathAction {
     }
 
     start(none?: string) {
-        if (!this.sites.size) this.sites = new Set(this.game.board.sites());
+        if (!this.sites.size) this.sites = new Set([...this.game.board.sites()].filter(e => !e.facedown));
 
         const choices = new Map<string, Site | undefined>();
         for (const site of this.sites)
@@ -1733,6 +1705,24 @@ export abstract class ChooseSite extends OathAction {
 
     execute(): void {
         this.target = this.parameters.site[0];
+    }
+}
+
+export class CampaignBanishPlayerAction extends ChooseSite {
+    readonly message: string;
+
+    banished: OathPlayer;
+
+    constructor(player: OathPlayer, banished: OathPlayer) {
+        super(player);
+        this.banished = banished;
+        this.message = "Choose where to banish " + banished.name;
+    }
+
+    execute() {
+        super.execute()
+        if (!this.target) return;
+        new TravelEffect(this.banished, this.target, this.player).do();
     }
 }
 
