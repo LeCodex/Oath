@@ -901,7 +901,7 @@ export class TakeOwnableObjectEffect extends OathEffect<void> {
     constructor(game: OathGame, player: OathPlayer | undefined, target: OwnableObject, flipFaceup: boolean = true) {
         super(game, player);
         this.target = target;
-        this.flipFaceup = flipFaceup
+        this.flipFaceup = flipFaceup;
     }
 
     resolve(): void {
@@ -909,14 +909,14 @@ export class TakeOwnableObjectEffect extends OathEffect<void> {
         this.target.original.setOwner(this.player?.original);
 
         if (this.target instanceof OwnableCard) {
-            this.flipFaceup = this.flipFaceup && this.target.facedown;
-            if (this.flipFaceup) this.target.reveal();
+            this.flipFaceup = this.flipFaceup && this.target.original.facedown;
+            if (this.flipFaceup) this.target.original.reveal();
         }
     }
 
     revert(): void {
         this.target.original.setOwner(this.oldOwner);
-        if (this.target instanceof OwnableCard && this.flipFaceup) this.target.hide();
+        if (this.target instanceof OwnableCard && this.flipFaceup) this.target.original.hide();
     }
 }
 
