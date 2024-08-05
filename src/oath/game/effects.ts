@@ -462,16 +462,14 @@ export class TakeWarbandsIntoBagEffect extends PlayerEffect<number> {
     }
 }
 
-export class TravelEffect extends PlayerEffect<void> {
+export class PutPawnAtSiteEffect extends PlayerEffect<void> {
     site: Site;
-    initiatedBy: OathPlayer;
     oldSite: Site;
     revealedSite: boolean;
 
-    constructor(player: OathPlayer, site: Site, initiatedBy?: OathPlayer) {
+    constructor(player: OathPlayer, site: Site) {
         super(player);
         this.site = site;
-        this.initiatedBy = initiatedBy || this.player;
     }
 
     resolve(): void {
@@ -480,6 +478,8 @@ export class TravelEffect extends PlayerEffect<void> {
 
         this.revealedSite = this.site.original.facedown;
         if (this.revealedSite) this.site.original.reveal();
+
+        // TODO: Technically, this is a minor action
         for (const relic of this.site.original.relics) new PeekAtCardEffect(this.player, relic).do();
     }
 
@@ -507,6 +507,23 @@ export class PeekAtCardEffect extends PlayerEffect<void> {
     revert(): void {
         if (!this.peeked) return;
         this.card.original.seenBy.delete(this.player.original);
+    }
+}
+
+export class RevealCardEffect extends OathEffect<void> {
+    card: OathCard;
+
+    constructor(game: OathGame, player: OathPlayer | undefined, card: OathCard) {
+        super(game, player);
+        this.card = card;
+    }
+
+    resolve(): void {
+        for (const player of Object.values(this.game.players)) new PeekAtCardEffect(player, this.card);
+    }
+
+    revert(): void {
+        // Doesn't do anything on its own
     }
 }
 

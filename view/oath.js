@@ -125,7 +125,8 @@ const render = () => {
 const renderCard = (card) => {
     const cardNode = document.createElement("li");
     cardNode.id = "card" + card.name;
-    cardNode.innerText = (card.facedown ? "❔ " : "") + (!card.facedown || card.seenBy.includes(game.order[game.turn]) ? (card.suit !== undefined ? suitColors[card.suit+1] + " " : "") + card.name  + " " + getResourcesAndWarbandsText(card) : "");
+    cardNode.innerText = (card.facedown ? card.vision ? "👁️ " : "❔ " : "")
+    cardNode.innerText += (!card.facedown || card.seenBy.includes(game.order[game.turn]) ? (card.suit !== undefined ? suitColors[card.suit+1] + " " : "") + card.name  + " " + getResourcesAndWarbandsText(card) : "");
     return cardNode;
 }
 
@@ -141,12 +142,12 @@ const renderDeck = (deck, name) => {
         if (card.facedown && !card.seenBy.includes(game.order[game.turn])) {
             facedownTotal++;
         } else {
-            if (facedownTotal) deckList.appendChild(renderText(facedownTotal + " ❔"));
+            if (facedownTotal) deckList.appendChild(renderText("❔".repeat(facedownTotal)));
             deckList.appendChild(renderCard(card));
             facedownTotal = 0;
         }
     }
-    if (facedownTotal) deckList.append(renderText(facedownTotal + " ❔"));
+    if (facedownTotal) deckList.append(renderText("❔".repeat(facedownTotal)));
 
     return deckNode;
 }

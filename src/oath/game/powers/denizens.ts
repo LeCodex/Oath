@@ -1,7 +1,7 @@
 import { TradeAction, InvalidActionResolution, SearchAction, SearchPlayAction, TakeFavorFromBankAction, CampaignAtttackAction, CampaignDefenseAction, UsePowerAction, AskForRerollAction, TravelAction, TakeResourceFromPlayerAction, CampaignEndAction, ModifiableAction, PiedPiperAction, ActAsIfAtSiteAction } from "../actions";
 import { Denizen, Site, WorldCard, Vision, Relic } from "../cards/cards";
 import { DefenseDie } from "../dice";
-import { PayCostToTargetEffect, TravelEffect, PlayWorldCardEffect, MoveResourcesToTargetEffect, RegionDiscardEffect, PutResourcesOnTargetEffect, RollDiceEffect, TakeWarbandsIntoBagEffect, TakeResourcesFromBankEffect, PlayVisionEffect, OathEffect, TakeOwnableObjectEffect, PayPowerCost, PutWarbandsFromBagEffect, SetNewOathkeeperEffect, GamblingHallEffect, ApplyWhenPlayedEffect } from "../effects";
+import { PayCostToTargetEffect, PutPawnAtSiteEffect, PlayWorldCardEffect, MoveResourcesToTargetEffect, RegionDiscardEffect, PutResourcesOnTargetEffect, RollDiceEffect, TakeWarbandsIntoBagEffect, TakeResourcesFromBankEffect, PlayVisionEffect, OathEffect, TakeOwnableObjectEffect, PayPowerCost, PutWarbandsFromBagEffect, SetNewOathkeeperEffect, GamblingHallEffect, ApplyWhenPlayedEffect } from "../effects";
 import { OathResource, OathSuit, BannerName } from "../enums";
 import { OathPlayer, OwnableObject, isOwnable } from "../player";
 import { ResourceCost } from "../resources";
@@ -65,14 +65,14 @@ export class Curfew extends EnemyActionModifier<Denizen> {
     }
 }
 
-export class TollRoads extends EnemyEffectModifier<Denizen> {
+export class TollRoads extends EnemyActionModifier<Denizen> {
     name = "Toll Roads";
-    modifiedEffect = TravelEffect;
-    effect: TravelEffect;
+    modifiedAction = TravelAction;
+    action: TravelAction;
 
     applyBefore(): void {
-        if (this.effect.site.ruler?.original === this.source.ruler?.original) {
-            if (!new PayCostToTargetEffect(this.effect.game, this.effect.player, new ResourceCost([[OathResource.Favor, 1]]), this.source.ruler).do())
+        if (this.action.site.ruler?.original === this.source.ruler?.original) {
+            if (!new PayCostToTargetEffect(this.game, this.action.player, new ResourceCost([[OathResource.Favor, 1]]), this.source.ruler).do())
                 throw new InvalidActionResolution("Cannot pay the Toll Roads.");
         }
     }

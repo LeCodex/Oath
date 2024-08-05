@@ -1,7 +1,7 @@
-import { TradeAction, InvalidActionResolution, CampaignAtttackAction, MusterAction, UsePowerAction, CitizenshipOfferAction, StartBindingExchangeAction, ExileCitizenAction, SkeletonKeyAction } from "../actions";
+import { TradeAction, InvalidActionResolution, CampaignAtttackAction, MusterAction, UsePowerAction, CitizenshipOfferAction, StartBindingExchangeAction, ExileCitizenAction, SkeletonKeyAction, TravelAction } from "../actions";
 import { DiscardOptions } from "../cards/decks";
-import { GrandScepter, Relic, Site } from "../cards/cards";
-import { TakeOwnableObjectEffect, TravelEffect, PutWarbandsFromBagEffect, PlayDenizenAtSiteEffect, CursedCauldronResolutionEffect, MoveOwnWarbandsEffect, PeekAtCardEffect, SetGrandScepterLockEffect, GainSupplyEffect, DiscardCardEffect } from "../effects";
+import { Denizen, GrandScepter, Relic, Site } from "../cards/cards";
+import { TakeOwnableObjectEffect, PutPawnAtSiteEffect, PutWarbandsFromBagEffect, PlayDenizenAtSiteEffect, CursedCauldronResolutionEffect, MoveOwnWarbandsEffect, PeekAtCardEffect, SetGrandScepterLockEffect, GainSupplyEffect, DiscardCardEffect, DrawFromDeckEffect, RevealCardEffect } from "../effects";
 import { OathResource } from "../enums";
 import { OwnableObject, OathPlayer, isOwnable, Exile } from "../player";
 import { ResourceCost } from "../resources";
@@ -107,11 +107,11 @@ export class CircletOfCommandCampaign extends EnemyActionModifier<Relic> {
 
 export class DragonskinWardrum extends AccessedEffectModifier<Relic> {
     name = "Dragonskin Wardrum";
-    modifiedEffect = TravelEffect;
-    effect: TravelEffect;
+    modifiedAction = TravelAction;
+    action: TravelAction;
 
     applyAfter(result: void): void {
-        new PutWarbandsFromBagEffect(this.effect.player, 1).do();
+        new PutWarbandsFromBagEffect(this.action.player, 1).do();
     }
 }
 
@@ -179,5 +179,36 @@ export class MapRelic extends ActivePower<Relic> {
     usePower(action: UsePowerAction): void {
         new DiscardCardEffect(action.player, this.source, new DiscardOptions(this.game.relicDeck, true)).do();
         new GainSupplyEffect(action.player, 4).do();
+    }
+}
+
+export class OracularPig extends ActivePower<Relic> {
+    name = "Oracular Pig";
+
+    usePower(action: UsePowerAction): void {
+        for (let i = 0; i < 3; i++) {
+            const card = this.game.worldDeck.cards[i];
+            if (card) new PeekAtCardEffect(action.player, card).do();
+        }
+    }
+}
+
+export class BrassHorse extends ActivePower<Relic> {
+    name = "Brass Horse";
+    cost = new ResourceCost([[OathResource.Secret, 1]]);
+
+    usePower(action: UsePowerAction): void {
+        const card = action.player.site.region.discard.cards[0];
+        new RevealCardEffect(this.game, action.player, card).do();
+        
+        const sites = new Set<Site>();
+        if (card instanceof Denizen)
+            for (const site of this.game.board.sites())
+                if (site.original !== action.player.site.original)
+                    for (const denizen of site.denizens)
+                        if (denizen.suit === card.suit)
+                            sites.add(site.original);
+        
+        new TravelAction(action.player, action.player, (s: Site) => !sites.size || sites.has(s.original)).doNext();
     }
 }

@@ -1,7 +1,7 @@
 import { Denizen, Edifice, Relic, Site, VisionBack, WorldCard } from "./cards/cards";
 import { DiscardOptions, SearchableDeck } from "./cards/decks";
 import { AttackDie, DefenseDie, Die } from "./dice";
-import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, TravelEffect, DiscardCardEffect, MoveOwnWarbandsEffect, AddActionToStackEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect, SetNewOathkeeperEffect, SetPeoplesFavorMobState, DiscardCardGroupEffect, OathEffect, PopActionFromStackEffect, PaySupplyEffect, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, ChangeEdificeEffect, ModifiedExecutionEffect, CampaignResolveSuccessfulAndSkullsEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect } from "./effects";
+import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, PutPawnAtSiteEffect, DiscardCardEffect, MoveOwnWarbandsEffect, AddActionToStackEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect, SetNewOathkeeperEffect, SetPeoplesFavorMobState, DiscardCardGroupEffect, OathEffect, PopActionFromStackEffect, PaySupplyEffect, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, ChangeEdificeEffect, ModifiedExecutionEffect, CampaignResolveSuccessfulAndSkullsEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect, CheckCapacityEffect } from "./effects";
 import { BannerName, OathPhase, OathResource, OathResourceName, OathSuit, OathSuitName, OathType, OathTypeName } from "./enums";
 import { OathGame } from "./game";
 import { OathGameObject } from "./gameObject";
@@ -387,7 +387,8 @@ export abstract class ModifiableAction extends OathAction {
 }
 
 export abstract class MajorAction extends ModifiableAction {
-    readonly autocompleteSelects = false;
+    readonly autocompleteSelects: boolean = false;
+
     supplyCost: number;         // You may set the Supply cost if the effect replaces it. Multiple instances will just be tie-broken with timestamps
     supplyCostModifier = 0;     // Use this for linear modifications to the Supply cost
     noSupplyCost: boolean;
@@ -489,20 +490,36 @@ export class TradeAction extends MajorAction {
 export class TravelAction extends MajorAction {
     readonly selects: { site: SelectNOf<Site> };
     readonly parameters: { site: Site[] };
-    readonly message = "Choose a site to travel to";
+    readonly message: string = "Choose a site to travel to";
+    readonly autocompleteSelects: boolean;
+    player: OathPlayer;
 
+    travelling: OathPlayer;
+    choosing: OathPlayer;
     site: Site;
+    restriction: (s: Site) => boolean;
+
+    constructor(player: OathPlayer, choosing: OathPlayer = player, restriction?: (s: Site) => boolean, dontCopyGame?: boolean) {
+        super(player, dontCopyGame);
+        this.autocompleteSelects = !!restriction;
+        this.restriction = restriction || ((_: Site) => true);
+        this.choosing = choosing;
+        this.travelling = player;
+    }
 
     start() {
+        this.player = this.choosing;
         const choices = new Map<string, Site>();
         for (const site of this.game.board.sites())
-            if (site !== this.player.site) choices.set(site.facedown ? `Facedown ${site.region.name}` : site.name, site);
+            if (site !== this.player.site && this.restriction(site))
+                choices.set(site.facedown ? `Facedown ${site.region.name}` : site.name, site);
         
         this.selects.site = new SelectNOf("Site", choices, 1);
         return super.start();
     }
 
     execute() {
+        this.player = this.travelling;
         this.site = this.parameters.site[0];
         this.supplyCost = this.game.board.travelCosts.get(this.player.site.region.regionName)?.get(this.site.region.regionName) || 2;
         super.execute();
@@ -510,7 +527,7 @@ export class TravelAction extends MajorAction {
 
     modifiedExecution() {
         super.modifiedExecution();
-        new TravelEffect(this.player, this.site).do();
+        new PutPawnAtSiteEffect(this.player, this.site).do();
     }
 }
 
@@ -755,8 +772,7 @@ export class SearchPlayAction extends ModifiableAction {
                 new SearchDiscardAction(this.player, discardable, excess, this.discardOptions).doNext();
         
         new PlayWorldCardEffect(this.player, this.card, this.facedown, this.site).doNext();
-
-        // TODO: Also check capacity AFTER playing the card
+        new CheckCapacityEffect(this.player, [this.site || this.player], this.discardOptions).do();
     }
 }
 
@@ -1702,28 +1718,18 @@ export abstract class ChooseSite extends OathAction {
     }
 }
 
-export class CampaignBanishPlayerAction extends ChooseSite {
+export class CampaignBanishPlayerAction extends TravelAction {
     readonly message: string;
 
-    banished: OathPlayer;
-
     constructor(player: OathPlayer, banished: OathPlayer) {
-        super(player);
-        this.banished = banished;
+        super(banished, player);
         this.message = "Choose where to banish " + banished.name;
-    }
-
-    execute() {
-        super.execute();
-        if (!this.target) return;
-        new TravelEffect(this.banished, this.target, this.player).do();
     }
 }
 
 export class ActAsIfAtSiteAction extends ChooseSite {
     readonly message = "Choose a site to act at";
     readonly autocompleteSelects = false;
-    readonly canChooseCurrentSite = true;
 
     execute(): void {
         super.execute();
