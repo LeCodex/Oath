@@ -142,12 +142,12 @@ const renderDeck = (deck, name) => {
         if (card.facedown && !card.seenBy.includes(game.order[game.turn])) {
             facedownTotal++;
         } else {
-            if (facedownTotal) deckList.appendChild(renderText("❔".repeat(facedownTotal)));
+            if (facedownTotal) deckList.appendChild(renderText(facedownTotal + " ❔"));
             deckList.appendChild(renderCard(card));
             facedownTotal = 0;
         }
     }
-    if (facedownTotal) deckList.append(renderText("❔".repeat(facedownTotal)));
+    if (facedownTotal) deckList.append(renderText(facedownTotal + " ❔"));
 
     return deckNode;
 }

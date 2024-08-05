@@ -199,6 +199,8 @@ export class BrassHorse extends ActivePower<Relic> {
 
     usePower(action: UsePowerAction): void {
         const card = action.player.site.region.discard.cards[0];
+        if (!card) return;
+
         new RevealCardEffect(this.game, action.player, card).do();
         
         const sites = new Set<Site>();
@@ -209,6 +211,8 @@ export class BrassHorse extends ActivePower<Relic> {
                         if (denizen.suit === card.suit)
                             sites.add(site.original);
         
-        new TravelAction(action.player, action.player, (s: Site) => !sites.size || sites.has(s.original)).doNext();
+        const travelAction = new TravelAction(action.player, action.player, (s: Site) => !sites.size || sites.has(s.original));
+        travelAction.noSupplyCost = true;
+        travelAction.doNext();
     }
 }

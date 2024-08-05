@@ -1720,6 +1720,7 @@ export abstract class ChooseSite extends OathAction {
 
 export class CampaignBanishPlayerAction extends TravelAction {
     readonly message: string;
+    noSupplyCost: boolean = true;
 
     constructor(player: OathPlayer, banished: OathPlayer) {
         super(banished, player);

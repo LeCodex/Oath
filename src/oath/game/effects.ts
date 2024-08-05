@@ -519,7 +519,8 @@ export class RevealCardEffect extends OathEffect<void> {
     }
 
     resolve(): void {
-        for (const player of Object.values(this.game.players)) new PeekAtCardEffect(player, this.card);
+        for (const player of Object.values(this.game.players))
+            new PeekAtCardEffect(player, this.card).do();
     }
 
     revert(): void {
