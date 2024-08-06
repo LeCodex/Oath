@@ -776,6 +776,27 @@ export class MoveSiteDenizenEffect extends OathEffect<Denizen> {
     }
 }
 
+export class MoveSiteRelicEffect extends OathEffect<Relic> {
+    relic: Relic;
+    oldSite: Site;
+
+    constructor(game: OathGame, player: OathPlayer | undefined, relic: Relic) {
+        super(game, player);
+        this.relic = relic;
+    }
+
+    resolve(): Relic {
+        if (!this.relic.original.site) throw new InvalidActionResolution("Trying to move a site relic not at a site.");
+        this.oldSite = this.relic.original.site;
+        this.relic.original.setOwner(undefined);
+        return this.relic.original;
+    }
+
+    revert(): void {
+        this.relic.original.putAtSite(this.oldSite.original);
+    }
+}
+
 export class MoveWorldCardToAdvisersEffect extends OathEffect<void> {
     card: WorldCard;
     target: OathPlayer | undefined;
@@ -923,13 +944,16 @@ export class TakeOwnableObjectEffect extends OathEffect<void> {
     }
 
     resolve(): void {
-        this.oldOwner = this.target.original.owner;
-        this.target.original.setOwner(this.player?.original);
+        if (this.target instanceof Relic)
+            if (this.target.site) new MoveSiteRelicEffect(this.game, this.player, this.target).do();
 
         if (this.target instanceof OwnableCard) {
             this.flipFaceup = this.flipFaceup && this.target.original.facedown;
             if (this.flipFaceup) this.target.original.reveal();
         }
+        
+        this.oldOwner = this.target.original.owner;
+        this.target.original.setOwner(this.player?.original);
     }
 
     revert(): void {

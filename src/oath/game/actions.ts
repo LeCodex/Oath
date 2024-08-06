@@ -1,7 +1,7 @@
 import { Denizen, Edifice, Relic, Site, VisionBack, WorldCard } from "./cards/cards";
 import { DiscardOptions, SearchableDeck } from "./cards/decks";
 import { AttackDie, DefenseDie, Die } from "./dice";
-import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, PutPawnAtSiteEffect, DiscardCardEffect, MoveOwnWarbandsEffect, AddActionToStackEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect, SetNewOathkeeperEffect, SetPeoplesFavorMobState, DiscardCardGroupEffect, OathEffect, PopActionFromStackEffect, PaySupplyEffect, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, ChangeEdificeEffect, ModifiedExecutionEffect, CampaignResolveSuccessfulAndSkullsEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect, CheckCapacityEffect } from "./effects";
+import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, PutPawnAtSiteEffect, DiscardCardEffect, MoveOwnWarbandsEffect, AddActionToStackEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect, SetNewOathkeeperEffect, SetPeoplesFavorMobState, DiscardCardGroupEffect, OathEffect, PopActionFromStackEffect, PaySupplyEffect, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, ChangeEdificeEffect, ModifiedExecutionEffect, CampaignResolveSuccessfulAndSkullsEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect, CheckCapacityEffect, MoveSiteDenizenEffect } from "./effects";
 import { BannerName, OathPhase, OathResource, OathResourceName, OathSuit, OathSuitName, OathType, OathTypeName } from "./enums";
 import { OathGame } from "./game";
 import { OathGameObject } from "./gameObject";
@@ -1115,6 +1115,16 @@ export class CampaignKillWarbandsInForceAction extends OathAction {
     }
 }
 
+export class CampaignBanishPlayerAction extends TravelAction {
+    readonly message: string;
+    noSupplyCost: boolean = true;
+
+    constructor(player: OathPlayer, banished: OathPlayer) {
+        super(banished, player);
+        this.message = "Choose where to banish " + banished.name;
+    }
+}
+
 export class CampaignSeizeSiteAction extends OathAction {
     readonly selects: { amount: SelectNumber };
     readonly parameters: { amount: number[] };
@@ -1715,16 +1725,6 @@ export abstract class ChooseSite extends OathAction {
 
     execute(): void {
         this.target = this.parameters.site[0];
-    }
-}
-
-export class CampaignBanishPlayerAction extends TravelAction {
-    readonly message: string;
-    noSupplyCost: boolean = true;
-
-    constructor(player: OathPlayer, banished: OathPlayer) {
-        super(banished, player);
-        this.message = "Choose where to banish " + banished.name;
     }
 }
 
