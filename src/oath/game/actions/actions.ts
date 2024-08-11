@@ -108,8 +108,9 @@ export class ChooseModifiers extends OathAction {
 
         // NOTE: For ignore loops, all powers in the loop are ignored.
         const ignore = new Set<ActionModifier<any>>();
+        const modifiers = [...choices.values(), ...this.persistentModifiers]
         for (const modifier of choices.values())
-            for (const toIgnore of modifier.applyImmediately([...choices.values()]))
+            for (const toIgnore of modifier.applyImmediately(modifiers))
                 ignore.add(toIgnore);
 
         for (const modifier of ignore) {
@@ -286,6 +287,7 @@ export class TradeAction extends MajorAction {
 
     modifiedExecution() {
         super.modifiedExecution();
+
         // TODO: Make costs easily printable. Potentially get the error from the ResourceCost class?
         if (!new PayCostToTargetEffect(this.game, this.player, new ResourceCost(this.paying), this.cardProxy.original).do())
             throw new InvalidActionResolution("Cannot pay resource cost.");
@@ -543,8 +545,8 @@ export class SearchPlayAction extends ModifiableAction {
 
     static getCapacityInformation(playerProxy: OathPlayer, siteProxy?: Site, playingProxy?: WorldCard): [number, WorldCard[], boolean] {
         const capacityModifiers: CapacityModifier<any>[] = [];
-        for (const [source, modifier] of playerProxy.game.getPowers(CapacityModifier)) {
-            const instance = new modifier(source);
+        for (const [sourceProxy, modifier] of playerProxy.game.getPowers(CapacityModifier)) {
+            const instance = new modifier(sourceProxy.original);
             if (instance.canUse(playerProxy, siteProxy)) capacityModifiers.push(instance);
         }
 
@@ -1019,8 +1021,8 @@ export class UsePowerAction extends ModifiableAction {
 
     start() {
         const choices = new Map<string, ActivePower<any>>();
-        for (const [source, power] of this.gameProxy.getPowers(ActivePower<any>)) {
-            const instance = new power(source, this);
+        for (const [sourceProxy, power] of this.gameProxy.getPowers(ActivePower<any>)) {
+            const instance = new power(sourceProxy.original, this);
             if (instance.canUse()) choices.set(instance.name, instance);
         }
         this.selects.power = new SelectNOf("Power", choices, 1);

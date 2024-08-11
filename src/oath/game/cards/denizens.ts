@@ -7,6 +7,8 @@ import { Denizen, Edifice } from "./cards";
 export type DenizenData = [OathSuit, string, Constructor<OathPower<Denizen>>[], CardRestriction?, boolean?];
 
 export const denizenData: Record<string, DenizenData> = {
+    "ActingTroupe":     [OathSuit.Arcane,   "Acting Troupe",        [ActingTroupe], CardRestriction.Adviser],
+    "Bracken":          [OathSuit.Beast,    "Bracken",              [Bracken]],
     "RelicThief":       [OathSuit.Discord,  "Relic Thief",          [RelicThief]],
     "KeyToTheCity":     [OathSuit.Discord,  "Key to the City",      [KeyToTheCity], CardRestriction.Site],
     "Assassin":         [OathSuit.Discord,  "Assassin",             [OnlyTwoAdvisers, Assassin], CardRestriction.Adviser, true],
@@ -22,7 +24,6 @@ export const denizenData: Record<string, DenizenData> = {
     "Dazzle":           [OathSuit.Arcane,   "Dazzle",               [Dazzle]],
     "Tutor":            [OathSuit.Arcane,   "Tutor",                [Tutor], CardRestriction.Adviser],
     "Alchemist":        [OathSuit.Arcane,   "Alchemist",            [Alchemist]],
-    "ActingTroupe":     [OathSuit.Arcane,   "Acting Troupe",        [ActingTroupe], CardRestriction.Adviser],
     "Jinx":             [OathSuit.Arcane,   "Jinx",                 [Jinx]],
     "Portal":           [OathSuit.Arcane,   "Portal",               [Portal], CardRestriction.Site],
     
@@ -43,7 +44,6 @@ export const denizenData: Record<string, DenizenData> = {
     "Herald":           [OathSuit.Hearth,   "Herald",               [Herald], CardRestriction.Adviser],
     "Marriage":         [OathSuit.Hearth,   "Marriage",             [MarriageActionModifier, MarriageEffectModifier], CardRestriction.Adviser, true],
     
-    "Bracken":          [OathSuit.Beast,    "Bracken",              [Bracken]],
     "InsectSwarm":      [OathSuit.Beast,    "Insect Swarm",         [InsectSwarmAttack, InsectSwarmDefense]],
     "ThreateningRoar":  [OathSuit.Beast,    "Threatening Roar",     [ThreateningRoar]],
     "VowOfPoverty":     [OathSuit.Beast,    "Vow of Poverty",       [VowOfPoverty, VowOfPovertyRest], CardRestriction.Adviser, true],

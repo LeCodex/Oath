@@ -52,8 +52,8 @@ export abstract class OathEffect<T> extends OathGameObject {
     }
 
     applyModifiers() {
-        for (const [source, modifier] of this.game.getPowers(EffectModifier<any>)) {
-            const instance = new modifier(source, this);
+        for (const [sourceProxy, modifier] of this.gameProxy.getPowers(EffectModifier<any>)) {
+            const instance = new modifier(sourceProxy.original, this);
             if (this instanceof instance.modifiedEffect && instance.canUse()) {  // All Effect Modifiers are must-use
                 this.modifiers.push(instance);
                 instance.applyBefore();

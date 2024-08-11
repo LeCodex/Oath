@@ -61,7 +61,7 @@ const render = () => {
             for (const relic of site.relics) siteList.appendChild(renderCard(relic));
         }
 
-        infoNode.appendChild(renderDeck(region.discard, region.name + " Discard"));
+        infoNode.appendChild(renderDeck(region.discard, region.name + " Discard", true));
     }
 
 
@@ -130,24 +130,26 @@ const renderCard = (card) => {
     return cardNode;
 }
 
-const renderDeck = (deck, name) => {
+const renderDeck = (deck, name, separateVisions = false) => {
     const deckNode = document.createElement("li");
     deckNode.id = name;
     deckNode.innerText = name + " (" + deck.cards.length + ")";
     if (deck.searchCost) deckNode.innerText += " : " + deck.searchCost + " Supply";
 
+    let topCardVision = deck.cards[0]?.visionBack;
     const deckList = deckNode.appendChild(document.createElement("ul"));
     let facedownTotal = 0;
     for (const card of deck.cards) {
-        if (card.facedown && !card.seenBy.includes(game.order[game.turn])) {
+        if (card.facedown && !card.seenBy.includes(game.order[game.turn]) && !(separateVisions && card.visionBack)) {
             facedownTotal++;
         } else {
-            if (facedownTotal) deckList.appendChild(renderText(facedownTotal + " ❔"));
-            deckList.appendChild(renderCard(card));
+            if (facedownTotal) deckList.appendChild(renderText(facedownTotal + (topCardVision ? " 👁️" : " ❔")));
             facedownTotal = 0;
+            topCardVision = false;
+            deckList.appendChild(renderCard(card));
         }
     }
-    if (facedownTotal) deckList.append(renderText(facedownTotal + " ❔"));
+    if (facedownTotal) deckList.appendChild(renderText(facedownTotal + (topCardVision ? " 👁️" : " ❔")));
 
     return deckNode;
 }

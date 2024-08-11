@@ -76,8 +76,7 @@ export abstract class ActivePower<T extends OwnableCard> extends ActionPower<T> 
     action: UsePowerAction;
 
     canUse(): boolean {
-        const sourceProxy = this.action.maskProxy.get(this.source);
-        return sourceProxy.accessibleBy(this.action.playerProxy) && sourceProxy.empty;
+        return this.sourceProxy.accessibleBy(this.action.playerProxy) && this.sourceProxy.empty;
     }
 
     abstract usePower(): void;
@@ -85,7 +84,6 @@ export abstract class ActivePower<T extends OwnableCard> extends ActionPower<T> 
 
 export abstract class ActionModifier<T extends OathGameObject> extends ActionPower<T> {
     abstract modifiedAction: AbstractConstructor<ModifiableAction>;
-    abstract action: ModifiableAction;
     mustUse: boolean = false;
 
     canUse(): boolean {
