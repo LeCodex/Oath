@@ -4,7 +4,7 @@ import { OwnableCard, Site, WorldCard } from "../cards/cards";
 import { ResourceCost } from "../resources";
 import { OathPlayer } from "../player";
 import { OathGameObject } from "../gameObject";
-import { AbstractConstructor, MaskProxy } from "../utils";
+import { AbstractConstructor, MaskProxyManager } from "../utils";
 import { OathGame } from "../game";
 
 
@@ -43,10 +43,10 @@ export abstract class PowerWithProxy<T extends OathGameObject> extends OathPower
     gameProxy: OathGame;
     sourceProxy: T;
 
-    constructor(source: T, maskProxy: MaskProxy) {
+    constructor(source: T, maskProxyManager: MaskProxyManager) {
         super(source);
-        this.gameProxy = maskProxy.get(source.game);
-        this.sourceProxy = maskProxy.get(source);
+        this.gameProxy = maskProxyManager.get(source.game);
+        this.sourceProxy = maskProxyManager.get(source);
     }
 }
 
@@ -54,7 +54,7 @@ export abstract class WhenPlayed<T extends WorldCard> extends PowerWithProxy<T> 
     effect: ApplyWhenPlayedEffect;
 
     constructor(source: T, effect: ApplyWhenPlayedEffect) {
-        super(source, effect.maskProxy);
+        super(source, effect.maskProxyManager);
         this.effect = effect;
     }
 
@@ -65,7 +65,7 @@ export abstract class ActionPower<T extends OathGameObject> extends PowerWithPro
     action: ModifiableAction;
 
     constructor(source: T, action: ModifiableAction) {
-        super(source, action.maskProxy);
+        super(source, action.maskProxyManager);
         this.action = action;
     }
 
@@ -90,11 +90,11 @@ export abstract class ActionModifier<T extends OathGameObject> extends ActionPow
         return true;
     }
 
-    applyImmediately(modifiers: ActionModifier<any>[]): Iterable<ActionModifier<any>> { return []; }    // Applied right after all the possible modifiers are collected
-    applyWhenApplied(): boolean { return true; }                                                        // Applied before the action is added to the list. If returns false, it will not be added
-    applyAtStart(): void { }                                                                            // Applied when the action starts and selects are setup (before choices are made)
-    applyBefore(): void { }                                                                             // Applied right before the execution of the action. Actions added by it are executed before the actual body of the modified action
-    applyAfter(): void { }                                                                              // Applied after the execution of the action
+    applyImmediately(modifiers: Iterable<ActionModifier<any>>, persistentModifiers: Iterable<ActionModifier<any>>): Iterable<ActionModifier<any>> { return []; }    // Applied right after all the possible modifiers are collected
+    applyWhenApplied(): boolean { return true; }    // Applied before the action is added to the list. If returns false, it will not be added
+    applyAtStart(): void { }                        // Applied when the action starts and selects are setup (before choices are made)
+    applyBefore(): void { }                         // Applied right before the execution of the action. Actions added by it are executed before the actual body of the modified action
+    applyAfter(): void { }                          // Applied after the execution of the action
 }
 
 export abstract class EnemyActionModifier<T extends OwnableCard> extends ActionModifier<T> {
@@ -144,7 +144,7 @@ export abstract class EffectModifier<T extends OathGameObject> extends PowerWith
     effect: OathEffect<any>;
 
     constructor(source: T, effect: OathEffect<any>) {
-        super(source, effect.maskProxy);
+        super(source, effect.maskProxyManager);
         this.effect = effect;
     }
 

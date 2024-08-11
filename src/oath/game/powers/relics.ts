@@ -82,7 +82,7 @@ export class CircletOfCommand extends EnemyEffectModifier<Relic> {
     effect: TakeOwnableObjectEffect;
 
     applyBefore(): void {
-        const targetProxy = this.effect.maskProxy.get(this.effect.target);
+        const targetProxy = this.effect.maskProxyManager.get(this.effect.target);
         circletOfCommandCheckOwnable(this.sourceProxy, targetProxy, this.effect.playerProxy);
     }
 }
@@ -94,7 +94,7 @@ export class CircletOfCommandCampaign extends EnemyActionModifier<Relic> {
     applyBefore(): void {
         for (const target of this.action.campaignResult.targets) {
             if (isOwnable(target)) {
-                const targetProxy = this.action.maskProxy.get(target);
+                const targetProxy = this.action.maskProxyManager.get(target);
                 circletOfCommandCheckOwnable(this.sourceProxy, targetProxy, this.action.playerProxy);
             }
 

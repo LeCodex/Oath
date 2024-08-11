@@ -7,10 +7,10 @@ import { OathGame } from "../game";
 import { OathGameObject } from "../gameObject";
 import { OathTypeToOath } from "../oaths";
 import { Exile, OathPlayer } from "../player";
-import { ActionModifier, ActivePower, CapacityModifier, OathPower } from "../powers/powers";
+import { ActionModifier, ActionPower, ActivePower, CapacityModifier, OathPower } from "../powers/powers";
 import { ResourceCost, ResourcesAndWarbands } from "../resources";
 import { Banner, PeoplesFavor } from "../banks";
-import { Constructor, isExtended, MaskProxy, shuffleArray, WithOriginal } from "../utils";
+import { Constructor, isExtended, MaskProxyManager, shuffleArray, WithOriginal } from "../utils";
 import { SelectNOf, SelectBoolean, SelectNumber } from "./selects";
 
 
@@ -108,9 +108,8 @@ export class ChooseModifiers extends OathAction {
 
         // NOTE: For ignore loops, all powers in the loop are ignored.
         const ignore = new Set<ActionModifier<any>>();
-        const modifiers = [...choices.values(), ...this.persistentModifiers]
         for (const modifier of choices.values())
-            for (const toIgnore of modifier.applyImmediately(modifiers))
+            for (const toIgnore of modifier.applyImmediately(choices.values(), this.persistentModifiers))
                 ignore.add(toIgnore);
 
         for (const modifier of ignore) {
@@ -144,15 +143,15 @@ export class ChooseModifiers extends OathAction {
 
 export abstract class ModifiableAction extends OathAction {
     modifiers: ActionModifier<any>[];
-    maskProxy: MaskProxy;
+    maskProxyManager: MaskProxyManager;
     gameProxy: OathGame;            // Effects and powers are allowed to modify the proxies to "lie" to the action
     playerProxy: OathPlayer;        // This is a simple reference for simplicity
 
     constructor(player: OathPlayer) {
         super(player);
-        this.maskProxy = new MaskProxy();
-        this.gameProxy = this.maskProxy.get(player.game);
-        this.playerProxy = this.maskProxy.get(player);
+        this.maskProxyManager = new MaskProxyManager();
+        this.gameProxy = this.maskProxyManager.get(player.game);
+        this.playerProxy = this.maskProxyManager.get(player);
     }
 
     doNext(executeImmediately: boolean = false): void {
@@ -271,7 +270,8 @@ export class TradeAction extends MajorAction {
     start() {
         const choices = new Map<string, Denizen>();
         for (const denizenProxy of this.playerProxy.site.denizens)
-            if (denizenProxy.suit !== OathSuit.None && denizenProxy.empty) choices.set(denizenProxy.name, denizenProxy);
+            if (denizenProxy.suit !== OathSuit.None && denizenProxy.empty)
+                choices.set(denizenProxy.name, denizenProxy);
         this.selects.card = new SelectNOf("Card", choices, 1);
         this.selects.forFavor = new SelectBoolean("Type", ["For favors", "For secrets"]);
         return super.start();
@@ -326,7 +326,6 @@ export class TravelAction extends MajorAction {
         for (const siteProxy of this.gameProxy.board.sites())
             if (siteProxy !== this.playerProxy.site && this.restriction(siteProxy))
                 choices.set(siteProxy.facedown ? `Facedown ${siteProxy.region.name}` : siteProxy.name, siteProxy);
-        
         this.selects.site = new SelectNOf("Site", choices, 1);
         return super.start();
     }
@@ -520,7 +519,7 @@ export class SearchPlayAction extends ModifiableAction {
 
     constructor(player: OathPlayer, card: WorldCard, discardOptions?: DiscardOptions<any>) {
         super(player);
-        this.cardProxy = this.maskProxy.get(card);
+        this.cardProxy = this.maskProxyManager.get(card);
         this.message = "Play " + this.cardProxy.name;
         this.discardOptions = discardOptions || new DiscardOptions(player.discard);
     }
@@ -670,7 +669,7 @@ export class CampaignAtttackAction extends ModifiableAction {
 
     start() {
         const defender = this.campaignResult.defender;
-        const defenderProxy = defender && this.maskProxy.get(defender);
+        const defenderProxy = defender && this.maskProxyManager.get(defender);
 
         this.campaignResult.targets = [];
         const choices = new Map<string, CampaignActionTarget>();
@@ -706,9 +705,9 @@ export class CampaignAtttackAction extends ModifiableAction {
 
         this.campaignResult.defPool = 0;
         for (const target of this.campaignResult.targets)
-            this.campaignResult.defPool += this.maskProxy.get(target).defense;
+            this.campaignResult.defPool += this.maskProxyManager.get(target).defense;
         
-        if (this.campaignResult.defender && this.maskProxy.get(this.campaignResult.defender) === this.gameProxy.oathkeeper)
+        if (this.campaignResult.defender && this.maskProxyManager.get(this.campaignResult.defender) === this.gameProxy.oathkeeper)
             this.campaignResult.defPool += this.gameProxy.isUsurper ? 2 : 1;
 
         this.campaignResult.resolveDefForce();
@@ -1549,16 +1548,22 @@ export class ActAsIfAtSiteAction extends ChooseSite {
     readonly autocompleteSelects = false;
 
     action: ModifiableAction;
+    power: ActionPower<any>;
 
-    constructor(player: OathPlayer, action: ModifiableAction, sites?: Iterable<Site>) {
+    constructor(player: OathPlayer, action: ModifiableAction, power: ActionPower<any>, sites?: Iterable<Site>) {
         super(player, sites);
         this.action = action;
+        this.power = power;
     }
 
     execute(): void {
         super.execute();
         if (!this.target) return;
-        this.action.playerProxy.site = this.action.maskProxy.get(this.target);
+        this.action.playerProxy.site = this.action.maskProxyManager.get(this.target);
+
+        // Allow the player to choose other new modifiers
+        this.power.sourceProxy.powers.delete(this.power.constructor as Constructor<OathPower<Denizen>>);
+        this.action.doNext();
     }
 }
 

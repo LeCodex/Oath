@@ -99,9 +99,9 @@ export class CoastalSite extends SiteActionModifier {
         return false;
     }
 
-    applyImmediately(modifiers: ActionModifier<any>[]): Iterable<ActionModifier<any>> {
+    applyImmediately(modifiers: Iterable<ActionModifier<any>>, persistentModifiers: Iterable<ActionModifier<any>>): Iterable<ActionModifier<any>> {
         // TODO: Ignore only the Narrow Pass and not the Hidden Place
-        return modifiers.filter(e => e.source instanceof Site && e.source !== this.source);
+        return [...modifiers, ...persistentModifiers].filter(e => e.source instanceof Site && e.source !== this.source);
     }
 
     applyBefore(): void {

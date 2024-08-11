@@ -7,8 +7,13 @@ import { Denizen, Edifice } from "./cards";
 export type DenizenData = [OathSuit, string, Constructor<OathPower<Denizen>>[], CardRestriction?, boolean?];
 
 export const denizenData: Record<string, DenizenData> = {
-    "ActingTroupe":     [OathSuit.Arcane,   "Acting Troupe",        [ActingTroupe], CardRestriction.Adviser],
+    "SmallFriends":     [OathSuit.Beast,    "Small Friends",        [SmallFriends], CardRestriction.Adviser],
     "Bracken":          [OathSuit.Beast,    "Bracken",              [Bracken]],
+    "InsectSwarm":      [OathSuit.Beast,    "Insect Swarm",         [InsectSwarmAttack, InsectSwarmDefense]],
+    "ThreateningRoar":  [OathSuit.Beast,    "Threatening Roar",     [ThreateningRoar]],
+    "VowOfPoverty":     [OathSuit.Beast,    "Vow of Poverty",       [VowOfPoverty, VowOfPovertyRest], CardRestriction.Adviser, true],
+    "PiedPiper":        [OathSuit.Beast,    "Pied Piper",           [IgnoresCapacity, PiedPiperActive], CardRestriction.Adviser],
+
     "RelicThief":       [OathSuit.Discord,  "Relic Thief",          [RelicThief]],
     "KeyToTheCity":     [OathSuit.Discord,  "Key to the City",      [KeyToTheCity], CardRestriction.Site],
     "Assassin":         [OathSuit.Discord,  "Assassin",             [OnlyTwoAdvisers, Assassin], CardRestriction.Adviser, true],
@@ -26,6 +31,7 @@ export const denizenData: Record<string, DenizenData> = {
     "Alchemist":        [OathSuit.Arcane,   "Alchemist",            [Alchemist]],
     "Jinx":             [OathSuit.Arcane,   "Jinx",                 [Jinx]],
     "Portal":           [OathSuit.Arcane,   "Portal",               [Portal], CardRestriction.Site],
+    "ActingTroupe":     [OathSuit.Arcane,   "Acting Troupe",        [ActingTroupe], CardRestriction.Adviser],
     
     "LongbowArchers":   [OathSuit.Order,    "Longbow Archers",      [LongbowArchersAttack, LongbowArchersDefense]],
     "ShieldWall":       [OathSuit.Order,    "Shield Wall",          [ShieldWall]],
@@ -43,12 +49,6 @@ export const denizenData: Record<string, DenizenData> = {
     "SaddleMakers":     [OathSuit.Hearth,   "Saddle Makers",        [SaddleMakers], CardRestriction.Adviser],
     "Herald":           [OathSuit.Hearth,   "Herald",               [Herald], CardRestriction.Adviser],
     "Marriage":         [OathSuit.Hearth,   "Marriage",             [MarriageActionModifier, MarriageEffectModifier], CardRestriction.Adviser, true],
-    
-    "InsectSwarm":      [OathSuit.Beast,    "Insect Swarm",         [InsectSwarmAttack, InsectSwarmDefense]],
-    "ThreateningRoar":  [OathSuit.Beast,    "Threatening Roar",     [ThreateningRoar]],
-    "VowOfPoverty":     [OathSuit.Beast,    "Vow of Poverty",       [VowOfPoverty, VowOfPovertyRest], CardRestriction.Adviser, true],
-    "PiedPiper":        [OathSuit.Beast,    "Pied Piper",           [IgnoresCapacity, PiedPiperActive], CardRestriction.Adviser],
-    "SmallFriends":     [OathSuit.Beast,    "Small Friends",        [SmallFriends], CardRestriction.Adviser],
 
     "WayStation":       [OathSuit.Nomad,    "Way Station",          [WayStation], CardRestriction.Site],
     "LostTongue":       [OathSuit.Nomad,    "Lost Tongue",          [LostTongue, LostTongueCampaign], CardRestriction.Adviser],

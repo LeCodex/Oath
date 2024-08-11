@@ -18,11 +18,16 @@ export class WithOriginal {
 }
 
 type ProxyInfo<T> = { proxy: T, revoke: () => void };
-export class MaskProxy {
+export class MaskProxyManager {
     proxies = new WeakMap<object, object>();
 
     get<T>(value: T): T {
         if (typeof value !== "object" || value === null) return value;
+        if (value instanceof MaskedSet || value instanceof MaskedMap) {
+            if (value.maskProxyManager !== this) throw new TypeError(`Trying to access a ${value.constructor.name} from another MaskProxyManager`);
+            return value;
+        }
+        
         let proxy = this.proxies.get(value);
         if (!proxy) {
             if (isSet(value))
@@ -43,10 +48,10 @@ export class MaskProxy {
 
 export class MaskProxyHandler<T extends object> implements ProxyHandler<T> {
     mask: Partial<Record<keyof T, any>> = {};
-    maskProxy: MaskProxy;
+    maskProxyManager: MaskProxyManager;
 
-    constructor(maskProxy: MaskProxy) {
-        this.maskProxy = maskProxy;
+    constructor(maskProxyManager: MaskProxyManager) {
+        this.maskProxyManager = maskProxyManager;
     }
 
     get(target: T, key: string | symbol, receiver?: any) {
@@ -55,12 +60,12 @@ export class MaskProxyHandler<T extends object> implements ProxyHandler<T> {
         if (tKey in this.mask) return this.mask[tKey];
 
         const value = Reflect.get(target, tKey, receiver);
-        return this.maskProxy.get(value);
+        return this.maskProxyManager.get(value);
     }
 
     set(target: T, key: string | symbol, value: any, receiver?: any): boolean {
         const tKey = key as keyof T;
-        this.mask[tKey] = this.maskProxy.get(value);
+        this.mask[tKey] = this.maskProxyManager.get(value);
         return true;
     }
 
@@ -72,16 +77,16 @@ export class MaskProxyHandler<T extends object> implements ProxyHandler<T> {
     }
 }
 
-/** Behaves like the supplied Set, until it's modified and becomes a mask. Returns the values filtered through the MaskProxy */
+/** Behaves like the supplied Set, until it's modified and becomes a mask. Returns the values filtered through the MaskProxyManager */
 class MaskedSet<T extends object> implements Set<T> {
     masked: boolean;
     set: Set<T>;
-    maskProxy: MaskProxy;
+    maskProxyManager: MaskProxyManager;
 
-    constructor(set: Set<T>, maskProxy: MaskProxy) {
+    constructor(set: Set<T>, maskProxyManager: MaskProxyManager) {
         this.masked = false;
         this.set = set;
-        this.maskProxy = maskProxy;
+        this.maskProxyManager = maskProxyManager;
     }
     
     get size(): number { return this.set.size; }
@@ -109,26 +114,27 @@ class MaskedSet<T extends object> implements Set<T> {
         this.set.clear();
     }
     
-    *values() { for (const value of this.set.values()) yield this.maskProxy.get(value); }
-    *keys() { for (const value of this.set.keys()) yield this.maskProxy.get(value); }
-    *entries() { for (const [value1, value2] of this.set.entries()) yield [this.maskProxy.get(value1), this.maskProxy.get(value2)] as [T, T]; }
+    *values() { for (const value of this.set.values()) yield this.maskProxyManager.get(value); }
+    *keys() { for (const value of this.set.keys()) yield this.maskProxyManager.get(value); }
+    *entries() { for (const [value1, value2] of this.set.entries()) yield [this.maskProxyManager.get(value1), this.maskProxyManager.get(value2)] as [T, T]; }
+    
     forEach(callbackfn: (value: T, value2: T, set: Set<T>) => void, thisArg?: any): void { 
-        this.set.forEach((value: T, value2: T, set: Set<T>) => callbackfn(this.maskProxy.get(value), this.maskProxy.get(value2), set), thisArg); 
+        this.set.forEach((value: T, value2: T, set: Set<T>) => callbackfn(this.maskProxyManager.get(value), this.maskProxyManager.get(value2), set), thisArg); 
     }
 
     [Symbol.iterator]() { return this.values(); }
     get [Symbol.toStringTag]() { return this.set[Symbol.toStringTag]; }
 }
 
-/** Behaves like the supplied Map, until it's modified and becomes a mask. Returns the values filtered through the MaskProxy */
+/** Behaves like the supplied Map, until it's modified and becomes a mask. Returns the values filtered through the MaskProxyManager */
 export class MaskedMap<K, V extends object> implements Map<K, V> {
     masked: boolean;
     map: Map<K, V>;
-    maskProxy: MaskProxy;
+    maskProxyManager: MaskProxyManager;
 
-    constructor(map: Map<K, V>, maskProxy: MaskProxy) {
+    constructor(map: Map<K, V>, maskProxyManager: MaskProxyManager) {
         this.map = map;
-        this.maskProxy = maskProxy;
+        this.maskProxyManager = maskProxyManager;
     }
 
     get size() { return this.map.size; }
@@ -136,7 +142,7 @@ export class MaskedMap<K, V extends object> implements Map<K, V> {
 
     get(key: K): V | undefined {
         const value = this.map.get(key);
-        return value && this.maskProxy.get(value);
+        return value && this.maskProxyManager.get(value);
     }
 
     mask() {
@@ -161,11 +167,12 @@ export class MaskedMap<K, V extends object> implements Map<K, V> {
         this.map.clear();
     }
 
-    *values() { for (const value of this.map.values()) yield this.maskProxy.get(value); }
+    *values() { for (const value of this.map.values()) yield this.maskProxyManager.get(value); }
     *keys() { return this.map.keys(); }
-    *entries() { for (const [key, value] of this.map.entries()) yield [key, this.maskProxy.get(value)] as [K, V]; }
+    *entries() { for (const [key, value] of this.map.entries()) yield [key, this.maskProxyManager.get(value)] as [K, V]; }
+    
     forEach(callbackfn: (value: V, key: K, map: Map<K, V>) => void, thisArg?: any): void { 
-        this.map.forEach((value: V, key: K, map: Map<K, V>) => callbackfn(this.maskProxy.get(value), key, map), thisArg); 
+        this.map.forEach((value: V, key: K, map: Map<K, V>) => callbackfn(this.maskProxyManager.get(value), key, map), thisArg); 
     }
 
     [Symbol.iterator]() { return this.entries(); }

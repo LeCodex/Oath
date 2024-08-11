@@ -10,7 +10,7 @@ import { OathGameObject } from "./gameObject";
 import { InvalidActionResolution, ModifiableAction, OathAction, AddCardsToWorldDeckAction, BuildOrRepairEdificeAction, ChooseNewCitizensAction, VowOathAction, TakeFavorFromBankAction, ResolveEffectAction, RestAction, WakeAction, CampaignDefenseAction, CampaignResult, SearchDiscardAction, SearchPlayAction } from "./actions/actions";
 import { DiscardOptions } from "./cards/decks";
 import { CardDeck } from "./cards/decks";
-import { isExtended, MaskProxy, shuffleArray } from "./utils";
+import { isExtended, MaskProxyManager, shuffleArray } from "./utils";
 import { AttackDie, D6, DefenseDie, Die } from "./dice";
 import { Oath } from "./oaths";
 import { Region } from "./board";
@@ -24,16 +24,16 @@ import { edificeData } from "./cards/denizens";
 export abstract class OathEffect<T> extends OathGameObject {
     player: OathPlayer | undefined;
     modifiers: EffectModifier<any>[] = [];
-    maskProxy: MaskProxy;
+    maskProxyManager: MaskProxyManager;
     gameProxy: OathGame;
     playerProxy: OathPlayer | undefined;
 
     constructor(game: OathGame, player: OathPlayer | undefined) {
         super(game);
         this.player = player;
-        this.maskProxy = new MaskProxy();
-        this.gameProxy = this.maskProxy.get(game);
-        this.playerProxy = player && this.maskProxy.get(player);
+        this.maskProxyManager = new MaskProxyManager();
+        this.gameProxy = this.maskProxyManager.get(game);
+        this.playerProxy = player && this.maskProxyManager.get(player);
     }
 
     doNext() {
@@ -595,11 +595,11 @@ export class PlayWorldCardEffect extends PlayerEffect<void> {
     resolve(): void {
         if (this.site) {
             if (!(this.card instanceof Denizen)) throw new InvalidActionResolution("Only Denizens can be played to sites.");
-            if (this.maskProxy.get(this.card).restriction === CardRestriction.Adviser) throw new InvalidActionResolution("Cannot play adviser-only cards to sites.");
+            if (this.maskProxyManager.get(this.card).restriction === CardRestriction.Adviser) throw new InvalidActionResolution("Cannot play adviser-only cards to sites.");
 
             new PlayDenizenAtSiteEffect(this.player, this.card, this.site).do();
         } else {
-            if (!this.facedown && this.card instanceof Denizen && this.maskProxy.get(this.card).restriction === CardRestriction.Site)
+            if (!this.facedown && this.card instanceof Denizen && this.maskProxyManager.get(this.card).restriction === CardRestriction.Site)
                 throw new InvalidActionResolution("Cannot play site-only cards to advisers.");
             
             if (!this.facedown && this.card instanceof Vision) {

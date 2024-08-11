@@ -5,7 +5,8 @@ import { PayCostToTargetEffect, PlayWorldCardEffect, MoveResourcesToTargetEffect
 import { OathResource, OathSuit, BannerName } from "../enums";
 import { OathPlayer, OwnableObject, isOwnable } from "../player";
 import { ResourceCost } from "../resources";
-import { CapacityModifier, AttackerBattlePlan, DefenderBattlePlan, EnemyActionModifier, EnemyEffectModifier, WhenPlayed, AccessedActionModifier, RestPower, ActionModifier, ActivePower, EffectModifier, AccessedEffectModifier } from "./powers";
+import { Constructor } from "../utils";
+import { CapacityModifier, AttackerBattlePlan, DefenderBattlePlan, EnemyActionModifier, EnemyEffectModifier, WhenPlayed, AccessedActionModifier, RestPower, ActionModifier, ActivePower, EffectModifier, AccessedEffectModifier, OathPower } from "./powers";
 
 
 // ------------------ GENERAL ------------------- //
@@ -72,13 +73,10 @@ export class TollRoads extends EnemyActionModifier<Denizen> {
     modifiedAction = TravelAction;
     action: TravelAction;
 
-    canUse(): boolean {
-        return super.canUse() && this.action.siteProxy.ruler === this.sourceProxy.ruler;
-    }
-
     applyBefore(): void {
-        if (!new PayCostToTargetEffect(this.game, this.action.player, new ResourceCost([[OathResource.Favor, 1]]), this.sourceProxy.ruler?.original).do())
-            throw new InvalidActionResolution("Cannot pay the Toll Roads.");
+        if (this.action.siteProxy.ruler === this.sourceProxy.ruler)
+            if (!new PayCostToTargetEffect(this.game, this.action.player, new ResourceCost([[OathResource.Favor, 1]]), this.sourceProxy.ruler?.original).do())
+                throw new InvalidActionResolution("Cannot pay the Toll Roads.");
     }
 }
 
@@ -142,8 +140,8 @@ export class GleamingArmorAttack extends ActionModifier<Denizen> {
         return this.action.campaignResult.defender === this.sourceProxy.ruler?.original;
     }
 
-    applyImmediately(modifiers: ActionModifier<any>[]): Iterable<ActionModifier<any>> {
-        for (const modifier of modifiers)
+    applyImmediately(modifiers: Iterable<ActionModifier<any>>, persistentModifiers: Iterable<ActionModifier<any>>): Iterable<ActionModifier<any>> {
+        for (const modifier of [...modifiers, ...persistentModifiers])
             if (modifier instanceof AttackerBattlePlan)
                 modifier.cost.add(new ResourceCost([[OathResource.Secret, 1]]));
 
@@ -160,8 +158,8 @@ export class GleamingArmorDefense extends ActionModifier<Denizen> {
         return this.action.campaignResult.attacker === this.sourceProxy.ruler?.original;
     }
 
-    applyImmediately(modifiers: ActionModifier<any>[]): Iterable<ActionModifier<any>> {
-        for (const modifier of modifiers)
+    applyImmediately(modifiers: Iterable<ActionModifier<any>>, persistentModifiers: Iterable<ActionModifier<any>>): Iterable<ActionModifier<any>> {
+        for (const modifier of [...modifiers, ...persistentModifiers])
             if (modifier instanceof DefenderBattlePlan)
                 modifier.cost.add(new ResourceCost([[OathResource.Secret, 1]]));
 
@@ -243,8 +241,8 @@ export class Portal extends AccessedActionModifier<Denizen> {
     action: TravelAction;
     cost = new ResourceCost([[OathResource.Secret, 1]]);
 
-    applyImmediately(modifiers: ActionModifier<any>[]): Iterable<ActionModifier<any>> {
-        return modifiers.filter(e => e.source instanceof Site);
+    applyImmediately(modifiers: Iterable<ActionModifier<any>>, persistentModifiers: Iterable<ActionModifier<any>>): Iterable<ActionModifier<any>> {
+        return [...modifiers, ...persistentModifiers].filter(e => e.source instanceof Site);
     }
 
     applyBefore(): void {
@@ -328,7 +326,7 @@ export class SaddleMakers extends EnemyEffectModifier<Denizen> {
         if (!this.sourceProxy.ruler?.original) return;
         if (this.effect.facedown || !(this.effect.card instanceof Denizen)) return;
 
-        const cardProxy = this.effect.maskProxy.get(this.effect.card);
+        const cardProxy = this.effect.maskProxyManager.get(this.effect.card);
         if (cardProxy.suit === OathSuit.Nomad || cardProxy.suit === OathSuit.Order)
             new TakeResourcesFromBankEffect(this.effect.game, this.sourceProxy.ruler?.original, this.effect.game.favorBanks.get(cardProxy.suit), 2).do();
     }
@@ -411,7 +409,7 @@ export class LostTongue extends EnemyEffectModifier<Denizen> {
     effect: TakeOwnableObjectEffect;
 
     applyBefore(): void {
-        const targetProxy = this.effect.maskProxy.get(this.effect.target);
+        const targetProxy = this.effect.maskProxyManager.get(this.effect.target);
         lostTongueCheckOwnable(this.sourceProxy, targetProxy, this.effect.playerProxy);
     }
 }
@@ -424,7 +422,7 @@ export class LostTongueCampaign extends EnemyActionModifier<Denizen> {
     applyBefore(): void {
         for (const target of this.action.campaignResult.targets) {
             if (isOwnable(target)) {
-                const targetProxy = this.action.maskProxy.get(target);
+                const targetProxy = this.action.maskProxyManager.get(target);
                 lostTongueCheckOwnable(this.sourceProxy, targetProxy, this.action.playerProxy);
             }
         }
@@ -610,8 +608,8 @@ export class InsectSwarmAttack extends ActionModifier<Denizen> {
         return this.action.campaignResult.defender === this.sourceProxy.ruler?.original;
     }
 
-    applyImmediately(modifiers: ActionModifier<any>[]): Iterable<ActionModifier<any>> {
-        for (const modifier of modifiers)
+    applyImmediately(modifiers: Iterable<ActionModifier<any>>, persistentModifiers: Iterable<ActionModifier<any>>): Iterable<ActionModifier<any>> {
+        for (const modifier of [...modifiers, ...persistentModifiers])
             if (modifier instanceof AttackerBattlePlan)
                 modifier.cost.add(new ResourceCost([], [[OathResource.Favor, 1]]));
 
@@ -629,8 +627,8 @@ export class InsectSwarmDefense extends ActionModifier<Denizen> {
         return this.action.campaignResult.attacker === this.sourceProxy.ruler?.original;
     }
 
-    applyImmediately(modifiers: ActionModifier<any>[]): Iterable<ActionModifier<any>> {
-        for (const modifier of modifiers)
+    applyImmediately(modifiers: Iterable<ActionModifier<any>>, persistentModifiers: Iterable<ActionModifier<any>>): Iterable<ActionModifier<any>> {
+        for (const modifier of [...modifiers, ...persistentModifiers])
             if (modifier instanceof DefenderBattlePlan)
                 modifier.cost.add(new ResourceCost([], [[OathResource.Favor, 1]]));
 
@@ -684,6 +682,13 @@ export class SmallFriends extends AccessedActionModifier<Denizen> {
     modifiedAction = TradeAction;
     action: TradeAction;
 
+    applyImmediately(modifiers: Iterable<ActionModifier<any>>, persistentModifiers: Iterable<ActionModifier<any>>): Iterable<ActionModifier<any>> {
+        if ([...modifiers].length > 1)
+            throw new InvalidActionResolution("Cannot use another modifier with Small Friends");
+
+        return [];
+    }
+
     applyWhenApplied(): boolean {
         const sites = new Set<Site>();
         for (const siteProxy of this.gameProxy.board.sites())
@@ -691,7 +696,7 @@ export class SmallFriends extends AccessedActionModifier<Denizen> {
                 if (denizen.suit === OathSuit.Beast)
                     sites.add(siteProxy.original);
 
-        new ActAsIfAtSiteAction(this.action.player, this.action, sites).doNext();
-        return true;
+        new ActAsIfAtSiteAction(this.action.player, this.action, this, sites).doNext();
+        return false;
     }
 }
