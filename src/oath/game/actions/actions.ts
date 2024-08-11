@@ -650,7 +650,6 @@ export class CampaignAction extends MajorAction {
 export interface CampaignActionTarget {
     defense: number;
     force: ResourcesAndWarbands | undefined;
-    
     seize(player: OathPlayer): void;
 };
 
@@ -662,7 +661,7 @@ export class CampaignAtttackAction extends ModifiableAction {
 
     constructor(player: OathPlayer, defender: OathPlayer | undefined) {
         super(player);
-        this.next = new CampaignDefenseAction(defender || player);
+        this.next = new CampaignDefenseAction(defender || player, player);
         this.campaignResult.attacker = player;
         this.campaignResult.defender = defender;
     }
@@ -737,9 +736,9 @@ export class CampaignDefenseAction extends ModifiableAction {
     readonly next: CampaignEndAction;
     readonly message = "";
 
-    constructor(player: OathPlayer) {
+    constructor(player: OathPlayer, attacker: OathPlayer) {
         super(player);
-        this.next = new CampaignEndAction(this.campaignResult.attacker);
+        this.next = new CampaignEndAction(attacker);
     }
 
     get campaignResult() { return this.next.campaignResult; }
@@ -761,7 +760,7 @@ export class CampaignResult extends OathGameObject {
     targets: CampaignActionTarget[] = [];
     atkPool: number;
     defPool: number;
-    atkForce: Set<ResourcesAndWarbands>;  // Force is all your warbands on the objects in this array
+    atkForce: Set<ResourcesAndWarbands>;  // The force is all your warbands on the objects in this array
     defForce: Set<ResourcesAndWarbands>;
     
     atkRoll: number[] = [];
@@ -820,15 +819,12 @@ export class CampaignResult extends OathGameObject {
     }
     
     attackerKills(amount: number) {
-        if (amount)
-            new CampaignKillWarbandsInForceAction(this, true, amount).doNext();
+        if (amount) new CampaignKillWarbandsInForceAction(this, true, amount).doNext();
     }
 
     defenderKills(amount: number) {
         if (!this.defender) return;
-
-        if (amount)
-            new CampaignKillWarbandsInForceAction(this, false, amount).doNext();
+        if (amount) new CampaignKillWarbandsInForceAction(this, false, amount).doNext();
     }
 
     loserKills(amount: number) {
@@ -900,6 +896,7 @@ export class CampaignKillWarbandsInForceAction extends OathAction {
         this.result = result;
         this.owner = attacker ? result.attacker.leader : result.defender?.leader;
         this.force = attacker ? result.atkForce : result.defForce;
+        this.attacker = attacker;
         this.amount = amount;
     }
 
