@@ -13,9 +13,7 @@ export function shuffleArray(array: any[]) {
     }
 }
 
-export class WithOriginal {
-    original = this;
-}
+export abstract class WithOriginal { original = this; }
 
 type ProxyInfo<T> = { proxy: T, revoke: () => void };
 export class MaskProxyManager {
@@ -93,7 +91,7 @@ class MaskedSet<T extends object> implements Set<T> {
     has(value: T): boolean { return this.set.has(value); }
 
     mask() {
-        if (!this.masked) return;
+        if (this.masked) return;
         this.masked = true;
         this.set = new Set(this.set);
     }
@@ -146,7 +144,7 @@ export class MaskedMap<K, V extends object> implements Map<K, V> {
     }
 
     mask() {
-        if (!this.masked) return;
+        if (this.masked) return;
         this.masked = true;
         this.map = new Map(this.map);
     }

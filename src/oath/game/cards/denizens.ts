@@ -7,13 +7,6 @@ import { Denizen, Edifice } from "./cards";
 export type DenizenData = [OathSuit, string, Constructor<OathPower<Denizen>>[], CardRestriction?, boolean?];
 
 export const denizenData: Record<string, DenizenData> = {
-    "SmallFriends":     [OathSuit.Beast,    "Small Friends",        [SmallFriends], CardRestriction.Adviser],
-    "Bracken":          [OathSuit.Beast,    "Bracken",              [Bracken]],
-    "InsectSwarm":      [OathSuit.Beast,    "Insect Swarm",         [InsectSwarmAttack, InsectSwarmDefense]],
-    "ThreateningRoar":  [OathSuit.Beast,    "Threatening Roar",     [ThreateningRoar]],
-    "VowOfPoverty":     [OathSuit.Beast,    "Vow of Poverty",       [VowOfPoverty, VowOfPovertyRest], CardRestriction.Adviser, true],
-    "PiedPiper":        [OathSuit.Beast,    "Pied Piper",           [IgnoresCapacity, PiedPiperActive], CardRestriction.Adviser],
-
     "RelicThief":       [OathSuit.Discord,  "Relic Thief",          [RelicThief]],
     "KeyToTheCity":     [OathSuit.Discord,  "Key to the City",      [KeyToTheCity], CardRestriction.Site],
     "Assassin":         [OathSuit.Discord,  "Assassin",             [OnlyTwoAdvisers, Assassin], CardRestriction.Adviser, true],
@@ -23,7 +16,7 @@ export const denizenData: Record<string, DenizenData> = {
     "Naysayers":        [OathSuit.Discord,  "Naysayers",            [Naysayers], CardRestriction.Adviser],
     "ChaosCult":        [OathSuit.Discord,  "Chaos Cult",           [ChaosCult], CardRestriction.Adviser],
     "GamblingHall":     [OathSuit.Discord,  "Gambling Hall",        [GamblingHall], CardRestriction.Site],
-
+    
     "GleamingArmor":    [OathSuit.Arcane,   "Gleaming Armor",       [GleamingArmorAttack, GleamingArmorDefense]],
     "SpiritSnare":      [OathSuit.Arcane,   "Spirit Snare",         [SpiritSnare]],
     "Dazzle":           [OathSuit.Arcane,   "Dazzle",               [Dazzle]],
@@ -49,7 +42,14 @@ export const denizenData: Record<string, DenizenData> = {
     "SaddleMakers":     [OathSuit.Hearth,   "Saddle Makers",        [SaddleMakers], CardRestriction.Adviser],
     "Herald":           [OathSuit.Hearth,   "Herald",               [Herald], CardRestriction.Adviser],
     "Marriage":         [OathSuit.Hearth,   "Marriage",             [MarriageActionModifier, MarriageEffectModifier], CardRestriction.Adviser, true],
-
+    
+    "SmallFriends":     [OathSuit.Beast,    "Small Friends",        [SmallFriends], CardRestriction.Adviser],
+    "Bracken":          [OathSuit.Beast,    "Bracken",              [Bracken]],
+    "InsectSwarm":      [OathSuit.Beast,    "Insect Swarm",         [InsectSwarmAttack, InsectSwarmDefense]],
+    "ThreateningRoar":  [OathSuit.Beast,    "Threatening Roar",     [ThreateningRoar]],
+    "VowOfPoverty":     [OathSuit.Beast,    "Vow of Poverty",       [VowOfPoverty, VowOfPovertyRest], CardRestriction.Adviser, true],
+    "PiedPiper":        [OathSuit.Beast,    "Pied Piper",           [IgnoresCapacity, PiedPiperActive], CardRestriction.Adviser],
+    
     "WayStation":       [OathSuit.Nomad,    "Way Station",          [WayStation], CardRestriction.Site],
     "LostTongue":       [OathSuit.Nomad,    "Lost Tongue",          [LostTongue, LostTongueCampaign], CardRestriction.Adviser],
     "Elders":           [OathSuit.Nomad,    "Elders",               [Elders]],
