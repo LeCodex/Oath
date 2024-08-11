@@ -1,32 +1,30 @@
-import { CampaignAtttackAction, CampaignDefenseAction, ModifiableAction, OathAction, RestAction, UsePowerAction, WakeAction } from "../actions";
+import { ModifiableAction, RestAction, UsePowerAction, WakeAction, CampaignAtttackAction, CampaignDefenseAction } from "../actions/actions";
+import { ApplyWhenPlayedEffect, OathEffect, PayPowerCost } from "../effects";
 import { OwnableCard, Site, WorldCard } from "../cards/cards";
 import { ResourceCost } from "../resources";
-import { ApplyWhenPlayedEffect, OathEffect, PayPowerCost, PlayWorldCardEffect } from "../effects";
 import { OathPlayer } from "../player";
 import { OathGameObject } from "../gameObject";
-import { AbstractConstructor } from "../utils";
+import { AbstractConstructor, MaskProxy } from "../utils";
+import { OathGame } from "../game";
 
 
 //////////////////////////////////////////////////
 //                BASE CLASSES                  //
 //////////////////////////////////////////////////
-export abstract class OathPower<T extends OathGameObject> extends OathGameObject {
+export abstract class OathPower<T extends OathGameObject> {
     abstract name: string;
     source: T;
     cost: ResourceCost = new ResourceCost();
 
     constructor(source: T) {
-        super(source.game);
         this.source = source;
     }
+
+    get game() { return this.source.game; }
 
     payCost(player: OathPlayer): boolean {
         return new PayPowerCost(player, this).do();
     }
-}
-
-export abstract class WhenPlayed<T extends WorldCard> extends OathPower<T> {
-    abstract whenPlayed(effect: ApplyWhenPlayedEffect): void;
 }
 
 export abstract class CapacityModifier<T extends WorldCard> extends OathPower<T> {
@@ -41,11 +39,33 @@ export abstract class CapacityModifier<T extends WorldCard> extends OathPower<T>
     ignoreCapacity(card: WorldCard, facedown: boolean = card.facedown): boolean { return false; }
 }
 
-export abstract class ActionPower<T extends OathGameObject> extends OathPower<T> {
-    action: OathAction;
+export abstract class PowerWithProxy<T extends OathGameObject> extends OathPower<T> {
+    gameProxy: OathGame;
+    sourceProxy: T;
 
-    constructor(source: T, action: OathAction) {
+    constructor(source: T, maskProxy: MaskProxy) {
         super(source);
+        this.gameProxy = maskProxy.get(source.game);
+        this.sourceProxy = maskProxy.get(source);
+    }
+}
+
+export abstract class WhenPlayed<T extends WorldCard> extends PowerWithProxy<T> {
+    effect: ApplyWhenPlayedEffect;
+
+    constructor(source: T, effect: ApplyWhenPlayedEffect) {
+        super(source, effect.maskProxy);
+        this.effect = effect;
+    }
+
+    abstract whenPlayed(): void;
+}
+
+export abstract class ActionPower<T extends OathGameObject> extends PowerWithProxy<T> {
+    action: ModifiableAction;
+
+    constructor(source: T, action: ModifiableAction) {
+        super(source, action.maskProxy);
         this.action = action;
     }
 
@@ -56,16 +76,17 @@ export abstract class ActivePower<T extends OwnableCard> extends ActionPower<T> 
     action: UsePowerAction;
 
     canUse(): boolean {
-        return this.source.accessibleBy(this.action.player) && this.source.empty;
+        const sourceProxy = this.action.maskProxy.get(this.source);
+        return sourceProxy.accessibleBy(this.action.playerProxy) && sourceProxy.empty;
     }
 
-    abstract usePower(action: UsePowerAction): void;
+    abstract usePower(): void;
 }
 
 export abstract class ActionModifier<T extends OathGameObject> extends ActionPower<T> {
     abstract modifiedAction: AbstractConstructor<ModifiableAction>;
     abstract action: ModifiableAction;
-    mustUse = false;
+    mustUse: boolean = false;
 
     canUse(): boolean {
         return true;
@@ -82,13 +103,13 @@ export abstract class EnemyActionModifier<T extends OwnableCard> extends ActionM
     mustUse = true;
 
     canUse(): boolean {
-        return this.source.ruler === undefined || this.source.ruler.enemyWith(this.action.player);
+        return this.action.playerProxy.enemyWith(this.sourceProxy.ruler);
     }
 }
 
 export abstract class AccessedActionModifier<T extends OwnableCard> extends ActionModifier<T> {
     canUse(): boolean {
-        return this.source.accessibleBy(this.action.player) && this.source.empty;
+        return this.sourceProxy.accessibleBy(this.action.playerProxy) && this.sourceProxy.empty;
     }
 }
 
@@ -106,7 +127,7 @@ export abstract class RestPower<T extends OwnableCard> extends AccessedActionMod
 
 export abstract class BattlePlan<T extends OwnableCard> extends ActionModifier<T> {
     canUse(): boolean {
-        return this.action.player.rules(this.source);
+        return this.action.playerProxy.rules(this.sourceProxy);
     }
 }
 
@@ -120,12 +141,12 @@ export abstract class DefenderBattlePlan<T extends OwnableCard> extends BattlePl
     action: CampaignDefenseAction;
 }
 
-export abstract class EffectModifier<T extends OathGameObject> extends OathPower<T> {
+export abstract class EffectModifier<T extends OathGameObject> extends PowerWithProxy<T> {
     modifiedEffect: AbstractConstructor<OathEffect<any>>;
     effect: OathEffect<any>;
 
     constructor(source: T, effect: OathEffect<any>) {
-        super(source);
+        super(source, effect.maskProxy);
         this.effect = effect;
     }
 
@@ -141,12 +162,12 @@ export abstract class EnemyEffectModifier<T extends OwnableCard> extends EffectM
     mustUse = true;
 
     canUse(): boolean {
-        return this.source.ruler === undefined || this.source.ruler.enemyWith(this.effect.player);
+        return !!this.effect.playerProxy && this.effect.playerProxy?.enemyWith(this.sourceProxy.ruler);
     }
 }
 
 export abstract class AccessedEffectModifier<T extends OwnableCard> extends EffectModifier<T> {
     canUse(): boolean {
-        return !!this.effect.player && this.source.accessibleBy(this.effect.player);
+        return !!this.effect.playerProxy && this.sourceProxy.accessibleBy(this.effect.playerProxy);
     }
 }

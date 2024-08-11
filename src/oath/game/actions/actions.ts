@@ -1,211 +1,17 @@
-import { Denizen, Edifice, Relic, Site, VisionBack, WorldCard } from "./cards/cards";
-import { DiscardOptions, SearchableDeck } from "./cards/decks";
-import { AttackDie, DefenseDie, Die } from "./dice";
-import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, PutPawnAtSiteEffect, DiscardCardEffect, MoveOwnWarbandsEffect, AddActionToStackEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect, SetNewOathkeeperEffect, SetPeoplesFavorMobState, DiscardCardGroupEffect, OathEffect, PopActionFromStackEffect, PaySupplyEffect, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, ChangeEdificeEffect, ModifiedExecutionEffect, CampaignResolveSuccessfulAndSkullsEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect, CheckCapacityEffect, MoveSiteDenizenEffect } from "./effects";
-import { BannerName, OathPhase, OathResource, OathResourceName, OathSuit, OathSuitName, OathType, OathTypeName } from "./enums";
-import { OathGame } from "./game";
-import { OathGameObject } from "./gameObject";
-import { OathTypeToOath } from "./oaths";
-import { Exile, OathPlayer } from "./player";
-import { ActionModifier, ActivePower, CapacityModifier, OathPower } from "./powers/powers";
-import { ResourceCost, ResourcesAndWarbands } from "./resources";
-import { Banner, PeoplesFavor } from "./banks";
-import { Constructor, getCopyWithOriginal, isExtended, shuffleArray } from "./utils";
-
-
-
-////////////////////////////////////////////
-//                MANAGER                 //
-////////////////////////////////////////////
-export class OathActionManager extends OathGameObject {
-    readonly actionsStack: OathAction[] = [];
-    readonly futureActionsList: OathAction[] = [];
-    readonly currentEffectsStack: OathEffect<any>[] = [];
-    readonly pastEffectsStack: OathEffect<any>[][] = [];
-    readonly cancelledEffects: OathEffect<any>[] = [];
-    startOptions: Record<string, Constructor<OathAction>> = {};
-    noReturn: boolean = false;
-
-    checkForNextAction(): Record<string, any> {
-        for (const action of this.futureActionsList) new AddActionToStackEffect(action).do();
-        this.futureActionsList.length = 0;
-
-        if (!this.actionsStack.length) this.game.checkForOathkeeper();
-        let action = this.actionsStack[this.actionsStack.length - 1];
-    
-        let contineNow = action?.start();
-        if (contineNow) return this.resolveTopAction();
-    
-        if (this.noReturn) {
-            this.currentEffectsStack.length = 0;
-            this.pastEffectsStack.length = 0;
-        }
-        this.noReturn = false;
-        
-        if (!action) this.startOptions = this.getStartOptions();
-
-        const returnData = {
-            activeAction: action?.serialize(),
-            startOptions: !action ? Object.keys(this.startOptions) : undefined,
-            appliedEffects: this.currentEffectsStack.map(e => e.constructor.name),
-            cancelledEffects: this.cancelledEffects.map(e => e.constructor.name),
-            game: this.game.serialize()
-        };
-        this.cancelledEffects.length = 0;
-        return returnData;
-    }
-
-    storeEffects() {
-        if (this.currentEffectsStack.length) {
-            this.pastEffectsStack.push([...this.currentEffectsStack]);
-            this.currentEffectsStack.length = 0;
-        }
-    }
-
-    getStartOptions(): Record<string, Constructor<OathAction>> {
-        return {
-            "Muster": MusterAction,
-            "Trade": TradeAction,
-            "Travel": TravelAction,
-            "Recover": RecoverAction,
-            "Search": SearchAction,
-            "Campaign": CampaignAction,
-
-            "Use": UsePowerAction,
-            "Reveal": PlayFacedownAdviserAction,
-            "Move warbands": MoveWarbandsAction,
-            "Rest": RestAction
-        };
-    }
-
-    startAction(actionName: string): object {
-        const action = this.startOptions[actionName];
-        if (!action)
-            throw new InvalidActionResolution("Invalid starting action name");
-
-        this.storeEffects();
-        new action(this.game.currentPlayer).doNext();
-
-        try {
-            return this.checkForNextAction();
-        } catch (e) {
-            this.revert();
-            throw e;
-        }
-    }
-    
-    continueAction(by: number, values: Record<string, string[]>): object {
-        const action = this.actionsStack[this.actionsStack.length - 1];
-        if (!action) throw new InvalidActionResolution("No action to continue");
-        
-        const player = this.game.players[by];
-        if (action.player.original !== player) throw new InvalidActionResolution(`Action must be resolved by ${action.player.name}, not ${player.name}`)
-        
-        this.storeEffects();
-        const parsed = action.parse(values);
-        action.applyParameters(parsed);
-
-        try {
-            return this.resolveTopAction();
-        } catch (e) {
-            this.revert();
-            throw e;
-        }
-    }
-    
-    resolveTopAction(): object {
-        const action = new PopActionFromStackEffect(this.game).do();
-        if (!action) return this.checkForNextAction();
-    
-        action.execute();
-        return this.checkForNextAction();
-    }
-    
-    cancelAction(): object {
-        if (this.currentEffectsStack.length == 0 && this.pastEffectsStack.length == 0) throw new InvalidActionResolution("Cannot roll back");
-        
-        this.startOptions = {};
-        const reverted = this.revert();
-        this.cancelledEffects.splice(0, 0, ...reverted);
-        return this.checkForNextAction();
-    }
-    
-    revert(): OathEffect<any>[] {
-        this.futureActionsList.length = 0;
-
-        const reverted: OathEffect<any>[] = [];
-        while (this.currentEffectsStack.length) {
-            const effect = this.currentEffectsStack.pop();
-            if (!effect) break;
-            effect.revert();
-            reverted.push(effect);
-        }
-    
-        const group = this.pastEffectsStack.pop();
-        this.currentEffectsStack.length = 0;
-        if (group) this.currentEffectsStack.push(...group);
-    
-        return reverted;
-    }
-}
-
-
-////////////////////////////////////////////
-//               SELECTORS                //
-////////////////////////////////////////////
-export class SelectNOf<T> {
-    name: string;
-    choices: Map<string, T>;
-    min: number;
-    max: number;
-
-    constructor(name: string, choices: Iterable<[string, T]>, min: number = -1, max?: number, exact: boolean = true) {
-        this.name = name;
-        this.choices = new Map(choices);
-
-        if (max === undefined) max = min == -1 ? this.choices.size : min;
-        if (min > max) throw new InvalidActionResolution(`Min is above max for select ${this.name}`);
-        if (this.choices.size < min && exact) throw new InvalidActionResolution(`Not enough choices for select ${this.name}`);
-
-        this.min = min === -1 ? 0: min;
-        this.max = max;
-    }
-
-    parse(input: Iterable<string>): T[] {
-        const values = new Set<T>();
-        for (const val of input) {
-            if (!this.choices.has(val)) throw new InvalidActionResolution(`Invalid choice for select ${this.name}: ${val}`);
-            const obj = this.choices.get(val);
-            values.add(obj as T);  // We know the value exists, and if it's undefined, then we want that
-        }
-        if (values.size < this.min || values.size > this.max) throw new InvalidActionResolution(`Invalid number of values for select ${this.name}`);
-
-        return [...values];
-    }
-
-    serialize(): Record <string, any> {
-        return {
-            name: this.name,
-            choices: [...this.choices.keys()],
-            min: this.min,
-            max: this.max
-        };
-    }
-}
-
-export class SelectBoolean extends SelectNOf<boolean> {
-    constructor(name: string, text: [string, string]) {
-        super(name, [[text[0], true], [text[1], false]], 1);
-    }
-}
-
-export class SelectNumber extends SelectNOf<number> {
-    constructor(name: string, values: number[], min: number = 1, max?: number) {
-        const choices = new Map<string, number>();
-        for (const i of values) choices.set(String(i), i);
-        super(name, choices, min, max);
-    }
-}
+import { Denizen, Edifice, Relic, Site, VisionBack, WorldCard } from "../cards/cards";
+import { DiscardOptions, SearchableDeck } from "../cards/decks";
+import { AttackDie, DefenseDie, Die } from "../dice";
+import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, PutPawnAtSiteEffect, DiscardCardEffect, MoveOwnWarbandsEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect, SetNewOathkeeperEffect, SetPeoplesFavorMobState, DiscardCardGroupEffect, OathEffect, PaySupplyEffect, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, ChangeEdificeEffect, ModifiedExecutionEffect, CampaignResolveSuccessfulAndSkullsEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect, CheckCapacityEffect } from "../effects";
+import { BannerName, OathPhase, OathResource, OathResourceName, OathSuit, OathSuitName, OathType, OathTypeName } from "../enums";
+import { OathGame } from "../game";
+import { OathGameObject } from "../gameObject";
+import { OathTypeToOath } from "../oaths";
+import { Exile, OathPlayer } from "../player";
+import { ActionModifier, ActivePower, CapacityModifier, OathPower } from "../powers/powers";
+import { ResourceCost, ResourcesAndWarbands } from "../resources";
+import { Banner, PeoplesFavor } from "../banks";
+import { Constructor, isExtended, MaskProxy, shuffleArray, WithOriginal } from "../utils";
+import { SelectNOf, SelectBoolean, SelectNumber } from "./selects";
 
 
 
@@ -215,20 +21,20 @@ export class SelectNumber extends SelectNOf<number> {
 export class InvalidActionResolution extends Error { }
 
 export abstract class OathAction extends OathGameObject {
-    readonly game: OathGame;
-    readonly player: OathPlayer;
     readonly selects: Record<string, SelectNOf<any>> = {};
     readonly parameters: Record<string, any> = {};
     readonly autocompleteSelects: boolean = true;
     abstract readonly message: string;
 
-    constructor(player: OathPlayer, dontCopyGame: boolean = true) {
-        super(dontCopyGame ? player.game : getCopyWithOriginal(player.game.original));
-        this.player = dontCopyGame ? player : this.game.players[player.color];
+    player: OathPlayer;             // This is the original player. Modifying it modifies the game state
+
+    constructor(player: OathPlayer) {
+        super(player.game);
+        this.player = player;
     }
 
     doNext(): void {
-        this.game.original.actionManager.futureActionsList.unshift(this);
+        this.game.actionManager.futureActionsList.unshift(this);
     }
 
     parse(data: Record<string, string[]>): Record<string, any[]> {
@@ -284,7 +90,7 @@ export class ChooseModifiers extends OathAction {
     persistentModifiers: Set<ActionModifier<any>>;
 
     constructor(next: ModifiableAction, executeImmediately: boolean = false) {
-        super(next.player, true);  // Not copying for performance reasons, since this copy should never be accessed
+        super(next.player);
         this.next = next;
         this.executeImmediately = executeImmediately;
     }
@@ -316,9 +122,8 @@ export class ChooseModifiers extends OathAction {
 
     static gatherModifiers(action: ModifiableAction): ActionModifier<any>[] {
         const instances: ActionModifier<any>[] = [];
-
-        for (const [source, modifier] of action.game.getPowers(ActionModifier<any>)) {
-            const instance = new modifier(source, action);
+        for (const [sourceProxy, modifier] of action.gameProxy.getPowers(ActionModifier<any>)) {
+            const instance = new modifier(sourceProxy.original, action);
             if (action instanceof instance.modifiedAction && instance.canUse()) instances.push(instance);
         };
 
@@ -338,9 +143,15 @@ export class ChooseModifiers extends OathAction {
 
 export abstract class ModifiableAction extends OathAction {
     modifiers: ActionModifier<any>[];
+    maskProxy: MaskProxy;
+    gameProxy: OathGame;            // Effects and powers are allowed to modify the proxies to "lie" to the action
+    playerProxy: OathPlayer;        // This is a simple reference for simplicity
 
-    constructor(player: OathPlayer, dontCopyGame: boolean = false) {
-        super(player, dontCopyGame);
+    constructor(player: OathPlayer) {
+        super(player);
+        this.maskProxy = new MaskProxy();
+        this.gameProxy = this.maskProxy.get(player.game);
+        this.playerProxy = this.maskProxy.get(player);
     }
 
     doNext(executeImmediately: boolean = false): void {
@@ -417,26 +228,27 @@ export class MusterAction extends MajorAction {
     readonly message = "Put a favor on a card to muster";
 
     supplyCost = 1;
-    card: Denizen;
+    cardProxy: Denizen;
     using = OathResource.Favor;
     amount = 1;
     getting = 2;
 
     start() {
         const choices = new Map<string, Denizen>();
-        for (const denizen of this.player.site.denizens) if (denizen.suit !== OathSuit.None && denizen.empty) choices.set(denizen.name, denizen);
+        for (const denizenProxy of this.playerProxy.site.denizens)
+            if (denizenProxy.suit !== OathSuit.None && denizenProxy.empty) choices.set(denizenProxy.name, denizenProxy);
         this.selects.card = new SelectNOf("Card", choices, 1);
         return super.start();
     }
 
     execute() {
-        this.card = this.parameters.card[0];
+        this.cardProxy = this.parameters.card[0];
         super.execute();
     }
 
     modifiedExecution() {
         super.modifiedExecution();
-        if (new MoveResourcesToTargetEffect(this.game, this.player, this.using, this.amount, this.card).do() < 1)
+        if (new MoveResourcesToTargetEffect(this.game, this.player, this.using, this.amount, this.cardProxy.original).do() < 1)
             throw new InvalidActionResolution("Cannot pay resource cost.");
 
         new PutWarbandsFromBagEffect(this.player, this.getting).do();
@@ -450,22 +262,22 @@ export class TradeAction extends MajorAction {
     readonly message = "Put resources on a card to trade";
 
     supplyCost = 1;
-    card: Denizen;
+    cardProxy: Denizen;
     forFavor: boolean;
     paying: Map<OathResource, number>;
     getting: Map<OathResource, number>;
 
     start() {
         const choices = new Map<string, Denizen>();
-        for (const denizen of this.player.site.denizens)
-            if (denizen.suit !== OathSuit.None && denizen.empty) choices.set(denizen.name, denizen);
+        for (const denizenProxy of this.playerProxy.site.denizens)
+            if (denizenProxy.suit !== OathSuit.None && denizenProxy.empty) choices.set(denizenProxy.name, denizenProxy);
         this.selects.card = new SelectNOf("Card", choices, 1);
         this.selects.forFavor = new SelectBoolean("Type", ["For favors", "For secrets"]);
         return super.start();
     }
 
     execute() {
-        this.card = this.parameters.card[0];
+        this.cardProxy = this.parameters.card[0];
         this.forFavor = this.parameters.forFavor[0];
         this.paying = new Map([[this.forFavor ? OathResource.Secret : OathResource.Favor, this.forFavor ? 1 : 2]]);
         this.getting = new Map([[this.forFavor ? OathResource.Favor : OathResource.Secret, (this.forFavor ? 1 : 0)]]);
@@ -475,13 +287,13 @@ export class TradeAction extends MajorAction {
     modifiedExecution() {
         super.modifiedExecution();
         // TODO: Make costs easily printable. Potentially get the error from the ResourceCost class?
-        if (!new PayCostToTargetEffect(this.game, this.player, new ResourceCost(this.paying), this.card).do())
+        if (!new PayCostToTargetEffect(this.game, this.player, new ResourceCost(this.paying), this.cardProxy.original).do())
             throw new InvalidActionResolution("Cannot pay resource cost.");
 
         const resource = this.forFavor ? OathResource.Favor : OathResource.Secret;
-        this.getting.set(resource, (this.getting.get(resource) || 0) + this.player.adviserSuitCount(this.card.suit));
+        this.getting.set(resource, (this.getting.get(resource) || 0) + this.playerProxy.adviserSuitCount(this.cardProxy.suit));
 
-        new TakeResourcesFromBankEffect(this.game, this.player, this.game.favorBanks.get(this.card.suit), this.getting.get(OathResource.Favor) || 0).do();
+        new TakeResourcesFromBankEffect(this.game, this.player, this.gameProxy.favorBanks.get(this.cardProxy.suit)?.original, this.getting.get(OathResource.Favor) || 0).do();
         new PutResourcesOnTargetEffect(this.game, this.player, OathResource.Secret, this.getting.get(OathResource.Secret) || 0).do();
     }
 }
@@ -492,27 +304,26 @@ export class TravelAction extends MajorAction {
     readonly parameters: { site: Site[] };
     readonly message: string = "Choose a site to travel to";
     readonly autocompleteSelects: boolean;
-    player: OathPlayer;
 
     travelling: OathPlayer;
     choosing: OathPlayer;
-    site: Site;
+    siteProxy: Site;
     restriction: (s: Site) => boolean;
 
-    constructor(player: OathPlayer, choosing: OathPlayer = player, restriction?: (s: Site) => boolean, dontCopyGame?: boolean) {
-        super(player, dontCopyGame);
+    constructor(travelling: OathPlayer, choosing: OathPlayer = travelling, restriction?: (s: Site) => boolean) {
+        super(travelling);
         this.autocompleteSelects = !!restriction;
         this.restriction = restriction || ((_: Site) => true);
         this.choosing = choosing;
-        this.travelling = player;
+        this.travelling = travelling;
     }
 
     start() {
         this.player = this.choosing;
         const choices = new Map<string, Site>();
-        for (const site of this.game.board.sites())
-            if (site !== this.player.site && this.restriction(site))
-                choices.set(site.facedown ? `Facedown ${site.region.name}` : site.name, site);
+        for (const siteProxy of this.gameProxy.board.sites())
+            if (siteProxy !== this.playerProxy.site && this.restriction(siteProxy))
+                choices.set(siteProxy.facedown ? `Facedown ${siteProxy.region.name}` : siteProxy.name, siteProxy);
         
         this.selects.site = new SelectNOf("Site", choices, 1);
         return super.start();
@@ -520,19 +331,19 @@ export class TravelAction extends MajorAction {
 
     execute() {
         this.player = this.travelling;
-        this.site = this.parameters.site[0];
-        this.supplyCost = this.game.board.travelCosts.get(this.player.site.region.regionName)?.get(this.site.region.regionName) || 2;
+        this.siteProxy = this.parameters.site[0];
+        this.supplyCost = this.gameProxy.board.travelCosts.get(this.player.site.region.regionName)?.get(this.siteProxy.region.regionName) || 2;
         super.execute();
     }
 
     modifiedExecution() {
         super.modifiedExecution();
-        new PutPawnAtSiteEffect(this.player, this.site).do();
+        new PutPawnAtSiteEffect(this.player, this.siteProxy.original).do();
     }
 }
 
 
-export interface RecoverActionTarget {
+export interface RecoverActionTarget extends WithOriginal {
     canRecover(action: RecoverAction): boolean;
     recover(player: OathPlayer): void;
 }
@@ -543,24 +354,24 @@ export class RecoverAction extends MajorAction {
     readonly message = "Choose a target to recover";
     
     supplyCost = 1;
-    target: RecoverActionTarget;
+    targetProxy: RecoverActionTarget;
 
     start() {
         const choices = new Map<string, RecoverActionTarget>();
-        for (const relic of this.player.site.relics) if (relic.canRecover(this)) choices.set(relic.name, relic);
-        for (const banner of this.game.banners.values()) if (banner.canRecover(this)) choices.set(banner.name, banner);
+        for (const relicProxy of this.playerProxy.site.relics) if (relicProxy.canRecover(this)) choices.set(relicProxy.name, relicProxy);
+        for (const bannerProxy of this.gameProxy.banners.values()) if (bannerProxy.canRecover(this)) choices.set(bannerProxy.name, bannerProxy);
         this.selects.target = new SelectNOf("Target", choices, 1);
         return super.start();
     }
 
     execute() {
-        this.target = this.parameters.target[0];
+        this.targetProxy = this.parameters.target[0];
         super.execute();
     }
 
     modifiedExecution() {
         super.modifiedExecution();
-        this.target.recover(this.player);
+        this.targetProxy.original.recover(this.player);
     }
 }
 
@@ -578,13 +389,14 @@ export class RecoverBannerPitchAction extends OathAction {
 
     start() {
         const values: number[] = [];
-        for (let i = this.banner.amount + 1; i <= this.player.getResources(this.banner.type); i++) values.push(i);
+        for (let i = this.banner.amount + 1; i <= this.player.getResources(this.banner.type); i++)
+            values.push(i);
         this.selects.amount = new SelectNumber("Amount", values);
         return super.start();
     }
 
     execute() {
-        this.banner.finishRecovery(this.player, this.parameters.amount[0]);
+        this.banner.original.finishRecovery(this.player, this.parameters.amount[0]);
     }
 }
 
@@ -594,28 +406,28 @@ export class SearchAction extends MajorAction {
     readonly parameters: { deck: SearchableDeck[] };
     readonly message = "Draw 3 cards from a deck";
 
-    deck: SearchableDeck;
+    deckProxy: SearchableDeck;
     amount = 3;
     fromBottom = false;
     discardOptions = new DiscardOptions(this.player.discard);
 
     start() {
         const choices = new Map<string, SearchableDeck>();
-        choices.set("World Deck", this.game.worldDeck);
-        choices.set(this.player.site.region.name, this.player.site.region.discard);
+        choices.set("World Deck", this.gameProxy.worldDeck);
+        choices.set(this.playerProxy.site.region.name, this.playerProxy.site.region.discard);
         this.selects.deck = new SelectNOf("Deck", choices, 1);
         return super.start();
     }
 
     execute() {
-        this.deck = this.parameters.deck[0];
-        this.supplyCost = this.deck.searchCost;
+        this.deckProxy = this.parameters.deck[0];
+        this.supplyCost = this.deckProxy.searchCost;
         super.execute();
     }
 
     modifiedExecution() {
         super.modifiedExecution();
-        const cards = new DrawFromDeckEffect(this.player, this.deck, this.amount, this.fromBottom).do();
+        const cards = new DrawFromDeckEffect(this.player, this.deckProxy.original, this.amount, this.fromBottom).do();
         new SearchChooseAction(this.player, cards, this.discardOptions).doNext();
     }
 }
@@ -653,7 +465,7 @@ export class SearchChooseAction extends ModifiableAction {
         const discarding = new Set(this.cards);
         for (const card of this.playing) discarding.delete(card);
         new SearchDiscardAction(this.player, discarding, Infinity, this.discardOptions).doNext();
-        for (const card of this.playing) new SearchPlayAction(this.player, card, this.discardOptions).doNext();
+        for (const card of this.playing) new SearchPlayAction(this.player, card.original, this.discardOptions).doNext();
     }
 }
 
@@ -698,72 +510,74 @@ export class SearchPlayAction extends ModifiableAction {
     readonly parameters: { site: (Site | undefined)[], facedown: boolean[] }
     readonly message: string;
     
-    card: WorldCard;
-    site: Site | undefined;
+    cardProxy: WorldCard;
+    siteProxy: Site | undefined;
     facedown: boolean;
     discardOptions: DiscardOptions<any>;
     canReplace: boolean;
 
     constructor(player: OathPlayer, card: WorldCard, discardOptions?: DiscardOptions<any>) {
         super(player);
-        this.card = card;
-        this.message = "Play " + this.card.name;
+        this.cardProxy = this.maskProxy.get(card);
+        this.message = "Play " + this.cardProxy.name;
         this.discardOptions = discardOptions || new DiscardOptions(player.discard);
     }
 
     start() {
         const sitesChoice = new Map<string, Site | undefined>();
         sitesChoice.set("Advisers", undefined);
-        sitesChoice.set(this.player.site.name, this.player.site);
+        sitesChoice.set(this.playerProxy.site.name, this.playerProxy.site);
         this.selects.site = new SelectNOf("Place", sitesChoice, 1);
+
         this.selects.facedown = new SelectBoolean("Orientation", ["Facedown", "Faceup"]);
+
         return super.start();
     }
 
     execute() {
-        this.site = this.parameters.site[0];
+        this.siteProxy = this.parameters.site[0];
         this.facedown = this.parameters.facedown[0];
-        this.canReplace = this.site === undefined;
+        this.canReplace = this.siteProxy === undefined;
         super.execute();
     }
 
-    static getCapacityInformation(player: OathPlayer, site?: Site, playing?: WorldCard): [number, WorldCard[], boolean] {
+    static getCapacityInformation(playerProxy: OathPlayer, siteProxy?: Site, playingProxy?: WorldCard): [number, WorldCard[], boolean] {
         const capacityModifiers: CapacityModifier<any>[] = [];
-        for (const [source, modifier] of player.game.getPowers(CapacityModifier)) {
+        for (const [source, modifier] of playerProxy.game.getPowers(CapacityModifier)) {
             const instance = new modifier(source);
-            if (instance.canUse(player, site)) capacityModifiers.push(instance);
+            if (instance.canUse(playerProxy, siteProxy)) capacityModifiers.push(instance);
         }
 
-        if (playing && !playing.facedown) {
-            for (const modifier of playing.powers) {
+        if (playingProxy && !playingProxy.facedown) {
+            for (const modifier of playingProxy.powers) {
                 if (isExtended(modifier, CapacityModifier)) {
-                    const instance = new modifier(playing);
+                    const instance = new modifier(playingProxy);
                     capacityModifiers.push(instance);  // Always assume the card influences the capacity
                 }
             }
         }
 
-        let capacity = site ? site.capacity : 3;
+        let capacity = siteProxy ? siteProxy.capacity : 3;
         let ignoresCapacity = false;
         let takesNoSpace = new Set<WorldCard>();
-        const target = site ? site.denizens : player.advisers;
+        const target = siteProxy ? siteProxy.denizens : playerProxy.advisers;
 
         for (const capacityModifier of capacityModifiers) {
             const [cap, noSpace] = capacityModifier.updateCapacityInformation(target);
             capacity = Math.min(capacity, cap);
             for (const card of noSpace) takesNoSpace.add(card);
-            if (playing) ignoresCapacity ||= capacityModifier.ignoreCapacity(playing);
+            if (playingProxy) ignoresCapacity ||= capacityModifier.ignoreCapacity(playingProxy);
         }
 
         return [capacity, [...target].filter(e => !takesNoSpace.has(e)), ignoresCapacity];
     }
 
     modifiedExecution() {
-        this.card.facedown = this.facedown;  // Editing the copy to reflect the new state
-        const [capacity, takesSpaceInTarget, ignoresCapacity] = SearchPlayAction.getCapacityInformation(this.player, this.site?.original, this.card);
+        this.cardProxy.facedown = this.facedown;  // Editing the copy to reflect the new state
+        const [capacity, takesSpaceInTarget, ignoresCapacity] = SearchPlayAction.getCapacityInformation(this.playerProxy, this.siteProxy, this.cardProxy);
 
         const excess = Math.max(0, takesSpaceInTarget.length - capacity + 1);  // +1 because we are playing a card there
-        const discardable = takesSpaceInTarget.filter(e => !(e instanceof Denizen && e.activelyLocked));
+        const discardable = takesSpaceInTarget.filter(e => !(e instanceof Denizen && e.activelyLocked)).map(e => e.original);
 
         if (!ignoresCapacity && excess)
             if (!this.canReplace || excess > discardable.length)
@@ -771,8 +585,8 @@ export class SearchPlayAction extends ModifiableAction {
             else
                 new SearchDiscardAction(this.player, discardable, excess, this.discardOptions).doNext();
         
-        new PlayWorldCardEffect(this.player, this.card, this.facedown, this.site).doNext();
-        new CheckCapacityEffect(this.player, [this.site || this.player], this.discardOptions).do();
+        new PlayWorldCardEffect(this.player, this.cardProxy.original, this.facedown, this.siteProxy?.original).doNext();
+        new CheckCapacityEffect(this.player, [this.siteProxy?.original || this.player], this.discardOptions).doNext();
     }
 }
 
@@ -811,24 +625,24 @@ export class CampaignAction extends MajorAction {
     readonly message = "Choose a defender";
     
     supplyCost = 2;
-    defender: OathPlayer | undefined;
+    defenderProxy: OathPlayer | undefined;
 
     start() {
         const choices = new Map<string, OathPlayer | undefined>();
-        for (const player of Object.values(this.game.players)) choices.set(player.name, player);
-        if (this.player.site.ruler === undefined) choices.set("Bandits", undefined);
+        for (const playerProxy of Object.values(this.gameProxy.players)) choices.set(playerProxy.name, playerProxy);
+        if (this.playerProxy.site.ruler === undefined) choices.set("Bandits", undefined);
         this.selects.defender = new SelectNOf("Defender", choices, 1);
         return super.start();
     }
 
     execute() {
-        this.defender = this.parameters.defender[0];
+        this.defenderProxy = this.parameters.defender[0];
         super.execute();
     }
 
     modifiedExecution() {
         super.modifiedExecution();
-        new CampaignAtttackAction(this.player, this.defender).doNext();
+        new CampaignAtttackAction(this.player, this.defenderProxy?.original).doNext();
     }
 }
 
@@ -847,35 +661,36 @@ export class CampaignAtttackAction extends ModifiableAction {
 
     constructor(player: OathPlayer, defender: OathPlayer | undefined) {
         super(player);
-        this.next = new CampaignDefenseAction(defender || this.player, this.player);
+        this.next = new CampaignDefenseAction(defender || player);
         this.campaignResult.attacker = player;
         this.campaignResult.defender = defender;
     }
 
     start() {
         const defender = this.campaignResult.defender;
+        const defenderProxy = defender && this.maskProxy.get(defender);
 
         this.campaignResult.targets = [];
         const choices = new Map<string, CampaignActionTarget>();
-        for (const site of this.game.board.sites()) { 
-            if (!site.facedown && site.ruler?.original === defender?.original) {
-                if (this.player.site === site) {
-                    this.campaignResult.targets.push(site);
+        for (const siteProxy of this.gameProxy.board.sites()) { 
+            if (!siteProxy.facedown && siteProxy.ruler === defenderProxy) {
+                if (this.playerProxy.site === siteProxy) {
+                    this.campaignResult.targets.push(siteProxy.original);
                 } else {
-                    choices.set(site.name, site);
+                    choices.set(siteProxy.name, siteProxy.original);
                 }
             }
         }
 
-        if (defender && defender.site.original === this.player.site.original) {
-            choices.set("Banish " + defender.name, defender);
-            for (const relic of defender.relics) choices.set(relic.name, relic)
-            for (const banner of defender.banners) choices.set(banner.name, banner);
+        if (defenderProxy && defenderProxy.site === this.playerProxy.site) {
+            choices.set("Banish " + defenderProxy.name, defenderProxy);
+            for (const relicProxy of defenderProxy.relics) choices.set(relicProxy.name, relicProxy.original)
+            for (const bannerProxy of defenderProxy.banners) choices.set(bannerProxy.name, bannerProxy.original);
         }
         this.selects.targets = new SelectNOf("Target(s)", choices, 1 - this.campaignResult.targets.length, choices.size);
 
         const values: number[] = [];
-        for (let i = 0; i <= this.player.totalWarbands; i++) values.push(i);
+        for (let i = 0; i <= this.playerProxy.totalWarbands; i++) values.push(i);
         this.selects.pool = new SelectNumber("Attack pool", values);
         
         return super.start();
@@ -888,8 +703,11 @@ export class CampaignAtttackAction extends ModifiableAction {
         this.campaignResult.atkPool = this.parameters.pool[0];
 
         this.campaignResult.defPool = 0;
-        for (const target of this.campaignResult.targets) this.campaignResult.defPool += target.defense;
-        if (this.campaignResult.defender?.original === this.game.oathkeeper.original) this.campaignResult.defPool += this.game.isUsurper ? 2 : 1;
+        for (const target of this.campaignResult.targets)
+            this.campaignResult.defPool += this.maskProxy.get(target).defense;
+        
+        if (this.campaignResult.defender && this.maskProxy.get(this.campaignResult.defender) === this.gameProxy.oathkeeper)
+            this.campaignResult.defPool += this.gameProxy.isUsurper ? 2 : 1;
 
         this.campaignResult.resolveDefForce();
         this.campaignResult.resolveAtkForce();
@@ -918,9 +736,9 @@ export class CampaignDefenseAction extends ModifiableAction {
     readonly next: CampaignEndAction;
     readonly message = "";
 
-    constructor(player: OathPlayer, attacker: OathPlayer) {
-        super(player, true);  // Don't copy because this is a big chain
-        this.next = new CampaignEndAction(attacker, true);  // Same deal
+    constructor(player: OathPlayer) {
+        super(player);
+        this.next = new CampaignEndAction(this.campaignResult.attacker);
     }
 
     get campaignResult() { return this.next.campaignResult; }
@@ -969,8 +787,8 @@ export class CampaignResult extends OathGameObject {
     get requiredSacrifice() { return this.def - this.atk + 1; }
     get couldSacrifice() { return this.requiredSacrifice > 0 && this.requiredSacrifice <= this.totalAtkForce; }
 
-    get winner() { return this.successful ? this.attacker : this.defender; }
-    get loser() { return this.successful ? this.defender : this.attacker; }
+    get winnerCopy() { return this.successful ? this.attacker : this.defender; }
+    get loserCopy() { return this.successful ? this.defender : this.attacker; }
     get loserTotalForce() { return this.successful ? this.totalDefForce : this.totalAtkForce; }
     get loserKillsNoWarbands() { return this.successful ? this.defenderKillsNoWarbands : this.attackerKillsNoWarbands; }
     get loserKillsEntireForce() { return this.successful ? this.defenderKillsEntireForce : this.attackerKillsEntireForce; }
@@ -1051,7 +869,7 @@ export class CampaignEndAction extends ModifiableAction {
             this.campaignResult.successful = true;
         }
 
-        if (this.campaignResult.loser && !this.campaignResult.ignoreKilling && !this.campaignResult.loserKillsNoWarbands)
+        if (this.campaignResult.loserCopy && !this.campaignResult.ignoreKilling && !this.campaignResult.loserKillsNoWarbands)
             this.campaignResult.loserKills(Math.floor(this.campaignResult.loserTotalForce / (this.campaignResult.loserKillsEntireForce ? 1 : 2)));
 
         if (this.campaignResult.successful)
@@ -1076,7 +894,7 @@ export class CampaignKillWarbandsInForceAction extends OathAction {
     amount: number;
 
     constructor(result: CampaignResult, attacker: boolean, amount: number) {
-        super(attacker ? result.attacker.leader : result.defender?.leader || result.attacker.leader, true);
+        super(attacker ? result.attacker.leader : result.defender?.leader || result.attacker.leader);
         this.message = `Kill ${amount} warbands`;
         this.result = result;
         this.owner = attacker ? result.attacker.leader : result.defender?.leader;
@@ -1141,7 +959,7 @@ export class CampaignSeizeSiteAction extends OathAction {
 
     start() {
         const values: number[] = [];
-        for (let i = 0; i <= this.player.original.getWarbands(this.player.original.leader); i++) values.push(i);
+        for (let i = 0; i <= this.player.getWarbands(this.player.leader); i++) values.push(i);
         this.selects.amount = new SelectNumber("Amount", values);
         return super.start();
     }
@@ -1156,15 +974,15 @@ export class WakeAction extends ModifiableAction {
     readonly message = "";
 
     modifiedExecution(): void {
-        if (this.game.oathkeeper === this.player && !this.player.isImperial)
-            if (this.game.isUsurper)
+        if (this.gameProxy.oathkeeper === this.playerProxy && !this.playerProxy.isImperial)
+            if (this.gameProxy.isUsurper)
                 return new WinGameEffect(this.player).do();
             else
                 new SetUsurperEffect(this.game, true).do();
         
-        if (this.player instanceof Exile && this.player.vision && this.game.worldDeck.visionsDrawn >= 3) {
-            const candidates = this.player.vision.oath.getOathkeeperCandidates();
-            if (candidates.size === 1 && candidates.has(this.player))
+        if (this.playerProxy instanceof Exile && this.playerProxy.vision && this.gameProxy.worldDeck.visionsDrawn >= 3) {
+            const candidates = this.playerProxy.vision.oath.getOathkeeperCandidates();
+            if (candidates.size === 1 && candidates.has(this.playerProxy))
                 return new WinGameEffect(this.player).do();
         }
         
@@ -1183,7 +1001,7 @@ export class RestAction extends ModifiableAction {
 
     modifiedExecution(): void {
         new ChangePhaseEffect(this.game, OathPhase.Rest).do();
-        this.player.original.rest();
+        this.player.rest();
     }
 }
 
@@ -1201,7 +1019,7 @@ export class UsePowerAction extends ModifiableAction {
 
     start() {
         const choices = new Map<string, ActivePower<any>>();
-        for (const [source, power] of this.game.getPowers(ActivePower<any>)) {
+        for (const [source, power] of this.gameProxy.getPowers(ActivePower<any>)) {
             const instance = new power(source, this);
             if (instance.canUse()) choices.set(instance.name, instance);
         }
@@ -1218,7 +1036,7 @@ export class UsePowerAction extends ModifiableAction {
         if (!this.power.payCost(this.player))
             throw new InvalidActionResolution("Cannot pay the resource cost.");
 
-        this.power.usePower(this);
+        this.power.usePower();
     }
 }
 
@@ -1228,23 +1046,19 @@ export class PlayFacedownAdviserAction extends ModifiableAction {
     readonly parameters: { cards: WorldCard[] }
     readonly message = "Choose an adviser to play";
 
-    cards: Set<WorldCard>;
+    cardProxies: Set<WorldCard>;
     playing: WorldCard;
 
-    constructor(player: OathPlayer) {
-        super(player);
-        this.cards = new Set([...player.advisers].filter(e => e.facedown));
-    }
-
     start() {
+        this.cardProxies = new Set([...this.playerProxy.advisers].filter(e => e.facedown));
         const cardsChoice = new Map<string, WorldCard>();
-        for (const card of this.cards) cardsChoice.set(card.name, card);
+        for (const cardProxy of this.cardProxies) cardsChoice.set(cardProxy.name, cardProxy);
         this.selects.cards = new SelectNOf("Adviser", cardsChoice, 1);
         return super.start();
     }
 
     execute(): void {
-        this.playing = this.parameters.cards[0];
+        this.playing = this.parameters.cards[0].original;
         super.execute();
     }
 
@@ -1259,25 +1073,25 @@ export class MoveWarbandsAction extends ModifiableAction {
     readonly parameters: { target: (Site | OathPlayer)[], amount: number[], giving: boolean[] };
     readonly message = "Give or take warbands";
 
-    target: Site | OathPlayer;
+    targetProxy: Site | OathPlayer;
     amount: number;
     giving: boolean;
 
     start(): boolean {
         const choices = new Map<string, Site | OathPlayer>();
-        const site = this.player.site;
-        let max = this.player.getWarbands(this.player.leader);
-        if (this.player.isImperial) {
-            for (const player of Object.values(this.game.players)) {
-                if (player !== this.player && player.isImperial && player.site.original === site.original) {
-                    choices.set(player.name, player);
-                    max = Math.max(max, player.getWarbands(player.leader));
+        const siteProxy = this.playerProxy.site;
+        let max = this.playerProxy.getWarbands(this.playerProxy.leader);
+        if (this.playerProxy.isImperial) {
+            for (const playerProxy of Object.values(this.gameProxy.players)) {
+                if (playerProxy !== this.playerProxy && playerProxy.isImperial && playerProxy.site === siteProxy) {
+                    choices.set(playerProxy.name, playerProxy);
+                    max = Math.max(max, playerProxy.getWarbands(playerProxy.leader));
                 }
             }
         }
-        if (site.getWarbands(this.player.leader) > 0) {
-            choices.set(site.name, site);
-            max = Math.max(max, site.getWarbands(this.player.leader) - 1);
+        if (siteProxy.getWarbands(this.playerProxy.leader) > 0) {
+            choices.set(siteProxy.name, siteProxy);
+            max = Math.max(max, siteProxy.getWarbands(this.playerProxy.leader) - 1);
         }
         this.selects.target = new SelectNOf("Target", choices, 1);
         
@@ -1291,23 +1105,23 @@ export class MoveWarbandsAction extends ModifiableAction {
     }
 
     execute(): void {
-        this.target = this.parameters.target[0];
+        this.targetProxy = this.parameters.target[0];
         this.amount = this.parameters.amount[0];
         this.giving = this.parameters.giving[0];
         super.execute();
     }
 
     modifiedExecution(): void {
-        const from = this.giving ? this.player : this.target;
-        const to = this.giving ? this.target : this.player;
+        const from = this.giving ? this.player : this.targetProxy;
+        const to = this.giving ? this.targetProxy : this.player;
 
         if (from instanceof Site && from.getWarbands(this.player.leader) - this.amount < 1)
             throw new InvalidActionResolution("Cannot take the last warband off a site.");
 
         const effect = new MoveOwnWarbandsEffect(this.player, from, to, this.amount);
-        if (this.target instanceof OathPlayer || this.target.ruler && this.target.ruler.original !== this.player.original) {
-            const askTo = this.target instanceof OathPlayer ? this.target : this.target.ruler;
-            if (askTo) new AskForPermissionAction(askTo, effect).doNext();
+        if (this.targetProxy instanceof OathPlayer || this.targetProxy.ruler && this.targetProxy.ruler !== this.playerProxy) {
+            const askTo = this.targetProxy instanceof OathPlayer ? this.targetProxy : this.targetProxy.ruler;
+            if (askTo) new AskForPermissionAction(askTo.original, effect).doNext();
         } else {
             effect.do();
         }
@@ -1346,7 +1160,7 @@ export class ResolveEffectAction extends OathAction {
     effect: OathEffect<any>;
 
     constructor(player: OathPlayer, effect: OathEffect<any>) {
-        super(player, true);  // Don't copy, not modifiable, and not an entry point
+        super(player);
         this.effect = effect;
     }
 
@@ -1366,7 +1180,7 @@ export class AskForRerollAction extends OathAction {
     power?: OathPower<any>;
 
     constructor(player: OathPlayer, faces: number[], die: typeof Die, power?: OathPower<any>) {
-        super(player, true);  // Don't copy, not modifiable, and not an entry point
+        super(player);
         this.faces = faces;
         this.message = "Do you wish to reroll " + faces.join(",") + "?";
         this.die = die;
@@ -1380,7 +1194,7 @@ export class AskForRerollAction extends OathAction {
 
     execute(): void {
         if (this.parameters.doReroll[0]) {
-            if (!this.power?.payCost(this.player)) return;
+            if (!this.power || this.power.payCost(this.player)) return;
             for (const [i, face] of this.die.roll(this.faces.length).entries()) this.faces[i] = face;
         }
     }
@@ -1395,7 +1209,7 @@ export abstract class ChooseSuit extends OathAction {
     suit: OathSuit | undefined;
 
     constructor(player: OathPlayer, suits?: Iterable<OathSuit>) {
-        super(player, true);  // Don't copy, they're not modifiable, are not entry points, and can be used to modify data in other actions
+        super(player);
         this.suits = new Set(suits || [OathSuit.Discord, OathSuit.Arcane, OathSuit.Order, OathSuit.Hearth, OathSuit.Beast, OathSuit.Nomad]);
     }
 
@@ -1422,7 +1236,7 @@ export class PeoplesFavorReturnAction extends ChooseSuit {
     constructor(player: OathPlayer, banner: PeoplesFavor) {
         super(player);
         this.banner = banner;
-        this.amount = banner.amount; 
+        this.amount = banner.amount;
         this.message = "Choose where to start returning the favor (" + this.amount + ")";
     }
 
@@ -1434,7 +1248,7 @@ export class PeoplesFavorReturnAction extends ChooseSuit {
         while (amount > 0) {
             const bank = this.game.favorBanks.get(this.suit);
             if (bank) {
-                new MoveBankResourcesEffect(this.game, this.player, this.banner, bank, 1).do();
+                new MoveBankResourcesEffect(this.game, this.player, this.banner, bank.original, 1).do();
                 amount--;
             }
             if (++this.suit > OathSuit.Nomad) this.suit = OathSuit.Discord;
@@ -1539,14 +1353,14 @@ export abstract class ChoosePlayer extends OathAction {
     target: OathPlayer | undefined;
 
     constructor(player: OathPlayer, players?: Iterable<OathPlayer>) {
-        super(player, true);  // Don't copy, they're not modifiable, are not entry points, and can be used to modify data in other actions
+        super(player);
         this.players = players ? new Set(players) : new Set(Object.values(this.game.players));
     }
 
     start(none?: string) {
         const choices = new Map<string, OathPlayer | undefined>();
         for (const player of this.players)
-            if (player.original !== this.player.original || this.canChooseSelf)
+            if (player !== this.player || this.canChooseSelf)
                 choices.set(player.name, player);
         if (none) choices.set(none, undefined);
         this.selects.player = new SelectNOf("Player", choices, 1);
@@ -1594,7 +1408,7 @@ export class PiedPiperAction extends TakeResourceFromPlayerAction {
         super.execute();
         if (!this.target) return;
         const adviser = new MoveAdviserEffect(this.player, this.card).do();
-        new MoveWorldCardToAdvisersEffect(this.game, this.player, adviser, this.target).do()
+        new MoveWorldCardToAdvisersEffect(this.game, this.player, adviser, this.target).do();
     }
 }
 
@@ -1684,10 +1498,10 @@ export class ExileCitizenAction extends ChoosePlayer {
 
         let amount = 5;
         const peoplesFavor = this.game.banners.get(BannerName.PeoplesFavor);
-        if (this.player.original === this.game.oathkeeper.original) amount--;
-        if (this.player.original === peoplesFavor?.owner?.original) amount--;
-        if (this.target.original === this.game.oathkeeper.original) amount++;
-        if (this.target.original === peoplesFavor?.owner?.original) amount++;
+        if (this.player === this.game.oathkeeper) amount--;
+        if (this.player === peoplesFavor?.owner) amount--;
+        if (this.target === this.game.oathkeeper) amount++;
+        if (this.target === peoplesFavor?.owner) amount++;
 
         if (!new PayCostToTargetEffect(this.game, this.player, new ResourceCost([[OathResource.Favor, amount]]), this.target).do())
             throw new InvalidActionResolution("Cannot pay resource cost");
@@ -1706,7 +1520,7 @@ export abstract class ChooseSite extends OathAction {
     target: Site | undefined;
 
     constructor(player: OathPlayer, sites?: Iterable<Site>) {
-        super(player, true);  // Don't copy, they're not modifiable, are not entry points, and can be used to modify data in other actions
+        super(player);
         this.sites = new Set(sites);
     }
 
@@ -1732,10 +1546,17 @@ export class ActAsIfAtSiteAction extends ChooseSite {
     readonly message = "Choose a site to act at";
     readonly autocompleteSelects = false;
 
+    action: ModifiableAction;
+
+    constructor(player: OathPlayer, action: ModifiableAction, sites?: Iterable<Site>) {
+        super(player, sites);
+        this.action = action;
+    }
+
     execute(): void {
         super.execute();
         if (!this.target) return;
-        this.player.site = this.target;
+        this.action.playerProxy.site = this.action.maskProxy.get(this.target);
     }
 }
 
@@ -1752,8 +1573,8 @@ export class MakeBindingExchangeOfferAction extends OathAction {
     constructor(player: OathPlayer, other: OathPlayer, next?: MakeBindingExchangeOfferAction) {
         super(player);
         this.other = other;
-        this.next = next;
         this.effect = next?.effect || new BindingExchangeEffect(other, player);
+        this.next = next;
     }
 
     start(): boolean {
@@ -1888,7 +1709,7 @@ export class VowOathAction extends OathAction {
             choices.set(OathTypeName[oathType], oathType);
         } else {
             for (let i: OathType = 0; i < 4; i++)
-                if (i !== this.game.original.oath.type)
+                if (i !== this.game.oath.type)
                     choices.set(OathTypeName[i], i);
         }
         this.selects.oath = new SelectNOf("Oath", choices);
@@ -1896,8 +1717,9 @@ export class VowOathAction extends OathAction {
     }
 
     execute(): void {
+        // TODO: Put this in an effect
         const oathType = this.parameters.oath[0];
-        this.game.oath = new OathTypeToOath[oathType](this.game.original);
+        this.game.oath = new OathTypeToOath[oathType](this.game);
     }
 }
 
@@ -1908,7 +1730,7 @@ export class ChooseNewCitizensAction extends OathAction {
 
     start() {
         const choices = new Map<string, OathPlayer>();
-        const players = new Set(Object.values(this.game.players).filter(e => !e.isImperial && e.original !== this.player.original));
+        const players = new Set(Object.values(this.game.players).filter(e => !e.isImperial && e !== this.player));
         for (const player of players) choices.set(player.name, player);
         this.selects.players = new SelectNOf("Exile(s)", choices);
         return super.start();
@@ -1956,22 +1778,23 @@ export class BuildOrRepairEdificeAction extends OathAction {
 
 export class AddCardsToWorldDeckAction extends ChooseSuit {
     readonly message = "Choose a suit to add to the World Deck";
-
-    constructor(player: OathPlayer) {
+    
+    start(none?: string): boolean {
         let max = 0;
-        const suits: OathSuit[] = [];
         for (let i: OathSuit = 0; i < 6; i++) {
-            const count = player.adviserSuitCount(i);
+            const count = this.player.adviserSuitCount(i);
             if (count >= max) {
                 max = count;
-                suits.splice(0, suits.length, i);
+                this.suits.clear();
+                this.suits.add(i);
             } else if (count === max) {
-                suits.push(i);
+                this.suits.add(i);
             }
         }
-        super(player, suits);
+
+        return super.start(none);
     }
-    
+
     getRandomCardDataInArchive(suit: OathSuit): string[] {
         const cardData: string[] = [];
         for (const [key, data] of Object.entries(this.game.archive))
@@ -1986,7 +1809,7 @@ export class AddCardsToWorldDeckAction extends ChooseSuit {
         if (!this.suit) return;
         
         // Add cards from the archive
-        const worldDeck = this.game.original.worldDeck;
+        const worldDeck = this.game.worldDeck;
         const worldDeckDiscardOptions = new DiscardOptions(worldDeck, false, true);
         for (let i = 3; i >= 1; i--) {
             const cardData = this.getRandomCardDataInArchive(this.suit);
@@ -1997,7 +1820,7 @@ export class AddCardsToWorldDeckAction extends ChooseSuit {
                 if (!data) break;
                 delete this.game.archive[key];
 
-                new DiscardCardEffect(this.player, new Denizen(this.game.original, ...data), worldDeckDiscardOptions).do();
+                new DiscardCardEffect(this.player, new Denizen(this.game, ...data), worldDeckDiscardOptions).do();
             }
 
             this.suit++;
@@ -2005,14 +1828,14 @@ export class AddCardsToWorldDeckAction extends ChooseSuit {
         }
 
         // Remove cards to the Dispossessed
-        const firstDiscard = Object.values(this.game.original.board.regions)[0].discard;
+        const firstDiscard = Object.values(this.game.board.regions)[0].discard;
         const firstDiscardOptions = new DiscardOptions(firstDiscard, false, true);
-        for (const player of Object.values(this.game.original.players)) {
+        for (const player of Object.values(this.game.players)) {
             let discardOptions = firstDiscardOptions;
             if (player === this.player) discardOptions = worldDeckDiscardOptions;
             new DiscardCardGroupEffect(this.player, player.advisers, discardOptions).do();
         }
-        for (const region of Object.values(this.game.original.board.regions)) {
+        for (const region of Object.values(this.game.board.regions)) {
             const cards = new DrawFromDeckEffect(this.player, region.discard, region.discard.cards.length).do();
             new DiscardCardGroupEffect(this.player, cards, firstDiscardOptions).do();
         }
@@ -2027,7 +1850,7 @@ export class AddCardsToWorldDeckAction extends ChooseSuit {
                 new DiscardCardEffect(this.player, card, worldDeckDiscardOptions).do();
                 continue;
             }
-            this.game.original.dispossessed.push(card.data);
+            this.game.dispossessed.push(card.data);
         }
         const cards = new DrawFromDeckEffect(this.player, firstDiscard, firstDiscard.cards.length).do();
         new DiscardCardGroupEffect(this.player, cards, worldDeckDiscardOptions).do();

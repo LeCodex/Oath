@@ -125,7 +125,7 @@ const render = () => {
 const renderCard = (card) => {
     const cardNode = document.createElement("li");
     cardNode.id = "card" + card.name;
-    cardNode.innerText = (card.facedown ? card.vision ? "👁️ " : "❔ " : "")
+    cardNode.innerText = (card.facedown ? card.visionBack ? "👁️ " : "❔ " : "")
     cardNode.innerText += (!card.facedown || card.seenBy.includes(game.order[game.turn]) ? (card.suit !== undefined ? suitColors[card.suit+1] + " " : "") + card.name  + " " + getResourcesAndWarbandsText(card) : "");
     return cardNode;
 }

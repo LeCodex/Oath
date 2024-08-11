@@ -1,4 +1,4 @@
-import { CampaignActionTarget, CampaignSeizeSiteAction, InvalidActionResolution, RecoverAction, RecoverActionTarget } from "../actions";
+import { InvalidActionResolution, CampaignActionTarget, CampaignSeizeSiteAction, RecoverAction, RecoverActionTarget } from "../actions/actions";
 import { Region } from "../board";
 import { FlipSecretsEffect, MoveOwnWarbandsEffect, MoveResourcesToTargetEffect, PayCostToBankEffect, PutResourcesIntoBankEffect, TakeOwnableObjectEffect } from "../effects";
 import { CardRestriction, OathResource, OathSuit, OathTypeVisionName, RegionName } from "../enums";
@@ -105,7 +105,7 @@ export class Site extends OathCard implements CampaignActionTarget {
 
     hide(): void {
         super.hide();
-        for (const relic of this.relics) this.game.relicDeck.putCard(relic);
+        for (const relic of this.relics) { relic.setOwner(undefined); this.game.relicDeck.putCard(relic); }
         for (const [resource, amount] of this.resources) this.takeResources(resource, amount);
     }
 
@@ -133,7 +133,7 @@ export class Site extends OathCard implements CampaignActionTarget {
 
     seize(player: OathPlayer) {
         if (this.ruler) new MoveOwnWarbandsEffect(this.ruler, this, this.ruler).doNext();
-        new CampaignSeizeSiteAction(player.original, this).doNext();
+        new CampaignSeizeSiteAction(player, this).doNext();
     }
 
     serialize(): Record<string, any> {
@@ -153,7 +153,7 @@ export abstract class OwnableCard extends OathCard implements OwnableObject {
     get ruler() { return this.owner; }
 
     accessibleBy(player: OathPlayer | undefined): boolean {
-        return player?.original === this.owner?.original;
+        return player === this.owner;
     }
 
     abstract setOwner(newOwner?: OathPlayer): void;
@@ -259,7 +259,7 @@ export class Denizen extends WorldCard {
     }
 
     accessibleBy(player: OathPlayer): boolean {
-        return super.accessibleBy(player) || player.leader.original === this.site?.ruler?.original || this.site?.original === player.site.original;
+        return super.accessibleBy(player) || player.leader === this.site?.ruler || this.site === player.site;
     }
 
     setOwner(newOwner?: OathPlayer): void {
@@ -295,7 +295,13 @@ export class Edifice extends Denizen {
     locked = true;
 }
 
-export abstract class VisionBack extends WorldCard { }
+export abstract class VisionBack extends WorldCard {
+    serialize(): Record<string, any> {
+        const obj: Record<string, any> = super.serialize();
+        obj.visionBack = true;
+        return obj;
+    }
+}
 
 export class Vision extends VisionBack {
     oath: Oath;
@@ -307,7 +313,7 @@ export class Vision extends VisionBack {
 
     serialize(): Record<string, any> {
         const obj: Record<string, any> = super.serialize();
-        obj.oath = this.oath.type;
+        obj.vision = this.oath.type;
         return obj;
     }
 }

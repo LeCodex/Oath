@@ -1,14 +1,14 @@
-import { CampaignAtttackAction, SearchAction, InvalidActionResolution, TradeAction, TravelAction } from "../actions";
-import { OathResource, RegionName } from "../enums";
-import { Reliquary } from "../player";
 import { ActionModifier } from "./powers";
+import { InvalidActionResolution, CampaignAtttackAction, SearchAction, TradeAction, TravelAction } from "../actions/actions";
+import { OathResource, RegionName } from "../enums";
+import { Reliquary } from "../reliquary";
 
 
 export abstract class ReliquaryModifier extends ActionModifier<Reliquary> {
     mustUse = true;
 
     canUse(): boolean {
-        return super.canUse() && this.action.player === this.action.game.chancellor;
+        return super.canUse() && this.action.playerProxy === this.action.gameProxy.chancellor;
     }
 }
 
@@ -51,10 +51,10 @@ export class Decadent extends ReliquaryModifier {
     action: TravelAction;
 
     applyBefore(): void {
-        if (this.action.site.inRegion(RegionName.Cradle) && !this.action.player.site.inRegion(RegionName.Cradle))
+        if (this.action.siteProxy.inRegion(RegionName.Cradle) && !this.action.playerProxy.site.inRegion(RegionName.Cradle))
             this.action.noSupplyCost = true;
 
-        if (this.action.site.inRegion(RegionName.Hinterland))
+        if (this.action.siteProxy.inRegion(RegionName.Hinterland))
             this.action.supplyCostModifier += 1;
     }
 }

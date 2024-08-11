@@ -1,8 +1,8 @@
 import { OathGame } from "./game";
-import { CopiableWithOriginal } from "./utils";
+import { WithOriginal } from "./utils";
 
 
-export abstract class OathGameObject extends CopiableWithOriginal {
+export abstract class OathGameObject extends WithOriginal {
     game: OathGame;
 
     constructor(game: OathGame) {

@@ -1,6 +1,5 @@
-import { ConspiracyAction } from "../actions";
+import { ConspiracyAction } from "../actions/actions";
 import { Conspiracy, Denizen } from "../cards/cards";
-import { ApplyWhenPlayedEffect } from "../effects";
 import { OathPlayer } from "../player";
 import { WhenPlayed } from "./powers";
 
@@ -9,20 +8,20 @@ import { WhenPlayed } from "./powers";
 export class ConspiracyPower extends WhenPlayed<Conspiracy> {
     name = "Conspiracy";
 
-    whenPlayed(effect: ApplyWhenPlayedEffect): void {
+    whenPlayed(): void {
         const targets: OathPlayer[] = [];
-        for (const player of Object.values(effect.game.players)) {
-            if (player.site === effect.player.site) {
+        for (const playerProxy of Object.values(this.gameProxy.players)) {
+            if (playerProxy.site === this.effect.playerProxy.site) {
                 let totalAdviserSuitCount = 0;
-                for (const adviser of player.advisers)
-                    if (!adviser.facedown && adviser instanceof Denizen)
-                        totalAdviserSuitCount += effect.player.adviserSuitCount(adviser.suit);
+                for (const adviserProxy of playerProxy.advisers)
+                    if (!adviserProxy.facedown && adviserProxy instanceof Denizen)
+                        totalAdviserSuitCount += this.effect.playerProxy.adviserSuitCount(adviserProxy.suit);
 
                 if (totalAdviserSuitCount >= 2)
-                    targets.push(player);
+                    targets.push(playerProxy);
             }
         }
 
-        new ConspiracyAction(effect.player, targets).doNext();
+        new ConspiracyAction(this.effect.player, targets).doNext();
     }
 }

@@ -1,20 +1,21 @@
-import { ChooseNewOathkeeper, ChooseSuccessor, InvalidActionResolution, OathAction, OathActionManager } from "./actions";
+import { InvalidActionResolution, OathAction, ChooseSuccessor, ChooseNewOathkeeper } from "./actions/actions";
+import { OathActionManager } from "./actions/manager";
+import { WinGameEffect } from "./effects";
+import { OathPower } from "./powers/powers";
 import { OathBoard } from "./board";
-import { Conspiracy, Denizen, GrandScepter, Relic, Site, Vision } from "./cards/cards";
 import { CardDeck, RelicDeck, WorldDeck } from "./cards/decks";
 import { DenizenData, denizenData } from "./cards/denizens";
 import { relicsData } from "./cards/relics";
 import { sitesData } from "./cards/sites";
-import { WinGameEffect } from "./effects";
 import { BannerName, OathType, OathPhase, OathSuit, RegionName, PlayerColor, OathResource } from "./enums";
 import { Oath, OathTypeToOath } from "./oaths";
+import { Conspiracy, Denizen, GrandScepter, Relic, Site, Vision } from "./cards/cards";
 import { Chancellor, Exile, OathPlayer } from "./player";
-import { OathPower } from "./powers/powers";
 import { Banner, DarkestSecret, FavorBank, PeoplesFavor } from "./banks";
-import { AbstractConstructor, Constructor, CopiableWithOriginal, isExtended } from "./utils";
+import { AbstractConstructor, Constructor, isExtended, WithOriginal } from "./utils";
 
 
-export class OathGame extends CopiableWithOriginal {
+export class OathGame extends WithOriginal {
     actionManager = new OathActionManager(this);
 
     oath: Oath;

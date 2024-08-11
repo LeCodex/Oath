@@ -1,4 +1,4 @@
-import { TravelAction, InvalidActionResolution, WakeAction, ChooseResourceToTakeAction } from "../actions";
+import { InvalidActionResolution, ChooseResourceToTakeAction, WakeAction, TravelAction } from "../actions/actions";
 import { Site, Denizen } from "../cards/cards";
 import { PlayWorldCardEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PutWarbandsFromBagEffect, TakeResourcesFromBankEffect } from "../effects";
 import { OathSuit, OathResource } from "../enums";
@@ -13,7 +13,7 @@ export abstract class HomelandSitePower extends EffectModifier<Site> {
 
     applyAfter(result: void): void {
         // TODO: "and if you have not discarded a <suit> card here during this turn"
-        if (this.effect.site?.original === this.source.original && this.effect.card instanceof Denizen && this.effect.card.suit === this.suit)
+        if (this.effect.site === this.source && this.effect.card instanceof Denizen && this.effect.card.suit === this.suit)
             this.giveReward(this.effect.player);
     }
 
@@ -25,8 +25,9 @@ export class Wastes extends HomelandSitePower {
     suit = OathSuit.Discord;
 
     giveReward(player: OathPlayer): void {
-        // TODO: This doesn't reveal the card. Also should probably have an effect just for recovering
-        for (const relic of this.source.relics) return new TakeOwnableObjectEffect(player.game, player, relic).do();
+        // TODO: Should probably have an effect just for recovering
+        for (const relicProxy of this.sourceProxy.relics)
+            return new TakeOwnableObjectEffect(this.game, player, relicProxy.original).do();
     }
 }
 
@@ -35,7 +36,7 @@ export class StandingStones extends HomelandSitePower {
     suit = OathSuit.Arcane;
 
     giveReward(player: OathPlayer): void {
-        new PutResourcesOnTargetEffect(player.game, player, OathResource.Secret, 1).do();
+        new PutResourcesOnTargetEffect(this.game, player, OathResource.Secret, 1).do();
     }
 }
 
@@ -53,7 +54,7 @@ export class FertileValley extends HomelandSitePower {
     suit = OathSuit.Hearth;
 
     giveReward(player: OathPlayer): void {
-        new TakeResourcesFromBankEffect(player.game, player, player.game.favorBanks.get(this.suit), 1).do();
+        new TakeResourcesFromBankEffect(this.game, player, this.game.favorBanks.get(this.suit), 1).do();
     }
 }
 
@@ -62,7 +63,7 @@ export class Steppe extends HomelandSitePower {
     suit = OathSuit.Nomad;
 
     giveReward(player: OathPlayer): void {
-        new PutResourcesOnTargetEffect(player.game, player, OathResource.Secret, 1).do();
+        new PutResourcesOnTargetEffect(this.game, player, OathResource.Secret, 1).do();
     }
 }
 
@@ -71,14 +72,15 @@ export class DeepWoods extends HomelandSitePower {
     suit = OathSuit.Beast;
 
     giveReward(player: OathPlayer): void {
-        for (const relic of this.source.relics) return new TakeOwnableObjectEffect(player.game, player, relic).do();
+        for (const relicProxy of this.sourceProxy.relics)
+            return new TakeOwnableObjectEffect(player.game, player, relicProxy.original).do();
     }
 }
 
 
 export abstract class SiteActionModifier extends ActionModifier<Site> {
     canUse(): boolean {
-        return this.action.player.site === this.source;
+        return this.action.playerProxy.site === this.sourceProxy;
     }
 }
 
@@ -88,9 +90,9 @@ export class CoastalSite extends SiteActionModifier {
     action: TravelAction;
 
     canUse(): boolean {
-        for (const site of this.game.board.sites())
-            if (!site.facedown && site.original !== this.source.original)
-                for (const power of site.powers)
+        for (const siteProxy of this.gameProxy.board.sites())
+            if (!siteProxy.facedown && siteProxy !== this.sourceProxy)
+                for (const power of siteProxy.powers)
                     if (power === CoastalSite)
                         return super.canUse();
 
@@ -98,14 +100,14 @@ export class CoastalSite extends SiteActionModifier {
     }
 
     applyImmediately(modifiers: ActionModifier<any>[]): Iterable<ActionModifier<any>> {
-        // This ignores a bit more than the Narrow Pass, but it's simpler, and makes no difference
-        return modifiers.filter(e => e.source instanceof Site && e.source.original !== this.source.original);
+        // TODO: Ignore only the Narrow Pass and not the Hidden Place
+        return modifiers.filter(e => e.source instanceof Site && e.source !== this.source);
     }
 
     applyBefore(): void {
-        if (this.action.site.facedown) return;
+        if (this.action.siteProxy.facedown) return;
 
-        for (const power of this.action.site.powers) {
+        for (const power of this.action.siteProxy.powers) {
             if (power === CoastalSite) {
                 this.action.supplyCost = 1;
                 return;

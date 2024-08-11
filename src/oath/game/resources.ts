@@ -67,7 +67,7 @@ export abstract class ResourcesAndWarbands extends OathGameObject {
 
     getWarbands(player: OathPlayer | undefined): number {
         if (!player) return 0;
-        return this.warbands.get(player.original) || 0;
+        return this.warbands.get(player) || 0;
     }
 
     putWarbands(player: OathPlayer, amount: number): number {

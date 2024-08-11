@@ -1,5 +1,5 @@
 import { Denizen, Edifice, OathCard, OwnableCard, Relic, Site, Vision, WorldCard } from "./cards/cards";
-import { CardRestriction, OathPhase, OathResource, OathSuit, PlayerColor } from "./enums";
+import { CardRestriction, OathPhase, OathResource, OathSuit } from "./enums";
 import { Exile, OathPlayer } from "./player";
 import { EffectModifier, OathPower, WhenPlayed } from "./powers/powers";
 import { ResourceCost, ResourcesAndWarbands } from "./resources";
@@ -7,30 +7,34 @@ import { Banner, PeoplesFavor, ResourceBank } from "./banks";
 import { OwnableObject } from "./player";
 import { OathGame } from "./game";
 import { OathGameObject } from "./gameObject";
-import { AddCardsToWorldDeckAction, BuildOrRepairEdificeAction, CampaignDefenseAction, CampaignResult, ChooseNewCitizensAction, InvalidActionResolution, ModifiableAction, OathAction, ResolveEffectAction, RestAction, SearchDiscardAction, SearchPlayAction, TakeFavorFromBankAction, VowOathAction, WakeAction } from "./actions";
+import { InvalidActionResolution, ModifiableAction, OathAction, AddCardsToWorldDeckAction, BuildOrRepairEdificeAction, ChooseNewCitizensAction, VowOathAction, TakeFavorFromBankAction, ResolveEffectAction, RestAction, WakeAction, CampaignDefenseAction, CampaignResult, SearchDiscardAction, SearchPlayAction } from "./actions/actions";
 import { DiscardOptions } from "./cards/decks";
 import { CardDeck } from "./cards/decks";
-import { getCopyWithOriginal, isExtended, shuffleArray } from "./utils";
+import { isExtended, MaskProxy, shuffleArray } from "./utils";
 import { AttackDie, D6, DefenseDie, Die } from "./dice";
 import { Oath } from "./oaths";
 import { Region } from "./board";
 import { edificeData } from "./cards/denizens";
 
 
+
 //////////////////////////////////////////////////
 //                BASE CLASSES                  //
 //////////////////////////////////////////////////
 export abstract class OathEffect<T> extends OathGameObject {
-    readonly game: OathGame;
-    readonly playerColor: PlayerColor | undefined;
+    player: OathPlayer | undefined;
     modifiers: EffectModifier<any>[] = [];
+    maskProxy: MaskProxy;
+    gameProxy: OathGame;
+    playerProxy: OathPlayer | undefined;
 
-    constructor(game: OathGame, player: OathPlayer | undefined, dontCopyGame: boolean = false) {
-        super(dontCopyGame ? game : getCopyWithOriginal(game.original));
-        this.playerColor = player?.color;
+    constructor(game: OathGame, player: OathPlayer | undefined) {
+        super(game);
+        this.player = player;
+        this.maskProxy = new MaskProxy();
+        this.gameProxy = this.maskProxy.get(game);
+        this.playerProxy = player && this.maskProxy.get(player);
     }
-
-    get player() { return this.playerColor !== undefined ? this.game.players[this.playerColor] : undefined; }
 
     doNext() {
         new ResolveEffectAction(this.player || this.game.currentPlayer, this).doNext();
@@ -67,13 +71,12 @@ export abstract class OathEffect<T> extends OathGameObject {
 }
 
 export abstract class PlayerEffect<T> extends OathEffect<T> {
-    readonly playerColor: PlayerColor;
+    player: OathPlayer;
+    playerProxy: OathPlayer;
 
-    constructor(player: OathPlayer, dontCopyGame: boolean = false) {
-        super(player.game, player, dontCopyGame);
+    constructor(player: OathPlayer) {
+        super(player.game, player);
     }
-
-    get player() { return this.game.players[this.playerColor]; }
 }
 
 
@@ -84,16 +87,16 @@ export class AddActionToStackEffect extends OathEffect<void> {
     action: OathAction;
 
     constructor(action: OathAction) {
-        super(action.game, undefined, true);
+        super(action.game, undefined);
         this.action = action;
     }
 
     resolve(): void {
-        this.game.original.actionManager.actionsStack.push(this.action);
+        this.game.actionManager.actionsStack.push(this.action);
     }
 
     revert(): void {
-        this.game.original.actionManager.actionsStack.pop();
+        this.game.actionManager.actionsStack.pop();
     }
 }
 
@@ -101,13 +104,13 @@ export class PopActionFromStackEffect extends OathEffect<OathAction | undefined>
     action?: OathAction;
 
     constructor(game: OathGame) {
-        super(game, undefined, true);
+        super(game, undefined);
     }
     
     resolve(): OathAction | undefined {
-        const action = this.game.original.actionManager.actionsStack.pop();
+        const action = this.game.actionManager.actionsStack.pop();
         if (!action) {
-            this.game.original.actionManager.currentEffectsStack.pop();
+            this.game.actionManager.currentEffectsStack.pop();
             return;
         }
         this.action = action;
@@ -115,7 +118,7 @@ export class PopActionFromStackEffect extends OathEffect<OathAction | undefined>
     }
 
     revert(): void {
-        if (this.action) this.game.original.actionManager.actionsStack.push(this.action);
+        if (this.action) this.game.actionManager.actionsStack.push(this.action);
     }
 }
 
@@ -123,7 +126,7 @@ export class ModifiedExecutionEffect extends PlayerEffect<void> {
     action: ModifiableAction;
 
     constructor(action: ModifiableAction) {
-        super(action.player, true);
+        super(action.player);
         this.action = action;
     }
 
@@ -150,11 +153,11 @@ export class PutResourcesOnTargetEffect extends OathEffect<number> {
 
     resolve(): number {
         // TODO: Take favor from supply
-        return this.target?.original.putResources(this.resource, this.amount) || 0;
+        return this.target?.putResources(this.resource, this.amount) || 0;
     }
 
     revert(): void {
-        this.target?.original.takeResources(this.resource, this.amount);
+        this.target?.takeResources(this.resource, this.amount);
     }
 }
 
@@ -173,15 +176,15 @@ export class MoveResourcesToTargetEffect extends OathEffect<number> {
     }
 
     resolve(): number {
-        this.amount = this.source?.original.moveResourcesTo(this.resource, this.target?.original, this.amount) || 0;
+        this.amount = this.source?.moveResourcesTo(this.resource, this.target, this.amount) || 0;
         return this.amount;
     }
 
     revert(): void {
         if (this.target)
-            this.target.original.moveResourcesTo(this.resource, this.source?.original, this.amount);
+            this.target.moveResourcesTo(this.resource, this.source, this.amount);
         else
-            this.source?.original.putResources(this.resource, this.amount);
+            this.source?.putResources(this.resource, this.amount);
     }
 }
 
@@ -198,15 +201,15 @@ export class PutResourcesIntoBankEffect extends OathEffect<number> {
     }
 
     resolve(): number {
-        if (!this.source) return this.bank?.original.put(this.amount) || 0;
-        return this.source.original.putResourcesIntoBank(this.bank?.original, this.amount);
+        if (!this.source) return this.bank?.put(this.amount) || 0;
+        return this.source.putResourcesIntoBank(this.bank, this.amount);
     }
 
     revert(): void {
         if (!this.source)
-            this.bank?.original.take(this.amount);
+            this.bank?.take(this.amount);
         else
-            this.source.original.takeResourcesFromBank(this.bank?.original, this.amount);
+            this.source.takeResourcesFromBank(this.bank, this.amount);
     }
 }
 
@@ -224,18 +227,18 @@ export class TakeResourcesFromBankEffect extends OathEffect<number> {
 
     resolve(): number {
         if (!this.target)
-            this.amount = this.bank?.original.take(this.amount) || 0;
+            this.amount = this.bank?.take(this.amount) || 0;
         else
-            this.amount = this.target.original.takeResourcesFromBank(this.bank?.original, this.amount);
+            this.amount = this.target.takeResourcesFromBank(this.bank, this.amount);
 
         return this.amount;
     }
 
     revert(): void {
         if (!this.target)
-            this.bank?.original.put(this.amount);
+            this.bank?.put(this.amount);
         else
-            this.target.original.putResourcesIntoBank(this.bank?.original, this.amount);
+            this.target.putResourcesIntoBank(this.bank, this.amount);
     }
 }
 
@@ -252,12 +255,12 @@ export class MoveBankResourcesEffect extends OathEffect<number> {
     }
 
     resolve(): number {
-        this.amount = this.from.original.moveTo(this.to.original, this.amount);
+        this.amount = this.from.moveTo(this.to, this.amount);
         return this.amount;
     }
 
     revert(): void {
-        this.to.original.moveTo(this.from.original, this.amount);
+        this.to.moveTo(this.from, this.amount);
     }
 }
 
@@ -305,7 +308,7 @@ export class PayCostToBankEffect extends OathEffect<boolean> {
         super(game, player);
         this.cost = cost;
         this.suit = suit;
-        this.source = source || this.player?.original;
+        this.source = source || this.player;
     }
 
     resolve(): boolean {
@@ -315,12 +318,12 @@ export class PayCostToBankEffect extends OathEffect<boolean> {
             if (this.source.getResources(resource) < amount) return false;
 
         for (const [resource, amount] of this.cost.burntResources)
-            new MoveResourcesToTargetEffect(this.game, this.player?.original, resource, amount, undefined, this.source).do(); // TODO: Move burnt favor to supply
+            new MoveResourcesToTargetEffect(this.game, this.player, resource, amount, undefined, this.source).do(); // TODO: Move burnt favor to supply
 
         if (this.suit)
-            new PutResourcesIntoBankEffect(this.game, this.player?.original, this.game.favorBanks.get(this.suit), this.cost.placedResources.get(OathResource.Favor) || 0, this.source).do();
+            new PutResourcesIntoBankEffect(this.game, this.player, this.game.favorBanks.get(this.suit), this.cost.placedResources.get(OathResource.Favor) || 0, this.source).do();
         
-        new FlipSecretsEffect(this.game, this.player?.original, this.cost.placedResources.get(OathResource.Secret) || 0, true, this.source).do();
+        new FlipSecretsEffect(this.game, this.player, this.cost.placedResources.get(OathResource.Secret) || 0, true, this.source).do();
 
         return true;
     }
@@ -339,6 +342,7 @@ export class PayPowerCost extends PlayerEffect<boolean> {
     }
 
     resolve(): boolean {
+        // TODO: This isn't correct, a power that doesn't a ResourceAndWarbands source could be supplied to this. How can this ba handled nicely?
         return new PayCostToTargetEffect(this.game, this.player, this.power.cost, this.power.source).do();
     }
 
@@ -363,16 +367,16 @@ export class FlipSecretsEffect extends OathEffect<number> {
     resolve(): number {
         if (!this.source) return 0;
 
-        this.amount = this.source.original.takeResources(this.facedown ? OathResource.Secret : OathResource.FlippedSecret, this.amount);
-        this.source.original.putResources(this.facedown ? OathResource.FlippedSecret : OathResource.Secret, this.amount);
+        this.amount = this.source.takeResources(this.facedown ? OathResource.Secret : OathResource.FlippedSecret, this.amount);
+        this.source.putResources(this.facedown ? OathResource.FlippedSecret : OathResource.Secret, this.amount);
         return this.amount;
     }
 
     revert(): void {
         if (!this.source) return;
 
-        this.source.original.takeResources(this.facedown ? OathResource.FlippedSecret : OathResource.Secret, this.amount);
-        this.source.original.putResources(this.facedown ? OathResource.Secret : OathResource.FlippedSecret, this.amount);
+        this.source.takeResources(this.facedown ? OathResource.FlippedSecret : OathResource.Secret, this.amount);
+        this.source.putResources(this.facedown ? OathResource.Secret : OathResource.FlippedSecret, this.amount);
     }
 }
 
@@ -391,12 +395,12 @@ export class MoveWarbandsToEffect extends OathEffect<number> {
     }
 
     resolve(): number {
-        this.amount = this.source?.original.moveWarbandsTo(this.owner, this.target.original, this.amount) || 0;
+        this.amount = this.source?.moveWarbandsTo(this.owner, this.target, this.amount) || 0;
         return this.amount;
     }
 
     revert(): void {
-        if (this.source) this.target.original.moveWarbandsTo(this.owner, this.source.original, this.amount);
+        if (this.source) this.target.moveWarbandsTo(this.owner, this.source, this.amount);
     }
 }
 
@@ -413,12 +417,12 @@ export class MoveOwnWarbandsEffect extends PlayerEffect<number> {
     }
 
     resolve(): number {
-        this.amount = this.player.original.moveOwnWarbands(this.from.original, this.to.original, this.amount);
+        this.amount = this.player.moveOwnWarbands(this.from, this.to, this.amount);
         return this.amount;
     }
 
     revert(): void {
-        this.player.original.moveOwnWarbands(this.to.original, this.from.original, this.amount);
+        this.player.moveOwnWarbands(this.to, this.from, this.amount);
     }
 }
 
@@ -433,12 +437,12 @@ export class PutWarbandsFromBagEffect extends PlayerEffect<number> {
     }
 
     resolve(): number {
-        this.amount = this.player.original.moveWarbandsFromBagOnto(this.target.original, this.amount);
+        this.amount = this.player.moveWarbandsFromBagOnto(this.target, this.amount);
         return this.amount;
     }
 
     revert(): void {
-        this.player.original.moveWarbandsIntoBagFrom(this.target.original, this.amount);
+        this.player.moveWarbandsIntoBagFrom(this.target, this.amount);
     }
 }
 
@@ -453,12 +457,12 @@ export class TakeWarbandsIntoBagEffect extends PlayerEffect<number> {
     }
 
     resolve(): number {
-        this.amount = this.player.original.moveWarbandsIntoBagFrom(this.target.original, this.amount);
+        this.amount = this.player.moveWarbandsIntoBagFrom(this.target, this.amount);
         return this.amount;
     }
 
     revert(): void {
-        this.player.original.moveWarbandsFromBagOnto(this.target.original, this.amount);
+        this.player.moveWarbandsFromBagOnto(this.target, this.amount);
     }
 }
 
@@ -473,20 +477,20 @@ export class PutPawnAtSiteEffect extends PlayerEffect<void> {
     }
 
     resolve(): void {
-        this.oldSite = this.player.original.site;
-        this.player.original.site = this.site.original;
+        this.oldSite = this.player.site;
+        this.player.site = this.site;
 
-        this.revealedSite = this.site.original.facedown;
-        if (this.revealedSite) this.site.original.reveal();
+        this.revealedSite = this.site.facedown;
+        if (this.revealedSite) this.site.reveal();
 
         // TODO: Technically, this is a minor action
-        for (const relic of this.site.original.relics) new PeekAtCardEffect(this.player, relic).do();
+        for (const relic of this.site.relics) new PeekAtCardEffect(this.player, relic).do();
     }
 
     revert(): void {
         // This effect SHOULD NOT get reverted
-        this.player.original.site = this.oldSite;
-        if (this.revealedSite) this.site.original.hide();
+        this.player.site = this.oldSite;
+        if (this.revealedSite) this.site.hide();
     }
 }
 
@@ -500,13 +504,13 @@ export class PeekAtCardEffect extends PlayerEffect<void> {
     }
 
     resolve(): void {
-        this.peeked = !this.card.original.seenBy.has(this.player.original);
-        if (this.peeked) this.card.original.seenBy.add(this.player.original);
+        this.peeked = !this.card.seenBy.has(this.player);
+        if (this.peeked) this.card.seenBy.add(this.player);
     }
 
     revert(): void {
         if (!this.peeked) return;
-        this.card.original.seenBy.delete(this.player.original);
+        this.card.seenBy.delete(this.player);
     }
 }
 
@@ -561,7 +565,7 @@ export class DrawFromDeckEffect<T extends OwnableCard> extends PlayerEffect<T[]>
     }
 
     resolve(): T[] {
-        this.cards = this.deck.original.draw(this.amount, this.fromBottom);
+        this.cards = this.deck.draw(this.amount, this.fromBottom);
         for (const card of this.cards) {
             if (this.cards.length > 1) new ClearCardPeekEffect(this.player, card).do();
             new PeekAtCardEffect(this.player, card).do();
@@ -571,27 +575,7 @@ export class DrawFromDeckEffect<T extends OwnableCard> extends PlayerEffect<T[]>
     }
 
     revert(): void {
-        for (const card of this.cards.reverse()) this.deck.original.putCard(card, this.fromBottom);
-    }
-}
-
-export class PlayFromAdvisersEffect extends PlayerEffect<void> {
-    card: WorldCard;
-    site?: Site;
-
-    constructor(player: OathPlayer, card: WorldCard, site?: Site) {
-        super(player);
-        this.card = card;
-        this.site = site;
-    }
-
-    resolve(): void {
-        new PlayWorldCardEffect(this.player, this.card, false, this.site);
-    }
-
-    revert(): void {
-        this.card.setOwner(this.player.original);
-        this.card.hide();
+        for (const card of this.cards.reverse()) this.deck.putCard(card, this.fromBottom);
     }
 }
 
@@ -611,11 +595,11 @@ export class PlayWorldCardEffect extends PlayerEffect<void> {
     resolve(): void {
         if (this.site) {
             if (!(this.card instanceof Denizen)) throw new InvalidActionResolution("Only Denizens can be played to sites.");
-            if (this.card.restriction === CardRestriction.Adviser) throw new InvalidActionResolution("Cannot play adviser-only cards to sites.");
+            if (this.maskProxy.get(this.card).restriction === CardRestriction.Adviser) throw new InvalidActionResolution("Cannot play adviser-only cards to sites.");
 
             new PlayDenizenAtSiteEffect(this.player, this.card, this.site).do();
         } else {
-            if (!this.facedown && this.card instanceof Denizen && this.card.restriction === CardRestriction.Site)
+            if (!this.facedown && this.card instanceof Denizen && this.maskProxy.get(this.card).restriction === CardRestriction.Site)
                 throw new InvalidActionResolution("Cannot play site-only cards to advisers.");
             
             if (!this.facedown && this.card instanceof Vision) {
@@ -645,7 +629,7 @@ export class ApplyWhenPlayedEffect extends PlayerEffect<void> {
 
     resolve(): void {
         for (const power of this.card.powers)
-            if (isExtended(power, WhenPlayed)) new power(this.card).whenPlayed(this);
+            if (isExtended(power, WhenPlayed)) new power(this.card, this).whenPlayed();
     }
 
     revert(): void {
@@ -667,9 +651,9 @@ export class PlayDenizenAtSiteEffect extends PlayerEffect<void> {
     }
 
     resolve(): void {
-        this.card.original.putAtSite(this.site.original);
+        this.card.putAtSite(this.site);
         this.revealedCard = this.card.facedown;
-        if (this.revealedCard) this.card.original.reveal();
+        if (this.revealedCard) this.card.reveal();
         
         // TODO: Put this in an effect?
         const bank = this.game.favorBanks.get(this.card.suit);
@@ -683,9 +667,8 @@ export class PlayDenizenAtSiteEffect extends PlayerEffect<void> {
 
     revert(): void {
         // The thing that calls this effect is in charge of putting the card back where it was
-        // It should, if it calls setOwner, revert the placement at the site
-        if (this.revealedCard) this.card.original.hide();
-        this.card.original.setOwner(undefined);
+        if (this.revealedCard) this.card.hide();
+        this.card.setOwner(undefined);
     }
 }
 
@@ -701,14 +684,14 @@ export class PlayWorldCardToAdviserEffect extends PlayerEffect<void> {
     }
 
     resolve(): void {
-        this.card.setOwner(this.player.original);
-        this.revealedCard = this.card.original.facedown && !this.facedown;
-        if (this.revealedCard) this.card.original.reveal();
+        this.card.setOwner(this.player);
+        this.revealedCard = this.card.facedown && !this.facedown;
+        if (this.revealedCard) this.card.reveal();
     }
 
     revert(): void {
         // The thing that calls this effect is in charge of putting the card back where it was
-        if (this.revealedCard) this.card.original.hide();
+        if (this.revealedCard) this.card.hide();
         this.card.setOwner(undefined);
     }
 }
@@ -723,19 +706,20 @@ export class PlayVisionEffect extends PlayerEffect<void> {
     }
 
     resolve(): void {
-        if (!(this.player.original instanceof Exile) || this.player.isImperial) throw new InvalidActionResolution("Only Exiles can play Visions faceup.");
-        this.oldVision = this.player.original.setVision(this.card);
-        if (this.oldVision) new DiscardCardEffect(this.player.original, this.oldVision).do();
+        if (!(this.player instanceof Exile) || this.player.isImperial) throw new InvalidActionResolution("Only Exiles can play Visions faceup.");
+        this.oldVision = this.player.setVision(this.card);
+        if (this.oldVision) new DiscardCardEffect(this.player, this.oldVision).do();
     }
 
     revert(): void {
         // The thing that calls this effect is in charge of putting the card back where it was
         // This just replaces the old Vision (if there was one) and removes the current one
-        if (!(this.player.original instanceof Exile) || this.player.isImperial) return;
-        this.player.original.setVision(this.oldVision);
+        if (!(this.player instanceof Exile) || this.player.isImperial) return;
+        this.player.setVision(this.oldVision);
     }
 }
 
+// TODO: Make freeing the cards into a method
 export class MoveAdviserEffect extends PlayerEffect<WorldCard> {
     card: WorldCard;
 
@@ -745,13 +729,13 @@ export class MoveAdviserEffect extends PlayerEffect<WorldCard> {
     }
 
     resolve(): WorldCard {
-        if (!this.card.original.owner) throw new InvalidActionResolution("Trying to move a non-adviser.");
-        this.card.original.setOwner(undefined);
-        return this.card.original;
+        if (!this.card.owner) throw new InvalidActionResolution("Trying to move a non-adviser.");
+        this.card.setOwner(undefined);
+        return this.card;
     }
 
     revert(): void {
-        this.card.original.setOwner(this.player.original);
+        this.card.setOwner(this.player);
     }
 }
 
@@ -765,14 +749,14 @@ export class MoveSiteDenizenEffect extends OathEffect<Denizen> {
     }
 
     resolve(): Denizen {
-        if (!this.card.original.site) throw new InvalidActionResolution("Trying to move a site card not at a site.");
-        this.oldSite = this.card.original.site;
-        this.card.original.setOwner(undefined);
-        return this.card.original;
+        if (!this.card.site) throw new InvalidActionResolution("Trying to move a site card not at a site.");
+        this.oldSite = this.card.site;
+        this.card.setOwner(undefined);
+        return this.card;
     }
 
     revert(): void {
-        this.card.original.putAtSite(this.oldSite.original);
+        this.card.putAtSite(this.oldSite);
     }
 }
 
@@ -786,14 +770,14 @@ export class MoveSiteRelicEffect extends OathEffect<Relic> {
     }
 
     resolve(): Relic {
-        if (!this.relic.original.site) throw new InvalidActionResolution("Trying to move a site relic not at a site.");
-        this.oldSite = this.relic.original.site;
-        this.relic.original.setOwner(undefined);
-        return this.relic.original;
+        if (!this.relic.site) throw new InvalidActionResolution("Trying to move a site relic not at a site.");
+        this.oldSite = this.relic.site;
+        this.relic.setOwner(undefined);
+        return this.relic;
     }
 
     revert(): void {
-        this.relic.original.putAtSite(this.oldSite.original);
+        this.relic.putAtSite(this.oldSite);
     }
 }
 
@@ -809,13 +793,13 @@ export class MoveWorldCardToAdvisersEffect extends OathEffect<void> {
 
     resolve(): void {
         if (!this.target) return;
-        this.card.original.setOwner(this.target.original);
+        this.card.setOwner(this.target);
         new CheckCapacityEffect(this.target, [this.target]).do();
     }
 
     revert(): void {
         // The thing that calls this effect is in charge of putting the card back where it was
-        this.card.original.setOwner(undefined);
+        this.card.setOwner(undefined);
     }
 }
 
@@ -831,13 +815,13 @@ export class MoveDenizenToSiteEffect extends OathEffect<void> {
 
     resolve(): void {
         if (!this.target) return;
-        this.card.original.putAtSite(this.target.original);
+        this.card.putAtSite(this.target);
         new CheckCapacityEffect(this.player || this.game.currentPlayer, [this.target]).do();
     }
 
     revert(): void {
         // The thing that calls this effect is in charge of putting the card back where it was
-        this.card.original.setOwner(undefined);
+        this.card.setOwner(undefined);
     }
 }
 
@@ -875,8 +859,8 @@ export class CheckCapacityEffect extends PlayerEffect<void> {
     discardOptions?: DiscardOptions<any>;
 
     // TODO: Interface for elements that house cards?
-    constructor(player: OathPlayer, origins: Iterable<OathPlayer | Site>, discardOptions?: DiscardOptions<any>, dontCopyGame?: boolean) {
-        super(player, dontCopyGame);
+    constructor(player: OathPlayer, origins: Iterable<OathPlayer | Site>, discardOptions?: DiscardOptions<any>) {
+        super(player);
         this.origins = new Set(origins);
         this.discardOptions = discardOptions;
     }
@@ -918,17 +902,17 @@ export class DiscardCardEffect extends PlayerEffect<void> {
         }
         if (this.card.owner) new MoveAdviserEffect(this.player, this.card).do();
         
-        this.flipped = !this.card.original.facedown;
-        this.discardOptions.discard.original.putCard(this.card.original, this.discardOptions.onBottom);
-        this.card.original.returnResources();
-        for (const player of this.card.original.warbands.keys()) new TakeWarbandsIntoBagEffect(player, Infinity, this.card).do();
+        this.flipped = !this.card.facedown;
+        this.discardOptions.discard.putCard(this.card, this.discardOptions.onBottom);
+        this.card.returnResources();
+        for (const player of this.card.warbands.keys()) new TakeWarbandsIntoBagEffect(player, Infinity, this.card).do();
     }
 
     revert(): void {
         // The thing that calls this effect is in charge of putting the card back where it was
         // This just removes it from the deck
-        this.discardOptions.discard.original.drawSingleCard(this.discardOptions.onBottom);
-        if (this.flipped) this.card.original.reveal();
+        this.discardOptions.discard.drawSingleCard(this.discardOptions.onBottom);
+        if (this.flipped) this.card.reveal();
     }
 }
 
@@ -948,17 +932,17 @@ export class TakeOwnableObjectEffect extends OathEffect<void> {
             if (this.target.site) new MoveSiteRelicEffect(this.game, this.player, this.target).do();
 
         if (this.target instanceof OwnableCard) {
-            this.flipFaceup = this.flipFaceup && this.target.original.facedown;
-            if (this.flipFaceup) this.target.original.reveal();
+            this.flipFaceup = this.flipFaceup && this.target.facedown;
+            if (this.flipFaceup) this.target.reveal();
         }
         
-        this.oldOwner = this.target.original.owner;
-        this.target.original.setOwner(this.player?.original);
+        this.oldOwner = this.target.owner;
+        this.target.setOwner(this.player);
     }
 
     revert(): void {
-        this.target.original.setOwner(this.oldOwner);
-        if (this.target instanceof OwnableCard && this.flipFaceup) this.target.original.hide();
+        this.target.setOwner(this.oldOwner);
+        if (this.target instanceof OwnableCard && this.flipFaceup) this.target.hide();
     }
 }
 
@@ -974,12 +958,12 @@ export class GiveOwnableObjectEffect extends OathEffect<void> {
     }
 
     resolve(): void {
-        this.oldOwner = this.target.original.owner;
-        this.target.original.setOwner(this.to?.original);
+        this.oldOwner = this.target.owner;
+        this.target.setOwner(this.to);
     }
 
     revert(): void {
-        this.target.original.setOwner(this.oldOwner);
+        this.target.setOwner(this.oldOwner);
     }
 }
 
@@ -1009,7 +993,7 @@ export class CampaignResolveSuccessfulAndSkullsEffect extends PlayerEffect<void>
     action: CampaignDefenseAction;
 
     constructor(action: CampaignDefenseAction) {
-        super(action.player, true);
+        super(action.player);
         this.action = action;
     }
     
@@ -1030,12 +1014,12 @@ export class SetNewOathkeeperEffect extends PlayerEffect<void> {
     oldOathkeeper: OathPlayer;
 
     resolve(): void {
-        this.oldOathkeeper = this.game.original.oathkeeper;
-        this.game.original.oathkeeper = this.player.original;
+        this.oldOathkeeper = this.game.oathkeeper;
+        this.game.oathkeeper = this.player;
     }
 
     revert(): void {
-        this.game.original.oathkeeper = this.oldOathkeeper;
+        this.game.oathkeeper = this.oldOathkeeper;
     }
 }
 
@@ -1049,12 +1033,12 @@ export class SetUsurperEffect extends OathEffect<void> {
     }
 
     resolve(): void {
-        this.oldUsurper = this.game.original.isUsurper;
-        this.game.original.isUsurper = this.usurper;
+        this.oldUsurper = this.game.isUsurper;
+        this.game.isUsurper = this.usurper;
     }
 
     revert(): void {
-        this.game.original.isUsurper = this.oldUsurper;
+        this.game.isUsurper = this.oldUsurper;
     }
 }
 
@@ -1067,16 +1051,16 @@ export class PaySupplyEffect extends PlayerEffect<boolean> {
     }
 
     resolve(): boolean {
-        if (this.player.original.supply < this.amount) {
+        if (this.player.supply < this.amount) {
             this.amount = 0;
             return false;
         }
-        this.player.original.supply -= this.amount;
+        this.player.supply -= this.amount;
         return true;
     }
 
     revert(): void {
-        this.player.original.supply += this.amount;
+        this.player.supply += this.amount;
     }
 }
 
@@ -1089,13 +1073,13 @@ export class GainSupplyEffect extends PlayerEffect<void> {
     }
 
     resolve(): void {
-        const newSupply = Math.min(7, this.player.original.supply + this.amount);
-        this.amount = newSupply - this.player.original.supply;
-        this.player.original.supply += this.amount;
+        const newSupply = Math.min(7, this.player.supply + this.amount);
+        this.amount = newSupply - this.player.supply;
+        this.player.supply += this.amount;
     }
 
     revert(): void {
-        this.player.original.supply -= this.amount;
+        this.player.supply -= this.amount;
     }
 }
 
@@ -1109,13 +1093,13 @@ export class ChangePhaseEffect extends OathEffect<void> {
     }
 
     resolve(): void {
-        this.oldPhase = this.game.original.phase;
-        this.game.original.phase = this.phase;
-        this.game.original.checkForOathkeeper();
+        this.oldPhase = this.game.phase;
+        this.game.phase = this.phase;
+        this.game.checkForOathkeeper();
     }
     
     revert(): void {
-        this.game.original.phase = this.oldPhase;
+        this.game.phase = this.oldPhase;
     }
 }
 
@@ -1125,12 +1109,12 @@ export class NextTurnEffect extends OathEffect<void> {
     }
 
     resolve(): void {
-        this.game.original.turn = (this.game.original.turn + 1) % this.game.original.order.length;
-        if (this.game.original.turn === 0) this.game.original.round++;
+        this.game.turn = (this.game.turn + 1) % this.game.order.length;
+        if (this.game.turn === 0) this.game.round++;
 
         if (this.game.round > 8) {
             if (this.game.oathkeeper.isImperial)
-                return this.game.original.empireWins();
+                return this.game.empireWins();
             
             if (this.game.isUsurper)
                 return new WinGameEffect(this.game.oathkeeper).do();
@@ -1144,7 +1128,7 @@ export class NextTurnEffect extends OathEffect<void> {
                 }
             }
 
-            return this.game.original.empireWins();
+            return this.game.empireWins();
         }
 
         if (this.game.round > 5 && this.game.oathkeeper.isImperial) {
@@ -1154,12 +1138,12 @@ export class NextTurnEffect extends OathEffect<void> {
         }
 
         new ChangePhaseEffect(this.game, OathPhase.Wake).doNext();
-        new WakeAction(this.game.original.currentPlayer).doNext();
+        new WakeAction(this.game.currentPlayer).doNext();
     }
 
     revert(): void {
-        if (this.game.original.turn === 0) this.game.original.round--;
-        this.game.original.turn = (this.game.original.turn - 1 + this.game.original.order.length) % this.game.original.order.length;
+        if (this.game.turn === 0) this.game.round--;
+        this.game.turn = (this.game.turn - 1 + this.game.order.length) % this.game.order.length;
     }
 }
 
@@ -1172,9 +1156,9 @@ export class HandleD6ResultEffect extends OathEffect<void> {
     }
 
     resolve(): void {
-        const threshold = [6, 5, 3][this.game.original.round - 6];
+        const threshold = [6, 5, 3][this.game.round - 6];
         if (this.result[0] >= threshold)
-            return this.game.original.empireWins();
+            return this.game.empireWins();
 
         new ChangePhaseEffect(this.game, OathPhase.Wake).doNext();
         new WakeAction(this.game.currentPlayer).doNext();
@@ -1192,26 +1176,26 @@ export class BecomeCitizenEffect extends PlayerEffect<void> {
     resolve(): void {
         if (!(this.player instanceof Exile) || this.player.isCitizen) return;
         this.resolved = true;
-        this.player.original.isCitizen = true;
+        this.player.isCitizen = true;
         
         for (const site of this.game.board.sites())
             new PutWarbandsFromBagEffect(this.game.chancellor, new TakeWarbandsIntoBagEffect(this.player, Infinity, site).do(), site).do();
         
         new PutWarbandsFromBagEffect(this.game.chancellor, new TakeWarbandsIntoBagEffect(this.player, Infinity, this.player).do(), this.player).do();
 
-        if (this.player.original.vision) {
-            new DiscardCardEffect(this.player, this.player.original.vision).do();
-            this.oldVision = this.player.original.setVision(undefined);
+        if (this.player.vision) {
+            new DiscardCardEffect(this.player, this.player.vision).do();
+            this.oldVision = this.player.setVision(undefined);
         }
 
         new GainSupplyEffect(this.player, Infinity).do();
-        if (this.game.currentPlayer.original === this.player.original) new RestAction(this.player).doNext();
+        if (this.game.currentPlayer === this.player) new RestAction(this.player).doNext();
     }
 
     revert(): void {
         if (!(this.player instanceof Exile) || !this.resolved) return;
-        this.player.original.isCitizen = false;
-        this.player.original.setVision(this.oldVision);
+        this.player.isCitizen = false;
+        this.player.setVision(this.oldVision);
     }
 }
 
@@ -1221,15 +1205,15 @@ export class BecomeExileEffect extends PlayerEffect<void> {
     resolve(): void {
         if (!(this.player instanceof Exile) || !this.player.isCitizen) return;
         this.resolved = true;
-        this.player.original.isCitizen = false;
+        this.player.isCitizen = false;
         new PutWarbandsFromBagEffect(this.player, new TakeWarbandsIntoBagEffect(this.game.chancellor, Infinity, this.player).do(), this.player).do();
 
-        if (this.game.currentPlayer.original === this.player.original) new RestAction(this.player).doNext();
+        if (this.game.currentPlayer === this.player) new RestAction(this.player).doNext();
     }
 
     revert(): void {
         if (!(this.player instanceof Exile) || !this.resolved) return;
-        this.player.original.isCitizen = true;
+        this.player.isCitizen = true;
     }
 }
 
@@ -1241,13 +1225,13 @@ export class CursedCauldronResolutionEffect extends PlayerEffect<void> {
     result: CampaignResult;
 
     constructor(player: OathPlayer, result: CampaignResult) {
-        super(player, true);  // Don't copy, because it's part of the campaign chain
+        super(player);
         this.result = result;
     }
 
     resolve(): void {
-        if (this.result.winner?.original === this.player.original)
-            new PutWarbandsFromBagEffect(this.result.winner, this.result.loserLoss).do();
+        if (this.result.winnerCopy === this.player)
+            new PutWarbandsFromBagEffect(this.result.winnerCopy, this.result.loserLoss).do();
     }
 
     revert(): void {
@@ -1267,12 +1251,12 @@ export class SetPeoplesFavorMobState extends OathEffect<void> {
     }
 
     resolve(): void {
-        this.oldState = this.banner.original.isMob;
-        this.banner.original.isMob = this.state;
+        this.oldState = this.banner.isMob;
+        this.banner.isMob = this.state;
     }
 
     revert(): void {
-        this.banner.original.isMob = this.oldState;
+        this.banner.isMob = this.oldState;
     }
 }
 
@@ -1286,12 +1270,12 @@ export class SetGrandScepterLockEffect extends OathEffect<void> {
     }
    
     resolve(): void {
-        this.oldState = this.game.grandScepter.original.seizedThisTurn;
-        this.game.grandScepter.original.seizedThisTurn = this.state;
+        this.oldState = this.game.grandScepter.seizedThisTurn;
+        this.game.grandScepter.seizedThisTurn = this.state;
     }
 
     revert(): void {
-        this.game.grandScepter.original.seizedThisTurn = this.oldState;
+        this.game.grandScepter.seizedThisTurn = this.oldState;
     }
 }
 
@@ -1309,7 +1293,7 @@ export class RegionDiscardEffect extends PlayerEffect<void> {
         const cards: Denizen[] = [];
         for (const site of this.player.site.region.sites)
             for (const denizen of site.denizens)
-                if (this.suits.includes(denizen.suit) && denizen.original !== this.source?.original)
+                if (this.suits.includes(denizen.suit) && denizen !== this.source)
                     cards.push(denizen);
 
         new DiscardCardGroupEffect(this.player, cards).do();
@@ -1389,7 +1373,7 @@ export class TakeReliquaryRelicEffect extends PlayerEffect<void> {
     }
 
     resolve(): void {
-        this.relic = this.game.chancellor.reliquary.original.takeRelic(this.index);
+        this.relic = this.game.chancellor.reliquary.takeRelic(this.index);
         if (!this.relic)
             throw new InvalidActionResolution("No relics at the designated Reliquary slot");
 
@@ -1397,7 +1381,7 @@ export class TakeReliquaryRelicEffect extends PlayerEffect<void> {
     }
 
     revert(): void {
-        if (this.relic) this.game.chancellor.reliquary.original.putRelic(this.relic, this.index);
+        if (this.relic) this.game.chancellor.reliquary.putRelic(this.relic, this.index);
     }
 }
 
@@ -1410,7 +1394,7 @@ export class WinGameEffect extends PlayerEffect<void> {
     oldOath: Oath;
 
     resolve(): void {
-        this.oldOath = this.game.original.oath;
+        this.oldOath = this.game.oath;
         new VowOathAction(this.player).doNext();
 
         if (!this.player.isImperial)
@@ -1422,7 +1406,7 @@ export class WinGameEffect extends PlayerEffect<void> {
     }
 
     revert(): void {
-        this.game.original.oath = this.oldOath;
+        this.game.oath = this.oldOath;
     }
 }
 
@@ -1506,7 +1490,7 @@ export class CleanUpMapEffect extends PlayerEffect<void> {
         const pushedSites: Site[] = [];
 
         // Discard and put aside sites 
-        for (const region of Object.values(this.game.original.board.regions)) {
+        for (const region of Object.values(this.game.board.regions)) {
             this.oldRegions.set(region, [...region.sites]);
 
             for (const site of region.sites) {
@@ -1514,8 +1498,8 @@ export class CleanUpMapEffect extends PlayerEffect<void> {
                 for (const denizen of site.denizens) denizen.clear();
                 
                 region.sites.splice(region.sites.indexOf(site), 1);
-                if (!site.ruler?.isImperial && site.ruler?.original !== this.player.original) {
-                    this.game.original.siteDeck.putCard(site);
+                if (!site.ruler?.isImperial && site.ruler !== this.player) {
+                    this.game.siteDeck.putCard(site);
                     this.discardedDenizens.set(site, new Set(site.denizens));
                     for (const denizen of site.denizens) {
                         if (denizen instanceof Edifice && denizen.suit !== OathSuit.None) {
@@ -1530,18 +1514,17 @@ export class CleanUpMapEffect extends PlayerEffect<void> {
                 }
             }
         }
-        this.game.original.siteDeck.shuffle();
-        let total = Object.values(this.game.original.board.regions).reduce((a, e) => a + e.size, 0);
-        total -= storedSites.length + pushedSites.length;
+        this.game.siteDeck.shuffle();
+        let total = Object.values(this.game.board.regions).reduce((a, e) => a + e.size, 0) - storedSites.length - pushedSites.length;
         for (var i = 0; i < total; i++) {
-            const site = this.game.original.siteDeck.drawSingleCard();
+            const site = this.game.siteDeck.drawSingleCard();
             if (!site) throw Error("Not enough sites");
             storedSites.push(site);
         }
         storedSites.push(...pushedSites);
 
         // Rebuild the map
-        for (const region of Object.values(this.game.original.board.regions)) {
+        for (const region of Object.values(this.game.board.regions)) {
             let hasFaceupSite = false;
             while (region.sites.length < region.size) {
                 const site = storedSites.shift()
@@ -1554,13 +1537,13 @@ export class CleanUpMapEffect extends PlayerEffect<void> {
         }
 
         // Collect and deal relics (technically not at this point of the Chronicle, but this has no impact)
-        const futureReliquary = [...this.game.original.chancellor.reliquary.relics.filter(e => e !== undefined)];
-        const relicDeck = this.game.original.relicDeck;
-        for (const player of Object.values(this.game.original.players)) {
+        const futureReliquary = [...this.game.chancellor.reliquary.relics.filter(e => e !== undefined)];
+        const relicDeck = this.game.relicDeck;
+        for (const player of Object.values(this.game.players)) {
             for (const relic of player.relics) {
-                if (relic === this.game.original.grandScepter) continue;
+                if (relic === this.game.grandScepter) continue;
 
-                if (player === this.player.original)
+                if (player === this.player)
                     futureReliquary.push(relic);
                 else
                     relicDeck.putCard(relic);
@@ -1581,7 +1564,7 @@ export class CleanUpMapEffect extends PlayerEffect<void> {
             if (relic) relicDeck.putCard(relic)
         }
         for (let i = 0; i < 4; i++) {
-            this.game.original.chancellor.reliquary.relics[i] = relicDeck.drawSingleCard();
+            this.game.chancellor.reliquary.relics[i] = relicDeck.drawSingleCard();
         }
 
         new AddCardsToWorldDeckAction(this.player).doNext();

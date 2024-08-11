@@ -1,4 +1,4 @@
-import { RecoverActionTarget, CampaignActionTarget, RecoverAction, RecoverBannerPitchAction, PeoplesFavorReturnAction } from "./actions";
+import { PeoplesFavorReturnAction, RecoverActionTarget, CampaignActionTarget, RecoverAction, RecoverBannerPitchAction } from "./actions/actions";
 import { PutResourcesIntoBankEffect, TakeOwnableObjectEffect, SetPeoplesFavorMobState, TakeResourcesFromBankEffect } from "./effects";
 import { OathResource } from "./enums";
 import { OathGame } from "./game";

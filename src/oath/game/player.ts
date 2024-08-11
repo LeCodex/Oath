@@ -1,18 +1,15 @@
-import { CampaignActionTarget, CampaignBanishPlayerAction } from "./actions";
+import { CampaignActionTarget, CampaignBanishPlayerAction } from "./actions/actions";
 import { Denizen, OwnableCard, Relic, Site, Vision, WorldCard } from "./cards/cards";
 import { Discard } from "./cards/decks";
 import { FlipSecretsEffect, GainSupplyEffect, MoveResourcesToTargetEffect } from "./effects";
 import { OathResource, OathSuit, PlayerColor } from "./enums";
 import { OathGame } from "./game";
-import { OathGameObject } from "./gameObject";
-import { Brutal, Careless, Decadent, Greedy } from "./powers/reliquary";
 import { ResourcesAndWarbands } from "./resources";
 import { Banner } from "./banks";
-import { CopiableWithOriginal } from "./utils";
+import { Reliquary } from "./reliquary";
 
-export interface OwnableObject extends CopiableWithOriginal {
+export interface OwnableObject {
     owner?: OathPlayer;
-
     setOwner(player?: OathPlayer): void;
 }
 
@@ -51,11 +48,11 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
     }
 
     rules(card: OwnableCard) {
-        return card.ruler?.original === this.leader.original;
+        return card.ruler === this.leader;
     }
 
     enemyWith(player: OathPlayer | undefined) {
-        if (player?.original === this.original) return false;
+        if (player === this) return false;
         if (!this.isImperial) return true;
         return !player || !player?.isImperial;
     }
@@ -71,7 +68,7 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
     }
 
     moveWarbandsIntoBagFrom(source: ResourcesAndWarbands, amount: number = Infinity): number {
-        const warbandsAmount = source.takeWarbands(this, amount);
+        const warbandsAmount = source.takeWarbands(this.leader, amount);
         this.warbandsInBag += warbandsAmount;
         return warbandsAmount;
     }
@@ -93,7 +90,7 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
         let total = 0;
         for (const site of this.game.board.sites()) {
             for (const denizen of site.denizens) {
-                if (denizen.ruler?.original === this.original) total++;
+                if (denizen.ruler === this) total++;
             }
         }
 
@@ -190,34 +187,6 @@ export class Chancellor extends OathPlayer {
         const obj: Record<string, any> = super.serialize();
         obj.reliquary = this.reliquary.serialize();
         return obj;
-    }
-}
-
-export class Reliquary extends OathGameObject {
-    relics: [Relic?, Relic?, Relic?, Relic?] = [];
-    powers = [Brutal, Greedy, Careless, Decadent];
-
-    constructor(game: OathGame) {
-        super(game);
-        for (let i = 0; i < 4; i++) this.putRelic(this.game.relicDeck.drawSingleCard(), i);
-    }
-
-    putRelic(relic: Relic | undefined, index: number): Relic | undefined {
-        const oldRelic = this.relics[index];
-        this.relics[index] = relic;
-        return oldRelic;
-    }
-
-    takeRelic(index: number): Relic | undefined {
-        const relic = this.relics[index];
-        this.relics[index] = undefined;
-        return relic;
-    }
-
-    serialize() {
-        return {
-            relics: this.relics.map(e => e?.serialize()),
-        };
     }
 }
 

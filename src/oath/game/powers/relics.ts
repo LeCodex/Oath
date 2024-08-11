@@ -1,7 +1,7 @@
-import { TradeAction, InvalidActionResolution, CampaignAtttackAction, MusterAction, UsePowerAction, CitizenshipOfferAction, StartBindingExchangeAction, ExileCitizenAction, SkeletonKeyAction, TravelAction } from "../actions";
+import { InvalidActionResolution, CitizenshipOfferAction, StartBindingExchangeAction, ExileCitizenAction, SkeletonKeyAction, TradeAction, CampaignAtttackAction, MusterAction, TravelAction } from "../actions/actions";
 import { DiscardOptions } from "../cards/decks";
 import { Denizen, GrandScepter, Relic, Site } from "../cards/cards";
-import { TakeOwnableObjectEffect, PutPawnAtSiteEffect, PutWarbandsFromBagEffect, PlayDenizenAtSiteEffect, CursedCauldronResolutionEffect, MoveOwnWarbandsEffect, PeekAtCardEffect, SetGrandScepterLockEffect, GainSupplyEffect, DiscardCardEffect, DrawFromDeckEffect, RevealCardEffect } from "../effects";
+import { TakeOwnableObjectEffect, PutWarbandsFromBagEffect, PlayDenizenAtSiteEffect, CursedCauldronResolutionEffect, MoveOwnWarbandsEffect, PeekAtCardEffect, SetGrandScepterLockEffect, GainSupplyEffect, DiscardCardEffect, DrawFromDeckEffect, RevealCardEffect } from "../effects";
 import { OathResource } from "../enums";
 import { OwnableObject, OathPlayer, isOwnable, Exile } from "../player";
 import { ResourceCost } from "../resources";
@@ -14,7 +14,7 @@ export class GrandScepterSeize extends EffectModifier<GrandScepter> {
     effect: TakeOwnableObjectEffect;
 
     canUse(): boolean {
-        return this.effect.target.original === this.source.original;
+        return this.effect.target === this.source;
     }
     
     applyAfter(): void {
@@ -28,40 +28,33 @@ export class GrandScepterRest extends RestPower<GrandScepter> {
         new SetGrandScepterLockEffect(this.game, false).do();
     }
 }
-export class GrandScepterPeek extends ActivePower<GrandScepter> {
+export abstract class GrandScepterActive extends ActivePower<GrandScepter> {
+    canUse(): boolean {
+        return super.canUse() && !this.sourceProxy.seizedThisTurn;
+    }
+}
+export class GrandScepterPeek extends GrandScepterActive {
     name = "Peek at the Reliquary";
 
-    canUse(): boolean {
-        return super.canUse() && !this.source.seizedThisTurn;
-    }
-
-    usePower(action: UsePowerAction): void {
-        for (const relic of this.game.chancellor.reliquary.relics) 
-            if (relic)
-                new PeekAtCardEffect(action.player, relic).do(); 
+    usePower(): void {
+        for (const relicProxy of this.gameProxy.chancellor.reliquary.relics) 
+            if (relicProxy)
+                new PeekAtCardEffect(this.action.player, relicProxy.original).do(); 
     }
 }
-export class GrandScepterGrantCitizenship extends ActivePower<GrandScepter> {
+export class GrandScepterGrantCitizenship extends GrandScepterActive {
     name = "Grant Citizenship";
 
-    canUse(): boolean {
-        return super.canUse() && !this.source.seizedThisTurn;
-    }
-
-    usePower(action: UsePowerAction): void {
-        const players = Object.values(this.game.players).filter(e => e instanceof Exile && !e.isCitizen);
-        new StartBindingExchangeAction(action.player, CitizenshipOfferAction, players).doNext();
+    usePower(): void {
+        const players = Object.values(this.gameProxy.players).filter(e => e instanceof Exile && !e.isCitizen).map(e => e.original);
+        new StartBindingExchangeAction(this.action.player, CitizenshipOfferAction, players).doNext();
     }
 }
-export class GrandScepterExileCitizen extends ActivePower<GrandScepter> {
+export class GrandScepterExileCitizen extends GrandScepterActive {
     name = "Exile a Citizen";
 
-    canUse(): boolean {
-        return super.canUse() && !this.source.seizedThisTurn;
-    }
-
-    usePower(action: UsePowerAction): void {
-        new ExileCitizenAction(action.player).doNext();
+    usePower(): void {
+        new ExileCitizenAction(this.action.player).doNext();
     }
 }
 
@@ -71,17 +64,17 @@ export class CupOfPlenty extends AccessedActionModifier<Relic> {
     action: TradeAction;
 
     applyBefore(): void {
-        if (this.action.player.adviserSuitCount(this.action.card.suit) > 0) this.action.noSupplyCost = true;
+        if (this.action.playerProxy.adviserSuitCount(this.action.cardProxy.suit) > 0) this.action.noSupplyCost = true;
     }
 }
 
-function circletOfCommandCheckOwnable(source: Relic, target: OwnableObject, by: OathPlayer | undefined) {
-    if (!source.ruler) return;
-    if (!by) return;
-    if (target.owner !== source.ruler) return;
+function circletOfCommandCheckOwnable(sourceProxy: Relic, targetProxy: OwnableObject, playerProxy: OathPlayer | undefined) {
+    if (!sourceProxy.ruler) return;
+    if (!playerProxy) return;
+    if (targetProxy.owner !== sourceProxy.ruler) return;
 
-    if (target !== source)
-        throw new InvalidActionResolution(`Cannot target or take objects from ${source.ruler.name} while protected by the Circlet of Command.`);
+    if (targetProxy !== sourceProxy)
+        throw new InvalidActionResolution(`Cannot target or take objects from ${sourceProxy.ruler.name} while protected by the Circlet of Command.`);
 }
 export class CircletOfCommand extends EnemyEffectModifier<Relic> {
     name = "Circlet of Command";
@@ -89,7 +82,8 @@ export class CircletOfCommand extends EnemyEffectModifier<Relic> {
     effect: TakeOwnableObjectEffect;
 
     applyBefore(): void {
-        circletOfCommandCheckOwnable(this.source, this.effect.target, this.effect.player);
+        const targetProxy = this.effect.maskProxy.get(this.effect.target);
+        circletOfCommandCheckOwnable(this.sourceProxy, targetProxy, this.effect.playerProxy);
     }
 }
 export class CircletOfCommandCampaign extends EnemyActionModifier<Relic> {
@@ -99,8 +93,12 @@ export class CircletOfCommandCampaign extends EnemyActionModifier<Relic> {
 
     applyBefore(): void {
         for (const target of this.action.campaignResult.targets) {
-            if (isOwnable(target)) circletOfCommandCheckOwnable(this.source, target, this.action.player);
-            if (target === this.source.ruler) this.action.campaignResult.defPool += 1;
+            if (isOwnable(target)) {
+                const targetProxy = this.action.maskProxy.get(target);
+                circletOfCommandCheckOwnable(this.sourceProxy, targetProxy, this.action.playerProxy);
+            }
+
+            if (target === this.sourceProxy.ruler?.original) this.action.campaignResult.defPool += 1;
         }
     }
 }
@@ -110,7 +108,7 @@ export class DragonskinWardrum extends AccessedEffectModifier<Relic> {
     modifiedAction = TravelAction;
     action: TravelAction;
 
-    applyAfter(result: void): void {
+    applyAfter(): void {
         new PutWarbandsFromBagEffect(this.action.player, 1).do();
     }
 }
@@ -130,16 +128,16 @@ export class CursedCauldronAttack extends AttackerBattlePlan<Relic> {
     name = "Cursed Cauldron";
 
     applyBefore(): void {
-        if (!this.source.ruler) return;
-        this.action.campaignResult.endEffects.push(new CursedCauldronResolutionEffect(this.source.ruler, this.action.campaignResult));
+        if (!this.sourceProxy.ruler?.original) return;
+        this.action.campaignResult.endEffects.push(new CursedCauldronResolutionEffect(this.sourceProxy.ruler?.original, this.action.campaignResult));
     }
 }
 export class CursedCauldronDefense extends DefenderBattlePlan<Relic> {
     name = "Cursed Cauldron";
 
     applyBefore(): void {
-        if (!this.source.ruler) return;
-        this.action.campaignResult.endEffects.push(new CursedCauldronResolutionEffect(this.source.ruler, this.action.campaignResult));
+        if (!this.sourceProxy.ruler?.original) return;
+        this.action.campaignResult.endEffects.push(new CursedCauldronResolutionEffect(this.sourceProxy.ruler?.original, this.action.campaignResult));
     }
 }
 
@@ -167,28 +165,28 @@ export class SkeletonKey extends ActivePower<Relic> {
     name = "Skeleton Key";
     cost = new ResourceCost([[OathResource.Secret, 1]], [[OathResource.Secret, 1]]);
     
-    usePower(action: UsePowerAction): void {
-        if (action.player.site.ruler?.isImperial)
-            new SkeletonKeyAction(action.player).doNext();
+    usePower(): void {
+        if (this.action.playerProxy.site.ruler?.isImperial)
+            new SkeletonKeyAction(this.action.player).doNext();
     }
 }
 
 export class MapRelic extends ActivePower<Relic> {
     name = "Map";
 
-    usePower(action: UsePowerAction): void {
-        new DiscardCardEffect(action.player, this.source, new DiscardOptions(this.game.relicDeck, true)).do();
-        new GainSupplyEffect(action.player, 4).do();
+    usePower(): void {
+        new DiscardCardEffect(this.action.player, this.source, new DiscardOptions(this.game.relicDeck, true)).do();
+        new GainSupplyEffect(this.action.player, 4).do();
     }
 }
 
 export class OracularPig extends ActivePower<Relic> {
     name = "Oracular Pig";
 
-    usePower(action: UsePowerAction): void {
+    usePower(): void {
         for (let i = 0; i < 3; i++) {
             const card = this.game.worldDeck.cards[i];
-            if (card) new PeekAtCardEffect(action.player, card).do();
+            if (card) new PeekAtCardEffect(this.action.player, card).do();
         }
     }
 }
@@ -197,21 +195,21 @@ export class BrassHorse extends ActivePower<Relic> {
     name = "Brass Horse";
     cost = new ResourceCost([[OathResource.Secret, 1]]);
 
-    usePower(action: UsePowerAction): void {
-        const card = action.player.site.region.discard.cards[0];
-        if (!card) return;
+    usePower(): void {
+        const cardProxy = this.action.playerProxy.site.region.discard.cards[0];
+        if (!cardProxy) return;
 
-        new RevealCardEffect(this.game, action.player, card).do();
+        new RevealCardEffect(this.game, this.action.player, cardProxy.original).do();
         
         const sites = new Set<Site>();
-        if (card instanceof Denizen)
-            for (const site of this.game.board.sites())
-                if (site.original !== action.player.site.original)
-                    for (const denizen of site.denizens)
-                        if (denizen.suit === card.suit)
-                            sites.add(site.original);
+        if (cardProxy instanceof Denizen)
+            for (const siteProxy of this.gameProxy.board.sites())
+                if (siteProxy !== this.action.playerProxy.site)
+                    for (const denizenProxy of siteProxy.denizens)
+                        if (denizenProxy.suit === cardProxy.suit)
+                            sites.add(siteProxy.original);
         
-        const travelAction = new TravelAction(action.player, action.player, (s: Site) => !sites.size || sites.has(s.original));
+        const travelAction = new TravelAction(this.action.player, this.action.player, (s: Site) => !sites.size || sites.has(s));
         travelAction.noSupplyCost = true;
         travelAction.doNext();
     }
