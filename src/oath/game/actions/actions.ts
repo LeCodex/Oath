@@ -651,6 +651,7 @@ export class CampaignAtttackAction extends ModifiableAction {
         this.campaignResult.defender = defender;
         this.defender = defender;
         this.defenderProxy = defender && this.maskProxyManager.get(defender);
+        this.campaignResult.checkForImperialInfighting(this.maskProxyManager);
     }
 
     start() {
@@ -760,6 +761,7 @@ export class CampaignDefenseAction extends ModifiableAction {
     constructor(player: OathPlayer, attacker: OathPlayer) {
         super(player);
         this.next = new CampaignEndAction(attacker);
+        this.campaignResult.checkForImperialInfighting(this.maskProxyManager);
     }
 
     get campaignResult() { return this.next.campaignResult; }
@@ -828,6 +830,15 @@ export class CampaignResult extends OathGameObject {
         this.endEffects.push(new DiscardCardEffect(denizen.ruler || this.attacker, denizen));
     }
 
+    checkForImperialInfighting(maskProxyManager: MaskProxyManager) {
+        if (maskProxyManager.get(this.defender)?.isImperial) {
+            if (this.attacker instanceof Exile)  // Citizen attacks: revoke Citizen priviledges
+                maskProxyManager.get(this.attacker).isCitizen = false;
+            else if (this.defender instanceof Exile)  // Chancellor attacks: revoke defender's Citizen priviledges
+                maskProxyManager.get(this.defender).isCitizen = false;
+        }
+    }
+
     rollAttack() {
         this.atkRoll = new RollDiceEffect(this.game, this.attacker, AttackDie, this.atkPool).do();
     }
@@ -862,6 +873,11 @@ export class CampaignEndAction extends ModifiableAction {
     
     campaignResult = new CampaignResult(this.game);
     doSacrifice: boolean;
+
+    constructor(player: OathPlayer) {
+        super(player);
+        this.campaignResult.checkForImperialInfighting(this.maskProxyManager);
+    }
 
     start() {
         if (this.campaignResult.couldSacrifice) {
