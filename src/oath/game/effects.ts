@@ -1,7 +1,7 @@
 import { Denizen, Edifice, OathCard, OwnableCard, Relic, Site, Vision, WorldCard } from "./cards/cards";
 import { CardRestriction, OathPhase, OathResource, OathSuit } from "./enums";
 import { Exile, OathPlayer } from "./player";
-import { EffectModifier, OathPower, WhenPlayed } from "./powers/powers";
+import { ActionModifier, EffectModifier, OathPower, WhenPlayed } from "./powers/powers";
 import { ResourceCost, ResourcesAndWarbands } from "./resources";
 import { Banner, PeoplesFavor, ResourceBank } from "./banks";
 import { OwnableObject } from "./player";
@@ -10,7 +10,7 @@ import { OathGameObject } from "./gameObject";
 import { InvalidActionResolution, ModifiableAction, OathAction, AddCardsToWorldDeckAction, BuildOrRepairEdificeAction, ChooseNewCitizensAction, VowOathAction, TakeFavorFromBankAction, ResolveEffectAction, RestAction, WakeAction, CampaignDefenseAction, CampaignResult, SearchDiscardAction, SearchPlayAction } from "./actions/actions";
 import { DiscardOptions } from "./cards/decks";
 import { CardDeck } from "./cards/decks";
-import { isExtended, MaskProxyManager, shuffleArray } from "./utils";
+import { Constructor, isExtended, MaskProxyManager, shuffleArray } from "./utils";
 import { AttackDie, D6, DefenseDie, Die } from "./dice";
 import { Oath } from "./oaths";
 import { Region } from "./board";
@@ -119,6 +119,38 @@ export class PopActionFromStackEffect extends OathEffect<OathAction | undefined>
 
     revert(): void {
         if (this.action) this.game.actionManager.actionsStack.push(this.action);
+    }
+}
+
+export class ApplyModifiersEffect extends PlayerEffect<boolean> {
+    action: ModifiableAction;
+    actionModifiers: Iterable<ActionModifier<any>>;
+
+    constructor(action: ModifiableAction, player: OathPlayer, actionModifiers: Iterable<ActionModifier<any>>) {
+        super(player);
+        this.action = action;
+        this.actionModifiers = actionModifiers;
+    }
+
+    resolve(): boolean {
+        this.action.modifiers.push(...this.actionModifiers);
+
+        let interrupt = false;
+        for (const modifier of this.actionModifiers) {
+            if (!modifier.payCost(this.player))
+                throw new InvalidActionResolution("Cannot pay the resource cost of all the modifiers.");
+
+            if (!modifier.applyWhenApplied()) interrupt = true;
+
+            // Modifiers can only be applied once
+            modifier.sourceProxy.powers.delete(modifier.constructor as Constructor<OathPower<any>>);
+        }
+
+        return !interrupt;
+    }
+
+    revert(): void {
+        for (const _ of this.actionModifiers) this.action.modifiers.pop();
     }
 }
 

@@ -90,7 +90,7 @@ export abstract class ActionModifier<T extends OathGameObject> extends ActionPow
         return true;
     }
 
-    applyImmediately(modifiers: Iterable<ActionModifier<any>>, persistentModifiers: Iterable<ActionModifier<any>>): Iterable<ActionModifier<any>> { return []; }    // Applied right after all the possible modifiers are collected
+    applyImmediately(modifiers: Iterable<ActionModifier<any>>): Iterable<ActionModifier<any>> { return []; }    // Applied right after all the possible modifiers are collected
     applyWhenApplied(): boolean { return true; }    // Applied before the action is added to the list. If returns false, it will not be added
     applyAtStart(): void { }                        // Applied when the action starts and selects are setup (before choices are made)
     applyBefore(): void { }                         // Applied right before the execution of the action. Actions added by it are executed before the actual body of the modified action

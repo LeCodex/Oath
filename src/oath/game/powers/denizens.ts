@@ -140,8 +140,8 @@ export class GleamingArmorAttack extends ActionModifier<Denizen> {
         return this.action.campaignResult.defender === this.sourceProxy.ruler?.original;
     }
 
-    applyImmediately(modifiers: Iterable<ActionModifier<any>>, persistentModifiers: Iterable<ActionModifier<any>>): Iterable<ActionModifier<any>> {
-        for (const modifier of [...modifiers, ...persistentModifiers])
+    applyImmediately(modifiers: Iterable<ActionModifier<any>>): Iterable<ActionModifier<any>> {
+        for (const modifier of modifiers)
             if (modifier instanceof AttackerBattlePlan)
                 modifier.cost.add(new ResourceCost([[OathResource.Secret, 1]]));
 
@@ -158,8 +158,8 @@ export class GleamingArmorDefense extends ActionModifier<Denizen> {
         return this.action.campaignResult.attacker === this.sourceProxy.ruler?.original;
     }
 
-    applyImmediately(modifiers: Iterable<ActionModifier<any>>, persistentModifiers: Iterable<ActionModifier<any>>): Iterable<ActionModifier<any>> {
-        for (const modifier of [...modifiers, ...persistentModifiers])
+    applyImmediately(modifiers: Iterable<ActionModifier<any>>): Iterable<ActionModifier<any>> {
+        for (const modifier of modifiers)
             if (modifier instanceof DefenderBattlePlan)
                 modifier.cost.add(new ResourceCost([[OathResource.Secret, 1]]));
 
@@ -241,8 +241,8 @@ export class Portal extends AccessedActionModifier<Denizen> {
     action: TravelAction;
     cost = new ResourceCost([[OathResource.Secret, 1]]);
 
-    applyImmediately(modifiers: Iterable<ActionModifier<any>>, persistentModifiers: Iterable<ActionModifier<any>>): Iterable<ActionModifier<any>> {
-        return [...modifiers, ...persistentModifiers].filter(e => e.source instanceof Site);
+    applyImmediately(modifiers: Iterable<ActionModifier<any>>): Iterable<ActionModifier<any>> {
+        return [...modifiers].filter(e => e.source instanceof Site);
     }
 
     applyBefore(): void {
@@ -608,8 +608,8 @@ export class InsectSwarmAttack extends ActionModifier<Denizen> {
         return this.action.campaignResult.defender === this.sourceProxy.ruler?.original;
     }
 
-    applyImmediately(modifiers: Iterable<ActionModifier<any>>, persistentModifiers: Iterable<ActionModifier<any>>): Iterable<ActionModifier<any>> {
-        for (const modifier of [...modifiers, ...persistentModifiers])
+    applyImmediately(modifiers: Iterable<ActionModifier<any>>): Iterable<ActionModifier<any>> {
+        for (const modifier of modifiers)
             if (modifier instanceof AttackerBattlePlan)
                 modifier.cost.add(new ResourceCost([], [[OathResource.Favor, 1]]));
 
@@ -627,8 +627,8 @@ export class InsectSwarmDefense extends ActionModifier<Denizen> {
         return this.action.campaignResult.attacker === this.sourceProxy.ruler?.original;
     }
 
-    applyImmediately(modifiers: Iterable<ActionModifier<any>>, persistentModifiers: Iterable<ActionModifier<any>>): Iterable<ActionModifier<any>> {
-        for (const modifier of [...modifiers, ...persistentModifiers])
+    applyImmediately(modifiers: Iterable<ActionModifier<any>>): Iterable<ActionModifier<any>> {
+        for (const modifier of modifiers)
             if (modifier instanceof DefenderBattlePlan)
                 modifier.cost.add(new ResourceCost([], [[OathResource.Favor, 1]]));
 
@@ -682,11 +682,9 @@ export class SmallFriends extends AccessedActionModifier<Denizen> {
     modifiedAction = TradeAction;
     action: TradeAction;
 
-    applyImmediately(modifiers: Iterable<ActionModifier<any>>, persistentModifiers: Iterable<ActionModifier<any>>): Iterable<ActionModifier<any>> {
-        if ([...modifiers].length > 1)
-            throw new InvalidActionResolution("Cannot use another modifier with Small Friends");
-
-        return [];
+    applyImmediately(modifiers: Iterable<ActionModifier<any>>): Iterable<ActionModifier<any>> {
+        // Ignore all other modifiers, since we are going to select them again anyways
+        return [...modifiers].filter(e => e !== this);
     }
 
     applyWhenApplied(): boolean {
@@ -696,7 +694,7 @@ export class SmallFriends extends AccessedActionModifier<Denizen> {
                 if (denizen.suit === OathSuit.Beast)
                     sites.add(siteProxy.original);
 
-        new ActAsIfAtSiteAction(this.action.player, this.action, this, sites).doNext();
+        new ActAsIfAtSiteAction(this.action.player, this.action, sites).doNext();
         return false;
     }
 }

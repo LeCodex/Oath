@@ -1,7 +1,7 @@
 import { Denizen, Edifice, Relic, Site, VisionBack, WorldCard } from "../cards/cards";
 import { DiscardOptions, SearchableDeck } from "../cards/decks";
 import { AttackDie, DefenseDie, Die } from "../dice";
-import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, PutPawnAtSiteEffect, DiscardCardEffect, MoveOwnWarbandsEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect, SetNewOathkeeperEffect, SetPeoplesFavorMobState, DiscardCardGroupEffect, OathEffect, PaySupplyEffect, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, ChangeEdificeEffect, ModifiedExecutionEffect, CampaignResolveSuccessfulAndSkullsEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect, CheckCapacityEffect } from "../effects";
+import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, PutPawnAtSiteEffect, DiscardCardEffect, MoveOwnWarbandsEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect, SetNewOathkeeperEffect, SetPeoplesFavorMobState, DiscardCardGroupEffect, OathEffect, PaySupplyEffect, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, ChangeEdificeEffect, ModifiedExecutionEffect, CampaignResolveSuccessfulAndSkullsEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect, CheckCapacityEffect, ApplyModifiersEffect } from "../effects";
 import { BannerName, OathPhase, OathResource, OathResourceName, OathSuit, OathSuitName, OathType, OathTypeName } from "../enums";
 import { OathGame } from "../game";
 import { OathGameObject } from "../gameObject";
@@ -83,22 +83,22 @@ export abstract class OathAction extends OathGameObject {
 export class ChooseModifiers extends OathAction {
     readonly selects: { modifiers: SelectNOf<ActionModifier<any>> };
     readonly parameters: { modifiers: ActionModifier<any>[] };
-    readonly next: ModifiableAction;
-    readonly executeImmediately: boolean;
+    readonly action: ModifiableAction;
+    readonly next: ModifiableAction | ChooseModifiers;
     readonly message = "Choose modifiers";
 
     persistentModifiers: Set<ActionModifier<any>>;
 
-    constructor(next: ModifiableAction, executeImmediately: boolean = false) {
-        super(next.player);
+    constructor(next: ModifiableAction | ChooseModifiers, chooser: OathPlayer = next.player) {
+        super(chooser);
         this.next = next;
-        this.executeImmediately = executeImmediately;
+        this.action = next instanceof ChooseModifiers ? next.action : next;
     }
 
     start() {
         this.persistentModifiers = new Set();
         const choices = new Map<string, ActionModifier<any>>();
-        for (const modifier of ChooseModifiers.gatherModifiers(this.next)) {
+        for (const modifier of ChooseModifiers.gatherModifiers(this.action)) {
             if (modifier.mustUse)
                 this.persistentModifiers.add(modifier);
             else
@@ -106,38 +106,35 @@ export class ChooseModifiers extends OathAction {
         }
         this.selects.modifiers = new SelectNOf("Modifiers", choices);
 
-        // NOTE: For ignore loops, all powers in the loop are ignored.
-        const ignore = new Set<ActionModifier<any>>();
-        for (const modifier of choices.values())
-            for (const toIgnore of modifier.applyImmediately(choices.values(), this.persistentModifiers))
-                ignore.add(toIgnore);
-
-        for (const modifier of ignore) {
-            choices.delete(modifier.name);
-            this.persistentModifiers.delete(modifier);
-        }
-
         return super.start();
     }
 
-    static gatherModifiers(action: ModifiableAction): ActionModifier<any>[] {
-        const instances: ActionModifier<any>[] = [];
+    static gatherModifiers(action: ModifiableAction): Set<ActionModifier<any>> {
+        const instances = new Set<ActionModifier<any>>();
         for (const [sourceProxy, modifier] of action.gameProxy.getPowers(ActionModifier<any>)) {
             const instance = new modifier(sourceProxy.original, action);
-            if (action instanceof instance.modifiedAction && instance.canUse()) instances.push(instance);
-        };
+            if (action instanceof instance.modifiedAction && instance.canUse()) instances.add(instance);
+        }
+
+        // NOTE: For ignore loops, all powers in the loop are ignored.
+        const ignore = new Set<ActionModifier<any>>();
+        for (const modifier of instances)
+            for (const toIgnore of modifier.applyImmediately(instances))
+                ignore.add(toIgnore);
+
+        for (const modifier of ignore) instances.delete(modifier);
 
         return instances;
     }
 
     execute() {
         const modifiers = [...this.persistentModifiers, ...this.parameters.modifiers];
-        if (!this.next.applyModifiers(modifiers)) return;
-
-        if (this.executeImmediately)
-            this.next.execute();
-        else
+        if (!new ApplyModifiersEffect(this.action, this.player, modifiers).do()) return;
+        
+        if (this.next instanceof ModifiableAction)
             this.next.doNextWithoutModifiers();
+        else
+            this.next.doNext();
     }
 }
 
@@ -154,27 +151,12 @@ export abstract class ModifiableAction extends OathAction {
         this.playerProxy = this.maskProxyManager.get(player);
     }
 
-    doNext(executeImmediately: boolean = false): void {
-        new ChooseModifiers(this, executeImmediately).doNext();
+    doNext(): void {
+        new ChooseModifiers(this).doNext();
     }
 
     doNextWithoutModifiers(): void {
         super.doNext();
-    }
-
-    applyModifiers(modifiers: ActionModifier<any>[]): boolean {
-        this.modifiers = modifiers;
-
-        let interrupt = false;
-        for (const modifier of modifiers) {
-            if (!modifier.payCost(this.player))
-                throw new InvalidActionResolution("Cannot pay the resource cost of all the modifiers.");
-
-            if (!modifier.applyWhenApplied()) interrupt = true;
-        }
-        if (interrupt) return false;
-
-        return true;
     }
 
     start(): boolean {
@@ -643,7 +625,9 @@ export class CampaignAction extends MajorAction {
 
     modifiedExecution() {
         super.modifiedExecution();
-        new CampaignAtttackAction(this.player, this.defenderProxy?.original).doNext();
+        const next = new CampaignAtttackAction(this.player, this.defenderProxy?.original);
+        if (this.defenderProxy?.isImperial) next.campaignResult.defenderAllies.add(this.gameProxy.chancellor.original);
+        next.doNext();
     }
 }
 
@@ -670,12 +654,12 @@ export class CampaignAtttackAction extends ModifiableAction {
         const defender = this.campaignResult.defender;
         const defenderProxy = defender && this.maskProxyManager.get(defender);
 
-        this.campaignResult.targets = [];
+        this.campaignResult.targets.clear();
         const choices = new Map<string, CampaignActionTarget>();
         for (const siteProxy of this.gameProxy.board.sites()) { 
             if (!siteProxy.facedown && siteProxy.ruler === defenderProxy) {
                 if (this.playerProxy.site === siteProxy) {
-                    this.campaignResult.targets.push(siteProxy.original);
+                    this.campaignResult.targets.add(siteProxy.original);
                 } else {
                     choices.set(siteProxy.name, siteProxy.original);
                 }
@@ -687,7 +671,7 @@ export class CampaignAtttackAction extends ModifiableAction {
             for (const relicProxy of defenderProxy.relics) choices.set(relicProxy.name, relicProxy.original)
             for (const bannerProxy of defenderProxy.banners) choices.set(bannerProxy.name, bannerProxy.original);
         }
-        this.selects.targets = new SelectNOf("Target(s)", choices, 1 - this.campaignResult.targets.length, choices.size);
+        this.selects.targets = new SelectNOf("Target(s)", choices, 1 - this.campaignResult.targets.size, choices.size);
 
         const values: number[] = [];
         for (let i = 0; i <= this.playerProxy.totalWarbands; i++) values.push(i);
@@ -699,7 +683,7 @@ export class CampaignAtttackAction extends ModifiableAction {
     get campaignResult() { return this.next.campaignResult; }
 
     execute() {
-        this.campaignResult.targets.push(...this.parameters.targets);
+        for (const target of this.parameters.targets) this.campaignResult.targets.add(target);
         this.campaignResult.atkPool = this.parameters.pool[0];
 
         this.campaignResult.defPool = 0;
@@ -727,7 +711,8 @@ export class CampaignAtttackAction extends ModifiableAction {
                 modifiers.push(modifier);
         };
 
-        if (this.next.applyModifiers(modifiers))
+        // If any powers cost something, then the attacker pays. Shouldn't happen though
+        if (new ApplyModifiersEffect(this.next, this.player, modifiers))
             this.next.doNextWithoutModifiers();
     }
 }
@@ -743,6 +728,12 @@ export class CampaignDefenseAction extends ModifiableAction {
 
     get campaignResult() { return this.next.campaignResult; }
 
+    doNext(): void {
+        let next = new ChooseModifiers(this);
+        for (const ally of this.campaignResult.defenderAllies) next = new ChooseModifiers(next, ally);
+        next.doNext();
+    }
+
     execute() {
         super.execute();
         new CampaignResolveSuccessfulAndSkullsEffect(this).doNext();
@@ -757,7 +748,8 @@ export class CampaignDefenseAction extends ModifiableAction {
 export class CampaignResult extends OathGameObject {
     attacker: OathPlayer;
     defender: OathPlayer | undefined;
-    targets: CampaignActionTarget[] = [];
+    defenderAllies = new Set<OathPlayer>();
+    targets = new Set<CampaignActionTarget>();
     atkPool: number;
     defPool: number;
     atkForce: Set<ResourcesAndWarbands>;  // The force is all your warbands on the objects in this array
@@ -1545,12 +1537,10 @@ export class ActAsIfAtSiteAction extends ChooseSite {
     readonly autocompleteSelects = false;
 
     action: ModifiableAction;
-    power: ActionPower<any>;
 
-    constructor(player: OathPlayer, action: ModifiableAction, power: ActionPower<any>, sites?: Iterable<Site>) {
+    constructor(player: OathPlayer, action: ModifiableAction, sites?: Iterable<Site>) {
         super(player, sites);
         this.action = action;
-        this.power = power;
     }
 
     execute(): void {
@@ -1559,7 +1549,6 @@ export class ActAsIfAtSiteAction extends ChooseSite {
         this.action.playerProxy.site = this.action.maskProxyManager.get(this.target);
 
         // Allow the player to choose other new modifiers
-        this.power.sourceProxy.powers.delete(this.power.constructor as Constructor<OathPower<Denizen>>);
         this.action.doNext();
     }
 }
