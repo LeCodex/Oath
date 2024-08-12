@@ -29,8 +29,11 @@ export class Greedy extends ReliquaryModifier {
     action: SearchAction;
 
     applyBefore(): void {
-        if (this.action.actualSupplyCost > 2) throw new InvalidActionResolution("Cannot do a Greedy Search for more than 2 Supply.");
         this.action.amount += 2;
+    }
+    
+    applyAfter(): void {
+        if (this.action.actualSupplyCost > 2) throw new InvalidActionResolution("Cannot do a Greedy Search for more than 2 Supply.");
     }
 }
 

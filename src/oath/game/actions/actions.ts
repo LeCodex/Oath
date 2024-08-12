@@ -641,21 +641,23 @@ export class CampaignAtttackAction extends ModifiableAction {
     readonly next: CampaignDefenseAction;
     readonly message = "Choose targets and attack pool";
 
+    defender: OathPlayer | undefined;
+    defenderProxy: OathPlayer | undefined;
+
     constructor(player: OathPlayer, defender: OathPlayer | undefined) {
         super(player);
         this.next = new CampaignDefenseAction(defender || player, player);
         this.campaignResult.attacker = player;
         this.campaignResult.defender = defender;
+        this.defender = defender;
+        this.defenderProxy = defender && this.maskProxyManager.get(defender);
     }
 
     start() {
-        const defender = this.campaignResult.defender;
-        const defenderProxy = defender && this.maskProxyManager.get(defender);
-
         this.campaignResult.targets.clear();
         const choices = new Map<string, CampaignActionTarget>();
         for (const siteProxy of this.gameProxy.board.sites()) { 
-            if (!siteProxy.facedown && siteProxy.ruler === defenderProxy) {
+            if (!siteProxy.facedown && siteProxy.ruler === this.defenderProxy) {
                 if (this.playerProxy.site === siteProxy) {
                     this.campaignResult.targets.add(siteProxy.original);
                 } else {
@@ -664,10 +666,10 @@ export class CampaignAtttackAction extends ModifiableAction {
             }
         }
 
-        if (defenderProxy && defenderProxy.site === this.playerProxy.site) {
-            choices.set("Banish " + defenderProxy.name, defenderProxy);
-            for (const relicProxy of defenderProxy.relics) choices.set(relicProxy.name, relicProxy)
-            for (const bannerProxy of defenderProxy.banners) choices.set(bannerProxy.name, bannerProxy);
+        if (this.defenderProxy && this.defenderProxy.site === this.playerProxy.site) {
+            choices.set("Banish " + this.defenderProxy.name, this.defenderProxy);
+            for (const relicProxy of this.defenderProxy.relics) choices.set(relicProxy.name, relicProxy)
+            for (const bannerProxy of this.defenderProxy.banners) choices.set(bannerProxy.name, bannerProxy);
         }
         this.selects.targets = new SelectNOf("Target(s)", choices, 1 - this.campaignResult.targets.size, choices.size);
 
@@ -681,17 +683,16 @@ export class CampaignAtttackAction extends ModifiableAction {
     get campaignResult() { return this.next.campaignResult; }
 
     execute() {
-        this.campaignResult.atkPool = this.parameters.pool[0];
-
-        this.campaignResult.defPool = 0;
-        const allyProxiesCandidates = new Set<OathPlayer>();
         for (const targetProxy of this.parameters.targets) this.campaignResult.targets.add(targetProxy.original);
+        this.campaignResult.atkPool = this.parameters.pool[0];
+        this.campaignResult.defPool = 0;
 
+        const allyProxiesCandidates = new Set<OathPlayer>();
         for (const target of this.campaignResult.targets) {
             const targetProxy = this.maskProxyManager.get(target);
             this.campaignResult.defPool += targetProxy.defense;
             
-            for (const playerProxy of Object.values(this.gameProxy)) {
+            for (const playerProxy of Object.values(this.gameProxy.players)) {
                 const siteProxy = targetProxy instanceof Site ? targetProxy : this.playerProxy.site;
                 if (playerProxy.site === siteProxy)
                     allyProxiesCandidates.add(playerProxy);
@@ -704,7 +705,7 @@ export class CampaignAtttackAction extends ModifiableAction {
         for (const allyProxy of allyProxiesCandidates) {
             const ally = allyProxy.original;
             console.log("Trying allying with", ally.name);
-            if (!this.campaignResult.defenderAllies.has(ally) && allyProxy.leader === this.playerProxy.leader)
+            if (!this.campaignResult.defenderAllies.has(ally) && allyProxy.leader === this.defenderProxy?.leader)
                 new AskForPermissionAction(ally, new CampaignJoinDefenderAlliesEffect(this.campaignResult, ally)).doNext();
         }
 

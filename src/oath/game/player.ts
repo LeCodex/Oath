@@ -48,7 +48,7 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
     }
 
     rules(card: OwnableCard) {
-        return card.ruler === this.leader;
+        return card.ruler === this.leader || card.ruler === this;
     }
 
     enemyWith(player: OathPlayer | undefined) {
