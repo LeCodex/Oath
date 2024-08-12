@@ -116,19 +116,17 @@ export class ChooseModifiers extends OathAction {
             if (action instanceof instance.modifiedAction && instance.canUse()) instances.add(instance);
         }
 
-        // NOTE: For ignore loops, all powers in the loop are ignored.
-        const ignore = new Set<ActionModifier<any>>();
-        for (const modifier of instances)
-            for (const toIgnore of modifier.applyImmediately(instances))
-                ignore.add(toIgnore);
-
-        for (const modifier of ignore) instances.delete(modifier);
-
         return instances;
     }
 
     execute() {
-        const modifiers = [...this.persistentModifiers, ...this.parameters.modifiers];
+        const modifiers = new Set([...this.persistentModifiers, ...this.parameters.modifiers]);
+        
+        // NOTE: For ignore loops, all powers in the loop are ignored.
+        const ignore = new Set<ActionModifier<any>>();
+        for (const modifier of modifiers) for (const toIgnore of modifier.applyImmediately(modifiers)) ignore.add(toIgnore);
+        for (const modifier of ignore) modifiers.delete(modifier);
+
         if (!new ApplyModifiersEffect(this.action, this.player, modifiers).do()) return;
         
         if (this.next instanceof ModifiableAction)
@@ -524,17 +522,17 @@ export class SearchPlayAction extends ModifiableAction {
         super.execute();
     }
 
-    static getCapacityInformation(playerProxy: OathPlayer, siteProxy?: Site, playingProxy?: WorldCard): [number, WorldCard[], boolean] {
+    static getCapacityInformation(maskProxyManager: MaskProxyManager, playerProxy: OathPlayer, siteProxy?: Site, playingProxy?: WorldCard): [number, WorldCard[], boolean] {
         const capacityModifiers: CapacityModifier<any>[] = [];
         for (const [sourceProxy, modifier] of playerProxy.game.getPowers(CapacityModifier)) {
-            const instance = new modifier(sourceProxy.original);
+            const instance = new modifier(sourceProxy.original, maskProxyManager);
             if (instance.canUse(playerProxy, siteProxy)) capacityModifiers.push(instance);
         }
 
         if (playingProxy && !playingProxy.facedown) {
             for (const modifier of playingProxy.powers) {
                 if (isExtended(modifier, CapacityModifier)) {
-                    const instance = new modifier(playingProxy);
+                    const instance = new modifier(playingProxy.original, maskProxyManager);
                     capacityModifiers.push(instance);  // Always assume the card influences the capacity
                 }
             }
@@ -542,25 +540,25 @@ export class SearchPlayAction extends ModifiableAction {
 
         let capacity = siteProxy ? siteProxy.capacity : 3;
         let ignoresCapacity = false;
-        let takesNoSpace = new Set<WorldCard>();
-        const target = siteProxy ? siteProxy.denizens : playerProxy.advisers;
+        let takesNoSpaceProxies = new Set<WorldCard>();
+        const targetProxy = siteProxy ? siteProxy.denizens : playerProxy.advisers;
 
         for (const capacityModifier of capacityModifiers) {
-            const [cap, noSpace] = capacityModifier.updateCapacityInformation(target);
+            const [cap, noSpaceProxy] = capacityModifier.updateCapacityInformation(targetProxy);
             capacity = Math.min(capacity, cap);
-            for (const card of noSpace) takesNoSpace.add(card);
+            for (const cardProxy of noSpaceProxy) takesNoSpaceProxies.add(cardProxy);
             if (playingProxy) ignoresCapacity ||= capacityModifier.ignoreCapacity(playingProxy);
         }
 
-        return [capacity, [...target].filter(e => !takesNoSpace.has(e)), ignoresCapacity];
+        return [capacity, [...targetProxy].filter(e => !takesNoSpaceProxies.has(e)), ignoresCapacity];
     }
 
     modifiedExecution() {
         this.cardProxy.facedown = this.facedown;  // Editing the copy to reflect the new state
-        const [capacity, takesSpaceInTarget, ignoresCapacity] = SearchPlayAction.getCapacityInformation(this.playerProxy, this.siteProxy, this.cardProxy);
+        const [capacity, takesSpaceInTargetProxies, ignoresCapacity] = SearchPlayAction.getCapacityInformation(this.maskProxyManager, this.playerProxy, this.siteProxy, this.cardProxy);
 
-        const excess = Math.max(0, takesSpaceInTarget.length - capacity + 1);  // +1 because we are playing a card there
-        const discardable = takesSpaceInTarget.filter(e => !(e instanceof Denizen && e.activelyLocked)).map(e => e.original);
+        const excess = Math.max(0, takesSpaceInTargetProxies.length - capacity + 1);  // +1 because we are playing a card there
+        const discardable = takesSpaceInTargetProxies.filter(e => !(e instanceof Denizen && e.activelyLocked)).map(e => e.original);
 
         if (!ignoresCapacity && excess)
             if (!this.canReplace || excess > discardable.length)

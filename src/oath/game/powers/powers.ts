@@ -27,18 +27,6 @@ export abstract class OathPower<T extends OathGameObject> {
     }
 }
 
-export abstract class CapacityModifier<T extends WorldCard> extends OathPower<T> {
-    canUse(player: OathPlayer, site?: Site): boolean {
-        return true;
-    }
-    
-    // Updates the information to calculate capacity in the group the source is in/being played to
-    // First return is the update to capacity (min of all values), second is a set of cards that don't count towards capacity
-    updateCapacityInformation(source: Set<WorldCard>): [number, Iterable<WorldCard>] { return [Infinity, []]; }
-
-    ignoreCapacity(card: WorldCard, facedown: boolean = card.facedown): boolean { return false; }
-}
-
 export abstract class PowerWithProxy<T extends OathGameObject> extends OathPower<T> {
     gameProxy: OathGame;
     sourceProxy: T;
@@ -48,6 +36,18 @@ export abstract class PowerWithProxy<T extends OathGameObject> extends OathPower
         this.gameProxy = maskProxyManager.get(source.game);
         this.sourceProxy = maskProxyManager.get(source);
     }
+}
+
+export abstract class CapacityModifier<T extends WorldCard> extends PowerWithProxy<T> {
+    canUse(player: OathPlayer, site?: Site): boolean {
+        return true;
+    }
+    
+    // Updates the information to calculate capacity in the group the source is in/being played to
+    // First return is the update to capacity (min of all values), second is a set of cards that don't count towards capacity
+    updateCapacityInformation(targetProxy: Set<WorldCard>): [number, Iterable<WorldCard>] { return [Infinity, []]; }
+
+    ignoreCapacity(cardProxy: WorldCard): boolean { return false; }
 }
 
 export abstract class WhenPlayed<T extends WorldCard> extends PowerWithProxy<T> {

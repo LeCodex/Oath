@@ -15,6 +15,7 @@ import { AttackDie, D6, DefenseDie, Die } from "./dice";
 import { Oath } from "./oaths";
 import { Region } from "./board";
 import { edificeData } from "./cards/denizens";
+import { Reliquary } from "./reliquary";
 
 
 
@@ -906,12 +907,14 @@ export class CheckCapacityEffect extends PlayerEffect<void> {
             const site = origin instanceof Site ? origin : undefined;
             const player = origin instanceof OathPlayer ? origin : origin.ruler || this.player;
             
-            const [capacity, takesSpaceInTarget, _] = SearchPlayAction.getCapacityInformation(player, site);
-            const excess = Math.max(0, takesSpaceInTarget.length - capacity);
-            if (excess > takesSpaceInTarget.length)
+            const [capacity, takesSpaceInTargetProxies, _] = SearchPlayAction.getCapacityInformation(this.maskProxyManager, player, site);
+            const excess = Math.max(0, takesSpaceInTargetProxies.length - capacity);
+            const discardable = takesSpaceInTargetProxies.filter(e => !(e instanceof Denizen && e.activelyLocked)).map(e => e.original);
+
+            if (excess > discardable.length)
                 throw new InvalidActionResolution(`Cannot satisfy the capacity of ${origin.name}'s cards`);
             else if (excess)
-                new SearchDiscardAction(origin instanceof OathPlayer ? origin : this.player, takesSpaceInTarget, excess, this.discardOptions).doNext();
+                new SearchDiscardAction(origin instanceof OathPlayer ? origin : this.player, discardable, excess, this.discardOptions).doNext();
         }
     }
 

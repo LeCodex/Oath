@@ -5,7 +5,6 @@ import { PayCostToTargetEffect, PlayWorldCardEffect, MoveResourcesToTargetEffect
 import { OathResource, OathSuit, BannerName } from "../enums";
 import { OathPlayer, OwnableObject, isOwnable } from "../player";
 import { ResourceCost } from "../resources";
-import { Constructor } from "../utils";
 import { CapacityModifier, AttackerBattlePlan, DefenderBattlePlan, EnemyActionModifier, EnemyEffectModifier, WhenPlayed, AccessedActionModifier, RestPower, ActionModifier, ActivePower, EffectModifier, AccessedEffectModifier, OathPower } from "./powers";
 
 
@@ -17,8 +16,8 @@ export class IgnoresCapacity extends CapacityModifier<Denizen> {
         return player === this.source.ruler;
     }
 
-    ignoreCapacity(card: WorldCard): boolean {
-        return !card.facedown && card === this.source;
+    ignoreCapacity(cardProxy: WorldCard): boolean {
+        return !cardProxy.facedown && cardProxy === this.sourceProxy;
     }
 }
 
@@ -459,16 +458,16 @@ export class FamilyWagon extends CapacityModifier<Denizen> {
         return player === this.source.ruler && !site;
     }
 
-    updateCapacityInformation(source: Set<WorldCard>): [number, Iterable<WorldCard>] {
+    updateCapacityInformation(targetProxy: Set<WorldCard>): [number, Iterable<WorldCard>] {
         // NOTE: This is technically different from the way Family Wagon is worded. The way *this* works
         // is by setting the capacity to 2, and making all *other* Nomad cards not count towards the limit (effectively
         // making you have 1 spot for a non Nomad card, and infinite ones for Nomad cards, while allowing you
         // to replace Family Wagon if you want to)
-        return [2, [...source].filter(e => e !== this.source && e instanceof Denizen && e.suit === OathSuit.Nomad)];
+        return [2, [...targetProxy].filter(e => e !== this.sourceProxy && e instanceof Denizen && e.suit === OathSuit.Nomad)];
     }
 
-    ignoreCapacity(card: WorldCard): boolean {
-        return card !== this.source && card instanceof Denizen && card.suit === OathSuit.Nomad;
+    ignoreCapacity(cardProxy: WorldCard): boolean {
+        return cardProxy !== this.sourceProxy && cardProxy instanceof Denizen && cardProxy.suit === OathSuit.Nomad;
     }
 }
 
@@ -510,7 +509,7 @@ export class OnlyTwoAdvisers extends CapacityModifier<Denizen> {
         return player === this.source.ruler && !site;
     }
 
-    updateCapacityInformation(source: Set<WorldCard>): [number, Iterable<WorldCard>] {
+    updateCapacityInformation(targetProxy: Set<WorldCard>): [number, Iterable<WorldCard>] {
         return [2, []];
     }
 }
@@ -690,9 +689,13 @@ export class SmallFriends extends AccessedActionModifier<Denizen> {
     applyWhenApplied(): boolean {
         const sites = new Set<Site>();
         for (const siteProxy of this.gameProxy.board.sites())
-            for (const denizen of siteProxy.denizens)
-                if (denizen.suit === OathSuit.Beast)
-                    sites.add(siteProxy.original);
+            if (siteProxy !== this.action.playerProxy.site)
+                for (const denizenProxy of siteProxy.denizens)
+                    if (denizenProxy.suit === OathSuit.Beast)
+                        sites.add(siteProxy.original);
+
+        if (sites.size === 0)
+            throw new InvalidActionResolution("No other site with a Beast card");
 
         new ActAsIfAtSiteAction(this.action.player, this.action, sites).doNext();
         return false;

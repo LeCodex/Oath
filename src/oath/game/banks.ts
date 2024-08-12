@@ -54,7 +54,7 @@ export class FavorBank extends ResourceBank {
 export abstract class Banner extends ResourceBank implements OwnableObject, RecoverActionTarget, CampaignActionTarget {
     name: string;
     owner?: OathPlayer;
-    powers: Constructor<OathPower<Banner>>[];
+    powers: Set<Constructor<OathPower<Banner>>>;
     min = 1;
 
     get defense() { return this.amount; }
@@ -99,7 +99,7 @@ export abstract class Banner extends ResourceBank implements OwnableObject, Reco
 export class PeoplesFavor extends Banner {
     name = "People's Favor";
     type = OathResource.Favor;
-    powers = [PeoplesFavorSearch, PeoplesFavorWake];
+    powers = new Set([PeoplesFavorSearch, PeoplesFavorWake]);
     isMob: boolean;
 
     handleRecovery(player: OathPlayer) {
@@ -117,7 +117,7 @@ export class PeoplesFavor extends Banner {
 export class DarkestSecret extends Banner {
     name = "Darkest Secret";
     type = OathResource.Secret;
-    powers = [DarkestSecretPower];
+    powers = new Set([DarkestSecretPower]);
 
     canRecover(action: RecoverAction): boolean {
         if (!super.canRecover(action)) return false;
