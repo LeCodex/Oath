@@ -6,7 +6,7 @@ import { Brutal, Decadent, Careless, Greedy } from "./powers/reliquary";
 
 export class Reliquary extends OathGameObject {
     relics: [Relic?, Relic?, Relic?, Relic?] = [];
-    powers = [Brutal, Decadent, Careless, Greedy];
+    slotPowers = [Brutal, Decadent, Careless, Greedy];
 
     constructor(game: OathGame) {
         super(game);

@@ -113,7 +113,7 @@ export class OathGame extends WithOriginal {
         const powers: [any, Constructor<T>][] = [];
 
         const reliquary = this.chancellor.reliquary;
-        for (const [i, power] of reliquary.powers.entries()) {
+        for (const [i, power] of reliquary.slotPowers.entries()) {
             if (!reliquary.relics[i] && isExtended(power, type)) powers.push([reliquary, power]);
         }
 
