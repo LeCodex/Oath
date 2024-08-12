@@ -101,7 +101,7 @@ const render = () => {
     const actionNode = document.getElementById("action");
     actionNode.innerHTML = "";
     if (action) {
-        actionNode.innerText = "[" + action.message + "]";
+        actionNode.innerText = "[" + action.message + "] (" + game.players[action.player].name + ")";
         if (action.modifiers?.length) actionNode.appendChild(renderText("Modifiers: " + action.modifiers.join(", ")));
         for (const [k, select] of Object.entries(action.selects)) {
             const selectNode = actionNode.appendChild(document.createElement("li"));

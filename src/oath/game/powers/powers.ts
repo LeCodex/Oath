@@ -140,7 +140,7 @@ export abstract class DefenderBattlePlan<T extends OwnableCard> extends BattlePl
 }
 
 export abstract class EffectModifier<T extends OathGameObject> extends PowerWithProxy<T> {
-    modifiedEffect: AbstractConstructor<OathEffect<any>>;
+    abstract modifiedEffect: AbstractConstructor<OathEffect<any>>;
     effect: OathEffect<any>;
 
     constructor(source: T, effect: OathEffect<any>) {

@@ -5,7 +5,7 @@ import { ActionModifier } from "./powers";
 
 export abstract class BannerActionModifier<T extends Banner> extends ActionModifier<T> {
     canUse(): boolean {
-        return super.canUse() && this.action.playerProxy === this.sourceProxy.owner?.original;
+        return super.canUse() && this.action.playerProxy === this.sourceProxy.owner;
     }
 }
 

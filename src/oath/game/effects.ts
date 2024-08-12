@@ -143,14 +143,18 @@ export class ApplyModifiersEffect extends PlayerEffect<boolean> {
             if (!modifier.applyWhenApplied()) interrupt = true;
 
             // Modifiers can only be applied once
-            modifier.sourceProxy.powers.delete(modifier.constructor as Constructor<OathPower<any>>);
+            // TODO: Standardize objects with powers
+            modifier.sourceProxy.powers?.delete(modifier.constructor as Constructor<ActionModifier<any>>);
         }
 
         return !interrupt;
     }
 
     revert(): void {
-        for (const _ of this.actionModifiers) this.action.modifiers.pop();
+        for (const modifier of this.actionModifiers) {
+            this.action.modifiers.pop();
+            modifier.sourceProxy.powers?.add(modifier.constructor as Constructor<ActionModifier<any>>);
+        }
     }
 }
 
@@ -983,10 +987,10 @@ export class GiveOwnableObjectEffect extends OathEffect<void> {
     to: OathPlayer | undefined;
     oldOwner: OathPlayer | undefined;
 
-    constructor(game: OathGame, player: OathPlayer | undefined, target: OwnableObject) {
+    constructor(game: OathGame, to: OathPlayer | undefined, target: OwnableObject) {
         super(game, target.owner);
         this.target = target;
-        this.to = player;
+        this.to = to;
     }
 
     resolve(): void {
@@ -1018,6 +1022,23 @@ export class RollDiceEffect extends OathEffect<number[]> {
     revert(): void {
         // This is a "read" effect, and so cannot be reverted (and should not need to)
         // In this case, a dice roll should not get reverted
+    }
+}
+
+export class CampaignJoinDefenderAlliesEffect extends PlayerEffect<void> {
+    campaignResult: CampaignResult;
+
+    constructor(campaignResult: CampaignResult, player: OathPlayer) {
+        super(player);
+        this.campaignResult = campaignResult;
+    }
+
+    resolve(): void {
+        this.campaignResult.defenderAllies.add(this.player);
+    }
+    
+    revert(): void {
+        this.campaignResult.defenderAllies.delete(this.player);
     }
 }
 
@@ -1208,18 +1229,18 @@ export class BecomeCitizenEffect extends PlayerEffect<void> {
     resolve(): void {
         if (!(this.player instanceof Exile) || this.player.isCitizen) return;
         this.resolved = true;
-        this.player.isCitizen = true;
         
         for (const site of this.game.board.sites())
             new PutWarbandsFromBagEffect(this.game.chancellor, new TakeWarbandsIntoBagEffect(this.player, Infinity, site).do(), site).do();
         
-        new PutWarbandsFromBagEffect(this.game.chancellor, new TakeWarbandsIntoBagEffect(this.player, Infinity, this.player).do(), this.player).do();
+        new PutWarbandsFromBagEffect(this.game.chancellor, new TakeWarbandsIntoBagEffect(this.player, Infinity).do(), this.player).do();
 
         if (this.player.vision) {
             new DiscardCardEffect(this.player, this.player.vision).do();
             this.oldVision = this.player.setVision(undefined);
         }
 
+        this.player.isCitizen = true;
         new GainSupplyEffect(this.player, Infinity).do();
         if (this.game.currentPlayer === this.player) new RestAction(this.player).doNext();
     }
@@ -1262,8 +1283,8 @@ export class CursedCauldronResolutionEffect extends PlayerEffect<void> {
     }
 
     resolve(): void {
-        if (this.result.winnerCopy === this.player)
-            new PutWarbandsFromBagEffect(this.result.winnerCopy, this.result.loserLoss).do();
+        if (this.result.winner === this.player)
+            new PutWarbandsFromBagEffect(this.result.winner, this.result.loserLoss).do();
     }
 
     revert(): void {

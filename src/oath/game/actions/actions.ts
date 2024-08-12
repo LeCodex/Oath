@@ -1,7 +1,7 @@
 import { Denizen, Edifice, Relic, Site, VisionBack, WorldCard } from "../cards/cards";
 import { DiscardOptions, SearchableDeck } from "../cards/decks";
 import { AttackDie, DefenseDie, Die } from "../dice";
-import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, PutPawnAtSiteEffect, DiscardCardEffect, MoveOwnWarbandsEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect, SetNewOathkeeperEffect, SetPeoplesFavorMobState, DiscardCardGroupEffect, OathEffect, PaySupplyEffect, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, ChangeEdificeEffect, ModifiedExecutionEffect, CampaignResolveSuccessfulAndSkullsEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect, CheckCapacityEffect, ApplyModifiersEffect } from "../effects";
+import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, PutPawnAtSiteEffect, DiscardCardEffect, MoveOwnWarbandsEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect, SetNewOathkeeperEffect, SetPeoplesFavorMobState, DiscardCardGroupEffect, OathEffect, PaySupplyEffect, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, ChangeEdificeEffect, ModifiedExecutionEffect, CampaignResolveSuccessfulAndSkullsEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect, CheckCapacityEffect, ApplyModifiersEffect, CampaignJoinDefenderAlliesEffect } from "../effects";
 import { BannerName, OathPhase, OathResource, OathResourceName, OathSuit, OathSuitName, OathType, OathTypeName } from "../enums";
 import { OathGame } from "../game";
 import { OathGameObject } from "../gameObject";
@@ -139,7 +139,7 @@ export class ChooseModifiers extends OathAction {
 }
 
 export abstract class ModifiableAction extends OathAction {
-    modifiers: ActionModifier<any>[];
+    modifiers: ActionModifier<any>[] = [];
     maskProxyManager: MaskProxyManager;
     gameProxy: OathGame;            // Effects and powers are allowed to modify the proxies to "lie" to the action
     playerProxy: OathPlayer;        // This is a simple reference for simplicity
@@ -626,12 +626,12 @@ export class CampaignAction extends MajorAction {
     modifiedExecution() {
         super.modifiedExecution();
         const next = new CampaignAtttackAction(this.player, this.defenderProxy?.original);
-        if (this.defenderProxy?.isImperial) next.campaignResult.defenderAllies.add(this.gameProxy.chancellor.original);
+        if (this.defenderProxy?.isImperial) new CampaignJoinDefenderAlliesEffect(next.campaignResult, this.gameProxy.chancellor.original).do();
         next.doNext();
     }
 }
 
-export interface CampaignActionTarget {
+export interface CampaignActionTarget extends WithOriginal {
     defense: number;
     force: ResourcesAndWarbands | undefined;
     seize(player: OathPlayer): void;
@@ -661,15 +661,15 @@ export class CampaignAtttackAction extends ModifiableAction {
                 if (this.playerProxy.site === siteProxy) {
                     this.campaignResult.targets.add(siteProxy.original);
                 } else {
-                    choices.set(siteProxy.name, siteProxy.original);
+                    choices.set(siteProxy.name, siteProxy);
                 }
             }
         }
 
         if (defenderProxy && defenderProxy.site === this.playerProxy.site) {
             choices.set("Banish " + defenderProxy.name, defenderProxy);
-            for (const relicProxy of defenderProxy.relics) choices.set(relicProxy.name, relicProxy.original)
-            for (const bannerProxy of defenderProxy.banners) choices.set(bannerProxy.name, bannerProxy.original);
+            for (const relicProxy of defenderProxy.relics) choices.set(relicProxy.name, relicProxy)
+            for (const bannerProxy of defenderProxy.banners) choices.set(bannerProxy.name, bannerProxy);
         }
         this.selects.targets = new SelectNOf("Target(s)", choices, 1 - this.campaignResult.targets.size, choices.size);
 
@@ -683,22 +683,59 @@ export class CampaignAtttackAction extends ModifiableAction {
     get campaignResult() { return this.next.campaignResult; }
 
     execute() {
-        for (const target of this.parameters.targets) this.campaignResult.targets.add(target);
         this.campaignResult.atkPool = this.parameters.pool[0];
 
         this.campaignResult.defPool = 0;
-        for (const target of this.campaignResult.targets)
-            this.campaignResult.defPool += this.maskProxyManager.get(target).defense;
+        const allyProxiesCandidates = new Set<OathPlayer>();
+        for (const targetProxy of this.parameters.targets) this.campaignResult.targets.add(targetProxy.original);
+
+        for (const target of this.campaignResult.targets) {
+            const targetProxy = this.maskProxyManager.get(target);
+            this.campaignResult.defPool += targetProxy.defense;
+            
+            for (const playerProxy of Object.values(this.gameProxy)) {
+                const siteProxy = targetProxy instanceof Site ? targetProxy : this.playerProxy.site;
+                if (playerProxy.site === siteProxy)
+                    allyProxiesCandidates.add(playerProxy);
+            }
+        }
         
         if (this.campaignResult.defender && this.maskProxyManager.get(this.campaignResult.defender) === this.gameProxy.oathkeeper)
             this.campaignResult.defPool += this.gameProxy.isUsurper ? 2 : 1;
 
-        this.campaignResult.resolveDefForce();
-        this.campaignResult.resolveAtkForce();
+        for (const allyProxy of allyProxiesCandidates) {
+            const ally = allyProxy.original;
+            console.log("Trying allying with", ally.name);
+            if (!this.campaignResult.defenderAllies.has(ally) && allyProxy.leader === this.playerProxy.leader)
+                new AskForPermissionAction(ally, new CampaignJoinDefenderAlliesEffect(this.campaignResult, ally)).doNext();
+        }
+
         super.execute();
     }
 
     modifiedExecution() {
+        this.campaignResult.defForce = new Set();
+        for (const target of this.campaignResult.targets) {
+            const force = target.force;
+            if (force) this.campaignResult.defForce.add(force);
+        }
+
+        for (const ally of this.campaignResult.defenderAllies) {
+            if (ally.site === this.player.site) {
+                this.campaignResult.defForce.add(ally);
+                continue;
+            }
+            
+            for (const target of this.campaignResult.targets) {
+                if (target instanceof Site && ally.site === target) {
+                    this.campaignResult.defForce.add(ally);
+                    continue;
+                }
+            }
+        }
+        
+        this.campaignResult.atkForce = new Set([this.player]);
+
         if (this.campaignResult.defender) {
             this.next.doNext();
             return;
@@ -730,7 +767,9 @@ export class CampaignDefenseAction extends ModifiableAction {
 
     doNext(): void {
         let next = new ChooseModifiers(this);
-        for (const ally of this.campaignResult.defenderAllies) next = new ChooseModifiers(next, ally);
+        for (const ally of this.campaignResult.defenderAllies) 
+            if (ally !== this.player)
+                next = new ChooseModifiers(next, ally);
         next.doNext();
     }
 
@@ -770,8 +809,8 @@ export class CampaignResult extends OathGameObject {
     defenderLoss: number = 0;
     endEffects: OathEffect<any>[] = [];
 
-    get totalAtkForce() { return [...this.atkForce].reduce((a, e) => a + e.getWarbands(this.attacker.leader), 0); }
-    get totalDefForce() { return [...this.defForce].reduce((a, e) => a + e.getWarbands(this.defender?.leader), 0); }
+    get totalAtkForce() { return [...this.atkForce].reduce((a, e) => a + e.getWarbands(this.attacker.leader.original), 0); }
+    get totalDefForce() { return [...this.defForce].reduce((a, e) => a + e.getWarbands(this.defender?.leader.original), 0); }
 
     get atk() { return AttackDie.getResult(this.atkRoll); }
     get def() { return DefenseDie.getResult(this.defRoll) + this.totalDefForce; }
@@ -779,8 +818,8 @@ export class CampaignResult extends OathGameObject {
     get requiredSacrifice() { return this.def - this.atk + 1; }
     get couldSacrifice() { return this.requiredSacrifice > 0 && this.requiredSacrifice <= this.totalAtkForce; }
 
-    get winnerCopy() { return this.successful ? this.attacker : this.defender; }
-    get loserCopy() { return this.successful ? this.defender : this.attacker; }
+    get winner() { return this.successful ? this.attacker : this.defender; }
+    get loser() { return this.successful ? this.defender : this.attacker; }
     get loserTotalForce() { return this.successful ? this.totalDefForce : this.totalAtkForce; }
     get loserKillsNoWarbands() { return this.successful ? this.defenderKillsNoWarbands : this.attackerKillsNoWarbands; }
     get loserKillsEntireForce() { return this.successful ? this.defenderKillsEntireForce : this.attackerKillsEntireForce; }
@@ -790,24 +829,12 @@ export class CampaignResult extends OathGameObject {
         this.endEffects.push(new DiscardCardEffect(denizen.ruler || this.attacker, denizen));
     }
 
-    resolveAtkForce() {
-        this.atkForce = new Set([this.attacker]);
-    }
-    
-    resolveDefForce() {
-        this.defForce = new Set();
-        for (const target of this.targets) {
-            const force = target.force;
-            if (force) this.defForce.add(force);
-        }
-    }
-
     rollAttack() {
         this.atkRoll = new RollDiceEffect(this.game, this.attacker, AttackDie, this.atkPool).do();
     }
 
     rollDefense() {
-        this.defRoll = new RollDiceEffect(this.game, this.defender, DefenseDie, this.defPool).do();
+        this.defRoll = new RollDiceEffect(this.game, this.defender, DefenseDie, this.defPool + (this.atkPool < 0 ? -this.atkPool : 0)).do();
     }
     
     attackerKills(amount: number) {
@@ -858,7 +885,7 @@ export class CampaignEndAction extends ModifiableAction {
             this.campaignResult.successful = true;
         }
 
-        if (this.campaignResult.loserCopy && !this.campaignResult.ignoreKilling && !this.campaignResult.loserKillsNoWarbands)
+        if (this.campaignResult.loser && !this.campaignResult.ignoreKilling && !this.campaignResult.loserKillsNoWarbands)
             this.campaignResult.loserKills(Math.floor(this.campaignResult.loserTotalForce / (this.campaignResult.loserKillsEntireForce ? 1 : 2)));
 
         if (this.campaignResult.successful)
@@ -925,11 +952,15 @@ export class CampaignKillWarbandsInForceAction extends OathAction {
 
 export class CampaignBanishPlayerAction extends TravelAction {
     readonly message: string;
-    noSupplyCost: boolean = true;
 
     constructor(player: OathPlayer, banished: OathPlayer) {
         super(banished, player);
         this.message = "Choose where to banish " + banished.name;
+    }
+
+    execute(): void {
+        this.noSupplyCost = true;
+        super.execute();
     }
 }
 
@@ -949,7 +980,7 @@ export class CampaignSeizeSiteAction extends OathAction {
 
     start() {
         const values: number[] = [];
-        for (let i = 0; i <= this.player.getWarbands(this.player.leader); i++) values.push(i);
+        for (let i = 0; i <= this.player.getWarbands(this.player.leader.original); i++) values.push(i);
         this.selects.amount = new SelectNumber("Amount", values);
         return super.start();
     }
@@ -1070,18 +1101,18 @@ export class MoveWarbandsAction extends ModifiableAction {
     start(): boolean {
         const choices = new Map<string, Site | OathPlayer>();
         const siteProxy = this.playerProxy.site;
-        let max = this.playerProxy.getWarbands(this.playerProxy.leader);
+        let max = this.playerProxy.getWarbands(this.playerProxy.leader.original);
         if (this.playerProxy.isImperial) {
             for (const playerProxy of Object.values(this.gameProxy.players)) {
                 if (playerProxy !== this.playerProxy && playerProxy.isImperial && playerProxy.site === siteProxy) {
                     choices.set(playerProxy.name, playerProxy);
-                    max = Math.max(max, playerProxy.getWarbands(playerProxy.leader));
+                    max = Math.max(max, playerProxy.getWarbands(playerProxy.leader.original));
                 }
             }
         }
-        if (siteProxy.getWarbands(this.playerProxy.leader) > 0) {
+        if (siteProxy.getWarbands(this.playerProxy.leader.original) > 0) {
             choices.set(siteProxy.name, siteProxy);
-            max = Math.max(max, siteProxy.getWarbands(this.playerProxy.leader) - 1);
+            max = Math.max(max, siteProxy.getWarbands(this.playerProxy.leader.original) - 1);
         }
         this.selects.target = new SelectNOf("Target", choices, 1);
         
@@ -1102,10 +1133,10 @@ export class MoveWarbandsAction extends ModifiableAction {
     }
 
     modifiedExecution(): void {
-        const from = this.giving ? this.player : this.targetProxy;
-        const to = this.giving ? this.targetProxy : this.player;
+        const from = this.giving ? this.player : this.targetProxy.original;
+        const to = this.giving ? this.targetProxy.original : this.player;
 
-        if (from instanceof Site && from.getWarbands(this.player.leader) - this.amount < 1)
+        if (from instanceof Site && from.getWarbands(this.player.leader.original) - this.amount < 1)
             throw new InvalidActionResolution("Cannot take the last warband off a site.");
 
         const effect = new MoveOwnWarbandsEffect(this.player, from, to, this.amount);

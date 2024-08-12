@@ -69,7 +69,7 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
 
     moveWarbandsIntoBagFrom(source: ResourcesAndWarbands, amount: number = Infinity): number {
         const warbandsAmount = source.takeWarbands(this.leader, amount);
-        this.warbandsInBag += warbandsAmount;
+        this.leader.warbandsInBag += warbandsAmount;
         return warbandsAmount;
     }
 

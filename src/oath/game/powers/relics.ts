@@ -103,7 +103,7 @@ export class CircletOfCommandCampaign extends EnemyActionModifier<Relic> {
     }
 }
 
-export class DragonskinWardrum extends AccessedEffectModifier<Relic> {
+export class DragonskinWardrum extends AccessedActionModifier<Relic> {
     name = "Dragonskin Wardrum";
     modifiedAction = TravelAction;
     action: TravelAction;
