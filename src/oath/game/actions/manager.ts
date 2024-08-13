@@ -88,7 +88,7 @@ export class OathActionManager extends OathGameObject {
         if (!action) throw new InvalidActionResolution("No action to continue");
 
         const player = this.game.players[by];
-        if (action.player !== player) throw new InvalidActionResolution(`Action must be resolved by ${action.player.name}, not ${player.name}`);
+        if (action.player !== player) throw new InvalidActionResolution(`Action must be resolved by ${action.player.id}, not ${player.id}`);
 
         this.storeEffects();
         const parsed = action.parse(values);
