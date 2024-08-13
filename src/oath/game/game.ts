@@ -73,13 +73,13 @@ export class OathGame extends WithOriginal {
                 }[cardData.name];
                     
                 if (card)
-                    this.worldDeck.putCard(card);
+                    this.worldDeck.putCard(card, true);
                 else
                     console.warn("Couldn't load " + cardData.name);
                 
                 continue;
             }
-            this.worldDeck.putCard(new Denizen(this, cardData.name, ...data));
+            this.worldDeck.putCard(new Denizen(this, cardData.name, ...data), true);
         }
         
         for (const cardData of gameData.relics) {
@@ -88,7 +88,7 @@ export class OathGame extends WithOriginal {
                 console.warn("Couldn't load " + cardData.name);
                 continue;
             }
-            this.relicDeck.putCard(new Relic(this, cardData.name, ...data));
+            this.relicDeck.putCard(new Relic(this, cardData.name, ...data), true);
         }
 
         this.board = new OathBoard(this);

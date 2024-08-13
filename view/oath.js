@@ -16,8 +16,8 @@ const setup = async () => {
     window.alert(`Created game ${gameId}`);
 }
 
-const oathNames = ["Supremacy", "Protection", "the People", "Devotion"];
-const visionNames = ["Conquest", "Sanctuary", "Revolution", "Faith"];
+const oathNames = ["Supremacy", "the People", "Devotion", "Protection"];
+const visionNames = ["Conquest", "Revolution", "Faith", "Sanctuary"];
 const pawnColors = ["💜", "❤️", "💙", "💛", "🤍", "🖤"];
 const suitColors = ["🚫", "🔴", "🟣", "🔵", "🟠", "🟤", "🟢"];
 const resourceNames = ["🟡", "📘", "📖"];

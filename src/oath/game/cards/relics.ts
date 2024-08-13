@@ -1,11 +1,11 @@
 import { OathPower } from "../powers/powers";
-import { BookOfRecords, BrassHorse, CircletOfCommand, CupOfPlenty, CursedCauldronAttack, CursedCauldronDefense, DragonskinWardrum, MapRelic, OracularPig, RingOfDevotionMuster, RingOfDevotionRestriction, SkeletonKey } from "../powers/relics";
+import { BookOfRecords, BrassHorse, CircletOfCommand, CupOfPlenty, CursedCauldronAttack, CursedCauldronDefense, DragonskinDrum, MapRelic, OracularPig, RingOfDevotionMuster, RingOfDevotionRestriction, SkeletonKey } from "../powers/relics";
 import { Constructor } from "../utils";
 import { Relic } from "./cards";
 
 export const relicsData: Record<string, [number, Constructor<OathPower<Relic>>[]]> = {
     CircletOfCommand:       [1, [CircletOfCommand]],
-    DragonskinWardrum:      [2, [DragonskinWardrum]],
+    DragonskinDrum:         [2, [DragonskinDrum]],
     CupOfPlenty:            [2, [CupOfPlenty]],
     BookOfRecords:          [2, [BookOfRecords]],
     OracularPig:            [2, [OracularPig]],
@@ -17,7 +17,7 @@ export const relicsData: Record<string, [number, Constructor<OathPower<Relic>>[]
     Whistle:                [2, []],
     CrackedHorn:            [2, []],
     IvoryEye:               [2, []],
-    ObisidianCage:          [2, []],
+    ObsidianCage:           [2, []],
     RingOfDevotion:         [3, [RingOfDevotionMuster, RingOfDevotionRestriction]],
     CursedCauldron:         [3, [CursedCauldronAttack, CursedCauldronDefense]],
     SkeletonKey:            [3, [SkeletonKey]],
