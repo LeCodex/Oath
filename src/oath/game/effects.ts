@@ -1462,10 +1462,10 @@ export class BuildEdificeFromDenizenEffect extends OathEffect<void> {
         if (!this.denizen.site) throw new InvalidActionResolution("Card is not at a site");
         this.site = this.denizen.site;
             
-        for (const data of Object.values(edificeData)) {
+        for (const [_, ...data] of Object.values(edificeData)) {
             const suit = data[0];
             if (suit === this.denizen.suit) {
-                this.edifice = new Edifice(this.game, data[0], ...data[1])
+                this.edifice = new Edifice(this.game, ...data),
                 this.edifice.putAtSite(this.site);
                 break;
             }
@@ -1481,24 +1481,23 @@ export class BuildEdificeFromDenizenEffect extends OathEffect<void> {
     }
 }
 
-export class ChangeEdificeEffect extends OathEffect<void> {
-    ruin: boolean;
+export class FlipEdificeEffect extends OathEffect<void> {
     edifice: Edifice;
     newEdifice: Edifice;
 
-    constructor(edifice: Edifice, ruin: boolean) {
+    constructor(edifice: Edifice) {
         super(edifice.game, undefined);
         this.edifice = edifice;
-        this.ruin = ruin;
     }
 
     resolve(): void {
         if (!this.edifice.site) throw new InvalidActionResolution("Card is not at a site (How?)");
 
-        for (const data of Object.values(edificeData)) {
-            const name = data[this.ruin ? 1 : 2][0];
+        for (const [other, ...data] of Object.values(edificeData)) {
+            const name = data[1];
             if (name === this.edifice.name) {
-                this.newEdifice = new Edifice(this.game, this.ruin ? OathSuit.None : data[0], ...data[this.ruin ? 2 : 1]);
+                const [_, ...otherData] = edificeData[other];
+                this.newEdifice = new Edifice(this.game, ...otherData);
                 this.newEdifice.putAtSite(this.edifice.site);
 
                 for (const [resource, amount] of this.edifice.resources)
@@ -1541,7 +1540,7 @@ export class CleanUpMapEffect extends PlayerEffect<void> {
                     this.discardedDenizens.set(site, new Set(site.denizens));
                     for (const denizen of site.denizens) {
                         if (denizen instanceof Edifice && denizen.suit !== OathSuit.None) {
-                            new ChangeEdificeEffect(denizen, true).do();
+                            new FlipEdificeEffect(denizen).do();
                             pushedSites.push(site);
                         } else {
                             new DiscardCardEffect(this.player, denizen, new DiscardOptions(region.discard, false, true));

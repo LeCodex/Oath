@@ -133,7 +133,7 @@ export class CursedCauldronAttack extends AttackerBattlePlan<Relic> {
 
     applyBefore(): void {
         if (!this.sourceProxy.ruler?.original) return;
-        this.action.campaignResult.endFunctions.push(() => cursedCauldronResolution(this.action.campaignResult, this.action.player));
+        this.action.campaignResult.endCallbacks.push(() => cursedCauldronResolution(this.action.campaignResult, this.action.player));
     }
 }
 export class CursedCauldronDefense extends DefenderBattlePlan<Relic> {
@@ -141,7 +141,7 @@ export class CursedCauldronDefense extends DefenderBattlePlan<Relic> {
 
     applyBefore(): void {
         if (!this.sourceProxy.ruler?.original) return;
-        this.action.campaignResult.endFunctions.push(() => cursedCauldronResolution(this.action.campaignResult, this.action.player));
+        this.action.campaignResult.endCallbacks.push(() => cursedCauldronResolution(this.action.campaignResult, this.action.player));
     }
 }
 

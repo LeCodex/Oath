@@ -4,7 +4,7 @@ export enum PlayerColor {
     Blue,
     Yellow,
     White,
-    Black
+    Brown
 }
 
 export enum OathSuit {
@@ -43,9 +43,9 @@ export const OathResourceName = {
 
 export enum OathType {
     Supremacy,
-    Protection,
     ThePeople,
-    Devotion
+    Devotion,
+    Protection
 }
 
 export const OathTypeName = {

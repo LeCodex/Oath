@@ -13,6 +13,7 @@ import { Conspiracy, Denizen, GrandScepter, Relic, Site, Vision } from "./cards/
 import { Chancellor, Exile, OathPlayer } from "./player";
 import { Banner, DarkestSecret, FavorBank, PeoplesFavor } from "./banks";
 import { AbstractConstructor, Constructor, isExtended, WithOriginal } from "./utils";
+import { parseOathTTSSavefileString } from "./parser";
 
 
 export class OathGame extends WithOriginal {
@@ -44,9 +45,11 @@ export class OathGame extends WithOriginal {
     siteDeck = new CardDeck<Site>(this);
     board: OathBoard;
     
-    constructor(oath: OathType, playerCount: number) {
+    constructor(seed: string, playerCount: number) {
         super();
-        this.oath = new OathTypeToOath[oath](this);
+        const gameData = parseOathTTSSavefileString(seed);
+        
+        this.oath = new OathTypeToOath[gameData.oath](this);
         this.oath.setup();
 
         this.archive = {...denizenData};

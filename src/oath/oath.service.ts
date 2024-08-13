@@ -12,11 +12,11 @@ export class OathService {
         return [...this.games.keys()];
     }
 
-    public startNewGame(): object {
+    public startNewGame(seed: string): object {
         const id = (this.games.size ? Math.max(...this.games.keys()) : 0) + 1;
 
-        // TEMP: Forcefully set the number of players and oath
-        const game = new OathGame(OathType.Supremacy, 4);
+        // TEMP: Forcefully set the number of players
+        const game = new OathGame(seed, 4);
         this.games.set(id, game);
         
         const obj = game.actionManager.checkForNextAction();
