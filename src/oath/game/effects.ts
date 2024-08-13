@@ -912,7 +912,7 @@ export class CheckCapacityEffect extends PlayerEffect<void> {
             const discardable = takesSpaceInTargetProxies.filter(e => !(e instanceof Denizen && e.activelyLocked)).map(e => e.original);
 
             if (excess > discardable.length)
-                throw new InvalidActionResolution(`Cannot satisfy the capacity of ${origin.id}'s cards`);
+                throw new InvalidActionResolution(`Cannot satisfy the capacity of ${origin.name}'s cards`);
             else if (excess)
                 new SearchDiscardAction(origin instanceof OathPlayer ? origin : this.player, discardable, excess, this.discardOptions).doNext();
         }
@@ -1494,7 +1494,7 @@ export class FlipEdificeEffect extends OathEffect<void> {
         if (!this.edifice.site) throw new InvalidActionResolution("Card is not at a site (How?)");
 
         for (const [key, [other, ...data]] of Object.entries(edificeData)) {
-            if (key === this.edifice.id) {
+            if (key === this.edifice.name) {
                 const [_, ...otherData] = edificeData[other];
                 this.newEdifice = new Edifice(this.game, other, ...otherData);
                 this.newEdifice.putAtSite(this.edifice.site);

@@ -18,7 +18,7 @@ export class PeoplesFavorSearch extends BannerActionModifier<PeoplesFavor> {
     applyAtStart(): void {
         for (const siteProxy of this.action.playerProxy.site.region.sites)
             if (!siteProxy.facedown)
-                this.action.selects.site.choices.set(siteProxy.id, siteProxy);
+                this.action.selects.site.choices.set(siteProxy.name, siteProxy);
     }
 
     applyBefore(): void {

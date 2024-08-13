@@ -74,7 +74,7 @@ function circletOfCommandCheckOwnable(sourceProxy: Relic, targetProxy: OwnableOb
     if (targetProxy.owner !== sourceProxy.ruler) return;
 
     if (targetProxy !== sourceProxy)
-        throw new InvalidActionResolution(`Cannot target or take objects from ${sourceProxy.ruler.id} while protected by the Circlet of Command.`);
+        throw new InvalidActionResolution(`Cannot target or take objects from ${sourceProxy.ruler.name} while protected by the Circlet of Command.`);
 }
 export class CircletOfCommand extends EnemyEffectModifier<Relic> {
     name = "Circlet of Command";

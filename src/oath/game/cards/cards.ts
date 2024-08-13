@@ -14,14 +14,14 @@ import { DenizenData } from "./denizens";
 
 
 export abstract class OathCard extends ResourcesAndWarbands {
-    id: string;
+    name: string;
     facedown: boolean = true;
     seenBy: Set<OathPlayer> = new Set();
     powers: Set<Constructor<OathPower<OathCard>>>;
 
-    constructor(game: OathGame, id: string, powers: Iterable<Constructor<OathPower<OathCard>>>) {
+    constructor(game: OathGame, name: string, powers: Iterable<Constructor<OathPower<OathCard>>>) {
         super(game);
-        this.id = id;
+        this.name = name;
         this.powers = new Set<Constructor<OathPower<OathCard>>>();
         for (const power of powers) this.powers.add(power);
     }
@@ -36,7 +36,7 @@ export abstract class OathCard extends ResourcesAndWarbands {
 
     serialize(): Record<string, any> {
         const obj: Record<string, any> = super.serialize();
-        obj.name = this.id;
+        obj.name = this.name;
         obj.facedown = this.facedown;
         obj.seenBy = [...this.seenBy].map(e => e.color);
         return obj;
@@ -100,6 +100,9 @@ export class Site extends OathCard implements CampaignActionTarget {
     reveal(): void {
         super.reveal();
         for (const relic of this.game.relicDeck.draw(this.startingRelics)) relic.putAtSite(this);
+    }
+
+    setupResources(): void {
         for (const [resource, amount] of this.startingResources) this.putResources(resource, amount);
     }
 

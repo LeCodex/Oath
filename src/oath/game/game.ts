@@ -9,7 +9,7 @@ import { relicsData } from "./cards/relics";
 import { sitesData } from "./cards/sites";
 import { BannerName, OathType, OathPhase, OathSuit, RegionName, PlayerColor, OathResource } from "./enums";
 import { Oath, OathTypeToOath } from "./oaths";
-import { Conspiracy, Denizen, GrandScepter, Relic, Site, Vision } from "./cards/cards";
+import { Conspiracy, Denizen, GrandScepter, Relic, Site, Vision, WorldCard } from "./cards/cards";
 import { Chancellor, Exile, OathPlayer } from "./player";
 import { Banner, DarkestSecret, FavorBank, PeoplesFavor } from "./banks";
 import { AbstractConstructor, Constructor, isExtended, WithOriginal } from "./utils";
@@ -19,6 +19,8 @@ import { parseOathTTSSavefileString } from "./parser";
 export class OathGame extends WithOriginal {
     actionManager = new OathActionManager(this);
 
+    name: string;
+    chronicleNumber: number;
     oath: Oath;
     oathkeeper: OathPlayer;
     isUsurper = false;
@@ -48,29 +50,88 @@ export class OathGame extends WithOriginal {
     constructor(seed: string, playerCount: number) {
         super();
         const gameData = parseOathTTSSavefileString(seed);
-        
-        this.oath = new OathTypeToOath[gameData.oath](this);
-        this.oath.setup();
+        this.name = gameData.chronicleName;
+        this.chronicleNumber = gameData.gameCount;
 
         this.archive = {...denizenData};
         this.dispossessed = {};
 
-        // TEMP: Just load every card and shuffle evertyhing for now
-        for (const oath of Object.values(OathTypeToOath)) this.worldDeck.putCard(new Vision(new oath(this)));
-        this.worldDeck.putCard(new Conspiracy(this));
-        for (const [key, data] of Object.entries(this.archive)) {
-            delete this.archive[key];
-            this.worldDeck.putCard(new Denizen(this, key, ...data));
+        for (const cardData of gameData.dispossessed) {
+            const data = this.takeCardDataFromArchive(cardData.name);
+            if (data) this.dispossessed[cardData.name] = data;
         }
-        this.worldDeck.shuffle();
-        
-        for (const [key, data] of Object.entries(relicsData)) this.relicDeck.putCard(new Relic(this, key, ...data));
-        this.relicDeck.shuffle();
 
-        for (const [key, data] of Object.entries(sitesData)) this.siteDeck.putCard(new Site(this, key, ...data));
-        this.siteDeck.shuffle();
+        for (const cardData of gameData.world) {
+            const data = this.takeCardDataFromArchive(cardData.name);
+            if (!data) {
+                let card: WorldCard | undefined = {
+                    Conspiracy: new Conspiracy(this),
+                    Sanctuary: new Vision(new OathTypeToOath[OathType.Protection](this)),
+                    Rebellion: new Vision(new OathTypeToOath[OathType.ThePeople](this)),
+                    Faith: new Vision(new OathTypeToOath[OathType.Devotion](this)),
+                    Conquest: new Vision(new OathTypeToOath[OathType.Supremacy](this))
+                }[cardData.name];
+                    
+                if (card)
+                    this.worldDeck.putCard(card);
+                else
+                    console.warn("Couldn't load " + cardData.name);
+                
+                continue;
+            }
+            this.worldDeck.putCard(new Denizen(this, cardData.name, ...data));
+        }
+        
+        for (const cardData of gameData.relics) {
+            const data = relicsData[cardData.name];
+            if (!data) {
+                console.warn("Couldn't load " + cardData.name);
+                continue;
+            }
+            this.relicDeck.putCard(new Relic(this, cardData.name, ...data));
+        }
 
         this.board = new OathBoard(this);
+        let regionIndex: RegionName = RegionName.Cradle, siteKeys: string[] = [];
+        for (const siteData of gameData.sites) {
+            let key = siteData.name;
+            if (!(key in sitesData)) {
+                const keys = Object.keys(sitesData).filter(e => !siteKeys.includes(e));
+                key = keys[Math.floor(Math.random() * keys.length)];
+                console.warn("Couldn't load " + siteData.name + ", defaulting to a random site: " + key);
+            }
+            siteKeys.push(key);
+            const site = new Site(this, key, ...sitesData[key]);
+            site.facedown = siteData.facedown;
+            if (!site.facedown) site.setupResources();
+
+            for (const denizenOrRelicData of siteData.cards) {
+                const denizen = denizenData[denizenOrRelicData.name];
+                if (denizen) {
+                    const card = new Denizen(this, denizenOrRelicData.name, ...denizen);
+                    card.putAtSite(site);
+                    card.facedown = false;
+                    continue;
+                }
+
+                const relic = relicsData[denizenOrRelicData.name];
+                if (relic) {
+                    new Relic(this, denizenOrRelicData.name, ...relic).putAtSite(site);
+                    continue;
+                }
+                
+                console.warn("Couldn't load " + denizenOrRelicData.name);
+            }
+
+            const region = this.board.regions[regionIndex];
+            region.sites.push(site);
+            if (region.sites.length >= region.size) regionIndex++;
+        }
+
+        for (const region of Object.values(this.board.regions)) {
+            const fromBottom = this.worldDeck.drawSingleCard(true);
+            if (fromBottom) region.discard.putCard(fromBottom);
+        }
 
         const topCradleSite = this.board.regions[RegionName.Cradle].sites[0];
         this.oathkeeper = this.chancellor = new Chancellor(this, topCradleSite);
@@ -95,8 +156,10 @@ export class OathGame extends WithOriginal {
         this.grandScepter.setOwner(this.chancellor);
         this.grandScepter.facedown = false;
 
-        for (const region of Object.values(this.board.regions)) this.chancellor.moveWarbandsFromBagOnto(region.sites[0], 1);
-        this.chancellor.moveWarbandsFromBagOnto(topCradleSite, 1);
+        for (const site of this.board.sites()) 
+            if (site !== topCradleSite && [...site.denizens].filter(e => e.suit !== OathSuit.None).length)
+                this.chancellor.moveWarbandsFromBagOnto(site, 1);
+        this.chancellor.moveWarbandsFromBagOnto(topCradleSite, 2);
         
         // TODO: Take favor from supply
         const startingAmount = playerCount < 5 ? 3 : 4;
@@ -108,9 +171,18 @@ export class OathGame extends WithOriginal {
             [OathSuit.Beast, new FavorBank(this, startingAmount)],
             [OathSuit.Nomad, new FavorBank(this, startingAmount)],
         ]);
+
+        this.oath = new OathTypeToOath[gameData.oath](this);
+        this.oath.setup();
     }
 
     get currentPlayer(): OathPlayer { return this.players[this.order[this.turn]]; }
+
+    takeCardDataFromArchive(key: string) {
+        const data = this.archive[key];
+        if (data) delete this.archive[key];
+        return data;
+    }
 
     getPowers<T extends OathPower<any>>(type: AbstractConstructor<T>): [any, Constructor<T>][] {
         const powers: [any, Constructor<T>][] = [];
@@ -181,6 +253,8 @@ export class OathGame extends WithOriginal {
 
     serialize(): Record<string, any> {
         return {
+            name: this.name,
+            chronicleNumber: this.chronicleNumber,
             oath: this.oath.type,
             oathkeeper: this.oathkeeper.color,
             isUsurper: this.isUsurper,

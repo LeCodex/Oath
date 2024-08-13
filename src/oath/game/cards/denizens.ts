@@ -1,6 +1,6 @@
 import { CardRestriction, OathSuit } from "../enums";
 import { OathPower } from "../powers/powers";
-import { ActingTroupe, Alchemist, Assassin, AwaitedReturn, BookBinders, Bracken, ChaosCult, CharmingFriend, Curfew, Dazzle, Elders, FabledFeast, FamilyWagon, ForcedLabor, GamblingHall, GleamingArmorAttack, GleamingArmorDefense, HeartsAndMinds, Herald, IgnoresCapacity, InsectSwarmAttack, InsectSwarmDefense, Insomnia, Jinx, KeyToTheCity, LongbowArchersAttack, LongbowArchersDefense, LostTongue, LostTongueCampaign, MarriageActionModifier, MarriageEffectModifier, Naysayers, OnlyTwoAdvisers, PiedPiperActive, Portal, RelicThief, RoyalTax, SaddleMakers, ShieldWall, SilverTongue, SleightOfHand, SmallFriends, SpellBreaker, SpiritSnare, ThreateningRoar, TollRoads, Tutor, VowOfObedience, VowOfObedienceRest, VowOfPoverty, VowOfPovertyRest, WayStation } from "../powers/denizens";
+import { ActingTroupe, Alchemist, Assassin, AwaitedReturn, BookBinders, Bracken, ChaosCult, CharmingFriend, Curfew, Dazzle, Elders, FabledFeast, FamilyWagon, ForcedLabor, GamblingHall, GleamingArmorAttack, GleamingArmorDefense, HeartsAndMinds, Herald, IgnoresCapacity, InsectSwarmAttack, InsectSwarmDefense, Insomnia, Jinx, KeyToTheCity, LongbowsAttack, LongbowsDefense, LostTongue, LostTongueCampaign, MarriageActionModifier, MarriageEffectModifier, Naysayers, OnlyTwoAdvisers, PiedPiperActive, Portal, RelicThief, RoyalTax, SaddleMakers, ShieldWall, SilverTongue, SleightOfHand, SmallFriends, SpellBreaker, SpiritSnare, ThreateningRoar, TollRoads, Tutor, VowOfObedience, VowOfObedienceRest, VowOfPoverty, VowOfPovertyRest, WayStation } from "../powers/denizens";
 import { Constructor } from "../utils";
 import { Denizen, Edifice } from "./cards";
 
@@ -26,7 +26,7 @@ export const denizenData: Record<string, DenizenData> = {
     Portal:             [OathSuit.Arcane,   [Portal], CardRestriction.Site],
     ActingTroupe:       [OathSuit.Arcane,   [ActingTroupe], CardRestriction.Adviser],
     
-    LongbowArchers:     [OathSuit.Order,    [LongbowArchersAttack, LongbowArchersDefense]],
+    Longbows:           [OathSuit.Order,    [LongbowsAttack, LongbowsDefense]],
     ShieldWall:         [OathSuit.Order,    [ShieldWall]],
     Curfew:             [OathSuit.Order,    [Curfew], CardRestriction.Site],
     TollRoads:          [OathSuit.Order,    [TollRoads], CardRestriction.Site],

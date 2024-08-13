@@ -6,7 +6,7 @@ import { ResourceBank } from "./banks";
 
 
 export abstract class ResourcesAndWarbands extends OathGameObject {
-    abstract id: string;
+    abstract name: string;
     resources = new Map<OathResource, number>();
     warbands = new Map<OathPlayer, number>();
     

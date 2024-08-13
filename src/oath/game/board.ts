@@ -47,7 +47,7 @@ export class Region extends OathGameObject {
     name: string;
     size: number;
     regionName: RegionName;
-    sites: Site[];
+    sites: Site[] = [];
     discard = new Discard(this.game);
 
     constructor(game: OathGame, name: string, size: number, regionName: RegionName) {
@@ -55,40 +55,6 @@ export class Region extends OathGameObject {
         this.name = name;
         this.size = size;
         this.regionName = regionName;
-
-        this.sites = [];
-        // TEMP: Get random sites and flip the top ones
-        for (let i = 0; i < size; i++) {
-            const site = this.game.siteDeck.drawSingleCard();
-            if (!site) return;
-            this.sites.push(site);
-            site.region = this;
-
-            if (i == 0) {
-                site.reveal();
-                const cards: WorldCard[] = [];
-                while (true) {
-                    const card = this.game.worldDeck.drawSingleCard(true);
-                    if (!card) break;
-                    
-                    if (card instanceof Denizen && card.restriction !== CardRestriction.Adviser) {
-                        card.reveal();
-                        card.putAtSite(site);
-                        break;
-                    } else {
-                        cards.push(card);
-                    }
-                }
-                
-                while (cards.length) {
-                    const card = cards.pop();
-                    if (card) this.game.worldDeck.putCard(card, true);
-                }
-            }
-        }
-
-        const fromBottom = this.game.worldDeck.drawSingleCard(true);
-        if (fromBottom) this.discard.putCard(fromBottom);
     }
 
     serialize(): Record<string, any> {

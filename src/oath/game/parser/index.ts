@@ -188,7 +188,7 @@ export function serializeOathGame(game: OathGameData): string {
   const mapData: string[] = game.sites.map((site) => {
     const siteId = SiteName[site.name];
     const bytes: number[] = [siteId];
-    if (site.ruined && siteId !== SiteName.NONE) {
+    if (site.facedown && siteId !== SiteName.NONE) {
       bytes[0] += 24;
     }
     site.cards.forEach((card) => {
@@ -238,6 +238,7 @@ export function serializeOathGame(game: OathGameData): string {
 
 export function parseOathTTSSavefileString(saveDataString: string): OathGameData {
   let parseOffsetForName = 0;
+  console.log(saveDataString);
 
   function getHexFromStringAsNumber(startIndex: number, endIndex: number): number {
     const parsedString = saveDataString.substring(startIndex, endIndex);
@@ -275,7 +276,7 @@ export function parseOathTTSSavefileString(saveDataString: string): OathGameData
     patch: oathPatch.toString() 
   };
 
-  if(oathMajor < 3 && oathMinor < 1) {
+  if (oathMajor < 3 || oathMajor === 3 && oathMinor < 1) {
     throw new Error('Oath savefile version 3.1.0 is the minimum required.');
   }
 
@@ -310,7 +311,7 @@ export function parseOathTTSSavefileString(saveDataString: string): OathGameData
 
     // parse the oath from the game
     game.oath = getHexByIndex(SavefileDataType.OathType);
-    if(!(game.oath in OathTypeToOath)) throw new Error('Invalid Oath value was found while parsing the savefile.');
+    if(!(game.oath in OathTypeToOath)) throw new Error(`Invalid Oath value was found while parsing the savefile: ${game.oath}`);
 
     // Load suit order. This is unused in retail Oath but still
     // part of the save file format.
@@ -343,7 +344,7 @@ export function parseOathTTSSavefileString(saveDataString: string): OathGameData
 
       return { 
         name: SiteNameIndexes[siteData], 
-        ruined: siteData >= 24,
+        facedown: siteData >= 24,
         cards
       };
     });
@@ -390,7 +391,6 @@ export function parseOathTTSSavefileString(saveDataString: string): OathGameData
   // 3.1.1 adds previous citizenship and winner color
   const parseData_3_1_1 = () => {
     if(oathMajor < 3 || oathMinor < 1 || oathPatch < 1) return;
-    console.log(oathMajor, oathMinor, oathPatch)
 
     // load citizenship
     const prevExileCitizenStatusByte = getHexByIndex(SavefileDataType.ExileCitizenStatusPrev);

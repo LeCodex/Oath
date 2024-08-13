@@ -7,7 +7,7 @@ export interface Card {
 
 export interface Site {
   name: string;
-  ruined: boolean;
+  facedown: boolean;
   cards: Card[];
 }
 

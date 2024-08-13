@@ -10,9 +10,8 @@ export class OathController {
         return this.service.getGames();
     }
 
-    @Post()
-    @UsePipes(new ValidationPipe({ transform: true }))
-    createGame(@Body() seed: string): object {
+    @Post(":seed")
+    createGame(@Param('seed') seed: string): object {
         return this.service.startNewGame(seed);
     }
 
