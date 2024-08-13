@@ -22,7 +22,7 @@ export const sitesData: Record<string, [Constructor<OathPower<Site>>[], number, 
     RockyCoast:     [[CoastalSite],     2],
 
     Plains:         [[],                3],
-    Mountains:      [[],                2, 1, new ResourceCost([], [[OathResource.Favor, 2]])],
+    Mountain:       [[],                2, 1, new ResourceCost([], [[OathResource.Favor, 2]])],
 
     CharmingValley: [[CharmingValley],  3],
     NarrowPass:     [[],                1, 1, new ResourceCost([[OathResource.Favor, 3]]), OathSuit.Arcane],

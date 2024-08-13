@@ -3,9 +3,9 @@ let action = undefined;
 let gameId = undefined;
 let startOptions = undefined;
 
-const SEED = "030303000207Goobers230102012345040329170B1905FF0EFFFFE828FFFFFF2CFFFFFF06FFFFE124FFFFFF2AFFFFFF3634D60E310B1D9A0F270A13D5BA111512251B1CD326D400D2B1AF060414090822242833A302602A1A32160720102E2D1E0D2C180C302F061F21232B013512ECE7DEDDE6E3EADBE4E9DCDAE2EBDFEDE5E0002007UNKNOWN"
 const setup = async () => {
-    const response = await fetch("http://localhost:3000/oath/" + SEED, { 
+    const seed = window.prompt("Please input a TTS seed");
+    const response = await fetch("http://localhost:3000/oath/" + seed, { 
         method: "POST", 
         mode: "cors", 
         headers: { 'Access-Control-Allow-Origin': '*' }

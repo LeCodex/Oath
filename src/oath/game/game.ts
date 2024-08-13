@@ -4,12 +4,12 @@ import { WinGameEffect } from "./effects";
 import { OathPower } from "./powers/powers";
 import { OathBoard } from "./board";
 import { CardDeck, RelicDeck, WorldDeck } from "./cards/decks";
-import { DenizenData, denizenData } from "./cards/denizens";
+import { DenizenData, denizenData, edificeData } from "./cards/denizens";
 import { relicsData } from "./cards/relics";
 import { sitesData } from "./cards/sites";
 import { BannerName, OathType, OathPhase, OathSuit, RegionName, PlayerColor, OathResource } from "./enums";
 import { Oath, OathTypeToOath } from "./oaths";
-import { Conspiracy, Denizen, GrandScepter, Relic, Site, Vision, WorldCard } from "./cards/cards";
+import { Conspiracy, Denizen, Edifice, GrandScepter, Relic, Site, Vision, WorldCard } from "./cards/cards";
 import { Chancellor, Exile, OathPlayer } from "./player";
 import { Banner, DarkestSecret, FavorBank, PeoplesFavor } from "./banks";
 import { AbstractConstructor, Constructor, isExtended, WithOriginal } from "./utils";
@@ -76,9 +76,10 @@ export class OathGame extends WithOriginal {
                     this.worldDeck.putCard(card, true);
                 else
                     console.warn("Couldn't load " + cardData.name);
-                
+
                 continue;
             }
+            
             this.worldDeck.putCard(new Denizen(this, cardData.name, ...data), true);
         }
         
@@ -109,6 +110,15 @@ export class OathGame extends WithOriginal {
                 const denizen = denizenData[denizenOrRelicData.name];
                 if (denizen) {
                     const card = new Denizen(this, denizenOrRelicData.name, ...denizen);
+                    card.putAtSite(site);
+                    card.facedown = false;
+                    continue;
+                }
+
+                const edifice = edificeData[denizenOrRelicData.name];
+                if (edifice) {
+                    const [_, ...data] = edifice;
+                    const card = new Edifice(this, denizenOrRelicData.name, ...data);
                     card.putAtSite(site);
                     card.facedown = false;
                     continue;
