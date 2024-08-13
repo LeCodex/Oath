@@ -912,7 +912,7 @@ export class CheckCapacityEffect extends PlayerEffect<void> {
             const discardable = takesSpaceInTargetProxies.filter(e => !(e instanceof Denizen && e.activelyLocked)).map(e => e.original);
 
             if (excess > discardable.length)
-                throw new InvalidActionResolution(`Cannot satisfy the capacity of ${origin.name}'s cards`);
+                throw new InvalidActionResolution(`Cannot satisfy the capacity of ${origin.id}'s cards`);
             else if (excess)
                 new SearchDiscardAction(origin instanceof OathPlayer ? origin : this.player, discardable, excess, this.discardOptions).doNext();
         }
@@ -1462,10 +1462,10 @@ export class BuildEdificeFromDenizenEffect extends OathEffect<void> {
         if (!this.denizen.site) throw new InvalidActionResolution("Card is not at a site");
         this.site = this.denizen.site;
             
-        for (const [_, ...data] of Object.values(edificeData)) {
+        for (const [key, [_, ...data]] of Object.entries(edificeData)) {
             const suit = data[0];
             if (suit === this.denizen.suit) {
-                this.edifice = new Edifice(this.game, ...data),
+                this.edifice = new Edifice(this.game, key, ...data),
                 this.edifice.putAtSite(this.site);
                 break;
             }
@@ -1493,11 +1493,10 @@ export class FlipEdificeEffect extends OathEffect<void> {
     resolve(): void {
         if (!this.edifice.site) throw new InvalidActionResolution("Card is not at a site (How?)");
 
-        for (const [other, ...data] of Object.values(edificeData)) {
-            const name = data[1];
-            if (name === this.edifice.name) {
+        for (const [key, [other, ...data]] of Object.entries(edificeData)) {
+            if (key === this.edifice.id) {
                 const [_, ...otherData] = edificeData[other];
-                this.newEdifice = new Edifice(this.game, ...otherData);
+                this.newEdifice = new Edifice(this.game, other, ...otherData);
                 this.newEdifice.putAtSite(this.edifice.site);
 
                 for (const [resource, amount] of this.edifice.resources)

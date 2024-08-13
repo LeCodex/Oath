@@ -33,7 +33,7 @@ export class OathGame extends WithOriginal {
     order: PlayerColor[] = [PlayerColor.Purple];
 
     archive: Record<string, DenizenData>;
-    dispossessed: DenizenData[];
+    dispossessed: Record<string, DenizenData>;
 
     banners = new Map<BannerName, Banner>([
         [BannerName.PeoplesFavor, new PeoplesFavor(this, 1)],
@@ -53,21 +53,21 @@ export class OathGame extends WithOriginal {
         this.oath.setup();
 
         this.archive = {...denizenData};
-        this.dispossessed = [];
+        this.dispossessed = {};
 
         // TEMP: Just load every card and shuffle evertyhing for now
         for (const oath of Object.values(OathTypeToOath)) this.worldDeck.putCard(new Vision(new oath(this)));
         this.worldDeck.putCard(new Conspiracy(this));
         for (const [key, data] of Object.entries(this.archive)) {
             delete this.archive[key];
-            this.worldDeck.putCard(new Denizen(this, ...data));
+            this.worldDeck.putCard(new Denizen(this, key, ...data));
         }
         this.worldDeck.shuffle();
         
-        for (const data of Object.values(relicsData)) this.relicDeck.putCard(new Relic(this, ...data));
+        for (const [key, data] of Object.entries(relicsData)) this.relicDeck.putCard(new Relic(this, key, ...data));
         this.relicDeck.shuffle();
 
-        for (const data of Object.values(sitesData)) this.siteDeck.putCard(new Site(this, ...data));
+        for (const [key, data] of Object.entries(sitesData)) this.siteDeck.putCard(new Site(this, key, ...data));
         this.siteDeck.shuffle();
 
         this.board = new OathBoard(this);

@@ -14,14 +14,14 @@ import { DenizenData } from "./denizens";
 
 
 export abstract class OathCard extends ResourcesAndWarbands {
-    name: string;
+    id: string;
     facedown: boolean = true;
     seenBy: Set<OathPlayer> = new Set();
     powers: Set<Constructor<OathPower<OathCard>>>;
 
-    constructor(game: OathGame, name: string, powers: Iterable<Constructor<OathPower<OathCard>>>) {
+    constructor(game: OathGame, id: string, powers: Iterable<Constructor<OathPower<OathCard>>>) {
         super(game);
-        this.name = name;
+        this.id = id;
         this.powers = new Set<Constructor<OathPower<OathCard>>>();
         for (const power of powers) this.powers.add(power);
     }
@@ -36,7 +36,7 @@ export abstract class OathCard extends ResourcesAndWarbands {
 
     serialize(): Record<string, any> {
         const obj: Record<string, any> = super.serialize();
-        obj.name = this.name;
+        obj.name = this.id;
         obj.facedown = this.facedown;
         obj.seenBy = [...this.seenBy].map(e => e.color);
         return obj;
@@ -179,7 +179,7 @@ export class Relic extends OwnableCard implements RecoverActionTarget, CampaignA
     defense: number;
     get force() { return this.owner; }
 
-    constructor(game: OathGame, name: string, powers: Iterable<Constructor<OathPower<Relic>>>, defense: number) {
+    constructor(game: OathGame, name: string, defense: number, powers: Iterable<Constructor<OathPower<Relic>>>) {
         super(game, name, powers);
         this.defense = defense;
     }
@@ -249,9 +249,9 @@ export class Denizen extends WorldCard {
     set suit(_suit: OathSuit) { this._suit = _suit; }
     get ruler() { return super.ruler || this.site?.ruler; }
     get activelyLocked() { return this.locked && !this.facedown; }
-    get data(): DenizenData { return [this._suit, this.name, [...this.powers], this.restriction, this.locked] }
+    get data(): DenizenData { return [this._suit, [...this.powers], this.restriction, this.locked] }
 
-    constructor(game: OathGame, suit: OathSuit, name: string, powers: Iterable<Constructor<OathPower<Denizen>>>, restriction: CardRestriction = CardRestriction.None, locked: boolean = false) {
+    constructor(game: OathGame, name: string, suit: OathSuit, powers: Iterable<Constructor<OathPower<Denizen>>>, restriction: CardRestriction = CardRestriction.None, locked: boolean = false) {
         super(game, name, powers);
         this._suit = suit;
         this.restriction = restriction;

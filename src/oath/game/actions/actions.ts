@@ -216,7 +216,7 @@ export class MusterAction extends MajorAction {
     start() {
         const choices = new Map<string, Denizen>();
         for (const denizenProxy of this.playerProxy.site.denizens)
-            if (denizenProxy.suit !== OathSuit.None && denizenProxy.empty) choices.set(denizenProxy.name, denizenProxy);
+            if (denizenProxy.suit !== OathSuit.None && denizenProxy.empty) choices.set(denizenProxy.id, denizenProxy);
         this.selects.card = new SelectNOf("Card", choices, 1);
         return super.start();
     }
@@ -251,7 +251,7 @@ export class TradeAction extends MajorAction {
         const choices = new Map<string, Denizen>();
         for (const denizenProxy of this.playerProxy.site.denizens)
             if (denizenProxy.suit !== OathSuit.None && denizenProxy.empty)
-                choices.set(denizenProxy.name, denizenProxy);
+                choices.set(denizenProxy.id, denizenProxy);
         this.selects.card = new SelectNOf("Card", choices, 1);
         this.selects.forFavor = new SelectBoolean("Type", ["For favors", "For secrets"]);
         return super.start();
@@ -305,7 +305,7 @@ export class TravelAction extends MajorAction {
         const choices = new Map<string, Site>();
         for (const siteProxy of this.gameProxy.board.sites())
             if (siteProxy !== this.playerProxy.site && this.restriction(siteProxy))
-                choices.set(siteProxy.facedown ? `Facedown ${siteProxy.region.name}` : siteProxy.name, siteProxy);
+                choices.set(siteProxy.facedown ? `Facedown ${siteProxy.region.name}` : siteProxy.id, siteProxy);
         this.selects.site = new SelectNOf("Site", choices, 1);
         return super.start();
     }
@@ -339,7 +339,7 @@ export class RecoverAction extends MajorAction {
 
     start() {
         const choices = new Map<string, RecoverActionTarget>();
-        for (const relicProxy of this.playerProxy.site.relics) if (relicProxy.canRecover(this)) choices.set(relicProxy.name, relicProxy);
+        for (const relicProxy of this.playerProxy.site.relics) if (relicProxy.canRecover(this)) choices.set(relicProxy.id, relicProxy);
         for (const bannerProxy of this.gameProxy.banners.values()) if (bannerProxy.canRecover(this)) choices.set(bannerProxy.name, bannerProxy);
         this.selects.target = new SelectNOf("Target", choices, 1);
         return super.start();
@@ -432,7 +432,7 @@ export class SearchChooseAction extends ModifiableAction {
 
     start() {
         const cardsChoice = new Map<string, WorldCard>();
-        for (const card of this.cards) cardsChoice.set(card.name, card);
+        for (const card of this.cards) cardsChoice.set(card.id, card);
         this.selects.cards = new SelectNOf("Card(s)", cardsChoice, 0, this.playingAmount);
         return super.start();
     }
@@ -470,7 +470,7 @@ export class SearchDiscardAction extends ModifiableAction {
 
     start() {
         const choices = new Map<string, WorldCard>();
-        for (const card of this.cards) choices.set(card.name, card);
+        for (const card of this.cards) choices.set(card.id, card);
         this.selects.cards = new SelectNOf("Card(s)", choices, this.amount);
         return super.start();
     }
@@ -500,14 +500,14 @@ export class SearchPlayAction extends ModifiableAction {
     constructor(player: OathPlayer, card: WorldCard, discardOptions?: DiscardOptions<any>) {
         super(player);
         this.cardProxy = this.maskProxyManager.get(card);
-        this.message = "Play " + this.cardProxy.name;
+        this.message = "Play " + this.cardProxy.id;
         this.discardOptions = discardOptions || new DiscardOptions(player.discard);
     }
 
     start() {
         const sitesChoice = new Map<string, Site | undefined>();
         sitesChoice.set("Advisers", undefined);
-        sitesChoice.set(this.playerProxy.site.name, this.playerProxy.site);
+        sitesChoice.set(this.playerProxy.site.id, this.playerProxy.site);
         this.selects.site = new SelectNOf("Place", sitesChoice, 1);
 
         this.selects.facedown = new SelectBoolean("Orientation", ["Facedown", "Faceup"]);
@@ -587,7 +587,7 @@ export class PeoplesFavorDiscardAction extends OathAction {
         const choices = new Map<string, Denizen>();
         for (const site of this.player.site.region.sites)
             for (const denizen of site.denizens)
-                if (!denizen.activelyLocked) choices.set(denizen.name, denizen);
+                if (!denizen.activelyLocked) choices.set(denizen.id, denizen);
         this.selects.card = new SelectNOf("Card", choices, 0, 1);
         return super.start();
     }
@@ -610,7 +610,7 @@ export class CampaignAction extends MajorAction {
 
     start() {
         const choices = new Map<string, OathPlayer | undefined>();
-        for (const playerProxy of Object.values(this.gameProxy.players)) choices.set(playerProxy.name, playerProxy);
+        for (const playerProxy of Object.values(this.gameProxy.players)) choices.set(playerProxy.id, playerProxy);
         if (this.playerProxy.site.ruler === undefined) choices.set("Bandits", undefined);
         this.selects.defender = new SelectNOf("Defender", choices, 1);
         return super.start();
@@ -662,14 +662,14 @@ export class CampaignAtttackAction extends ModifiableAction {
                 if (this.playerProxy.site === siteProxy) {
                     this.campaignResult.targets.add(siteProxy.original);
                 } else {
-                    choices.set(siteProxy.name, siteProxy);
+                    choices.set(siteProxy.id, siteProxy);
                 }
             }
         }
 
         if (this.defenderProxy && this.defenderProxy.site === this.playerProxy.site) {
-            choices.set("Banish " + this.defenderProxy.name, this.defenderProxy);
-            for (const relicProxy of this.defenderProxy.relics) choices.set(relicProxy.name, relicProxy)
+            choices.set("Banish " + this.defenderProxy.id, this.defenderProxy);
+            for (const relicProxy of this.defenderProxy.relics) choices.set(relicProxy.id, relicProxy)
             for (const bannerProxy of this.defenderProxy.banners) choices.set(bannerProxy.name, bannerProxy);
         }
         this.selects.targets = new SelectNOf("Target(s)", choices, 1 - this.campaignResult.targets.size, choices.size);
@@ -705,7 +705,7 @@ export class CampaignAtttackAction extends ModifiableAction {
 
         for (const allyProxy of allyProxiesCandidates) {
             const ally = allyProxy.original;
-            console.log("Trying allying with", ally.name);
+            console.log("Trying allying with", ally.id);
             if (!this.campaignResult.defenderAllies.has(ally) && allyProxy.leader === this.defenderProxy?.leader)
                 new AskForPermissionAction(ally, () => new CampaignJoinDefenderAlliesEffect(this.campaignResult, ally).do(), "Join as an Imperial Ally?").doNext();
         }
@@ -936,7 +936,7 @@ export class CampaignKillWarbandsInForceAction extends OathAction {
 
     start(): boolean {
         if (this.owner) {
-            const sources: [string, number][] = [...this.force].map(e => [e.name, e.getWarbands(this.owner)]);
+            const sources: [string, number][] = [...this.force].map(e => [e.id, e.getWarbands(this.owner)]);
             for (const [key, warbands] of sources) {
                 const values = [];
                 const min = Math.min(warbands, Math.max(0, this.amount - sources.filter(([k, _]) => k !== key).reduce((a, [_, v]) => a + Math.min(v, this.amount), 0)));
@@ -956,7 +956,7 @@ export class CampaignKillWarbandsInForceAction extends OathAction {
             throw new InvalidActionResolution("Invalid total amount of warbands");
         
         for (const source of this.force) {
-            const killed = new TakeWarbandsIntoBagEffect(this.owner, this.parameters[source.name][0], source).do();
+            const killed = new TakeWarbandsIntoBagEffect(this.owner, this.parameters[source.id][0], source).do();
             if (this.attacker)
                 this.result.attackerLoss += killed;
             else
@@ -970,7 +970,7 @@ export class CampaignBanishPlayerAction extends TravelAction {
 
     constructor(player: OathPlayer, banished: OathPlayer) {
         super(banished, player);
-        this.message = "Choose where to banish " + banished.name;
+        this.message = "Choose where to banish " + banished.id;
     }
 
     execute(): void {
@@ -990,7 +990,7 @@ export class CampaignSeizeSiteAction extends OathAction {
     constructor(player: OathPlayer, site: Site) {
         super(player);
         this.site = site;
-        this.message = "Choose how many warbands to move to " + site.name;
+        this.message = "Choose how many warbands to move to " + site.id;
     }
 
     start() {
@@ -1088,7 +1088,7 @@ export class PlayFacedownAdviserAction extends ModifiableAction {
     start() {
         this.cardProxies = new Set([...this.playerProxy.advisers].filter(e => e.facedown));
         const cardsChoice = new Map<string, WorldCard>();
-        for (const cardProxy of this.cardProxies) cardsChoice.set(cardProxy.name, cardProxy);
+        for (const cardProxy of this.cardProxies) cardsChoice.set(cardProxy.id, cardProxy);
         this.selects.cards = new SelectNOf("Adviser", cardsChoice, 1);
         return super.start();
     }
@@ -1120,13 +1120,13 @@ export class MoveWarbandsAction extends ModifiableAction {
         if (this.playerProxy.isImperial) {
             for (const playerProxy of Object.values(this.gameProxy.players)) {
                 if (playerProxy !== this.playerProxy && playerProxy.isImperial && playerProxy.site === siteProxy) {
-                    choices.set(playerProxy.name, playerProxy);
+                    choices.set(playerProxy.id, playerProxy);
                     max = Math.max(max, playerProxy.getWarbands(playerProxy.leader.original));
                 }
             }
         }
         if (siteProxy.getWarbands(this.playerProxy.leader.original) > 0) {
-            choices.set(siteProxy.name, siteProxy);
+            choices.set(siteProxy.id, siteProxy);
             max = Math.max(max, siteProxy.getWarbands(this.playerProxy.leader.original) - 1);
         }
         this.selects.target = new SelectNOf("Target", choices, 1);
@@ -1157,7 +1157,7 @@ export class MoveWarbandsAction extends ModifiableAction {
         const effect = new MoveOwnWarbandsEffect(this.player, from, to, this.amount);
         if (this.targetProxy instanceof OathPlayer || this.targetProxy.ruler && this.targetProxy.ruler !== this.playerProxy) {
             const askTo = this.targetProxy instanceof OathPlayer ? this.targetProxy : this.targetProxy.ruler;
-            if (askTo) new AskForPermissionAction(askTo.original, () => effect.do(), `Allow ${this.amount} warbands to move from ${from.name} to ${to.name}?`).doNext();
+            if (askTo) new AskForPermissionAction(askTo.original, () => effect.do(), `Allow ${this.amount} warbands to move from ${from.id} to ${to.id}?`).doNext();
         } else {
             effect.do();
         }
@@ -1398,7 +1398,7 @@ export abstract class ChoosePlayer extends OathAction {
         const choices = new Map<string, OathPlayer | undefined>();
         for (const player of this.players)
             if (player !== this.player || this.canChooseSelf)
-                choices.set(player.name, player);
+                choices.set(player.id, player);
         if (none) choices.set(none, undefined);
         this.selects.player = new SelectNOf("Player", choices, 1);
 
@@ -1488,7 +1488,7 @@ export class ConspiracyStealAction extends OathAction {
 
     start() {
         const choices = new Map<string, Relic | Banner>();
-        for (const relic of this.player.relics) choices.set(relic.name, relic);
+        for (const relic of this.player.relics) choices.set(relic.id, relic);
         for (const banner of this.player.banners) choices.set(banner.name, banner);
         this.selects.taking = new SelectNOf("Target", choices, 1);
         return super.start();
@@ -1568,7 +1568,7 @@ export abstract class ChooseSite extends OathAction {
         if (none) choices.set(none, undefined);
         for (const site of this.sites)
             if (!(site === this.player.site && !this.canChooseCurrentSite))
-                choices.set(site.name, site);
+                choices.set(site.id, site);
         this.selects.site = new SelectNOf("Site", choices, 1);
 
         return super.start();
@@ -1664,7 +1664,7 @@ export class CitizenshipOfferAction extends MakeBindingExchangeOfferAction {
         }
 
         const choices = new Map<string, Relic | Banner>();
-        for (const relic of this.other.relics) choices.set(relic.name, relic);
+        for (const relic of this.other.relics) choices.set(relic.id, relic);
         for (const banner of this.other.banners) choices.set(banner.name, banner);
         this.selects.things = new SelectNOf("Relics and banners", choices);
 
@@ -1726,7 +1726,7 @@ export class ChooseSuccessor extends OathAction {
         const choices = new Map<string, OathPlayer>();
         for (const player of Object.values(this.candidates))
             if (player instanceof Exile && player.isCitizen)
-                choices.set(player.name, player);
+                choices.set(player.id, player);
         this.selects.successor = new SelectNOf("Successor", choices);
         return super.start();
     }
@@ -1771,7 +1771,7 @@ export class ChooseNewCitizensAction extends OathAction {
     start() {
         const choices = new Map<string, OathPlayer>();
         const players = new Set(Object.values(this.game.players).filter(e => !e.isImperial && e !== this.player));
-        for (const player of players) choices.set(player.name, player);
+        for (const player of players) choices.set(player.id, player);
         this.selects.players = new SelectNOf("Exile(s)", choices);
         return super.start();
     }
@@ -1798,7 +1798,7 @@ export class BuildOrRepairEdificeAction extends OathAction {
             if (site.ruler?.isImperial)
                 for (const denizen of site.denizens)
                     if (!(denizen instanceof Edifice && denizen.suit !== OathSuit.None))
-                        choices.set(denizen.name, denizen);
+                        choices.set(denizen.id, denizen);
 
         choices.set("None", undefined);
         this.selects.card = new SelectNOf("Card", choices, 1);
@@ -1836,12 +1836,12 @@ export class AddCardsToWorldDeckAction extends ChooseSuit {
     }
 
     getRandomCardDataInArchive(suit: OathSuit): string[] {
-        const cardData: string[] = [];
+        const cardKeys: string[] = [];
         for (const [key, data] of Object.entries(this.game.archive))
-            if (data[0] === suit) cardData.push(key);
+            if (data[0] === suit) cardKeys.push(key);
 
-        shuffleArray(cardData);
-        return cardData;
+        shuffleArray(cardKeys);
+        return cardKeys;
     }
 
     execute(): void {
@@ -1852,15 +1852,15 @@ export class AddCardsToWorldDeckAction extends ChooseSuit {
         const worldDeck = this.game.worldDeck;
         const worldDeckDiscardOptions = new DiscardOptions(worldDeck, false, true);
         for (let i = 3; i >= 1; i--) {
-            const cardData = this.getRandomCardDataInArchive(this.suit);
+            const cardKeys = this.getRandomCardDataInArchive(this.suit);
             for (let j = 0; j < i; j++) {
-                const key = cardData.pop();
+                const key = cardKeys.pop();
                 if (!key) break;
                 const data = this.game.archive[key];
                 if (!data) break;
                 delete this.game.archive[key];
 
-                new DiscardCardEffect(this.player, new Denizen(this.game, ...data), worldDeckDiscardOptions).do();
+                new DiscardCardEffect(this.player, new Denizen(this.game, key, ...data), worldDeckDiscardOptions).do();
             }
 
             this.suit++;
@@ -1890,7 +1890,7 @@ export class AddCardsToWorldDeckAction extends ChooseSuit {
                 new DiscardCardEffect(this.player, card, worldDeckDiscardOptions).do();
                 continue;
             }
-            this.game.dispossessed.push(card.data);
+            this.game.dispossessed[card.id] = card.data;
         }
         const cards = new DrawFromDeckEffect(this.player, firstDiscard, firstDiscard.cards.length).do();
         new DiscardCardGroupEffect(this.player, cards, worldDeckDiscardOptions).do();

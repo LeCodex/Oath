@@ -399,7 +399,7 @@ function lostTongueCheckOwnable(sourceProxy: Denizen, targetProxy: OwnableObject
     if (targetProxy.owner !== sourceProxy.ruler) return;
 
     if (playerProxy.ruledSuitCount(OathSuit.Nomad) < 1)
-        throw new InvalidActionResolution(`Cannot target or take objects from ${sourceProxy.ruler.name} without understanding the Lost Tongue.`);
+        throw new InvalidActionResolution(`Cannot target or take objects from ${sourceProxy.ruler.id} without understanding the Lost Tongue.`);
 }
 
 export class LostTongue extends EnemyEffectModifier<Denizen> {

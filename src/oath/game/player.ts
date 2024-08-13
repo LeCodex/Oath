@@ -18,7 +18,7 @@ export function isOwnable(obj: object): obj is OwnableObject {
 }
 
 export abstract class OathPlayer extends ResourcesAndWarbands implements CampaignActionTarget {
-    name: string;
+    id: string;
     color: PlayerColor;
     warbandsInBag: number;
     supply: number = 7;
@@ -149,10 +149,10 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
 
     serialize(): Record<string, any> {
         const obj: Record<string, any> = super.serialize();
-        obj.name = this.name;
+        obj.name = this.id;
         obj.warbandsInBag = this.warbandsInBag;
         obj.supply = this.supply;
-        obj.site = this.site.name;
+        obj.site = this.site.id;
         obj.advisers = [...this.advisers].map(e => e.serialize())
         obj.relics = [...this.relics].map(e => e.serialize())
         obj.banners = [...this.banners].map(e => e.name)
@@ -161,7 +161,7 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
 }
 
 export class Chancellor extends OathPlayer {
-    name = "Chancellor";
+    id = "Chancellor";
     warbandsInBag = 24;
     reliquary = new Reliquary(this.game);
 
@@ -198,7 +198,7 @@ export class Exile extends OathPlayer {
 
     constructor(game: OathGame, site: Site, color: PlayerColor) {
         super(game, site, color);
-        this.name = "Exile " + color;
+        this.id = "Exile " + color;
     }
 
     get isImperial(): boolean { return this.isCitizen; }
