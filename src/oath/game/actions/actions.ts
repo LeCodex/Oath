@@ -707,7 +707,7 @@ export class CampaignAtttackAction extends ModifiableAction {
             const ally = allyProxy.original;
             console.log("Trying allying with", ally.name);
             if (!this.campaignResult.defenderAllies.has(ally) && allyProxy.leader === this.defenderProxy?.leader)
-                new AskForPermissionAction(ally, new CampaignJoinDefenderAlliesEffect(this.campaignResult, ally)).doNext();
+                new AskForPermissionAction(ally, () => new CampaignJoinDefenderAlliesEffect(this.campaignResult, ally).do(), "Join as an Imperial Ally").doNext();
         }
 
         super.execute();
@@ -808,7 +808,7 @@ export class CampaignResult extends OathGameObject {
 
     attackerLoss: number = 0;
     defenderLoss: number = 0;
-    endEffects: OathEffect<any>[] = [];
+    endFunctions: (() => void)[] = [];
 
     get totalAtkForce() { return [...this.atkForce].reduce((a, e) => a + e.getWarbands(this.attacker.leader.original), 0); }
     get totalDefForce() { return [...this.defForce].reduce((a, e) => a + e.getWarbands(this.defender?.leader.original), 0); }
@@ -827,7 +827,7 @@ export class CampaignResult extends OathGameObject {
     get loserLoss() { return this.successful ? this.defenderLoss : this.attackerLoss; }
 
     discardAtEnd(denizen: Denizen) {
-        this.endEffects.push(new DiscardCardEffect(denizen.ruler || this.attacker, denizen));
+        this.endFunctions.push(() => new DiscardCardEffect(denizen.ruler || this.attacker, denizen).do());
     }
 
     checkForImperialInfighting(maskProxyManager: MaskProxyManager) {
@@ -906,8 +906,8 @@ export class CampaignEndAction extends ModifiableAction {
         if (this.campaignResult.successful)
             for (const target of this.campaignResult.targets) target.seize(this.campaignResult.attacker);
 
-        for (const effect of this.campaignResult.endEffects)
-            effect.doNext();
+        for (const func of this.campaignResult.endFunctions)
+            func();
 
         console.log(this.campaignResult);
     }
@@ -1157,7 +1157,7 @@ export class MoveWarbandsAction extends ModifiableAction {
         const effect = new MoveOwnWarbandsEffect(this.player, from, to, this.amount);
         if (this.targetProxy instanceof OathPlayer || this.targetProxy.ruler && this.targetProxy.ruler !== this.playerProxy) {
             const askTo = this.targetProxy instanceof OathPlayer ? this.targetProxy : this.targetProxy.ruler;
-            if (askTo) new AskForPermissionAction(askTo.original, effect).doNext();
+            if (askTo) new AskForPermissionAction(askTo.original, () => effect.do(), `Move ${this.amount} warbands from ${from.name} to ${to.name}`).doNext();
         } else {
             effect.do();
         }
@@ -1167,13 +1167,14 @@ export class MoveWarbandsAction extends ModifiableAction {
 export class AskForPermissionAction extends OathAction {
     readonly selects: { allow: SelectBoolean };
     readonly parameters: { allow: boolean[] };
-    readonly message = "Do you allow this action?";
+    readonly message;
 
-    effect: OathEffect<any>;
+    func: () => void;
 
-    constructor(player: OathPlayer, effect: OathEffect<any>) {
+    constructor(player: OathPlayer, func: () => void, message: string) {
         super(player);
-        this.effect = effect;
+        this.func = func;
+        this.message = "Do you allow the following: " + message;
     }
 
     start(): boolean {
@@ -1182,7 +1183,7 @@ export class AskForPermissionAction extends OathAction {
     }
 
     execute(): void {
-        if (this.parameters.allow[0]) this.effect.do();
+        if (this.parameters.allow[0]) this.func();
     }
 }
 
@@ -1639,7 +1640,7 @@ export class MakeBindingExchangeOfferAction extends OathAction {
         } else {
             this.effect.resourcesGiven.set(OathResource.Favor, favors);
             this.effect.resourcesGiven.set(OathResource.Secret, secrets);
-            new AskForPermissionAction(this.other, this.effect).doNext();
+            new AskForPermissionAction(this.other, () => this.effect.do(), "Complete the binding exchange").doNext();
         }
     }
 }
@@ -1700,7 +1701,7 @@ export class SkeletonKeyAction extends OathAction {
         const index = this.parameters.index[0];
         const relic = this.game.chancellor.reliquary.relics[index];
         if (relic) new PeekAtCardEffect(this.player, relic).do();
-        new AskForPermissionAction(this.player, new TakeReliquaryRelicEffect(this.player, index)).doNext();
+        new AskForPermissionAction(this.player, () => new TakeReliquaryRelicEffect(this.player, index).do(), "Take the relic").doNext();
     }
 }
 
@@ -1782,7 +1783,7 @@ export class ChooseNewCitizensAction extends OathAction {
                 new BecomeExileEffect(player).do();
         
         for (const citizen of citizens)
-            new AskForPermissionAction(citizen, new BecomeCitizenEffect(citizen)).doNext();
+            new AskForPermissionAction(citizen, () => new BecomeCitizenEffect(citizen).do(), "Become a Citizen").doNext();
     }
 }
 

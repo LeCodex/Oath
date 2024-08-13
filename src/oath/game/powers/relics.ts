@@ -1,7 +1,7 @@
-import { InvalidActionResolution, CitizenshipOfferAction, StartBindingExchangeAction, ExileCitizenAction, SkeletonKeyAction, TradeAction, CampaignAtttackAction, MusterAction, TravelAction } from "../actions/actions";
+import { InvalidActionResolution, CitizenshipOfferAction, StartBindingExchangeAction, ExileCitizenAction, SkeletonKeyAction, TradeAction, CampaignAtttackAction, MusterAction, TravelAction, CampaignResult } from "../actions/actions";
 import { DiscardOptions } from "../cards/decks";
 import { Denizen, GrandScepter, Relic, Site } from "../cards/cards";
-import { TakeOwnableObjectEffect, PutWarbandsFromBagEffect, PlayDenizenAtSiteEffect, CursedCauldronResolutionEffect, MoveOwnWarbandsEffect, PeekAtCardEffect, SetGrandScepterLockEffect, GainSupplyEffect, DiscardCardEffect, DrawFromDeckEffect, RevealCardEffect } from "../effects";
+import { TakeOwnableObjectEffect, PutWarbandsFromBagEffect, PlayDenizenAtSiteEffect, MoveOwnWarbandsEffect, PeekAtCardEffect, SetGrandScepterLockEffect, GainSupplyEffect, DiscardCardEffect, DrawFromDeckEffect, RevealCardEffect } from "../effects";
 import { OathResource } from "../enums";
 import { OwnableObject, OathPlayer, isOwnable, Exile } from "../player";
 import { ResourceCost } from "../resources";
@@ -124,12 +124,16 @@ export class BookOfRecords extends AccessedEffectModifier<Relic> {
     }
 }
 
+function cursedCauldronResolution(result: CampaignResult, player: OathPlayer) {
+    if (result.winner === player)
+        new PutWarbandsFromBagEffect(result.winner, result.loserLoss).do();
+}
 export class CursedCauldronAttack extends AttackerBattlePlan<Relic> {
     name = "Cursed Cauldron";
 
     applyBefore(): void {
         if (!this.sourceProxy.ruler?.original) return;
-        this.action.campaignResult.endEffects.push(new CursedCauldronResolutionEffect(this.sourceProxy.ruler?.original, this.action.campaignResult));
+        this.action.campaignResult.endFunctions.push(() => cursedCauldronResolution(this.action.campaignResult, this.action.player));
     }
 }
 export class CursedCauldronDefense extends DefenderBattlePlan<Relic> {
@@ -137,7 +141,7 @@ export class CursedCauldronDefense extends DefenderBattlePlan<Relic> {
 
     applyBefore(): void {
         if (!this.sourceProxy.ruler?.original) return;
-        this.action.campaignResult.endEffects.push(new CursedCauldronResolutionEffect(this.sourceProxy.ruler?.original, this.action.campaignResult));
+        this.action.campaignResult.endFunctions.push(() => cursedCauldronResolution(this.action.campaignResult, this.action.player));
     }
 }
 

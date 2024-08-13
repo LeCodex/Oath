@@ -1277,24 +1277,6 @@ export class BecomeExileEffect extends PlayerEffect<void> {
 //////////////////////////////////////////////////
 //              SPECIFIC EFFECTS                //
 //////////////////////////////////////////////////
-export class CursedCauldronResolutionEffect extends PlayerEffect<void> {
-    result: CampaignResult;
-
-    constructor(player: OathPlayer, result: CampaignResult) {
-        super(player);
-        this.result = result;
-    }
-
-    resolve(): void {
-        if (this.result.winner === this.player)
-            new PutWarbandsFromBagEffect(this.result.winner, this.result.loserLoss).do();
-    }
-
-    revert(): void {
-        // Doesn't do anything on its own
-    }
-}
-
 export class SetPeoplesFavorMobState extends OathEffect<void> {
     banner: PeoplesFavor;
     state: boolean;
