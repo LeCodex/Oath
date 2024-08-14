@@ -11,8 +11,7 @@ export abstract class ResourcesAndWarbands extends OathGameObject {
     warbands = new Map<OathPlayer, number>();
     
     get empty(): boolean {
-        for (const amount of this.resources.values()) if (amount) return false;
-        return true;
+        return this.totalResources === 0;
     }
 
     get totalWarbands(): number {

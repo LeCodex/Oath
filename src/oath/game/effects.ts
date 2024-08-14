@@ -144,8 +144,7 @@ export class ApplyModifiersEffect extends PlayerEffect<boolean> {
             if (!modifier.applyWhenApplied()) interrupt = true;
 
             // Modifiers can only be applied once
-            // TODO: Standardize objects with powers
-            modifier.sourceProxy.powers?.delete(modifier.constructor as Constructor<ActionModifier<WithPowers>>);
+            modifier.sourceProxy.powers.delete(modifier.constructor as Constructor<ActionModifier<WithPowers>>);
         }
 
         return !interrupt;
@@ -154,7 +153,7 @@ export class ApplyModifiersEffect extends PlayerEffect<boolean> {
     revert(): void {
         for (const modifier of this.actionModifiers) {
             this.action.modifiers.pop();
-            modifier.sourceProxy.powers?.add(modifier.constructor as Constructor<ActionModifier<WithPowers>>);
+            modifier.sourceProxy.powers.add(modifier.constructor as Constructor<ActionModifier<WithPowers>>);
         }
     }
 }

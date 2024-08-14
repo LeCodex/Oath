@@ -1,11 +1,11 @@
-import { TravelAction, InvalidActionResolution, CampaignAtttackAction } from "../../actions/actions";
+import { TravelAction, InvalidActionResolution, CampaignAtttackAction, AskForPermissionAction } from "../../actions/actions";
 import { Denizen, Site, WorldCard } from "../../cards/cards";
-import { PayCostToTargetEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PayPowerCost } from "../../effects";
-import { OathResource, OathSuit } from "../../enums";
+import { PayCostToTargetEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PayPowerCost, BecomeCitizenEffect, GiveOwnableObjectEffect } from "../../effects";
+import { BannerName, OathResource, OathSuit } from "../../enums";
 import { OwnableObject, isOwnable } from "../../interfaces";
 import { OathPlayer } from "../../player";
 import { ResourceCost } from "../../resources";
-import { ActionModifier, EnemyEffectModifier, EnemyActionModifier, ActivePower, CapacityModifier, AttackerBattlePlan, DefenderBattlePlan } from "../powers";
+import { ActionModifier, EnemyEffectModifier, EnemyActionModifier, ActivePower, CapacityModifier, AttackerBattlePlan, DefenderBattlePlan, WhenPlayed } from "../powers";
 
 
 export class HorseArchersAttack extends AttackerBattlePlan<Denizen> {
@@ -29,7 +29,7 @@ export class RivalKhanAttack extends AttackerBattlePlan<Denizen> {
     name = "Rival Khan";
 
     applyBefore(): void {
-        if (this.action.campaignResult.defender?.adviserSuitCount(OathSuit.Nomad)) this.action.campaignResult.atkPool += 4;
+        if (this.action.campaignResult.defender?.suitAdviserCount(OathSuit.Nomad)) this.action.campaignResult.atkPool += 4;
         this.action.campaignResult.discardAtEnd(this.source);
     }
 }
@@ -37,7 +37,7 @@ export class RivalKhanDefense extends DefenderBattlePlan<Denizen> {
     name = "Rival Khan";
 
     applyBefore(): void {
-        if (this.action.campaignResult.attacker?.adviserSuitCount(OathSuit.Nomad)) this.action.campaignResult.atkPool -= 4;
+        if (this.action.campaignResult.attacker?.suitAdviserCount(OathSuit.Nomad)) this.action.campaignResult.atkPool -= 4;
         this.action.campaignResult.discardAtEnd(this.source);
     }
 }
@@ -46,7 +46,7 @@ export class GreatCrusadeAttack extends AttackerBattlePlan<Denizen> {
     name = "Great Crusade";
 
     applyBefore(): void {
-        this.action.campaignResult.atkPool += this.activator.ruledSuitCount(OathSuit.Nomad);
+        this.action.campaignResult.atkPool += this.activator.suitRuledCount(OathSuit.Nomad);
         this.action.campaignResult.discardAtEnd(this.source);
     }
 }
@@ -54,7 +54,7 @@ export class GreatCrusadeDefense extends DefenderBattlePlan<Denizen> {
     name = "Great Crusade";
 
     applyBefore(): void {
-        this.action.campaignResult.atkPool -= this.activator.ruledSuitCount(OathSuit.Nomad);
+        this.action.campaignResult.atkPool -= this.activator.suitRuledCount(OathSuit.Nomad);
         this.action.campaignResult.discardAtEnd(this.source);
     }
 }
@@ -97,7 +97,7 @@ function lostTongueCheckOwnable(sourceProxy: Denizen, targetProxy: OwnableObject
     if (!playerProxy) return;
     if (targetProxy.owner !== sourceProxy.ruler) return;
 
-    if (playerProxy.ruledSuitCount(OathSuit.Nomad) < 1)
+    if (playerProxy.suitRuledCount(OathSuit.Nomad) < 1)
         throw new InvalidActionResolution(`Cannot target or take objects from ${sourceProxy.ruler.name} without understanding the Lost Tongue.`);
 }
 export class LostTongue extends EnemyEffectModifier<Denizen> {
@@ -162,5 +162,20 @@ export class FamilyWagon extends CapacityModifier<Denizen> {
 
     ignoreCapacity(cardProxy: WorldCard): boolean {
         return cardProxy !== this.sourceProxy && cardProxy instanceof Denizen && cardProxy.suit === OathSuit.Nomad;
+    }
+}
+
+export class AncientPact extends WhenPlayed<Denizen> {
+    name = "Ancient Pact";
+
+    whenPlayed(): void {
+        const darkestSecretProxy = this.gameProxy.banners.get(BannerName.DarkestSecret);
+        if (darkestSecretProxy?.owner !== this.effect.playerProxy) return;
+
+        new AskForPermissionAction(this.effect.player, "Give Darkest Secret to become a Citizen?", () => {
+            // TODO: Take a Reliquary relic
+            new GiveOwnableObjectEffect(this.game, this.game.chancellor, darkestSecretProxy.original).do();
+            new BecomeCitizenEffect(this.effect.player).do();
+        });
     }
 }

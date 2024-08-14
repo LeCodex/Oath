@@ -15,7 +15,7 @@ export class ConspiracyPower extends WhenPlayed<Conspiracy> {
                 let totalAdviserSuitCount = 0;
                 for (const adviserProxy of playerProxy.advisers)
                     if (!adviserProxy.facedown && adviserProxy instanceof Denizen)
-                        totalAdviserSuitCount += this.effect.playerProxy.adviserSuitCount(adviserProxy.suit);
+                        totalAdviserSuitCount += this.effect.playerProxy.suitAdviserCount(adviserProxy.suit);
 
                 if (totalAdviserSuitCount >= 2)
                     targets.push(playerProxy);

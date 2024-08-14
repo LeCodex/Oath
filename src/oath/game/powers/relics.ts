@@ -65,7 +65,7 @@ export class CupOfPlenty extends AccessedActionModifier<Relic> {
     action: TradeAction;
 
     applyBefore(): void {
-        if (this.activatorProxy.adviserSuitCount(this.action.cardProxy.suit) > 0) this.action.noSupplyCost = true;
+        if (this.activatorProxy.suitAdviserCount(this.action.cardProxy.suit) > 0) this.action.noSupplyCost = true;
     }
 }
 

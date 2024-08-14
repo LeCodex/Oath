@@ -1,6 +1,6 @@
-import { TradeAction, TakeResourceFromPlayerAction, TakeFavorFromBankAction, CampaignEndAction, ModifiableAction } from "../../actions/actions";
+import { TradeAction, TakeResourceFromPlayerAction, TakeFavorFromBankAction, CampaignEndAction, ModifiableAction, AskForPermissionAction } from "../../actions/actions";
 import { Denizen } from "../../cards/cards";
-import { TakeWarbandsIntoBagEffect, TakeResourcesFromBankEffect, PlayVisionEffect, PlayWorldCardEffect, OathEffect, PeekAtCardEffect, DiscardCardEffect, PutWarbandsFromBagEffect } from "../../effects";
+import { TakeWarbandsIntoBagEffect, TakeResourcesFromBankEffect, PlayVisionEffect, PlayWorldCardEffect, OathEffect, PeekAtCardEffect, DiscardCardEffect, PutWarbandsFromBagEffect, BecomeCitizenEffect } from "../../effects";
 import { OathResource, BannerName, OathSuit } from "../../enums";
 import { ResourceCost } from "../../resources";
 import { DefenderBattlePlan, AccessedActionModifier, ActivePower, WhenPlayed, EnemyEffectModifier, EnemyActionModifier, AccessedEffectModifier, AttackerBattlePlan } from "../powers";
@@ -131,7 +131,7 @@ export class FabledFeast extends WhenPlayed<Denizen> {
     name = "FabledFeast";
 
     whenPlayed(): void {
-        new TakeResourcesFromBankEffect(this.game, this.effect.player, this.game.favorBanks.get(OathSuit.Hearth), this.effect.playerProxy.ruledSuitCount(OathSuit.Hearth)).do();
+        new TakeResourcesFromBankEffect(this.game, this.effect.player, this.game.favorBanks.get(OathSuit.Hearth), this.effect.playerProxy.suitRuledCount(OathSuit.Hearth)).do();
     }
 }
 
@@ -181,8 +181,8 @@ export class MarriageActionModifier extends AccessedActionModifier<Denizen> {
     mustUse = true;
 
     applyWhenApplied(): boolean {
-        const originalFn = this.activatorProxy.adviserSuitCount.bind(this.activatorProxy);
-        this.activatorProxy.adviserSuitCount = (suit: OathSuit) => {
+        const originalFn = this.activatorProxy.suitAdviserCount.bind(this.activatorProxy);
+        this.activatorProxy.suitAdviserCount = (suit: OathSuit) => {
             return originalFn(suit) + (suit === OathSuit.Hearth ? 1 : 0);
         };
         return true;
@@ -196,8 +196,8 @@ export class MarriageEffectModifier extends AccessedEffectModifier<Denizen> {
 
     applyWhenApplied(): void {
         if (!this.effect.playerProxy) return;
-        const originalFn = this.effect.playerProxy.adviserSuitCount.bind(this.effect.playerProxy);
-        this.effect.playerProxy.adviserSuitCount = (suit: OathSuit) => {
+        const originalFn = this.effect.playerProxy.suitAdviserCount.bind(this.effect.playerProxy);
+        this.effect.playerProxy.suitAdviserCount = (suit: OathSuit) => {
             return originalFn(suit) + (suit === OathSuit.Hearth ? 1 : 0);
         };
     }
@@ -211,5 +211,15 @@ export class TavernSongs extends ActivePower<Denizen> {
             const card = this.action.player.site.region.discard.cards[i];
             if (card) new PeekAtCardEffect(this.action.player, card).do();
         }
+    }
+}
+
+export class BallotBox extends ActivePower<Denizen> {
+    name = "Ballot Box";
+
+    usePower(): void {
+        const peoplesFavorProxy = this.gameProxy.banners.get(BannerName.PeoplesFavor);
+        if (peoplesFavorProxy?.owner !== this.action.playerProxy) return;
+        new AskForPermissionAction(this.action.player, "Become a Citizen?", () => new BecomeCitizenEffect(this.action.player).do());
     }
 }

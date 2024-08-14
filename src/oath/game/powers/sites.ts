@@ -136,7 +136,7 @@ export class OpportunitySite extends SiteActionModifier {
     action: WakeAction;
 
     canUse(): boolean {
-        return super.canUse() && this.source.totalResources > 0;
+        return super.canUse() && !this.source.empty;
     }
 
     applyBefore(): void {

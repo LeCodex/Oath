@@ -1,6 +1,6 @@
-import { SearchAction, CampaignAtttackAction, CampaignDefenseAction, TradeAction, TakeFavorFromBankAction, PiedPiperAction, InvalidActionResolution, ActAsIfAtSiteAction } from "../../actions/actions";
+import { SearchAction, CampaignAtttackAction, CampaignDefenseAction, TradeAction, TakeFavorFromBankAction, PiedPiperAction, InvalidActionResolution, ActAsIfAtSiteAction, AskForPermissionAction } from "../../actions/actions";
 import { Denizen, Site } from "../../cards/cards";
-import { RegionDiscardEffect } from "../../effects";
+import { BecomeCitizenEffect, RegionDiscardEffect } from "../../effects";
 import { OathResource, OathSuit } from "../../enums";
 import { ResourceCost } from "../../resources";
 import { AccessedActionModifier, ActionModifier, AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, RestPower, ActivePower } from "../powers";
@@ -11,7 +11,7 @@ export class NatureWorshipAttack extends AttackerBattlePlan<Denizen> {
     cost = new ResourceCost([[OathResource.Secret, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.atkPool += this.activator.adviserSuitCount(OathSuit.Beast);
+        this.action.campaignResult.atkPool += this.activator.suitAdviserCount(OathSuit.Beast);
     }
 }
 export class NatureWorshipDefense extends DefenderBattlePlan<Denizen> {
@@ -19,7 +19,7 @@ export class NatureWorshipDefense extends DefenderBattlePlan<Denizen> {
     cost = new ResourceCost([[OathResource.Secret, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.atkPool -= this.activator.adviserSuitCount(OathSuit.Beast);
+        this.action.campaignResult.atkPool -= this.activator.suitAdviserCount(OathSuit.Beast);
     }
 }
 
@@ -153,5 +153,13 @@ export class SmallFriends extends AccessedActionModifier<Denizen> {
 
         new ActAsIfAtSiteAction(this.activator, this.action, sites).doNext();
         return false;
+    }
+}
+
+export class LongLostHeir extends WhenPlayed<Denizen> {
+    name = "Long-Lost Heir";
+
+    whenPlayed(): void {
+        new AskForPermissionAction(this.effect.player, "Become a Citizen?", () => new BecomeCitizenEffect(this.effect.player).doNext());
     }
 }

@@ -1,12 +1,12 @@
 import { CardRestriction, OathSuit } from "../enums";
 import { OathPower } from "../powers/powers";
 import { IgnoresCapacity } from "../powers/denizens/denizens";
-import { Assassin, BookBurning, ChaosCult, Charlatan, CrackedSageAttack, CrackedSageDefense, DisgracedCaptain, Dissent, GamblingHall, Insomnia, KeyToTheCity, MercenariesAttack, MercenariesDefense, Naysayers, OnlyTwoAdvisers, RelicThief, SilverTongue, Slander, SleightOfHand } from "../powers/denizens/discord";
-import { ActingTroupe, Alchemist, BillowingFogAttack, BillowingFogDefense, CrackingGroundAttack, Dazzle, FireTalkersAttack, FireTalkersDefense, GleamingArmorAttack, GleamingArmorDefense, Jinx, KindredWarriorsAttack, KindredWarriorsDefense, Portal, SpiritSnare, Tutor } from "../powers/denizens/arcane";
+import { Assassin, BookBurning, ChaosCult, Charlatan, CrackedSageAttack, CrackedSageDefense, DisgracedCaptain, Dissent, GamblingHall, Insomnia, KeyToTheCity, MercenariesAttack, MercenariesDefense, Naysayers, OnlyTwoAdvisers, RelicThief, RoyalAmbitions, SilverTongue, Slander, SleightOfHand } from "../powers/denizens/discord";
+import { ActingTroupe, Alchemist, Bewitch, BillowingFogAttack, BillowingFogDefense, CrackingGroundAttack, Dazzle, FireTalkersAttack, FireTalkersDefense, GleamingArmorAttack, GleamingArmorDefense, Jinx, KindredWarriorsAttack, KindredWarriorsDefense, Portal, SpiritSnare, Tutor } from "../powers/denizens/arcane";
 import { BanditRampart, BattleHonorsAttack, BattleHonorsDefense, BearTraps, Curfew, EncirclementAttack, EncirclementDefense, FieldPromotionAttack, ForcedLabor, Keep, LongbowsAttack, LongbowsDefense, MartialCultureAttack, MartialCultureDefense, MilitaryParadeAttack, MilitaryParadeDefense, Outriders, RoyalTax, Scouts, ShieldWall, TollRoads, VowOfObedience, VowOfObedienceRest, Wrestlers } from "../powers/denizens/order";
-import { AwaitedReturn, BookBinders, CharmingFriend, ExtraProvisions, FabledFeast, HeartsAndMinds, Herald, HospitalAttack, HospitalDefense, MarriageActionModifier, MarriageEffectModifier, SaddleMakers, TavernSongs, TheGreatLevyAttack, TheGreatLevyDefense, TravelingDoctorAttack, TravelingDoctorDefense, VillageConstableAttack, VillageConstableDefense } from "../powers/denizens/hearth";
-import { Bracken, InsectSwarmAttack, InsectSwarmDefense, NatureWorshipAttack, NatureWorshipDefense, PiedPiper, Rangers, SmallFriends, ThreateningRoar, VowOfPoverty, VowOfPovertyRest, WalledGarden } from "../powers/denizens/beast";
-import { Elders, FamilyWagon, GreatCrusadeAttack, GreatCrusadeDefense, HorseArchersAttack, HorseArchersDefense, LostTongue, LostTongueCampaign, MountedPatrol, RivalKhanAttack, RivalKhanDefense, SpellBreaker, StormCaller, WayStation } from "../powers/denizens/nomad";
+import { AwaitedReturn, BallotBox, BookBinders, CharmingFriend, ExtraProvisions, FabledFeast, HeartsAndMinds, Herald, HospitalAttack, HospitalDefense, MarriageActionModifier, MarriageEffectModifier, SaddleMakers, TavernSongs, TheGreatLevyAttack, TheGreatLevyDefense, TravelingDoctorAttack, TravelingDoctorDefense, VillageConstableAttack, VillageConstableDefense } from "../powers/denizens/hearth";
+import { Bracken, InsectSwarmAttack, InsectSwarmDefense, LongLostHeir, NatureWorshipAttack, NatureWorshipDefense, PiedPiper, Rangers, SmallFriends, ThreateningRoar, VowOfPoverty, VowOfPovertyRest, WalledGarden } from "../powers/denizens/beast";
+import { AncientPact, Elders, FamilyWagon, GreatCrusadeAttack, GreatCrusadeDefense, HorseArchersAttack, HorseArchersDefense, LostTongue, LostTongueCampaign, MountedPatrol, RivalKhanAttack, RivalKhanDefense, SpellBreaker, StormCaller, WayStation } from "../powers/denizens/nomad";
 import { Constructor } from "../utils";
 import { Denizen, Edifice } from "./cards";
 
@@ -25,7 +25,7 @@ export const denizenData: Record<string, DenizenData> = {
     VowOfRenewal:       [OathSuit.Discord,  [], CardRestriction.Adviser, true],
     FalseProphet:       [OathSuit.Discord,  [], CardRestriction.Adviser, true],
     ASmallFavor:        [OathSuit.Discord,  [], CardRestriction.Adviser, true],
-    RoyalAmbitions:     [OathSuit.Discord,  [], CardRestriction.Adviser, true],
+    RoyalAmbitions:     [OathSuit.Discord,  [RoyalAmbitions], CardRestriction.Adviser, true],
     GamblingHall:       [OathSuit.Discord,  [GamblingHall], CardRestriction.Site],
     Gossip:             [OathSuit.Discord,  [], CardRestriction.Site],
     BanditChief:        [OathSuit.Discord,  [], CardRestriction.Site],
@@ -79,7 +79,7 @@ export const denizenData: Record<string, DenizenData> = {
     WitchsBargain:      [OathSuit.Arcane,   []],
     Dazzle:             [OathSuit.Arcane,   [Dazzle]],
     Revelation:         [OathSuit.Arcane,   []],
-    Bewitch:            [OathSuit.Arcane,   []],
+    Bewitch:            [OathSuit.Arcane,   [Bewitch]],
     
     Palanquin:          [OathSuit.Order,    [], CardRestriction.Adviser],
     Tyrant:             [OathSuit.Order,    [], CardRestriction.Adviser, true],
@@ -129,7 +129,7 @@ export const denizenData: Record<string, DenizenData> = {
     WaysideInn:         [OathSuit.Hearth,   [], CardRestriction.Site],
     WelcomingParty:     [OathSuit.Hearth,   [], CardRestriction.Site],
     ArmedMob:           [OathSuit.Hearth,   [], CardRestriction.Site],
-    BallotBox:          [OathSuit.Hearth,   [], CardRestriction.Site],
+    BallotBox:          [OathSuit.Hearth,   [BallotBox], CardRestriction.Site],
     RowdyPub:           [OathSuit.Hearth,   [], CardRestriction.Site],
     ARoundOfAle:        [OathSuit.Hearth,   [], CardRestriction.Site, true],
     ExtraProvisions:    [OathSuit.Hearth,   [ExtraProvisions]],
@@ -155,7 +155,7 @@ export const denizenData: Record<string, DenizenData> = {
     AnimalPlaymates:    [OathSuit.Beast,    [], CardRestriction.Adviser],
     TrueNames:          [OathSuit.Beast,    [], CardRestriction.Adviser],
     Birdsong:           [OathSuit.Beast,    [], CardRestriction.Adviser],
-    LongLostHeir:       [OathSuit.Beast,    [], CardRestriction.Adviser, true],
+    LongLostHeir:       [OathSuit.Beast,    [LongLostHeir], CardRestriction.Adviser, true],
     VowOfPoverty:       [OathSuit.Beast,    [VowOfPoverty, VowOfPovertyRest], CardRestriction.Adviser, true],
     VowOfUnion:         [OathSuit.Beast,    [], CardRestriction.Adviser, true],
     VowOfBeastkin:      [OathSuit.Beast,    [], CardRestriction.Adviser, true],
@@ -190,7 +190,7 @@ export const denizenData: Record<string, DenizenData> = {
     Pilgrimage:         [OathSuit.Nomad,    [], CardRestriction.Adviser],
     TwinBrother:        [OathSuit.Nomad,    [], CardRestriction.Adviser],
     FaithfulFriend:     [OathSuit.Nomad,    [], CardRestriction.Adviser, true],
-    AncientPact:        [OathSuit.Nomad,    [], CardRestriction.Adviser, true],
+    AncientPact:        [OathSuit.Nomad,    [AncientPact], CardRestriction.Adviser, true],
     VowOfKinship:       [OathSuit.Nomad,    [], CardRestriction.Adviser, true],
     WayStation:         [OathSuit.Nomad,    [WayStation], CardRestriction.Site],
     SpellBreaker:       [OathSuit.Nomad,    [SpellBreaker], CardRestriction.Site],

@@ -274,7 +274,7 @@ export class TradeAction extends MajorAction {
             throw new InvalidActionResolution("Cannot pay resource cost.");
 
         const resource = this.forFavor ? OathResource.Favor : OathResource.Secret;
-        this.getting.set(resource, (this.getting.get(resource) || 0) + this.playerProxy.adviserSuitCount(this.cardProxy.suit));
+        this.getting.set(resource, (this.getting.get(resource) || 0) + this.playerProxy.suitAdviserCount(this.cardProxy.suit));
 
         new TakeResourcesFromBankEffect(this.game, this.player, this.gameProxy.favorBanks.get(this.cardProxy.suit)?.original, this.getting.get(OathResource.Favor) || 0).do();
         new PutResourcesOnTargetEffect(this.game, this.player, OathResource.Secret, this.getting.get(OathResource.Secret) || 0).do();
@@ -1821,7 +1821,7 @@ export class AddCardsToWorldDeckAction extends ChooseSuit {
     start(none?: string): boolean {
         let max = 0;
         for (let i: OathSuit = 0; i < 6; i++) {
-            const count = this.player.adviserSuitCount(i);
+            const count = this.player.suitAdviserCount(i);
             if (count >= max) {
                 max = count;
                 this.suits.clear();

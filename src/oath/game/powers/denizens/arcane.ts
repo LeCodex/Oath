@@ -1,6 +1,6 @@
-import { CampaignAtttackAction, CampaignDefenseAction, TakeFavorFromBankAction, TradeAction, AskForRerollAction, TravelAction, InvalidActionResolution } from "../../actions/actions";
+import { CampaignAtttackAction, CampaignDefenseAction, TakeFavorFromBankAction, TradeAction, AskForRerollAction, TravelAction, InvalidActionResolution, AskForPermissionAction } from "../../actions/actions";
 import { Denizen, Site } from "../../cards/cards";
-import { RegionDiscardEffect, PutResourcesOnTargetEffect, RollDiceEffect } from "../../effects";
+import { RegionDiscardEffect, PutResourcesOnTargetEffect, RollDiceEffect, BecomeCitizenEffect } from "../../effects";
 import { BannerName, OathResource, OathSuit } from "../../enums";
 import { ResourceCost } from "../../resources";
 import { ActionModifier, AttackerBattlePlan, DefenderBattlePlan, ActivePower, WhenPlayed, AccessedActionModifier, EffectModifier } from "../powers";
@@ -50,7 +50,7 @@ export class KindredWarriorsAttack extends AttackerBattlePlan<Denizen> {
 
     applyBefore(): void {
         this.action.campaignResult.ignoreSkulls = true;
-        this.action.campaignResult.atkPool += (this.activator.suitsRuled - 1);
+        this.action.campaignResult.atkPool += (this.activator.ruledSuits - 1);
     }
 }
 export class KindredWarriorsDefense extends DefenderBattlePlan<Denizen> {
@@ -58,7 +58,7 @@ export class KindredWarriorsDefense extends DefenderBattlePlan<Denizen> {
     cost = new ResourceCost([[OathResource.Secret, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.atkPool -= (this.activator.suitsRuled - 1);
+        this.action.campaignResult.atkPool -= (this.activator.ruledSuits - 1);
     }
 }
 
@@ -193,5 +193,14 @@ export class Portal extends AccessedActionModifier<Denizen> {
             throw new InvalidActionResolution("When using the Portal, you must travel to or from its site");
 
         this.action.noSupplyCost = true;
+    }
+}
+
+export class Bewitch extends WhenPlayed<Denizen> {
+    name = "Bewitch";
+
+    whenPlayed(): void {
+        if (this.effect.playerProxy.getAllResources(OathResource.Secret) > this.gameProxy.chancellor.getResources(OathResource.Secret))
+            new AskForPermissionAction(this.effect.player, "Become a Citizen?", () => new BecomeCitizenEffect(this.effect.player).do());
     }
 }

@@ -32,12 +32,41 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
     get isImperial(): boolean { return false; }
     get leader(): OathPlayer { return this.isImperial ? this.game.chancellor : this; }
     get discard(): Discard { return this.game.board.nextRegion(this.site.region).discard; }
-    get suitsRuled(): number { return [0, 1, 2, 3, 4, 5].reduce((a, e) => a + this.ruledSuitCount(e) > 0 ? 1 : 0, 0); }
+    get ruledSuits(): number { return [0, 1, 2, 3, 4, 5].reduce((a, e) => a + (this.suitRuledCount(e) > 0 ? 1 : 0), 0); }
+    get ruledSites(): number { return [...this.game.board.sites()].reduce((a, e) => a + (e.ruler === this ? 1 : 0), 0); }
 
-    adviserSuitCount(suit: OathSuit): number {
+    getAllResources(resource: OathResource): number {
+        let amount = this.getResources(resource);
+        for (const site of this.game.board.sites())
+            for (const denizen of site.denizens)
+                amount += denizen.getResources(resource);
+
+        for (const player of Object.values(this.game.players)) {
+            for (const adviser of player.advisers)
+                amount += adviser.getResources(resource);
+
+            for (const relic of player.relics)
+                amount += relic.getResources(resource);
+        }
+
+        return amount;
+    }
+
+    suitAdviserCount(suit: OathSuit): number {
         let total = 0;
         for (const adviser of this.advisers) if (!adviser.facedown && adviser instanceof Denizen && adviser.suit === suit) total++;
         return total;
+    }
+
+    suitRuledCount(suit: OathSuit): number {
+        let total = 0;
+        for (const site of this.game.board.sites()) {
+            for (const denizen of site.denizens) {
+                if (denizen.ruler === this) total++;
+            }
+        }
+
+        return this.suitAdviserCount(suit) + total;
     }
 
     rules(card: OwnableCard) {
@@ -77,17 +106,6 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
     removeAdviser(card: WorldCard): WorldCard {
         this.advisers.delete(card);
         return card;
-    }
-
-    ruledSuitCount(suit: OathSuit): number {
-        let total = 0;
-        for (const site of this.game.board.sites()) {
-            for (const denizen of site.denizens) {
-                if (denizen.ruler === this) total++;
-            }
-        }
-
-        return this.adviserSuitCount(suit) + total;
     }
 
     addRelic(relic: Relic) {

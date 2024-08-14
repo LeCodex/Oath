@@ -1,7 +1,7 @@
-import { TakeFavorFromBankAction, TakeResourceFromPlayerAction } from "../../actions/actions";
+import { AskForPermissionAction, TakeFavorFromBankAction, TakeResourceFromPlayerAction } from "../../actions/actions";
 import { Denizen, Relic, Site, WorldCard } from "../../cards/cards";
 import { DefenseDie } from "../../dice";
-import { TakeOwnableObjectEffect, TakeWarbandsIntoBagEffect, PutWarbandsFromBagEffect, PutResourcesOnTargetEffect, MoveResourcesToTargetEffect, SetNewOathkeeperEffect, RollDiceEffect, GamblingHallEffect, TakeResourcesFromBankEffect, DiscardCardEffect } from "../../effects";
+import { TakeOwnableObjectEffect, TakeWarbandsIntoBagEffect, PutWarbandsFromBagEffect, PutResourcesOnTargetEffect, MoveResourcesToTargetEffect, SetNewOathkeeperEffect, RollDiceEffect, GamblingHallEffect, TakeResourcesFromBankEffect, DiscardCardEffect, BecomeCitizenEffect } from "../../effects";
 import { BannerName, OathResource, OathSuit } from "../../enums";
 import { OathPlayer } from "../../player";
 import { ResourceCost } from "../../resources";
@@ -214,6 +214,26 @@ export class Dissent extends WhenPlayed<Denizen> {
         const peoplesFavorProxy = this.gameProxy.banners.get(BannerName.PeoplesFavor);
         for (const playerProxy of Object.values(this.gameProxy.players))
             if (peoplesFavorProxy?.owner !== playerProxy)
-                new MoveResourcesToTargetEffect(this.game, playerProxy.original, OathResource.Favor, playerProxy.suitsRuled, this.source);
+                new MoveResourcesToTargetEffect(this.game, playerProxy.original, OathResource.Favor, playerProxy.ruledSuits, this.source);
+    }
+}
+
+export class ASmallFavor extends WhenPlayed<Denizen> {
+    name = "ASmallFavor";
+
+    whenPlayed(): void {
+        new PutWarbandsFromBagEffect(this.effect.player, 4).do();
+    }
+}
+
+export class RoyalAmbitions extends WhenPlayed<Denizen> {
+    name = "Royal Ambitions";
+
+    whenPlayed(): void {
+        if (this.effect.playerProxy.ruledSites > this.gameProxy.chancellor.ruledSites)
+            new AskForPermissionAction(this.effect.player, "Become a Citizen?", () => {
+                // TODO: Take a reliquary relic
+                new BecomeCitizenEffect(this.effect.player).do(); 
+            });
     }
 }

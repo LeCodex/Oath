@@ -57,7 +57,7 @@ export class BattleHonorsDefense extends DefenderBattlePlan<Denizen> {
 function militaryParadeResolution(campaignResult: CampaignResult, activator: OathPlayer) {
     if (campaignResult.loser)
         for (let i = OathSuit.Discord; i <= OathSuit.Nomad; i++)
-            new TakeResourcesFromBankEffect(activator.game, activator, activator.game.favorBanks.get(i), campaignResult.loser.adviserSuitCount(i)).do();
+            new TakeResourcesFromBankEffect(activator.game, activator, activator.game.favorBanks.get(i), campaignResult.loser.suitAdviserCount(i)).do();
 }
 export class MilitaryParadeAttack extends AttackerBattlePlan<Denizen> {
     name = "Military Parade";

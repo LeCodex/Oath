@@ -125,7 +125,7 @@ export class DarkestSecret extends Banner {
         if (!this.owner || this.owner === action.player) return true;
 
         for (const denizen of this.owner.site.denizens) {
-            if (this.owner.adviserSuitCount(denizen.suit) === 0) {
+            if (this.owner.suitAdviserCount(denizen.suit) === 0) {
                 return true;
             }
         }
