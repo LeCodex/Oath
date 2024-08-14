@@ -1,10 +1,9 @@
-import { InvalidActionResolution, ChooseResourceToTakeAction, WakeAction, TravelAction, ModifiableAction, CampaignAtttackAction } from "../actions/actions";
+import { InvalidActionResolution, ChooseResourceToTakeAction, WakeAction, TravelAction, ModifiableAction, CampaignAtttackAction, MusterAction, SearchAction } from "../actions/actions";
 import { Site, Denizen } from "../cards/cards";
 import { PlayWorldCardEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PutWarbandsFromBagEffect, TakeResourcesFromBankEffect } from "../effects";
 import { OathSuit, OathResource } from "../enums";
 import { isAtSite } from "../interfaces";
 import { OathPlayer } from "../player";
-import { AbstractConstructor } from "../utils";
 import { EffectModifier, ActionModifier } from "./powers";
 
 
@@ -149,6 +148,7 @@ export class Plains extends SiteActionModifier {
     name = "Plains";
     modifiedAction = CampaignAtttackAction;
     action: CampaignAtttackAction;
+    mustUse = true;
 
     applyBefore(): void {
         for (const target of this.action.campaignResult.targets) {
@@ -164,6 +164,7 @@ export class Mountain extends SiteActionModifier {
     name = "Mountain";
     modifiedAction = CampaignAtttackAction;
     action: CampaignAtttackAction;
+    mustUse = true;
 
     applyBefore(): void {
         for (const target of this.action.campaignResult.targets) {
@@ -172,5 +173,27 @@ export class Mountain extends SiteActionModifier {
                 return
             }
         }
+    }
+}
+
+export class River extends SiteActionModifier {
+    name = "River";
+    modifiedAction = MusterAction;
+    action: MusterAction;
+    mustUse = true;
+
+    applyBefore(): void {
+        if (this.action.playerProxy === this.sourceProxy.ruler) this.action.amount++;
+    }
+}
+
+export class Marshes extends SiteActionModifier {
+    name = "Marshes";
+    modifiedAction = SearchAction;
+    action: SearchAction;
+    mustUse = true;
+
+    applyBefore(): void {
+        this.action.amount--;
     }
 }
