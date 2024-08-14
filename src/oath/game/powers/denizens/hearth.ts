@@ -1,10 +1,83 @@
 import { TradeAction, TakeResourceFromPlayerAction, TakeFavorFromBankAction, CampaignEndAction, ModifiableAction } from "../../actions/actions";
 import { Denizen } from "../../cards/cards";
-import { TakeWarbandsIntoBagEffect, TakeResourcesFromBankEffect, PlayVisionEffect, PlayWorldCardEffect, OathEffect, PeekAtCardEffect } from "../../effects";
+import { TakeWarbandsIntoBagEffect, TakeResourcesFromBankEffect, PlayVisionEffect, PlayWorldCardEffect, OathEffect, PeekAtCardEffect, DiscardCardEffect, PutWarbandsFromBagEffect } from "../../effects";
 import { OathResource, BannerName, OathSuit } from "../../enums";
 import { ResourceCost } from "../../resources";
-import { DefenderBattlePlan, AccessedActionModifier, ActivePower, WhenPlayed, EnemyEffectModifier, EnemyActionModifier, AccessedEffectModifier } from "../powers";
+import { DefenderBattlePlan, AccessedActionModifier, ActivePower, WhenPlayed, EnemyEffectModifier, EnemyActionModifier, AccessedEffectModifier, AttackerBattlePlan } from "../powers";
 
+
+export class TravelingDoctorAttack extends AttackerBattlePlan<Denizen> {
+    name = "Traveling Doctor";
+
+    applyBefore(): void {
+        this.action.campaignResult.attackerKillsNoWarbands = true;
+        this.action.campaignResult.onSuccessful(false, () => new DiscardCardEffect(this.activator, this.source).do());
+    }
+}
+export class TravelingDoctorDefense extends DefenderBattlePlan<Denizen> {
+    name = "Traveling Doctor";
+
+    applyBefore(): void {
+        this.action.campaignResult.defenderKillsNoWarbands = true;
+        this.action.campaignResult.onSuccessful(true, () => new DiscardCardEffect(this.activator, this.source).do());
+    }
+}
+
+export class VillageConstableAttack extends AttackerBattlePlan<Denizen> {
+    name = "Village Constable";
+
+    applyBefore(): void {
+        const peoplesFavorProxy = this.gameProxy.banners.get(BannerName.PeoplesFavor);
+        if (peoplesFavorProxy?.owner?.original === this.action.campaignResult.defender) return;
+        this.action.campaignResult.atkPool += 2;
+    }
+}
+export class VillageConstableDefense extends DefenderBattlePlan<Denizen> {
+    name = "Village Constable";
+
+    applyBefore(): void {
+        const peoplesFavorProxy = this.gameProxy.banners.get(BannerName.PeoplesFavor);
+        if (peoplesFavorProxy?.owner?.original === this.action.campaignResult.attacker) return;
+        this.action.campaignResult.atkPool -= 2;
+    }
+}
+
+export class TheGreatLevyAttack extends AttackerBattlePlan<Denizen> {
+    name = "The Great Levy";
+    cost = new ResourceCost([[OathResource.Favor, 2]]);
+
+    applyBefore(): void {
+        const peoplesFavorProxy = this.gameProxy.banners.get(BannerName.PeoplesFavor);
+        if (peoplesFavorProxy?.owner?.original === this.action.campaignResult.defender) return;
+        this.action.campaignResult.atkPool += 3;
+        this.action.campaignResult.ignoreSkulls = true;
+    }
+}
+export class TheGreatLevyDefense extends DefenderBattlePlan<Denizen> {
+    name = "The Great Levy";
+    cost = new ResourceCost([[OathResource.Favor, 2]]);
+
+    applyBefore(): void {
+        const peoplesFavorProxy = this.gameProxy.banners.get(BannerName.PeoplesFavor);
+        if (peoplesFavorProxy?.owner?.original === this.action.campaignResult.attacker) return;
+        this.action.campaignResult.atkPool -= 3;
+    }
+}
+
+export class HospitalAttack extends AttackerBattlePlan<Denizen> {
+    name = "Hospital";
+
+    applyBefore(): void {
+        new PutWarbandsFromBagEffect(this.activator, this.action.campaignResult.attackerLoss, this.source.site);
+    }
+}
+export class HospitalDefense extends DefenderBattlePlan<Denizen> {
+    name = "Hospital";
+
+    applyBefore(): void {
+        new PutWarbandsFromBagEffect(this.activator, this.action.campaignResult.defenderLoss, this.source.site);
+    }
+}
 
 export class HeartsAndMinds extends DefenderBattlePlan<Denizen> {
     name = "Hearts and Minds";
@@ -15,10 +88,19 @@ export class HeartsAndMinds extends DefenderBattlePlan<Denizen> {
         this.action.campaignResult.successful = false;
         this.action.next.doNext();
 
-        if (this.action.gameProxy.banners.get(BannerName.PeoplesFavor)?.owner !== this.action.playerProxy)
+        if (this.action.gameProxy.banners.get(BannerName.PeoplesFavor)?.owner !== this.activatorProxy)
             this.action.campaignResult.discardAtEnd(this.source);
 
         return false;
+    }
+}
+
+export class ExtraProvisions extends DefenderBattlePlan<Denizen> {
+    name = "Extra Provisions";
+    cost = new ResourceCost([[OathResource.Favor, 1]]);
+
+    applyBefore(): void {
+        this.action.campaignResult.defPool += 1;
     }
 }
 
@@ -30,7 +112,7 @@ export class AwaitedReturn extends AccessedActionModifier<Denizen> {
     applyBefore(): void {
         // NOTE: I am enforcing that you can only sacrifice warbands of your leader's color
         // while *technically* this restriction doesn't exist but making it an action seems overkill
-        if (new TakeWarbandsIntoBagEffect(this.action.player, 1).do() > 0)
+        if (new TakeWarbandsIntoBagEffect(this.activator, 1).do() > 0)
             this.action.noSupplyCost = true;
     }
 }
@@ -99,8 +181,8 @@ export class MarriageActionModifier extends AccessedActionModifier<Denizen> {
     mustUse = true;
 
     applyWhenApplied(): boolean {
-        const originalFn = this.action.playerProxy.adviserSuitCount.bind(this.action.playerProxy);
-        this.action.playerProxy.adviserSuitCount = (suit: OathSuit) => {
+        const originalFn = this.activatorProxy.adviserSuitCount.bind(this.activatorProxy);
+        this.activatorProxy.adviserSuitCount = (suit: OathSuit) => {
             return originalFn(suit) + (suit === OathSuit.Hearth ? 1 : 0);
         };
         return true;

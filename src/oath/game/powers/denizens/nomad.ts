@@ -5,8 +5,77 @@ import { OathResource, OathSuit } from "../../enums";
 import { OwnableObject, isOwnable } from "../../interfaces";
 import { OathPlayer } from "../../player";
 import { ResourceCost } from "../../resources";
-import { ActionModifier, EnemyEffectModifier, EnemyActionModifier, ActivePower, CapacityModifier } from "../powers";
+import { ActionModifier, EnemyEffectModifier, EnemyActionModifier, ActivePower, CapacityModifier, AttackerBattlePlan, DefenderBattlePlan } from "../powers";
 
+
+export class HorseArchersAttack extends AttackerBattlePlan<Denizen> {
+    name = "Horse Archers";
+
+    applyBefore(): void {
+        this.action.campaignResult.atkPool += 3;
+        this.action.campaignResult.discardAtEnd(this.source);
+    }
+}
+export class HorseArchersDefense extends DefenderBattlePlan<Denizen> {
+    name = "Horse Archers";
+
+    applyBefore(): void {
+        this.action.campaignResult.atkPool -= 3;
+        this.action.campaignResult.discardAtEnd(this.source);
+    }
+}
+
+export class RivalKhanAttack extends AttackerBattlePlan<Denizen> {
+    name = "Rival Khan";
+
+    applyBefore(): void {
+        if (this.action.campaignResult.defender?.adviserSuitCount(OathSuit.Nomad)) this.action.campaignResult.atkPool += 4;
+        this.action.campaignResult.discardAtEnd(this.source);
+    }
+}
+export class RivalKhanDefense extends DefenderBattlePlan<Denizen> {
+    name = "Rival Khan";
+
+    applyBefore(): void {
+        if (this.action.campaignResult.attacker?.adviserSuitCount(OathSuit.Nomad)) this.action.campaignResult.atkPool -= 4;
+        this.action.campaignResult.discardAtEnd(this.source);
+    }
+}
+
+export class GreatCrusadeAttack extends AttackerBattlePlan<Denizen> {
+    name = "Great Crusade";
+
+    applyBefore(): void {
+        this.action.campaignResult.atkPool += this.activator.ruledSuitCount(OathSuit.Nomad);
+        this.action.campaignResult.discardAtEnd(this.source);
+    }
+}
+export class GreatCrusadeDefense extends DefenderBattlePlan<Denizen> {
+    name = "Great Crusade";
+
+    applyBefore(): void {
+        this.action.campaignResult.atkPool -= this.activator.ruledSuitCount(OathSuit.Nomad);
+        this.action.campaignResult.discardAtEnd(this.source);
+    }
+}
+
+export class StormCaller extends DefenderBattlePlan<Denizen> {
+    name = "Storm Caller";
+
+    applyBefore(): void {
+        this.action.campaignResult.defPool += 2;
+        this.action.campaignResult.discardAtEnd(this.source);
+    }
+}
+
+export class MountedPatrol extends DefenderBattlePlan<Denizen> {
+    name = "Mounted Patrol";
+
+    applyBefore(): void {
+        this.action.campaignResult.atkPool = Math.floor(this.action.campaignResult.atkPool / 2);
+        this.action.campaignResult.discardAtEnd(this.source);
+    }
+}
 
 export class WayStation extends ActionModifier<Denizen> {
     name = "Way Station";
@@ -16,8 +85,8 @@ export class WayStation extends ActionModifier<Denizen> {
     applyBefore(): void {
         if (!this.sourceProxy.site) return;
         if (this.action.siteProxy === this.sourceProxy.site) {
-            if (!this.action.playerProxy.rules(this.sourceProxy)) return;
-            if (!new PayCostToTargetEffect(this.action.game, this.action.player, new ResourceCost([[OathResource.Favor, 1]]), this.sourceProxy.ruler?.original).do()) return;
+            if (!this.activatorProxy.rules(this.sourceProxy)) return;
+            if (!new PayCostToTargetEffect(this.action.game, this.activator, new ResourceCost([[OathResource.Favor, 1]]), this.sourceProxy.ruler?.original).do()) return;
             this.action.noSupplyCost = true;
         }
     }
@@ -50,7 +119,7 @@ export class LostTongueCampaign extends EnemyActionModifier<Denizen> {
         for (const target of this.action.campaignResult.targets) {
             if (isOwnable(target)) {
                 const targetProxy = this.action.maskProxyManager.get(target);
-                lostTongueCheckOwnable(this.sourceProxy, targetProxy, this.action.playerProxy);
+                lostTongueCheckOwnable(this.sourceProxy, targetProxy, this.activatorProxy);
             }
         }
     }

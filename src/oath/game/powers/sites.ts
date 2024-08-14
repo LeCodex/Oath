@@ -81,7 +81,7 @@ export class DeepWoods extends HomelandSitePower {
 
 export abstract class SiteActionModifier extends ActionModifier<Site> {
     canUse(): boolean {
-        return this.action.playerProxy.site === this.sourceProxy;
+        return this.activatorProxy.site === this.sourceProxy;
     }
 }
 
@@ -140,7 +140,7 @@ export class OpportunitySite extends SiteActionModifier {
     }
 
     applyBefore(): void {
-        if (!this.source.empty) new ChooseResourceToTakeAction(this.action.player, this.source).doNext();
+        if (!this.source.empty) new ChooseResourceToTakeAction(this.activator, this.source).doNext();
     }
 }
 
@@ -183,7 +183,7 @@ export class River extends SiteActionModifier {
     mustUse = true;
 
     applyBefore(): void {
-        if (this.action.playerProxy === this.sourceProxy.ruler) this.action.amount++;
+        if (this.activatorProxy === this.sourceProxy.ruler) this.action.amount++;
     }
 }
 

@@ -1,4 +1,4 @@
-import { Denizen, Edifice, Relic, Site, VisionBack, WorldCard } from "../cards/cards";
+import { Denizen, Edifice, OwnableCard, Relic, Site, VisionBack, WorldCard } from "../cards/cards";
 import { DiscardOptions, SearchableDeck } from "../cards/decks";
 import { AttackDie, DefenseDie, Die } from "../dice";
 import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, PutPawnAtSiteEffect, DiscardCardEffect, MoveOwnWarbandsEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect, SetNewOathkeeperEffect, SetPeoplesFavorMobState, DiscardCardGroupEffect, OathEffect, PaySupplyEffect, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, FlipEdificeEffect, ModifiedExecutionEffect, CampaignResolveSuccessfulAndSkullsEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect, CheckCapacityEffect, ApplyModifiersEffect, CampaignJoinDefenderAlliesEffect } from "../effects";
@@ -12,7 +12,7 @@ import { ResourceCost, ResourcesAndWarbands } from "../resources";
 import { Banner, PeoplesFavor } from "../banks";
 import { Constructor, isExtended, MaskProxyManager, shuffleArray } from "../utils";
 import { SelectNOf, SelectBoolean, SelectNumber } from "./selects";
-import { CampaignActionTarget, RecoverActionTarget } from "../interfaces";
+import { CampaignActionTarget, RecoverActionTarget, WithPowers } from "../interfaces";
 
 
 
@@ -82,13 +82,13 @@ export abstract class OathAction extends OathGameObject {
 }
 
 export class ChooseModifiers extends OathAction {
-    readonly selects: { modifiers: SelectNOf<ActionModifier<any>> };
-    readonly parameters: { modifiers: ActionModifier<any>[] };
+    readonly selects: { modifiers: SelectNOf<ActionModifier<WithPowers>> };
+    readonly parameters: { modifiers: ActionModifier<WithPowers>[] };
     readonly action: ModifiableAction;
     readonly next: ModifiableAction | ChooseModifiers;
     readonly message = "Choose modifiers";
 
-    persistentModifiers: Set<ActionModifier<any>>;
+    persistentModifiers: Set<ActionModifier<WithPowers>>;
 
     constructor(next: ModifiableAction | ChooseModifiers, chooser: OathPlayer = next.player) {
         super(chooser);
@@ -98,8 +98,8 @@ export class ChooseModifiers extends OathAction {
 
     start() {
         this.persistentModifiers = new Set();
-        const choices = new Map<string, ActionModifier<any>>();
-        for (const modifier of ChooseModifiers.gatherModifiers(this.action)) {
+        const choices = new Map<string, ActionModifier<WithPowers>>();
+        for (const modifier of ChooseModifiers.gatherModifiers(this.action, this.player)) {
             if (modifier.mustUse)
                 this.persistentModifiers.add(modifier);
             else
@@ -110,10 +110,10 @@ export class ChooseModifiers extends OathAction {
         return super.start();
     }
 
-    static gatherModifiers(action: ModifiableAction): Set<ActionModifier<any>> {
-        const instances = new Set<ActionModifier<any>>();
-        for (const [sourceProxy, modifier] of action.gameProxy.getPowers(ActionModifier<any>)) {
-            const instance = new modifier(sourceProxy.original, action);
+    static gatherModifiers(action: ModifiableAction, activator: OathPlayer): Set<ActionModifier<WithPowers>> {
+        const instances = new Set<ActionModifier<WithPowers>>();
+        for (const [sourceProxy, modifier] of action.gameProxy.getPowers(ActionModifier<WithPowers>)) {
+            const instance = new modifier(sourceProxy.original, action, activator);
             if (action instanceof instance.modifiedAction && instance.canUse()) instances.add(instance);
         }
 
@@ -124,7 +124,7 @@ export class ChooseModifiers extends OathAction {
         const modifiers = new Set([...this.persistentModifiers, ...this.parameters.modifiers]);
         
         // NOTE: For ignore loops, all powers in the loop are ignored.
-        const ignore = new Set<ActionModifier<any>>();
+        const ignore = new Set<ActionModifier<WithPowers>>();
         for (const modifier of modifiers) for (const toIgnore of modifier.applyImmediately(modifiers)) ignore.add(toIgnore);
         for (const modifier of ignore) modifiers.delete(modifier);
 
@@ -138,7 +138,7 @@ export class ChooseModifiers extends OathAction {
 }
 
 export abstract class ModifiableAction extends OathAction {
-    modifiers: ActionModifier<any>[] = [];
+    modifiers: ActionModifier<WithPowers>[] = [];
     maskProxyManager: MaskProxyManager;
     gameProxy: OathGame;            // Effects and powers are allowed to modify the proxies to "lie" to the action
     playerProxy: OathPlayer;        // This is a simple reference for simplicity
@@ -519,7 +519,7 @@ export class SearchPlayAction extends ModifiableAction {
     }
 
     static getCapacityInformation(maskProxyManager: MaskProxyManager, playerProxy: OathPlayer, siteProxy?: Site, playingProxy?: WorldCard): [number, WorldCard[], boolean] {
-        const capacityModifiers: CapacityModifier<any>[] = [];
+        const capacityModifiers: CapacityModifier<WorldCard>[] = [];
         for (const [sourceProxy, modifier] of playerProxy.game.getPowers(CapacityModifier)) {
             const instance = new modifier(sourceProxy.original, maskProxyManager);
             if (instance.canUse(playerProxy, siteProxy)) capacityModifiers.push(instance);
@@ -732,8 +732,8 @@ export class CampaignAtttackAction extends ModifiableAction {
         }
 
         // Bandits use all battle plans that are free
-        const modifiers: ActionModifier<any>[] = [];
-        for (const modifier of ChooseModifiers.gatherModifiers(this)) {
+        const modifiers: ActionModifier<WithPowers>[] = [];
+        for (const modifier of ChooseModifiers.gatherModifiers(this, this.player)) {
             if (modifier.mustUse || modifier.cost.free)
                 modifiers.push(modifier);
         };
@@ -818,6 +818,10 @@ export class CampaignResult extends OathGameObject {
 
     discardAtEnd(denizen: Denizen) {
         this.endCallbacks.push(() => new DiscardCardEffect(denizen.ruler || this.attacker, denizen).do());
+    }
+
+    onSuccessful(successful: boolean, callback: () => void) {
+        this.endCallbacks.push(() => { if (this.successful === successful) callback(); });
     }
 
     checkForImperialInfighting(maskProxyManager: MaskProxyManager) {
@@ -1036,16 +1040,16 @@ export class RestAction extends ModifiableAction {
 //              MINOR ACTIONS             //
 ////////////////////////////////////////////
 export class UsePowerAction extends ModifiableAction {
-    readonly selects: { power: SelectNOf<ActivePower<any>> }
-    readonly parameters: { power: ActivePower<any>[] };
+    readonly selects: { power: SelectNOf<ActivePower<OwnableCard>> }
+    readonly parameters: { power: ActivePower<OwnableCard>[] };
     readonly autocompleteSelects = false;
     readonly message = "Choose a power to use";
 
-    power: ActivePower<any>;
+    power: ActivePower<OwnableCard>;
 
     start() {
-        const choices = new Map<string, ActivePower<any>>();
-        for (const [sourceProxy, power] of this.gameProxy.getPowers(ActivePower<any>)) {
+        const choices = new Map<string, ActivePower<OwnableCard>>();
+        for (const [sourceProxy, power] of this.gameProxy.getPowers(ActivePower<OwnableCard>)) {
             const instance = new power(sourceProxy.original, this);
             if (instance.canUse()) choices.set(instance.name, instance);
         }
@@ -1209,9 +1213,9 @@ export class AskForRerollAction extends OathAction {
 
     faces: number[];
     die: typeof Die;
-    power?: OathPower<any>;
+    power?: OathPower<WithPowers>;
 
-    constructor(player: OathPlayer, faces: number[], die: typeof Die, power?: OathPower<any>) {
+    constructor(player: OathPlayer, faces: number[], die: typeof Die, power?: OathPower<WithPowers>) {
         super(player);
         this.faces = faces;
         this.message = "Do you wish to reroll " + faces.join(",") + "?";

@@ -4,7 +4,7 @@ import { Exile, OathPlayer } from "./player";
 import { ActionModifier, EffectModifier, OathPower, WhenPlayed } from "./powers/powers";
 import { ResourceCost, ResourcesAndWarbands } from "./resources";
 import { Banner, PeoplesFavor, ResourceBank } from "./banks";
-import { OwnableObject } from "./interfaces";
+import { OwnableObject, WithPowers } from "./interfaces";
 import { OathGame } from "./game";
 import { OathGameObject } from "./gameObject";
 import { InvalidActionResolution, ModifiableAction, OathAction, AddCardsToWorldDeckAction, BuildOrRepairEdificeAction, ChooseNewCitizensAction, VowOathAction, TakeFavorFromBankAction, ResolveEffectAction, RestAction, WakeAction, CampaignDefenseAction, CampaignResult, SearchDiscardAction, SearchPlayAction } from "./actions/actions";
@@ -125,9 +125,9 @@ export class PopActionFromStackEffect extends OathEffect<OathAction | undefined>
 
 export class ApplyModifiersEffect extends PlayerEffect<boolean> {
     action: ModifiableAction;
-    actionModifiers: Iterable<ActionModifier<any>>;
+    actionModifiers: Iterable<ActionModifier<WithPowers>>;
 
-    constructor(action: ModifiableAction, player: OathPlayer, actionModifiers: Iterable<ActionModifier<any>>) {
+    constructor(action: ModifiableAction, player: OathPlayer, actionModifiers: Iterable<ActionModifier<WithPowers>>) {
         super(player);
         this.action = action;
         this.actionModifiers = actionModifiers;
@@ -145,7 +145,7 @@ export class ApplyModifiersEffect extends PlayerEffect<boolean> {
 
             // Modifiers can only be applied once
             // TODO: Standardize objects with powers
-            modifier.sourceProxy.powers?.delete(modifier.constructor as Constructor<ActionModifier<any>>);
+            modifier.sourceProxy.powers?.delete(modifier.constructor as Constructor<ActionModifier<WithPowers>>);
         }
 
         return !interrupt;
@@ -154,7 +154,7 @@ export class ApplyModifiersEffect extends PlayerEffect<boolean> {
     revert(): void {
         for (const modifier of this.actionModifiers) {
             this.action.modifiers.pop();
-            modifier.sourceProxy.powers?.add(modifier.constructor as Constructor<ActionModifier<any>>);
+            modifier.sourceProxy.powers?.add(modifier.constructor as Constructor<ActionModifier<WithPowers>>);
         }
     }
 }
@@ -371,16 +371,16 @@ export class PayCostToBankEffect extends OathEffect<boolean> {
 }
 
 export class PayPowerCost extends PlayerEffect<boolean> {
-    power: OathPower<any>;
+    power: OathPower<WithPowers>;
 
-    constructor(player: OathPlayer, power: OathPower<any>) {
+    constructor(player: OathPlayer, power: OathPower<WithPowers>) {
         super(player);
         this.power = power;
     }
 
     resolve(): boolean {
-        // TODO: This isn't correct, a power that doesn't a ResourceAndWarbands source could be supplied to this. How can this ba handled nicely?
-        return new PayCostToTargetEffect(this.game, this.player, this.power.cost, this.power.source).do();
+        const target = this.power.source instanceof ResourcesAndWarbands ? this.power.source : undefined;
+        return new PayCostToTargetEffect(this.game, this.player, this.power.cost, target).do();
     }
 
     revert(): void {

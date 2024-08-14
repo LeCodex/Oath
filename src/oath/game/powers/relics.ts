@@ -65,7 +65,7 @@ export class CupOfPlenty extends AccessedActionModifier<Relic> {
     action: TradeAction;
 
     applyBefore(): void {
-        if (this.action.playerProxy.adviserSuitCount(this.action.cardProxy.suit) > 0) this.action.noSupplyCost = true;
+        if (this.activatorProxy.adviserSuitCount(this.action.cardProxy.suit) > 0) this.action.noSupplyCost = true;
     }
 }
 
@@ -96,7 +96,7 @@ export class CircletOfCommandCampaign extends EnemyActionModifier<Relic> {
         for (const target of this.action.campaignResult.targets) {
             if (isOwnable(target)) {
                 const targetProxy = this.action.maskProxyManager.get(target);
-                circletOfCommandCheckOwnable(this.sourceProxy, targetProxy, this.action.playerProxy);
+                circletOfCommandCheckOwnable(this.sourceProxy, targetProxy, this.activatorProxy);
             }
 
             if (target === this.sourceProxy.ruler?.original) this.action.campaignResult.defPool += 1;
@@ -110,7 +110,7 @@ export class DragonskinDrum extends AccessedActionModifier<Relic> {
     action: TravelAction;
 
     applyAfter(): void {
-        new PutWarbandsFromBagEffect(this.action.player, 1).do();
+        new PutWarbandsFromBagEffect(this.activator, 1).do();
     }
 }
 
@@ -125,24 +125,20 @@ export class BookOfRecords extends AccessedEffectModifier<Relic> {
     }
 }
 
-function cursedCauldronResolution(result: CampaignResult, player: OathPlayer) {
-    if (result.winner === player)
-        new PutWarbandsFromBagEffect(result.winner, result.loserLoss).do();
-}
 export class CursedCauldronAttack extends AttackerBattlePlan<Relic> {
     name = "Cursed Cauldron";
 
     applyBefore(): void {
-        if (!this.sourceProxy.ruler?.original) return;
-        this.action.campaignResult.endCallbacks.push(() => cursedCauldronResolution(this.action.campaignResult, this.action.player));
+        if (!this.sourceProxy.ruler) return;
+        this.action.campaignResult.onSuccessful(true, () => new PutWarbandsFromBagEffect(this.activator, this.action.campaignResult.loserLoss).do());
     }
 }
 export class CursedCauldronDefense extends DefenderBattlePlan<Relic> {
     name = "Cursed Cauldron";
 
     applyBefore(): void {
-        if (!this.sourceProxy.ruler?.original) return;
-        this.action.campaignResult.endCallbacks.push(() => cursedCauldronResolution(this.action.campaignResult, this.action.player));
+        if (!this.sourceProxy.ruler) return;
+        this.action.campaignResult.onSuccessful(false, () => new PutWarbandsFromBagEffect(this.activator, this.action.campaignResult.loserLoss).do());
     }
 }
 

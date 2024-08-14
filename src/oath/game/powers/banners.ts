@@ -5,7 +5,7 @@ import { ActionModifier } from "./powers";
 
 export abstract class BannerActionModifier<T extends Banner> extends ActionModifier<T> {
     canUse(): boolean {
-        return super.canUse() && this.action.playerProxy === this.sourceProxy.owner;
+        return super.canUse() && this.activatorProxy === this.sourceProxy.owner;
     }
 }
 
@@ -16,13 +16,13 @@ export class PeoplesFavorSearch extends BannerActionModifier<PeoplesFavor> {
     mustUse = true; // Not strictly true, but it involves a choice either way, so it's better to always include it
 
     applyAtStart(): void {
-        for (const siteProxy of this.action.playerProxy.site.region.sites)
+        for (const siteProxy of this.activatorProxy.site.region.sites)
             if (!siteProxy.facedown)
                 this.action.selects.site.choices.set(siteProxy.name, siteProxy);
     }
 
     applyBefore(): void {
-        if (this.action.siteProxy) new PeoplesFavorDiscardAction(this.action.player, this.action.discardOptions).doNext();
+        if (this.action.siteProxy) new PeoplesFavorDiscardAction(this.activator, this.action.discardOptions).doNext();
     }
 }
 

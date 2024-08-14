@@ -1,13 +1,98 @@
 import { TakeFavorFromBankAction, TakeResourceFromPlayerAction } from "../../actions/actions";
-import { PeoplesFavor } from "../../banks";
 import { Denizen, Relic, Site, WorldCard } from "../../cards/cards";
 import { DefenseDie } from "../../dice";
-import { TakeOwnableObjectEffect, TakeWarbandsIntoBagEffect, PutWarbandsFromBagEffect, PutResourcesOnTargetEffect, MoveResourcesToTargetEffect, SetNewOathkeeperEffect, RollDiceEffect, GamblingHallEffect, TakeResourcesFromBankEffect } from "../../effects";
+import { TakeOwnableObjectEffect, TakeWarbandsIntoBagEffect, PutWarbandsFromBagEffect, PutResourcesOnTargetEffect, MoveResourcesToTargetEffect, SetNewOathkeeperEffect, RollDiceEffect, GamblingHallEffect, TakeResourcesFromBankEffect, DiscardCardEffect } from "../../effects";
 import { BannerName, OathResource, OathSuit } from "../../enums";
 import { OathPlayer } from "../../player";
 import { ResourceCost } from "../../resources";
-import { EnemyEffectModifier, WhenPlayed, CapacityModifier, ActivePower, RestPower } from "../powers";
+import { EnemyEffectModifier, WhenPlayed, CapacityModifier, ActivePower, RestPower, AttackerBattlePlan, DefenderBattlePlan } from "../powers";
 
+
+export class MercenariesAttack extends AttackerBattlePlan<Denizen> {
+    name = "Mercenaries";
+    cost = new ResourceCost([[OathResource.Favor, 1]]);
+
+    applyBefore(): void {
+        this.action.campaignResult.atkPool += 3;
+        this.action.campaignResult.onSuccessful(false, () => new DiscardCardEffect(this.activator, this.source).do());
+    }
+}
+export class MercenariesDefense extends DefenderBattlePlan<Denizen> {
+    name = "Mercenaries";
+    cost = new ResourceCost([[OathResource.Favor, 1]]);
+
+    applyBefore(): void {
+        this.action.campaignResult.atkPool -= 3;
+        this.action.campaignResult.onSuccessful(true, () => new DiscardCardEffect(this.activator, this.source).do());
+    }
+}
+
+export class CrackedSageAttack extends AttackerBattlePlan<Denizen> {
+    name = "Disgraced Captain";
+    cost = new ResourceCost([[OathResource.Secret, 1]], [[OathResource.Favor, 1]]);
+
+    applyBefore(): void {
+        if (!this.action.campaignResult.defender) return;
+        for (const adviser of this.action.campaignResult.defender.advisers) {
+            if (!(adviser instanceof Denizen) || adviser.suit !== OathSuit.Arcane) continue;
+            this.action.campaignResult.atkPool += 4;
+            break;
+        }
+    }
+}
+export class CrackedSageDefense extends DefenderBattlePlan<Denizen> {
+    name = "Disgraced Captain";
+    cost = new ResourceCost([[OathResource.Secret, 1]], [[OathResource.Favor, 1]]);
+
+    applyBefore(): void {
+        for (const adviser of this.action.campaignResult.attacker.advisers) {
+            if (!(adviser instanceof Denizen) || adviser.suit !== OathSuit.Arcane) continue;
+            this.action.campaignResult.atkPool -= 4;
+            break;
+        }
+    }
+}
+
+export class DisgracedCaptain extends AttackerBattlePlan<Denizen> {
+    name = "Disgraced Captain";
+    cost = new ResourceCost([[OathResource.Favor, 1]], [[OathResource.Favor, 1]]);
+
+    applyBefore(): void {
+        for (const target of this.action.campaignResult.targets) {
+            if (!(target instanceof Site)) continue;
+            for (const denizenProxy of this.action.maskProxyManager.get(target).denizens) {
+                if (denizenProxy.suit !== OathSuit.Order) continue;
+                this.action.campaignResult.atkPool += 4;
+                break;
+            }
+        }
+    }
+}
+
+export class BookBurning extends AttackerBattlePlan<Denizen> {
+    name = "Book Burning";
+
+    applyBefore(): void {
+        this.action.campaignResult.onSuccessful(true, () => {
+            const defender = this.action.campaignResult.loser;
+            if (!defender) return;
+            new MoveResourcesToTargetEffect(this.game, defender, OathResource.Secret, defender.getResources(OathResource.Secret) - 1, undefined).do()
+        });
+    }
+}
+
+export class Slander extends AttackerBattlePlan<Denizen> {
+    name = "Slander";
+    cost = new ResourceCost([[OathResource.Favor, 1]]);
+
+    applyBefore(): void {
+        this.action.campaignResult.onSuccessful(true, () => {
+            const defender = this.action.campaignResult.loser;
+            if (!defender) return;
+            new MoveResourcesToTargetEffect(this.game, defender, OathResource.Favor, Infinity, undefined).do()
+        });
+    }
+}
 
 export class RelicThief extends EnemyEffectModifier<Denizen> {
     name = "Relic Thief";
@@ -61,7 +146,7 @@ export class Insomnia extends RestPower<Denizen> {
     name = "Insomnia";
 
     applyAfter(): void {
-        new PutResourcesOnTargetEffect(this.action.game, this.action.player, OathResource.Secret, 1).do();
+        new PutResourcesOnTargetEffect(this.action.game, this.activator, OathResource.Secret, 1).do();
     }
 }
 
@@ -70,8 +155,8 @@ export class SilverTongue extends RestPower<Denizen> {
 
     applyAfter(): void {
         const suits: Set<OathSuit> = new Set();
-        for (const denizenProxy of this.action.playerProxy.site.denizens) suits.add(denizenProxy.suit);
-        new TakeFavorFromBankAction(this.action.player, 1, suits).doNext();
+        for (const denizenProxy of this.activatorProxy.site.denizens) suits.add(denizenProxy.suit);
+        new TakeFavorFromBankAction(this.activator, 1, suits).doNext();
     }
 }
 
@@ -90,7 +175,7 @@ export class Naysayers extends RestPower<Denizen> {
 
     applyAfter(): void {
         if (!this.action.game.oathkeeper.isImperial)
-            new MoveResourcesToTargetEffect(this.action.game, this.action.player, OathResource.Favor, 1, this.action.player, this.action.game.chancellor).do();
+            new MoveResourcesToTargetEffect(this.action.game, this.activator, OathResource.Favor, 1, this.activator, this.action.game.chancellor).do();
     }
 }
 

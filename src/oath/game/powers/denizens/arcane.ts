@@ -1,10 +1,83 @@
 import { CampaignAtttackAction, CampaignDefenseAction, TakeFavorFromBankAction, TradeAction, AskForRerollAction, TravelAction, InvalidActionResolution } from "../../actions/actions";
 import { Denizen, Site } from "../../cards/cards";
 import { RegionDiscardEffect, PutResourcesOnTargetEffect, RollDiceEffect } from "../../effects";
-import { OathResource, OathSuit } from "../../enums";
+import { BannerName, OathResource, OathSuit } from "../../enums";
 import { ResourceCost } from "../../resources";
 import { ActionModifier, AttackerBattlePlan, DefenderBattlePlan, ActivePower, WhenPlayed, AccessedActionModifier, EffectModifier } from "../powers";
 
+
+export class FireTalkersAttack extends AttackerBattlePlan<Denizen> {
+    name = "Fire Talkers";
+    cost = new ResourceCost([[OathResource.Secret, 1]]);
+
+    applyBefore(): void {
+        const darkestSecretProxy = this.gameProxy.banners.get(BannerName.DarkestSecret);
+        if (darkestSecretProxy?.owner !== this.activatorProxy) return;
+        this.action.campaignResult.atkPool += 3;
+    }
+}
+export class FireTalkersDefense extends DefenderBattlePlan<Denizen> {
+    name = "Fire Talkers";
+    cost = new ResourceCost([[OathResource.Secret, 1]]);
+
+    applyBefore(): void {
+        const darkestSecretProxy = this.gameProxy.banners.get(BannerName.DarkestSecret);
+        if (darkestSecretProxy?.owner !== this.activatorProxy) return;
+        this.action.campaignResult.atkPool -= 3;
+    }
+}
+
+export class BillowingFogAttack extends AttackerBattlePlan<Denizen> {
+    name = "Billowing Fog";
+    cost = new ResourceCost([[OathResource.Secret, 1]]);
+
+    applyBefore(): void {
+        this.action.campaignResult.attackerKillsNoWarbands = true;
+    }
+}
+export class BillowingFogDefense extends DefenderBattlePlan<Denizen> {
+    name = "Billowing Fog";
+    cost = new ResourceCost([[OathResource.Secret, 1]]);
+
+    applyBefore(): void {
+        this.action.campaignResult.defenderKillsNoWarbands = true;
+    }
+}
+
+export class KindredWarriorsAttack extends AttackerBattlePlan<Denizen> {
+    name = "Kindred Warriors";
+    cost = new ResourceCost([[OathResource.Secret, 1]]);
+
+    applyBefore(): void {
+        this.action.campaignResult.ignoreSkulls = true;
+        this.action.campaignResult.atkPool += (this.activator.suitsRuled - 1);
+    }
+}
+export class KindredWarriorsDefense extends DefenderBattlePlan<Denizen> {
+    name = "Kindred Warriors";
+    cost = new ResourceCost([[OathResource.Secret, 1]]);
+
+    applyBefore(): void {
+        this.action.campaignResult.atkPool -= (this.activator.suitsRuled - 1);
+    }
+}
+
+export class CrackingGroundAttack extends AttackerBattlePlan<Denizen> {
+    name = "Cracking Ground";
+    cost = new ResourceCost([], [[OathResource.Secret, 1]]);
+
+    applyBefore(): void {
+        this.action.campaignResult.atkPool += [...this.action.campaignResult.targets].filter(e => e instanceof Site).length;
+    }
+}
+export class CrackingGroundDefense extends DefenderBattlePlan<Denizen> {
+    name = "Cracking Ground";
+    cost = new ResourceCost([], [[OathResource.Secret, 1]]);
+
+    applyBefore(): void {
+        this.action.campaignResult.atkPool -= [...this.action.campaignResult.targets].filter(e => e instanceof Site).length;
+    }
+}
 
 export class GleamingArmorAttack extends ActionModifier<Denizen> {
     name = "Gleaming Armor";
@@ -116,7 +189,7 @@ export class Portal extends AccessedActionModifier<Denizen> {
     }
 
     applyBefore(): void {
-        if (this.action.playerProxy.site !== this.sourceProxy.site && this.action.siteProxy !== this.sourceProxy.site)
+        if (this.activatorProxy.site !== this.sourceProxy.site && this.action.siteProxy !== this.sourceProxy.site)
             throw new InvalidActionResolution("When using the Portal, you must travel to or from its site");
 
         this.action.noSupplyCost = true;

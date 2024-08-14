@@ -6,6 +6,47 @@ import { ResourceCost } from "../../resources";
 import { AccessedActionModifier, ActionModifier, AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, RestPower, ActivePower } from "../powers";
 
 
+export class NatureWorshipAttack extends AttackerBattlePlan<Denizen> {
+    name = "Nature Worship";
+    cost = new ResourceCost([[OathResource.Secret, 1]]);
+
+    applyBefore(): void {
+        this.action.campaignResult.atkPool += this.activator.adviserSuitCount(OathSuit.Beast);
+    }
+}
+export class NatureWorshipDefense extends DefenderBattlePlan<Denizen> {
+    name = "Nature Worship";
+    cost = new ResourceCost([[OathResource.Secret, 1]]);
+
+    applyBefore(): void {
+        this.action.campaignResult.atkPool -= this.activator.adviserSuitCount(OathSuit.Beast);
+    }
+}
+
+export class Rangers extends AttackerBattlePlan<Denizen> {
+    name = "Rangers";
+    cost = new ResourceCost([[OathResource.Favor, 1]]);
+
+    applyBefore(): void {
+        this.action.campaignResult.ignoreSkulls = true;
+        if (this.action.campaignResult.defPool >= 4) this.action.campaignResult.atkPool += 2;
+    }
+}
+
+export class WalledGarden extends DefenderBattlePlan<Denizen> {
+    name = "Walled Garden";
+
+    applyBefore(): void {
+        for (const target of this.action.campaignResult.targets) {
+            if (target === this.source.site)
+                for (const siteProxy of this.gameProxy.board.sites())
+                    for (const denizenProxy of siteProxy.denizens)
+                        if (denizenProxy.suit === OathSuit.Beast)
+                            this.action.campaignResult.defPool++;
+        }
+    }
+}
+
 export class Bracken extends AccessedActionModifier<Denizen> {
     name = "Bracken";
     modifiedAction = SearchAction;
@@ -75,12 +116,12 @@ export class VowOfPovertyRest extends RestPower<Denizen> {
     name = "Vow of Poverty";
 
     applyAfter(): void {
-        if (this.action.playerProxy.getResources(OathResource.Favor) === 0)
-            new TakeFavorFromBankAction(this.action.player, 2).doNext();
+        if (this.activatorProxy.getResources(OathResource.Favor) === 0)
+            new TakeFavorFromBankAction(this.activator, 2).doNext();
     }
 }
 
-export class PiedPiperActive extends ActivePower<Denizen> {
+export class PiedPiper extends ActivePower<Denizen> {
     name = "Pied Piper";
     cost = new ResourceCost([[OathResource.Secret, 1]]);
 
@@ -102,7 +143,7 @@ export class SmallFriends extends AccessedActionModifier<Denizen> {
     applyWhenApplied(): boolean {
         const sites = new Set<Site>();
         for (const siteProxy of this.gameProxy.board.sites())
-            if (siteProxy !== this.action.playerProxy.site)
+            if (siteProxy !== this.activatorProxy.site)
                 for (const denizenProxy of siteProxy.denizens)
                     if (denizenProxy.suit === OathSuit.Beast)
                         sites.add(siteProxy.original);
@@ -110,7 +151,7 @@ export class SmallFriends extends AccessedActionModifier<Denizen> {
         if (sites.size === 0)
             throw new InvalidActionResolution("No other site with a Beast card");
 
-        new ActAsIfAtSiteAction(this.action.player, this.action, sites).doNext();
+        new ActAsIfAtSiteAction(this.activator, this.action, sites).doNext();
         return false;
     }
 }

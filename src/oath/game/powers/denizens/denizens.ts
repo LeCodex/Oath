@@ -15,6 +15,3 @@ export class IgnoresCapacity extends CapacityModifier<Denizen> {
         return !cardProxy.facedown && cardProxy === this.sourceProxy;
     }
 }
-
-
-
