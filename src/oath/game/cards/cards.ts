@@ -1,6 +1,6 @@
 import { InvalidActionResolution, CampaignActionTarget, CampaignSeizeSiteAction, RecoverAction, RecoverActionTarget } from "../actions/actions";
 import { Region } from "../board";
-import { FlipSecretsEffect, MoveOwnWarbandsEffect, MoveResourcesToTargetEffect, PayCostToBankEffect, PutResourcesIntoBankEffect, TakeOwnableObjectEffect } from "../effects";
+import { DiscardCardEffect, FlipSecretsEffect, MoveOwnWarbandsEffect, MoveResourcesToTargetEffect, PayCostToBankEffect, PutResourcesIntoBankEffect, TakeOwnableObjectEffect } from "../effects";
 import { CardRestriction, OathResource, OathSuit, OathTypeVisionName, RegionName } from "../enums";
 import { OathGame } from "../game";
 import { Oath } from "../oaths";
@@ -10,6 +10,7 @@ import { GrandScepterExileCitizen, GrandScepterGrantCitizenship, GrandScepterPee
 import { ConspiracyPower } from "../powers/visions";
 import { ResourceCost, ResourcesAndWarbands } from "../resources";
 import { Constructor } from "../utils";
+import { DiscardOptions } from "./decks";
 import { DenizenData } from "./denizens";
 
 
@@ -216,6 +217,10 @@ export class Relic extends OwnableCard implements RecoverActionTarget, CampaignA
 
     seize(player: OathPlayer) {
         new TakeOwnableObjectEffect(this.game, player, this).doNext();
+    }
+
+    putOnBottom(player: OathPlayer) {
+        new DiscardCardEffect(player, this, new DiscardOptions(this.game.relicDeck, true));
     }
 
     // serialize(): Record<string, any> {

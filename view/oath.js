@@ -23,7 +23,7 @@ const suitColors = ["🚫", "🔴", "🟣", "🔵", "🟠", "🟤", "🟢"];
 const resourceNames = ["🟡", "📘", "📖"];
 const render = () => {
     const titleNode = document.getElementById("title");
-    titleNode.innerHTML = game.name + " #" + game.chronicleNumber + ", an Oath of " + oathNames[game.oath] + ", Round " + game.round;
+    titleNode.innerHTML = game.name + " (Tale #" + game.chronicleNumber + "), an Oath of " + oathNames[game.oath] + ", Round " + game.round;
 
     const seedNode = document.getElementById("seed");
     seedNode.innerHTML = game.seed;

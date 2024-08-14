@@ -1,4 +1,4 @@
-import { InvalidActionResolution, CitizenshipOfferAction, StartBindingExchangeAction, ExileCitizenAction, SkeletonKeyAction, TradeAction, CampaignAtttackAction, MusterAction, TravelAction, CampaignResult } from "../actions/actions";
+import { InvalidActionResolution, CitizenshipOfferAction, StartBindingExchangeAction, ExileCitizenAction, SkeletonKeyAction, TradeAction, CampaignAtttackAction, MusterAction, TravelAction, CampaignResult, AskForPermissionAction } from "../actions/actions";
 import { DiscardOptions } from "../cards/decks";
 import { Denizen, GrandScepter, Relic, Site } from "../cards/cards";
 import { TakeOwnableObjectEffect, PutWarbandsFromBagEffect, PlayDenizenAtSiteEffect, MoveOwnWarbandsEffect, PeekAtCardEffect, SetGrandScepterLockEffect, GainSupplyEffect, DiscardCardEffect, DrawFromDeckEffect, RevealCardEffect } from "../effects";
@@ -175,11 +175,23 @@ export class SkeletonKey extends ActivePower<Relic> {
     }
 }
 
+export class DowsingSticks extends ActivePower<Relic> {
+    name = "Dowsing Sticks";
+    cost = new ResourceCost([[OathResource.Secret, 1]], [[OathResource.Favor, 2]]);
+    
+    usePower(): void {
+        const relics = new DrawFromDeckEffect(this.action.player, this.game.relicDeck, 1).do();
+        if (relics.length < 1) return;
+        const relic = relics[0];
+        new AskForPermissionAction(this.action.player, "Keep the relic?", () => new TakeOwnableObjectEffect(this.game, this.action.player, relic).do(), () => relic.putOnBottom(this.action.player));
+    }
+}
+
 export class MapRelic extends ActivePower<Relic> {
     name = "Map";
 
     usePower(): void {
-        new DiscardCardEffect(this.action.player, this.source, new DiscardOptions(this.game.relicDeck, true)).do();
+        this.source.putOnBottom(this.action.player);
         new GainSupplyEffect(this.action.player, 4).do();
     }
 }

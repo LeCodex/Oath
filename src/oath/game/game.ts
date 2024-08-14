@@ -49,7 +49,6 @@ export class OathGame extends WithOriginal {
     siteDeck = new CardDeck<Site>(this);
     board: OathBoard;
 
-    
     constructor(seed: string, playerCount: number) {
         super();
         this.seed = seed;

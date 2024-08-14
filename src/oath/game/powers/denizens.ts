@@ -1,7 +1,7 @@
 import { InvalidActionResolution, ModifiableAction, TakeFavorFromBankAction, AskForRerollAction, TakeResourceFromPlayerAction, PiedPiperAction, ActAsIfAtSiteAction, TradeAction, SearchAction, SearchPlayAction, CampaignAtttackAction, CampaignDefenseAction, TravelAction, CampaignEndAction } from "../actions/actions";
 import { Denizen, Site, WorldCard, Vision, Relic } from "../cards/cards";
 import { DefenseDie } from "../dice";
-import { PayCostToTargetEffect, PlayWorldCardEffect, MoveResourcesToTargetEffect, RegionDiscardEffect, PutResourcesOnTargetEffect, RollDiceEffect, TakeWarbandsIntoBagEffect, TakeResourcesFromBankEffect, PlayVisionEffect, OathEffect, TakeOwnableObjectEffect, PayPowerCost, PutWarbandsFromBagEffect, SetNewOathkeeperEffect, GamblingHallEffect } from "../effects";
+import { PayCostToTargetEffect, PlayWorldCardEffect, MoveResourcesToTargetEffect, RegionDiscardEffect, PutResourcesOnTargetEffect, RollDiceEffect, TakeWarbandsIntoBagEffect, TakeResourcesFromBankEffect, PlayVisionEffect, OathEffect, TakeOwnableObjectEffect, PayPowerCost, PutWarbandsFromBagEffect, SetNewOathkeeperEffect, GamblingHallEffect, PeekAtCardEffect } from "../effects";
 import { OathResource, OathSuit, BannerName } from "../enums";
 import { OathPlayer, OwnableObject, isOwnable } from "../player";
 import { ResourceCost } from "../resources";
@@ -372,6 +372,17 @@ export class MarriageEffectModifier extends AccessedEffectModifier<Denizen> {
         this.effect.playerProxy.adviserSuitCount = (suit: OathSuit) => {
             return originalFn(suit) + (suit === OathSuit.Hearth ? 1 : 0);
         };
+    }
+}
+
+export class TavernSongs extends ActivePower<Denizen> {
+    name = "Tavern Songs";
+
+    usePower(): void {
+        for (let i = 0; i < 3; i++) {
+            const card = this.action.player.site.region.discard.cards[i];
+            if (card) new PeekAtCardEffect(this.action.player, card).do();
+        }
     }
 }
 

@@ -1,5 +1,5 @@
 import { OathPower } from "../powers/powers";
-import { BookOfRecords, BrassHorse, CircletOfCommand, CupOfPlenty, CursedCauldronAttack, CursedCauldronDefense, DragonskinDrum, MapRelic, OracularPig, RingOfDevotionMuster, RingOfDevotionRestriction, SkeletonKey } from "../powers/relics";
+import { BookOfRecords, BrassHorse, CircletOfCommand, CupOfPlenty, CursedCauldronAttack, CursedCauldronDefense, DowsingSticks, DragonskinDrum, MapRelic, OracularPig, RingOfDevotionMuster, RingOfDevotionRestriction, SkeletonKey } from "../powers/relics";
 import { Constructor } from "../utils";
 import { Relic } from "./cards";
 
@@ -22,6 +22,6 @@ export const relicsData: Record<string, [number, Constructor<OathPower<Relic>>[]
     CursedCauldron:         [3, [CursedCauldronAttack, CursedCauldronDefense]],
     SkeletonKey:            [3, [SkeletonKey]],
     Map:                    [3, [MapRelic]],
-    DowsingSticks:          [3, []],
+    DowsingSticks:          [3, [DowsingSticks]],
     BanditCrown:            [3, []],
 }

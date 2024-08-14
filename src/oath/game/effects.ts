@@ -923,12 +923,12 @@ export class CheckCapacityEffect extends PlayerEffect<void> {
     }
 }
 
-export class DiscardCardEffect extends PlayerEffect<void> {
-    card: WorldCard;
+export class DiscardCardEffect<T extends OwnableCard> extends PlayerEffect<void> {
+    card: T;
     discardOptions: DiscardOptions<any>;
     flipped: boolean;
 
-    constructor(player: OathPlayer, card: WorldCard, discardOptions?: DiscardOptions<any>) {
+    constructor(player: OathPlayer, card: T, discardOptions?: DiscardOptions<T>) {
         super(player);
         this.card = card;
         this.discardOptions = discardOptions || new DiscardOptions(card.owner ? card.owner.discard : card instanceof Denizen && card.site ? this.game.board.nextRegion(card.site.region).discard : player.discard);
