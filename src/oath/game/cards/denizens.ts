@@ -1,7 +1,7 @@
 import { CardRestriction, OathSuit } from "../enums";
 import { OathPower } from "../powers/powers";
 import { IgnoresCapacity } from "../powers/denizens/denizens";
-import { Assassin, ChaosCult, GamblingHall, Insomnia, KeyToTheCity, Naysayers, OnlyTwoAdvisers, RelicThief, SilverTongue, SleightOfHand } from "../powers/denizens/discord";
+import { Assassin, ChaosCult, Charlatan, Dissent, GamblingHall, Insomnia, KeyToTheCity, Naysayers, OnlyTwoAdvisers, RelicThief, SilverTongue, SleightOfHand } from "../powers/denizens/discord";
 import { ActingTroupe, Alchemist, Dazzle, GleamingArmorAttack, GleamingArmorDefense, Jinx, Portal, SpiritSnare, Tutor } from "../powers/denizens/arcane";
 import { Curfew, ForcedLabor, LongbowsAttack, LongbowsDefense, RoyalTax, ShieldWall, TollRoads, VowOfObedience, VowOfObedienceRest } from "../powers/denizens/order";
 import { AwaitedReturn, BookBinders, CharmingFriend, FabledFeast, HeartsAndMinds, Herald, MarriageActionModifier, MarriageEffectModifier, SaddleMakers, TavernSongs } from "../powers/denizens/hearth";
@@ -42,9 +42,9 @@ export const denizenData: Record<string, DenizenData> = {
     Slander:            [OathSuit.Discord,  []],
     Scryer:             [OathSuit.Discord,  []],
     Downtrodden:        [OathSuit.Discord,  []],
-    Charlatan:          [OathSuit.Discord,  []],
+    Charlatan:          [OathSuit.Discord,  [Charlatan]],
     Blackmail:          [OathSuit.Discord,  []],
-    Dissent:            [OathSuit.Discord,  []],
+    Dissent:            [OathSuit.Discord,  [Dissent]],
     Riots:              [OathSuit.Discord,  []],
     
     Tutor:              [OathSuit.Arcane,   [Tutor], CardRestriction.Adviser],

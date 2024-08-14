@@ -32,6 +32,7 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
     get isImperial(): boolean { return false; }
     get leader(): OathPlayer { return this.isImperial ? this.game.chancellor : this; }
     get discard(): Discard { return this.game.board.nextRegion(this.site.region).discard; }
+    get suitsRuled(): number { return [0, 1, 2, 3, 4, 5].reduce((a, e) => a + this.ruledSuitCount(e) > 0 ? 1 : 0, 0); }
 
     adviserSuitCount(suit: OathSuit): number {
         let total = 0;

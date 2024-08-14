@@ -1,8 +1,9 @@
 import { TakeFavorFromBankAction, TakeResourceFromPlayerAction } from "../../actions/actions";
+import { PeoplesFavor } from "../../banks";
 import { Denizen, Relic, Site, WorldCard } from "../../cards/cards";
 import { DefenseDie } from "../../dice";
-import { TakeOwnableObjectEffect, TakeWarbandsIntoBagEffect, PutWarbandsFromBagEffect, PutResourcesOnTargetEffect, MoveResourcesToTargetEffect, SetNewOathkeeperEffect, RollDiceEffect, GamblingHallEffect } from "../../effects";
-import { OathResource, OathSuit } from "../../enums";
+import { TakeOwnableObjectEffect, TakeWarbandsIntoBagEffect, PutWarbandsFromBagEffect, PutResourcesOnTargetEffect, MoveResourcesToTargetEffect, SetNewOathkeeperEffect, RollDiceEffect, GamblingHallEffect, TakeResourcesFromBankEffect } from "../../effects";
+import { BannerName, OathResource, OathSuit } from "../../enums";
 import { OathPlayer } from "../../player";
 import { ResourceCost } from "../../resources";
 import { EnemyEffectModifier, WhenPlayed, CapacityModifier, ActivePower, RestPower } from "../powers";
@@ -110,5 +111,24 @@ export class GamblingHall extends ActivePower<Denizen> {
     usePower(): void {
         const faces = new RollDiceEffect(this.action.game, this.action.player, DefenseDie, 4).do();
         new GamblingHallEffect(this.action.player, faces).doNext();
+    }
+}
+
+export class Charlatan extends WhenPlayed<Denizen> {
+    name = "Charlatan";
+
+    whenPlayed(): void {
+        new TakeResourcesFromBankEffect(this.game, this.effect.player, this.game.banners.get(BannerName.DarkestSecret), Infinity, undefined);
+    }
+}
+
+export class Dissent extends WhenPlayed<Denizen> {
+    name = "Dissent";
+
+    whenPlayed(): void {
+        const peoplesFavorProxy = this.gameProxy.banners.get(BannerName.PeoplesFavor);
+        for (const playerProxy of Object.values(this.gameProxy.players))
+            if (peoplesFavorProxy?.owner !== playerProxy)
+                new MoveResourcesToTargetEffect(this.game, playerProxy.original, OathResource.Favor, playerProxy.suitsRuled, this.source);
     }
 }
