@@ -6,7 +6,7 @@
 import { PlayerColor } from '../enums';
 import { OathTypeToOath } from '../oaths';
 import {
-  Card,
+  CardData,
   CardName,
   CardNameIndexes,
   Citizenship,
@@ -147,7 +147,7 @@ function hex(num: number, width: number): string {
 //
 // The first byte is the size of the deck, and each subsequent byte is the id of
 // a card in the deck, in order.
-function serializeDeck(deck: Card[]): string {
+function serializeDeck(deck: CardData[]): string {
   let bytes = [deck.length, ...deck.map((card) => CardName[card.name])];
   return bytes.map((byte) => hex(byte, 2)).join('');
 }

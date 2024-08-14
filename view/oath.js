@@ -22,6 +22,12 @@ const pawnColors = ["💜", "❤️", "💙", "💛", "🤍", "🖤"];
 const suitColors = ["🚫", "🔴", "🟣", "🔵", "🟠", "🟤", "🟢"];
 const resourceNames = ["🟡", "📘", "📖"];
 const render = () => {
+    const titleNode = document.getElementById("title");
+    titleNode.innerHTML = game.name + " #" + game.chronicleNumber + ", an Oath of " + oathNames[game.oath] + ", Round " + game.round;
+
+    const seedNode = document.getElementById("seed");
+    seedNode.innerHTML = game.seed;
+
     const infoNode = document.getElementById("info");
     infoNode.innerHTML = "";
     infoNode.appendChild(renderText("[BANNERS]"));
@@ -43,10 +49,8 @@ const render = () => {
     infoNode.appendChild(renderDeck(game.relicDeck, "Relic Deck"));
     infoNode.appendChild(renderDeck(game.worldDeck, "World Deck"));
 
-
     const boardNode = document.getElementById("board");
     boardNode.innerHTML = "";
-    boardNode.appendChild(renderText(game.name + " #" + game.chronicleNumber + ", an Oath of " + oathNames[game.oath] + ", Round " + game.round));
     for (const [i, region] of Object.entries(game.board.regions)) {
         const regionNode = boardNode.appendChild(document.createElement("li"));
         regionNode.id = "region" + i;

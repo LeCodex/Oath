@@ -1,14 +1,14 @@
 import { PlayerColor, OathSuit, OathType } from '../../enums';
 import { PlayerCitizenship } from './enums';
 
-export interface Card {
+export interface CardData {
   name: string;
 }
 
-export interface Site {
+export interface SiteData {
   name: string;
   facedown: boolean;
-  cards: Card[];
+  cards: CardData[];
 }
 
 export interface OathGameData {
@@ -24,10 +24,10 @@ export interface OathGameData {
   playerCitizenship: PlayerCitizenship;
   oath: OathType;
   suitOrder: OathSuit[];
-  sites: Site[];
-  world: Card[];
-  dispossessed: Card[];
-  relics: Card[];
+  sites: SiteData[];
+  world: CardData[];
+  dispossessed: CardData[];
+  relics: CardData[];
 
   prevPlayerCitizenship: PlayerCitizenship;
   winner: PlayerColor;

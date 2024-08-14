@@ -13,18 +13,20 @@ import { Conspiracy, Denizen, Edifice, GrandScepter, Relic, Site, Vision, WorldC
 import { Chancellor, Exile, OathPlayer } from "./player";
 import { Banner, DarkestSecret, FavorBank, PeoplesFavor } from "./banks";
 import { AbstractConstructor, Constructor, isExtended, WithOriginal } from "./utils";
-import { parseOathTTSSavefileString } from "./parser";
+import { parseOathTTSSavefileString, serializeOathGame } from "./parser";
+import { Citizenship, OathGameData } from "./parser/interfaces";
 
 
 export class OathGame extends WithOriginal {
     actionManager = new OathActionManager(this);
-
+    
+    seed: string;
     name: string;
     chronicleNumber: number;
     oath: Oath;
     oathkeeper: OathPlayer;
     isUsurper = false;
-
+    
     turn = 0;
     phase = OathPhase.Act;
     round = 1;
@@ -46,9 +48,12 @@ export class OathGame extends WithOriginal {
     relicDeck = new RelicDeck(this);
     siteDeck = new CardDeck<Site>(this);
     board: OathBoard;
+
     
     constructor(seed: string, playerCount: number) {
         super();
+        this.seed = seed;
+
         const gameData = parseOathTTSSavefileString(seed);
         this.name = gameData.chronicleName;
         this.chronicleNumber = gameData.gameCount;
@@ -75,7 +80,7 @@ export class OathGame extends WithOriginal {
                 if (card)
                     this.worldDeck.putCard(card, true);
                 else
-                    console.warn("Couldn't load " + cardData.name);
+                    console.warn("Couldn't load " + cardData.name + " into World Deck");
 
                 continue;
             }
@@ -86,7 +91,7 @@ export class OathGame extends WithOriginal {
         for (const cardData of gameData.relics) {
             const data = relicsData[cardData.name];
             if (!data) {
-                console.warn("Couldn't load " + cardData.name);
+                console.warn("Couldn't load " + cardData.name+ " into relic deck");
                 continue;
             }
             this.relicDeck.putCard(new Relic(this, cardData.name, ...data), true);
@@ -102,7 +107,8 @@ export class OathGame extends WithOriginal {
                 console.warn("Couldn't load " + siteData.name + ", defaulting to a random site: " + key);
             }
             siteKeys.push(key);
-            const site = new Site(this, key, ...sitesData[key]);
+            const region = this.board.regions[regionIndex];
+            const site = new Site(this, region, key, ...sitesData[key]);
             site.facedown = siteData.facedown;
             if (!site.facedown) site.setupResources();
 
@@ -130,10 +136,9 @@ export class OathGame extends WithOriginal {
                     continue;
                 }
                 
-                console.warn("Couldn't load " + denizenOrRelicData.name);
+                console.warn("Couldn't load " + denizenOrRelicData.name + " for " + key);
             }
 
-            const region = this.board.regions[regionIndex];
             region.sites.push(site);
             if (region.sites.length >= region.size) regionIndex++;
         }
@@ -277,8 +282,33 @@ export class OathGame extends WithOriginal {
             favorBanks: Object.fromEntries([...this.favorBanks.entries()].map(([k, v]) => [k, v.serialize()])),
             worldDeck: this.worldDeck.serialize(),
             relicDeck: this.relicDeck.serialize(),
-            board: this.board.serialize()
+            board: this.board.serialize(),
+            seed: this.seed
         }
-    };
+    }
+
+    updateSeed(winner: PlayerColor) {
+        this.seed = serializeOathGame({
+            version: {
+                major: '3',
+                minor: '3',
+                patch: '3'
+            },
+        
+            chronicleName: this.name,
+            gameCount: this.chronicleNumber + 1,
+        
+            playerCitizenship: {[1]: Citizenship.Exile, [2]: Citizenship.Exile, [3]: Citizenship.Exile, [4]: Citizenship.Exile, [5]: Citizenship.Exile},
+            oath: this.oath.type,
+            suitOrder: [OathSuit.Discord, OathSuit.Arcane, OathSuit.Order, OathSuit.Hearth, OathSuit.Beast, OathSuit.Nomad],
+            sites: [...this.board.sites()].map(e => ({ name: e.name, facedown: e.facedown, cards: [...e.denizens, ...e.relics].map(e => ({ name: e.name })) })),
+            world: this.worldDeck.cards.map(e => ({ name: e.name })),
+            dispossessed: Object.keys(this.dispossessed).map(e => ({ name: e })),
+            relics: this.relicDeck.cards.map(e => ({ name: e.name })),
+        
+            prevPlayerCitizenship: {[1]: Citizenship.Exile, [2]: Citizenship.Exile, [3]: Citizenship.Exile, [4]: Citizenship.Exile, [5]: Citizenship.Exile},
+            winner: winner
+        })
+    }
 }
 

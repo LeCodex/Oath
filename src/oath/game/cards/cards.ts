@@ -62,6 +62,7 @@ export class Site extends OathCard implements CampaignActionTarget {
 
     constructor(
         game: OathGame,
+        region: Region,
         name: string,
         powers: Iterable<Constructor<OathPower<Site>>>,
         capacity: number,
@@ -71,6 +72,7 @@ export class Site extends OathCard implements CampaignActionTarget {
         startingResources: Iterable<[OathResource, number]> = []
     ) {
         super(game, name, powers);
+        this.region = region;
         this.capacity = capacity;
         this.startingRelics = startingRelics;
         this.recoverCost = recoverCost;
