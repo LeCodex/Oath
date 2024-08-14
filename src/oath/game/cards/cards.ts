@@ -36,6 +36,8 @@ export abstract class OathCard extends ResourcesAndWarbands implements WithPower
         this.facedown = true;
     }
 
+    abstract accessibleBy(player: OathPlayer): boolean;
+
     serialize(): Record<string, any> {
         const obj: Record<string, any> = super.serialize();
         obj.name = this.name;
@@ -66,8 +68,8 @@ export class Site extends OathCard implements CampaignActionTarget {
         game: OathGame,
         region: Region,
         name: string,
-        powers: Iterable<Constructor<OathPower<Site>>>,
         capacity: number,
+        powers: Iterable<Constructor<OathPower<Site>>>,
         startingRelics: number = 0,
         recoverCost: ResourceCost = new ResourceCost(),
         recoverSuit: OathSuit = OathSuit.None,
@@ -94,6 +96,10 @@ export class Site extends OathCard implements CampaignActionTarget {
         }
 
         return ruler;
+    }
+
+    accessibleBy(player: OathPlayer): boolean {
+        return player.site === this || player === this.ruler;
     }
 
     getWarbands(player: OathPlayer | undefined): number {

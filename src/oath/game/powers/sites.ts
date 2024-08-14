@@ -1,10 +1,10 @@
-import { InvalidActionResolution, ChooseResourceToTakeAction, WakeAction, TravelAction, ModifiableAction, CampaignAtttackAction, MusterAction, SearchAction } from "../actions/actions";
+import { InvalidActionResolution, ChooseResourceToTakeAction, WakeAction, TravelAction, ModifiableAction, CampaignAtttackAction, MusterAction, SearchAction, StartBindingExchangeAction, MakeBindingExchangeOfferAction, SearchPlayAction, SearchDiscardAction, MayDiscardACardAction } from "../actions/actions";
 import { Site, Denizen } from "../cards/cards";
-import { PlayWorldCardEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PutWarbandsFromBagEffect, TakeResourcesFromBankEffect } from "../effects";
+import { PlayWorldCardEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PutWarbandsFromBagEffect, TakeResourcesFromBankEffect, FlipSecretsEffect, DiscardCardEffect } from "../effects";
 import { OathSuit, OathResource } from "../enums";
 import { isAtSite } from "../interfaces";
 import { OathPlayer } from "../player";
-import { EffectModifier, ActionModifier } from "./powers";
+import { EffectModifier, ActionModifier, ActivePower } from "./powers";
 
 
 export abstract class HomelandSitePower extends EffectModifier<Site> {
@@ -101,8 +101,7 @@ export class CoastalSite extends SiteActionModifier {
     }
 
     applyImmediately(modifiers: Iterable<ActionModifier<any>>): Iterable<ActionModifier<any>> {
-        // TODO: Ignore only the Narrow Pass and not the Hidden Place
-        return [...modifiers].filter(e => e.source instanceof Site && e.source !== this.source);
+        return [...modifiers].filter(e => e instanceof NarrowPass);
     }
 
     applyBefore(): void {
@@ -127,6 +126,89 @@ export class CharmingValley extends SiteActionModifier {
 
     applyBefore(): void {
         this.action.supplyCostModifier += 1;
+    }
+}
+
+export class NarrowPass extends SiteActionModifier {
+    name = "Narrow Pass";
+    modifiedAction = TravelAction;
+    action: TravelAction;
+    mustUse = true;
+
+    applyBefore(): void {
+        if (this.action.siteProxy !== this.sourceProxy && this.activatorProxy.site.region !== this.sourceProxy.region && this.action.siteProxy.region === this.sourceProxy.region)
+            throw new InvalidActionResolution("Must go through the Narrow Pass");
+    }
+}
+
+export class BuriedGiant extends SiteActionModifier {
+    name = "Buried Giant";
+    modifiedAction = TravelAction;
+    action: TravelAction;
+
+    applyImmediately(modifiers: Iterable<ActionModifier<any>>): Iterable<ActionModifier<any>> {
+        return [...modifiers].filter(e => e instanceof NarrowPass);
+    }
+
+    applyWhenApplied(): boolean {
+        if (new FlipSecretsEffect(this.game, this.action.player, 1, true).do() < 1)
+            throw new InvalidActionResolution("Cannot pay resource cost for Buried Giant");
+
+        return true;
+    }
+
+    applyBefore(): void {
+        this.action.noSupplyCost = true;
+    }
+}
+
+export class ShroudedWood extends SiteActionModifier {
+    name = "Shrouded Wood";
+    modifiedAction = TravelAction;
+    action: TravelAction;
+    mustUse = true;
+
+    applyImmediately(modifiers: Iterable<ActionModifier<any>>): Iterable<ActionModifier<any>> {
+        return [...modifiers].filter(e => e instanceof NarrowPass || e instanceof TheHiddenPlaceTravel);
+    }
+
+    applyWhenApplied(): boolean {
+        if (this.sourceProxy.ruler) this.action.player = this.sourceProxy.ruler.original;
+        return true;
+    }
+
+    applyBefore(): void {
+        this.action.supplyCost = 2;
+    }
+}
+
+export class TheHiddenPlaceTravel extends SiteActionModifier {
+    name = "The Hidden Place";
+    modifiedAction = TravelAction;
+    action: TravelAction;
+    mustUse = true;
+
+    applyBefore(): void {
+        if (this.action.siteProxy !== this.sourceProxy) return;
+        if (new FlipSecretsEffect(this.game, this.activator, 1, true).do() < 1)
+            throw new InvalidActionResolution("Cannot pay resource cost for The Hidden Place");
+    }
+}
+
+export class TheHiddenPlaceCampaign extends SiteActionModifier {
+    name = "The Hidden Place";
+    modifiedAction = CampaignAtttackAction;
+    action: CampaignAtttackAction;
+    mustUse = true;
+
+    applyBefore(): void {
+        for (const target of this.action.campaignResult.targets) {
+            if (target === this.source || isAtSite(target) && target.site === this.source) {
+                if (new FlipSecretsEffect(this.game, this.activator, 1, true).do() < 1)
+                    throw new InvalidActionResolution("Cannot pay resource cost for The Hidden Place");
+                break;
+            }
+        }
     }
 }
 
@@ -195,5 +277,25 @@ export class Marshes extends SiteActionModifier {
 
     applyBefore(): void {
         this.action.amount--;
+    }
+}
+
+export class GreatSlum extends SiteActionModifier {
+    name = "Great Slum";
+    modifiedAction = SearchPlayAction;
+    action: SearchPlayAction;
+    mustUse = true;
+
+    applyBefore(): void {
+        if (this.action.siteProxy === this.sourceProxy)
+            new MayDiscardACardAction(this.activator, this.action.discardOptions, this.source.denizens).doNext();
+    }
+}
+
+export class TheTribunal extends ActivePower<Site> {
+    name = "The Tribunal";
+
+    usePower(): void {
+        new StartBindingExchangeAction(this.action.player, MakeBindingExchangeOfferAction).doNext();
     }
 }

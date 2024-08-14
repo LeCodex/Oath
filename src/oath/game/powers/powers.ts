@@ -1,9 +1,8 @@
 import { ModifiableAction, RestAction, UsePowerAction, WakeAction, CampaignAtttackAction, CampaignDefenseAction } from "../actions/actions";
 import { ApplyWhenPlayedEffect, OathEffect, PayPowerCost } from "../effects";
-import { OwnableCard, Site, WorldCard } from "../cards/cards";
-import { ResourceCost, ResourcesAndWarbands } from "../resources";
+import { OathCard, OwnableCard, Site, WorldCard } from "../cards/cards";
+import { ResourceCost } from "../resources";
 import { OathPlayer } from "../player";
-import { OathGameObject } from "../gameObject";
 import { AbstractConstructor, MaskProxyManager } from "../utils";
 import { OathGame } from "../game";
 import { WithPowers } from "../interfaces";
@@ -73,7 +72,7 @@ export abstract class ActionPower<T extends WithPowers> extends PowerWithProxy<T
     abstract canUse(): boolean;
 }
 
-export abstract class ActivePower<T extends OwnableCard> extends ActionPower<T> {
+export abstract class ActivePower<T extends OathCard> extends ActionPower<T> {
     action: UsePowerAction;
 
     canUse(): boolean {

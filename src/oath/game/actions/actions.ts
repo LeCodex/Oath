@@ -459,9 +459,9 @@ export class SearchDiscardAction extends ModifiableAction {
 
     constructor(player: OathPlayer, cards: Iterable<WorldCard>, amount?: number, discardOptions?: DiscardOptions<any>) {
         super(player);
-        this.discardOptions = discardOptions || new DiscardOptions(player.discard);
         this.cards = new Set(cards);
         this.amount = Math.min(this.cards.size, amount || this.cards.size);
+        this.discardOptions = discardOptions || new DiscardOptions(player.discard);
     }
 
     start() {
@@ -567,30 +567,37 @@ export class SearchPlayAction extends ModifiableAction {
     }
 }
 
-export class PeoplesFavorDiscardAction extends OathAction {
+export class MayDiscardACardAction extends OathAction {
     readonly selects: { card: SelectNOf<Denizen> };
     readonly parameters: { card: Denizen[] };
     readonly message = "You may discard a card";
 
+    cards: Set<Denizen>;
     discardOptions: DiscardOptions<any>;
 
-    constructor(player: OathPlayer, discardOptions?: DiscardOptions<any>) {
+    constructor(player: OathPlayer, discardOptions?: DiscardOptions<any>, cards?: Iterable<Denizen>) {
         super(player);
         this.discardOptions = discardOptions || new DiscardOptions(player.discard);
+        if (cards) {
+            this.cards = new Set(cards);
+        } else {
+            this.cards = new Set();
+            for (const site of this.player.site.region.sites)
+                for (const denizen of site.denizens)
+                    if (!denizen.activelyLocked) this.cards.add(denizen);
+        }
     }
 
     start() {
         const choices = new Map<string, Denizen>();
-        for (const site of this.player.site.region.sites)
-            for (const denizen of site.denizens)
-                if (!denizen.activelyLocked) choices.set(denizen.name, denizen);
+        for (const card of this.cards) choices.set(card.name, card);
         this.selects.card = new SelectNOf("Card", choices, 0, 1);
         return super.start();
     }
 
     execute(): void {
-        if (this.parameters.card.length === 0) return;
         const card = this.parameters.card[0];
+        if (!card) return;
         new DiscardCardEffect(this.player, card, this.discardOptions).do();
     }
 }
@@ -671,6 +678,7 @@ export class CampaignAtttackAction extends ModifiableAction {
         return super.start();
     }
 
+    // TODO: This is part of the action, and so should get reset to its starting state in start
     get campaignResult() { return this.next.campaignResult; }
 
     execute() {

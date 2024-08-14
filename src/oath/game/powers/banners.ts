@@ -1,4 +1,4 @@
-import { PeoplesFavorWakeAction, WakeAction, SearchPlayAction, PeoplesFavorDiscardAction, SearchAction } from "../actions/actions";
+import { PeoplesFavorWakeAction, WakeAction, SearchPlayAction, MayDiscardACardAction, SearchAction } from "../actions/actions";
 import { Banner, PeoplesFavor, DarkestSecret } from "../banks";
 import { ActionModifier } from "./powers";
 
@@ -22,7 +22,7 @@ export class PeoplesFavorSearch extends BannerActionModifier<PeoplesFavor> {
     }
 
     applyBefore(): void {
-        if (this.action.siteProxy) new PeoplesFavorDiscardAction(this.activator, this.action.discardOptions).doNext();
+        if (this.action.siteProxy) new MayDiscardACardAction(this.activator, this.action.discardOptions).doNext();
     }
 }
 
