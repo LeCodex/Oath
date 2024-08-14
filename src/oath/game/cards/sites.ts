@@ -1,6 +1,6 @@
 import { OathResource, OathSuit } from "../enums";
 import { OathPower } from "../powers/powers";
-import { AncientCity, CharmingValley, CoastalSite, DeepWoods, FertileValley, OpportunitySite, StandingStones, Steppe, Wastes } from "../powers/sites";
+import { AncientCity, CharmingValley, CoastalSite, DeepWoods, FertileValley, Mountain, OpportunitySite, Plains, StandingStones, Steppe, Wastes } from "../powers/sites";
 import { ResourceCost } from "../resources";
 import { Constructor } from "../utils";
 import { Site } from "./cards";
@@ -21,8 +21,8 @@ export const sitesData: Record<string, [Constructor<OathPower<Site>>[], number, 
     LushCoast:      [[CoastalSite],     3],
     RockyCoast:     [[CoastalSite],     2],
 
-    Plains:         [[],                3],
-    Mountain:       [[],                2, 1, new ResourceCost([], [[OathResource.Favor, 2]])],
+    Plains:         [[Plains],          3],
+    Mountain:       [[Mountain],        2, 1, new ResourceCost([], [[OathResource.Favor, 2]])],
 
     CharmingValley: [[CharmingValley],  3],
     NarrowPass:     [[],                1, 1, new ResourceCost([[OathResource.Favor, 3]]), OathSuit.Arcane],

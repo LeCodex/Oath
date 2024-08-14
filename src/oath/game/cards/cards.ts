@@ -1,10 +1,11 @@
-import { InvalidActionResolution, CampaignActionTarget, CampaignSeizeSiteAction, RecoverAction, RecoverActionTarget } from "../actions/actions";
+import { InvalidActionResolution, CampaignSeizeSiteAction, RecoverAction } from "../actions/actions";
+import { RecoverActionTarget, WithPowers, AtSite, OwnableObject, CampaignActionTarget } from "../interfaces";
 import { Region } from "../board";
 import { DiscardCardEffect, FlipSecretsEffect, MoveOwnWarbandsEffect, MoveResourcesToTargetEffect, PayCostToBankEffect, PutResourcesIntoBankEffect, TakeOwnableObjectEffect } from "../effects";
 import { CardRestriction, OathResource, OathSuit, OathTypeVisionName, RegionName } from "../enums";
 import { OathGame } from "../game";
 import { Oath } from "../oaths";
-import { OathPlayer, OwnableObject } from "../player";
+import { OathPlayer } from "../player";
 import { OathPower } from "../powers/powers";
 import { GrandScepterExileCitizen, GrandScepterGrantCitizenship, GrandScepterPeek, GrandScepterRest, GrandScepterSeize } from "../powers/relics";
 import { ConspiracyPower } from "../powers/visions";
@@ -14,7 +15,7 @@ import { DiscardOptions } from "./decks";
 import { DenizenData } from "./denizens";
 
 
-export abstract class OathCard extends ResourcesAndWarbands {
+export abstract class OathCard extends ResourcesAndWarbands implements WithPowers {
     name: string;
     facedown: boolean = true;
     seenBy: Set<OathPlayer> = new Set();
@@ -179,7 +180,7 @@ export abstract class OwnableCard extends OathCard implements OwnableObject {
     // }
 }
 
-export class Relic extends OwnableCard implements RecoverActionTarget, CampaignActionTarget {
+export class Relic extends OwnableCard implements RecoverActionTarget, CampaignActionTarget, AtSite {
     site?: Site;
 
     defense: number;
@@ -248,7 +249,7 @@ export abstract class WorldCard extends OwnableCard {
     }
 }
 
-export class Denizen extends WorldCard {
+export class Denizen extends WorldCard implements AtSite {
     site?: Site;
     restriction: CardRestriction;
     locked: boolean;

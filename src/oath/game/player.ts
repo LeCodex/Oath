@@ -1,4 +1,5 @@
-import { CampaignActionTarget, CampaignBanishPlayerAction } from "./actions/actions";
+import { CampaignBanishPlayerAction } from "./actions/actions";
+import { CampaignActionTarget, AtSite } from "./interfaces";
 import { Denizen, OwnableCard, Relic, Site, Vision, WorldCard } from "./cards/cards";
 import { Discard } from "./cards/decks";
 import { FlipSecretsEffect, GainSupplyEffect, MoveResourcesToTargetEffect } from "./effects";
@@ -8,16 +9,7 @@ import { ResourcesAndWarbands } from "./resources";
 import { Banner } from "./banks";
 import { Reliquary } from "./reliquary";
 
-export interface OwnableObject {
-    owner?: OathPlayer;
-    setOwner(player?: OathPlayer): void;
-}
-
-export function isOwnable(obj: object): obj is OwnableObject {
-    return "owner" in obj;
-}
-
-export abstract class OathPlayer extends ResourcesAndWarbands implements CampaignActionTarget {
+export abstract class OathPlayer extends ResourcesAndWarbands implements CampaignActionTarget, AtSite {
     name: string;
     color: PlayerColor;
     warbandsInBag: number;

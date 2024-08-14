@@ -6,12 +6,13 @@ import { OathPlayer } from "../player";
 import { OathGameObject } from "../gameObject";
 import { AbstractConstructor, MaskProxyManager } from "../utils";
 import { OathGame } from "../game";
+import { WithPowers } from "../interfaces";
 
 
 //////////////////////////////////////////////////
 //                BASE CLASSES                  //
 //////////////////////////////////////////////////
-export abstract class OathPower<T extends OathGameObject> {
+export abstract class OathPower<T extends WithPowers> {
     abstract name: string;
     source: T;
     cost: ResourceCost = new ResourceCost();
@@ -27,7 +28,7 @@ export abstract class OathPower<T extends OathGameObject> {
     }
 }
 
-export abstract class PowerWithProxy<T extends OathGameObject> extends OathPower<T> {
+export abstract class PowerWithProxy<T extends WithPowers> extends OathPower<T> {
     gameProxy: OathGame;
     sourceProxy: T;
 
@@ -61,7 +62,7 @@ export abstract class WhenPlayed<T extends WorldCard> extends PowerWithProxy<T> 
     abstract whenPlayed(): void;
 }
 
-export abstract class ActionPower<T extends OathGameObject> extends PowerWithProxy<T> {
+export abstract class ActionPower<T extends WithPowers> extends PowerWithProxy<T> {
     action: ModifiableAction;
 
     constructor(source: T, action: ModifiableAction) {
@@ -82,7 +83,7 @@ export abstract class ActivePower<T extends OwnableCard> extends ActionPower<T> 
     abstract usePower(): void;
 }
 
-export abstract class ActionModifier<T extends OathGameObject> extends ActionPower<T> {
+export abstract class ActionModifier<T extends WithPowers> extends ActionPower<T> {
     abstract modifiedAction: AbstractConstructor<ModifiableAction>;
     mustUse: boolean = false;
 
@@ -139,7 +140,7 @@ export abstract class DefenderBattlePlan<T extends OwnableCard> extends BattlePl
     action: CampaignDefenseAction;
 }
 
-export abstract class EffectModifier<T extends OathGameObject> extends PowerWithProxy<T> {
+export abstract class EffectModifier<T extends WithPowers> extends PowerWithProxy<T> {
     abstract modifiedEffect: AbstractConstructor<OathEffect<any>>;
     effect: OathEffect<any>;
 

@@ -1,8 +1,10 @@
-import { InvalidActionResolution, ChooseResourceToTakeAction, WakeAction, TravelAction } from "../actions/actions";
+import { InvalidActionResolution, ChooseResourceToTakeAction, WakeAction, TravelAction, ModifiableAction, CampaignAtttackAction } from "../actions/actions";
 import { Site, Denizen } from "../cards/cards";
 import { PlayWorldCardEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PutWarbandsFromBagEffect, TakeResourcesFromBankEffect } from "../effects";
 import { OathSuit, OathResource } from "../enums";
+import { isAtSite } from "../interfaces";
 import { OathPlayer } from "../player";
+import { AbstractConstructor } from "../utils";
 import { EffectModifier, ActionModifier } from "./powers";
 
 
@@ -140,5 +142,35 @@ export class OpportunitySite extends SiteActionModifier {
 
     applyBefore(): void {
         if (!this.source.empty) new ChooseResourceToTakeAction(this.action.player, this.source).doNext();
+    }
+}
+
+export class Plains extends SiteActionModifier {
+    name = "Plains";
+    modifiedAction = CampaignAtttackAction;
+    action: CampaignAtttackAction;
+
+    applyBefore(): void {
+        for (const target of this.action.campaignResult.targets) {
+            if (target === this.source || isAtSite(target) && target.site === this.source) {
+                this.action.campaignResult.atkPool++;
+                return
+            }
+        }
+    }
+}
+
+export class Mountain extends SiteActionModifier {
+    name = "Mountain";
+    modifiedAction = CampaignAtttackAction;
+    action: CampaignAtttackAction;
+
+    applyBefore(): void {
+        for (const target of this.action.campaignResult.targets) {
+            if (target === this.source || isAtSite(target) && target.site === this.source) {
+                this.action.campaignResult.atkPool--;
+                return
+            }
+        }
     }
 }

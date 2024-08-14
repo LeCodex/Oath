@@ -4,7 +4,7 @@ import { Exile, OathPlayer } from "./player";
 import { ActionModifier, EffectModifier, OathPower, WhenPlayed } from "./powers/powers";
 import { ResourceCost, ResourcesAndWarbands } from "./resources";
 import { Banner, PeoplesFavor, ResourceBank } from "./banks";
-import { OwnableObject } from "./player";
+import { OwnableObject } from "./interfaces";
 import { OathGame } from "./game";
 import { OathGameObject } from "./gameObject";
 import { InvalidActionResolution, ModifiableAction, OathAction, AddCardsToWorldDeckAction, BuildOrRepairEdificeAction, ChooseNewCitizensAction, VowOathAction, TakeFavorFromBankAction, ResolveEffectAction, RestAction, WakeAction, CampaignDefenseAction, CampaignResult, SearchDiscardAction, SearchPlayAction } from "./actions/actions";
@@ -1573,7 +1573,7 @@ export class CleanUpMapEffect extends PlayerEffect<void> {
         }
 
         // Collect and deal relics (technically not at this point of the Chronicle, but this has no impact)
-        const futureReliquary = [...this.game.chancellor.reliquary.relics.filter(e => e !== undefined)];
+        const futureReliquary = [...this.game.chancellor.reliquary.slots.map(e => e.relic).filter(e => e !== undefined)];
         const relicDeck = this.game.relicDeck;
         for (const player of Object.values(this.game.players)) {
             for (const relic of player.relics) {
@@ -1600,7 +1600,7 @@ export class CleanUpMapEffect extends PlayerEffect<void> {
             if (relic) relicDeck.putCard(relic)
         }
         for (let i = 0; i < 4; i++) {
-            this.game.chancellor.reliquary.relics[i] = relicDeck.drawSingleCard();
+            this.game.chancellor.reliquary.slots[i].relic = relicDeck.drawSingleCard();
         }
 
         new AddCardsToWorldDeckAction(this.player).doNext();

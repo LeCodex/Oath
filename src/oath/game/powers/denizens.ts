@@ -3,7 +3,8 @@ import { Denizen, Site, WorldCard, Vision, Relic } from "../cards/cards";
 import { DefenseDie } from "../dice";
 import { PayCostToTargetEffect, PlayWorldCardEffect, MoveResourcesToTargetEffect, RegionDiscardEffect, PutResourcesOnTargetEffect, RollDiceEffect, TakeWarbandsIntoBagEffect, TakeResourcesFromBankEffect, PlayVisionEffect, OathEffect, TakeOwnableObjectEffect, PayPowerCost, PutWarbandsFromBagEffect, SetNewOathkeeperEffect, GamblingHallEffect, PeekAtCardEffect } from "../effects";
 import { OathResource, OathSuit, BannerName } from "../enums";
-import { OathPlayer, OwnableObject, isOwnable } from "../player";
+import { OathPlayer } from "../player";
+import { OwnableObject, isOwnable } from "../interfaces";
 import { ResourceCost } from "../resources";
 import { CapacityModifier, AttackerBattlePlan, DefenderBattlePlan, EnemyActionModifier, EnemyEffectModifier, WhenPlayed, AccessedActionModifier, RestPower, ActionModifier, ActivePower, EffectModifier, AccessedEffectModifier, OathPower } from "./powers";
 

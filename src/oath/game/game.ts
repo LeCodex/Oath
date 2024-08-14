@@ -15,6 +15,7 @@ import { Banner, DarkestSecret, FavorBank, PeoplesFavor } from "./banks";
 import { AbstractConstructor, Constructor, isExtended, WithOriginal } from "./utils";
 import { parseOathTTSSavefileString, serializeOathGame } from "./parser";
 import { Citizenship, OathGameData } from "./parser/interfaces";
+import { WithPowers } from "./interfaces";
 
 
 export class OathGame extends WithOriginal {
@@ -198,12 +199,14 @@ export class OathGame extends WithOriginal {
         return data;
     }
 
-    getPowers<T extends OathPower<any>>(type: AbstractConstructor<T>): [any, Constructor<T>][] {
+    getPowers<T extends OathPower<any>>(type: AbstractConstructor<T>): [WithPowers, Constructor<T>][] {
         const powers: [any, Constructor<T>][] = [];
 
         const reliquary = this.chancellor.reliquary;
-        for (const [i, power] of reliquary.slotPowers.entries()) {
-            if (!reliquary.relics[i] && isExtended(power, type)) powers.push([reliquary, power]);
+        for (const slot of reliquary.slots) {
+            if (slot.relic) continue;
+            for (const power of slot.powers)
+                if (isExtended(power, type)) powers.push([slot, power]);
         }
 
         for (const site of this.board.sites()) {

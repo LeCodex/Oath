@@ -1,10 +1,10 @@
 import { ActionModifier } from "./powers";
 import { InvalidActionResolution, CampaignAtttackAction, SearchAction, TradeAction, TravelAction } from "../actions/actions";
 import { OathResource, RegionName } from "../enums";
-import { Reliquary } from "../reliquary";
+import { ReliquarySlot } from "../reliquary";
 
 
-export abstract class ReliquaryModifier extends ActionModifier<Reliquary> {
+export abstract class ReliquaryModifier extends ActionModifier<ReliquarySlot> {
     mustUse = true;
 
     canUse(): boolean {

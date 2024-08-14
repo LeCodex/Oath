@@ -3,7 +3,8 @@ import { DiscardOptions } from "../cards/decks";
 import { Denizen, GrandScepter, Relic, Site } from "../cards/cards";
 import { TakeOwnableObjectEffect, PutWarbandsFromBagEffect, PlayDenizenAtSiteEffect, MoveOwnWarbandsEffect, PeekAtCardEffect, SetGrandScepterLockEffect, GainSupplyEffect, DiscardCardEffect, DrawFromDeckEffect, RevealCardEffect } from "../effects";
 import { OathResource } from "../enums";
-import { OwnableObject, OathPlayer, isOwnable, Exile } from "../player";
+import { OathPlayer, Exile } from "../player";
+import { OwnableObject, isOwnable } from "../interfaces";
 import { ResourceCost } from "../resources";
 import { AccessedActionModifier, EnemyEffectModifier, EnemyActionModifier, AccessedEffectModifier, AttackerBattlePlan, DefenderBattlePlan, ActionModifier, EffectModifier, ActivePower, RestPower } from "./powers";
 
@@ -37,9 +38,9 @@ export class GrandScepterPeek extends GrandScepterActive {
     name = "Peek at the Reliquary";
 
     usePower(): void {
-        for (const relicProxy of this.gameProxy.chancellor.reliquary.relics) 
-            if (relicProxy)
-                new PeekAtCardEffect(this.action.player, relicProxy.original).do(); 
+        for (const slotProxy of this.gameProxy.chancellor.reliquary.slots) 
+            if (slotProxy.relic)
+                new PeekAtCardEffect(this.action.player, slotProxy.relic.original).do(); 
     }
 }
 export class GrandScepterGrantCitizenship extends GrandScepterActive {

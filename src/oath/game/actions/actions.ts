@@ -10,8 +10,9 @@ import { Exile, OathPlayer } from "../player";
 import { ActionModifier, ActionPower, ActivePower, CapacityModifier, OathPower } from "../powers/powers";
 import { ResourceCost, ResourcesAndWarbands } from "../resources";
 import { Banner, PeoplesFavor } from "../banks";
-import { Constructor, isExtended, MaskProxyManager, shuffleArray, WithOriginal } from "../utils";
+import { Constructor, isExtended, MaskProxyManager, shuffleArray } from "../utils";
 import { SelectNOf, SelectBoolean, SelectNumber } from "./selects";
+import { CampaignActionTarget, RecoverActionTarget } from "../interfaces";
 
 
 
@@ -324,11 +325,6 @@ export class TravelAction extends MajorAction {
 }
 
 
-export interface RecoverActionTarget extends WithOriginal {
-    canRecover(action: RecoverAction): boolean;
-    recover(player: OathPlayer): void;
-}
-
 export class RecoverAction extends MajorAction {
     readonly selects: { target: SelectNOf<RecoverActionTarget> };
     readonly parameters: { target: RecoverActionTarget[] };
@@ -628,12 +624,6 @@ export class CampaignAction extends MajorAction {
         next.doNext();
     }
 }
-
-export interface CampaignActionTarget extends WithOriginal {
-    defense: number;
-    force: ResourcesAndWarbands | undefined;
-    seize(player: OathPlayer): void;
-};
 
 export class CampaignAtttackAction extends ModifiableAction {
     readonly selects: { targets: SelectNOf<CampaignActionTarget>, pool: SelectNumber };
@@ -1664,7 +1654,7 @@ export class CitizenshipOfferAction extends MakeBindingExchangeOfferAction {
     start(): boolean {
         if (!this.next) {
             const values = [];
-            for (const [i, relic] of this.game.chancellor.reliquary.relics.entries()) if (relic) values.push(i);
+            for (const [i, slot] of this.game.chancellor.reliquary.slots.entries()) if (slot.relic) values.push(i);
             this.selects.reliquaryRelic = new SelectNumber("Reliquary slot", values);
         }
 
@@ -1697,14 +1687,14 @@ export class SkeletonKeyAction extends OathAction {
 
     start(): boolean {
         const values = [];
-        for (const [i, relic] of this.game.chancellor.reliquary.relics.entries()) if (relic) values.push(i);
+        for (const [i, slot] of this.game.chancellor.reliquary.slots.entries()) if (slot.relic) values.push(i);
         this.selects.index = new SelectNumber("Reliquary slot", values);
         return super.start();
     }
 
     execute(): void {
         const index = this.parameters.index[0];
-        const relic = this.game.chancellor.reliquary.relics[index];
+        const relic = this.game.chancellor.reliquary.slots[index].relic;
         if (relic) new PeekAtCardEffect(this.player, relic).do();
         new AskForPermissionAction(this.player, "Take the relic?", () => new TakeReliquaryRelicEffect(this.player, index).do()).doNext();
     }

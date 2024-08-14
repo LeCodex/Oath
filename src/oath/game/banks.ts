@@ -1,9 +1,10 @@
-import { PeoplesFavorReturnAction, RecoverActionTarget, CampaignActionTarget, RecoverAction, RecoverBannerPitchAction } from "./actions/actions";
+import { PeoplesFavorReturnAction, RecoverAction, RecoverBannerPitchAction } from "./actions/actions";
+import { RecoverActionTarget, CampaignActionTarget, WithPowers, OwnableObject } from "./interfaces";
 import { PutResourcesIntoBankEffect, TakeOwnableObjectEffect, SetPeoplesFavorMobState, TakeResourcesFromBankEffect } from "./effects";
 import { OathResource } from "./enums";
 import { OathGame } from "./game";
 import { OathGameObject } from "./gameObject";
-import { OwnableObject, OathPlayer } from "./player";
+import { OathPlayer } from "./player";
 import { PeoplesFavorSearch, PeoplesFavorWake, DarkestSecretPower } from "./powers/banners";
 import { OathPower } from "./powers/powers";
 import { Constructor } from "./utils";
@@ -51,7 +52,7 @@ export class FavorBank extends ResourceBank {
     type = OathResource.Favor;
 }
 
-export abstract class Banner extends ResourceBank implements OwnableObject, RecoverActionTarget, CampaignActionTarget {
+export abstract class Banner extends ResourceBank implements OwnableObject, RecoverActionTarget, CampaignActionTarget, WithPowers {
     name: string;
     owner?: OathPlayer;
     powers: Set<Constructor<OathPower<Banner>>>;
