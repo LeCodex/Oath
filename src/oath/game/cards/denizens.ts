@@ -1,6 +1,12 @@
 import { CardRestriction, OathSuit } from "../enums";
 import { OathPower } from "../powers/powers";
-import { ActingTroupe, Alchemist, Assassin, AwaitedReturn, BookBinders, Bracken, ChaosCult, CharmingFriend, Curfew, Dazzle, Elders, FabledFeast, FamilyWagon, ForcedLabor, GamblingHall, GleamingArmorAttack, GleamingArmorDefense, HeartsAndMinds, Herald, IgnoresCapacity, InsectSwarmAttack, InsectSwarmDefense, Insomnia, Jinx, KeyToTheCity, LongbowsAttack, LongbowsDefense, LostTongue, LostTongueCampaign, MarriageActionModifier, MarriageEffectModifier, Naysayers, OnlyTwoAdvisers, PiedPiperActive, Portal, RelicThief, RoyalTax, SaddleMakers, ShieldWall, SilverTongue, SleightOfHand, SmallFriends, SpellBreaker, SpiritSnare, TavernSongs, ThreateningRoar, TollRoads, Tutor, VowOfObedience, VowOfObedienceRest, VowOfPoverty, VowOfPovertyRest, WayStation } from "../powers/denizens";
+import { IgnoresCapacity } from "../powers/denizens/denizens";
+import { Assassin, ChaosCult, GamblingHall, Insomnia, KeyToTheCity, Naysayers, OnlyTwoAdvisers, RelicThief, SilverTongue, SleightOfHand } from "../powers/denizens/discord";
+import { ActingTroupe, Alchemist, Dazzle, GleamingArmorAttack, GleamingArmorDefense, Jinx, Portal, SpiritSnare, Tutor } from "../powers/denizens/arcane";
+import { Curfew, ForcedLabor, LongbowsAttack, LongbowsDefense, RoyalTax, ShieldWall, TollRoads, VowOfObedience, VowOfObedienceRest } from "../powers/denizens/order";
+import { AwaitedReturn, BookBinders, CharmingFriend, FabledFeast, HeartsAndMinds, Herald, MarriageActionModifier, MarriageEffectModifier, SaddleMakers, TavernSongs } from "../powers/denizens/hearth";
+import { Bracken, InsectSwarmAttack, InsectSwarmDefense, PiedPiperActive, SmallFriends, ThreateningRoar, VowOfPoverty, VowOfPovertyRest } from "../powers/denizens/beast";
+import { Elders, FamilyWagon, LostTongue, LostTongueCampaign, SpellBreaker, WayStation } from "../powers/denizens/nomad";
 import { Constructor } from "../utils";
 import { Denizen, Edifice } from "./cards";
 
