@@ -1,7 +1,7 @@
 import { InvalidActionResolution, CampaignSeizeSiteAction, RecoverAction } from "../actions/actions";
 import { RecoverActionTarget, WithPowers, AtSite, OwnableObject, CampaignActionTarget } from "../interfaces";
 import { Region } from "../board";
-import { DiscardCardEffect, FlipSecretsEffect, MoveOwnWarbandsEffect, MoveResourcesToTargetEffect, PayCostToBankEffect, PutResourcesIntoBankEffect, TakeOwnableObjectEffect } from "../effects";
+import { DiscardCardEffect, FlipSecretsEffect, MoveOwnWarbandsEffect, MoveResourcesToTargetEffect, PayCostToBankEffect, PutResourcesIntoBankEffect, RevealCardEffect, TakeOwnableObjectEffect } from "../effects";
 import { CardRestriction, OathResource, OathSuit, OathTypeVisionName, RegionName } from "../enums";
 import { OathGame } from "../game";
 import { Oath } from "../oaths";
@@ -31,6 +31,7 @@ export abstract class OathCard extends ResourcesAndWarbands implements WithPower
     abstract get facedownName(): string;
     
     reveal() {
+        new RevealCardEffect(this.game, undefined, this).do();
         this.facedown = false;
     }
     

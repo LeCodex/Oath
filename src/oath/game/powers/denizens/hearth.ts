@@ -1,7 +1,7 @@
-import { TradeAction, TakeResourceFromPlayerAction, TakeFavorFromBankAction, CampaignEndAction, ModifiableAction, AskForPermissionAction, CampaignAtttackAction, InvalidActionResolution, RecoverAction } from "../../actions/actions";
+import { TradeAction, TakeResourceFromPlayerAction, TakeFavorFromBankAction, CampaignEndAction, ModifiableAction, MakeDecisionAction, CampaignAtttackAction, InvalidActionResolution, RecoverAction, ChooseSuitAction, ChooseCardAction } from "../../actions/actions";
 import { PeoplesFavor } from "../../banks";
-import { Denizen, Edifice } from "../../cards/cards";
-import { TakeWarbandsIntoBagEffect, TakeResourcesFromBankEffect, PlayVisionEffect, PlayWorldCardEffect, OathEffect, PeekAtCardEffect, DiscardCardEffect, PutWarbandsFromBagEffect, BecomeCitizenEffect, SetPeoplesFavorMobState, PutResourcesOnTargetEffect, PutResourcesIntoBankEffect, GainSupplyEffect } from "../../effects";
+import { Denizen, Edifice, Relic, WorldCard } from "../../cards/cards";
+import { TakeWarbandsIntoBagEffect, TakeResourcesFromBankEffect, PlayVisionEffect, PlayWorldCardEffect, OathEffect, PeekAtCardEffect, DiscardCardEffect, PutWarbandsFromBagEffect, BecomeCitizenEffect, SetPeoplesFavorMobState, PutResourcesOnTargetEffect, PutResourcesIntoBankEffect, GainSupplyEffect, MoveBankResourcesEffect } from "../../effects";
 import { OathResource, BannerName, OathSuit } from "../../enums";
 import { ResourceCost } from "../../resources";
 import { DefenderBattlePlan, AccessedActionModifier, ActivePower, WhenPlayed, EnemyEffectModifier, EnemyActionModifier, AccessedEffectModifier, AttackerBattlePlan, ActionModifier } from "../powers";
@@ -221,7 +221,7 @@ export class BallotBox extends ActivePower<Denizen> {
     usePower(): void {
         const peoplesFavorProxy = this.gameProxy.banners.get(BannerName.PeoplesFavor);
         if (peoplesFavorProxy?.owner !== this.action.playerProxy) return;
-        new AskForPermissionAction(this.action.player, "Become a Citizen?", () => new BecomeCitizenEffect(this.action.player).do());
+        new MakeDecisionAction(this.action.player, "Become a Citizen?", () => new BecomeCitizenEffect(this.action.player).do());
     }
 }
 
@@ -239,9 +239,120 @@ export class WaysideInn extends ActivePower<Denizen> {
     cost = new ResourceCost([[OathResource.Favor, 1]]);
 
     usePower(): void {
-        new GainSupplyEffect(this.action.player, 2);
+        new GainSupplyEffect(this.action.player, 2).do();
     }
 }
+
+export class MemoryOfHome extends ActivePower<Denizen> {
+    name = "Memory Of Home";
+    cost = new ResourceCost([], [[OathResource.Secret, 1]]);
+
+    usePower(): void {
+        new ChooseSuitAction(
+            this.action.player, "Move all favor from one bank to the Hearth bank",
+            (suit: OathSuit | undefined) => {
+                if (!suit) return;
+                const from = this.game.favorBanks.get(suit);
+                const to = this.game.favorBanks.get(OathSuit.Hearth);
+                if (!from || !to) return;
+                new MoveBankResourcesEffect(this.game, this.action.player, from, to, Infinity).do();
+            }
+        ).doNext();
+    }
+}
+
+export class ArmedMob extends ActivePower<Denizen> {
+    name = "Armed Mob";
+    cost = new ResourceCost([[OathResource.Favor, 1]]);
+
+    usePower(): void {
+        const darkestSecretProxy = this.gameProxy.banners.get(BannerName.DarkestSecret);
+        const peoplesFavorProxy = this.gameProxy.banners.get(BannerName.PeoplesFavor);
+        if (!darkestSecretProxy?.owner) return;
+        if (darkestSecretProxy.owner === peoplesFavorProxy?.owner) return;
+
+        const cards = new Set<WorldCard>();
+        for (const adviserProxy of darkestSecretProxy.owner.advisers)
+            if (!adviserProxy.original.facedown) cards.add(adviserProxy.original);
+
+        new ChooseCardAction(this.action.player, "Discard an adviser", cards, (card: WorldCard | undefined) => { if (card) new DiscardCardEffect(this.action.player, card).do(); }).doNext();
+    }
+}
+
+export class ARoundOfAle extends ActivePower<Denizen> {
+    name = "A Round of Ale";
+    cost = new ResourceCost([[OathResource.Favor, 1]]);
+
+    usePower(): void {
+        this.action.player.rest();
+        new TakeResourcesFromBankEffect(this.game, this.action.player, this.game.favorBanks.get(OathSuit.Hearth), 1, this.source).do();
+    }
+}
+
+export class Levelers extends ActivePower<Denizen> {
+    name = "Levelers";
+    cost = new ResourceCost([], [[OathResource.Secret, 1]]);
+
+    usePower(): void {
+        let max = 0, min = Infinity;
+        const maxSuits = new Set<OathSuit>(), minSuits = new Set<OathSuit>();
+        for (let suit = OathSuit.Discord; suit <= OathSuit.Nomad; suit++) {
+            const amount = this.game.favorBanks.get(suit)?.amount;
+            if (!amount) continue;
+
+            if (amount >= max) {
+                if (amount > max) maxSuits.clear();
+                maxSuits.add(suit);
+                max = amount;
+            }
+
+            if (amount <= min) {
+                if (amount < min) minSuits.clear();
+                minSuits.add(suit);
+                min = amount;
+            }
+        }
+
+        new ChooseSuitAction(
+            this.action.player, "Move 2 favor to a bank with the least favor",
+            (suit: OathSuit | undefined) => {
+                if (!suit) return;
+                const from = this.game.favorBanks.get(suit);
+                if (!from) return;
+
+                new ChooseSuitAction(
+                    this.action.player, "Move 2 favor to a bank with the least favor",
+                    (suit: OathSuit | undefined) => {
+                        if (!suit) return;
+                        const to = this.game.favorBanks.get(suit);
+                        if (!to) return;
+
+                        new MoveBankResourcesEffect(this.game, this.action.player, from, to, 2).do();
+                    },
+                    minSuits
+                ).doNext();
+            },
+            maxSuits
+        ).doNext();
+    }
+}
+
+export class RelicBreaker extends ActivePower<Denizen> {
+    name = "Relic Breaker";
+    cost = new ResourceCost([[OathResource.Favor, 1]]);
+
+    usePower(): void {
+        new ChooseCardAction(
+            this.action.player, "Discard a relic to gain 3 warbands", [...this.action.playerProxy.site.relics].map(e => e.original),
+            (card: Relic | undefined) => {
+                if (!card) return;
+                card.putOnBottom(this.action.player);
+                new PutWarbandsFromBagEffect(this.action.playerProxy.leader.original, 3, this.action.player).do();
+            }
+        ).doNext();
+    }
+}
+
 
 export class HallOfDebate extends ActionModifier<Edifice> {
     name = "Hall of Debate";

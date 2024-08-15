@@ -48,7 +48,7 @@ export class SelectBoolean extends SelectNOf<boolean> {
 }
 
 export class SelectNumber extends SelectNOf<number> {
-    constructor(name: string, values: number[], min: number = 1, max?: number) {
+    constructor(name: string, values: Iterable<number>, min: number = 1, max?: number) {
         const choices = new Map<string, number>();
         for (const i of values) choices.set(String(i), i);
         super(name, choices, min, max);

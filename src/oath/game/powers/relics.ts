@@ -1,5 +1,5 @@
-import { InvalidActionResolution, CitizenshipOfferAction, StartBindingExchangeAction, SkeletonKeyAction, TradeAction, CampaignAtttackAction, MusterAction, TravelAction, AskForPermissionAction, ChoosePlayerAction, SearchAction } from "../actions/actions";
-import { Denizen, GrandScepter, Relic, Site } from "../cards/cards";
+import { InvalidActionResolution, CitizenshipOfferAction, StartBindingExchangeAction, SkeletonKeyAction, TradeAction, CampaignAtttackAction, MusterAction, TravelAction, MakeDecisionAction, ChoosePlayerAction, SearchAction, ChooseCardAction } from "../actions/actions";
+import { Denizen, GrandScepter, OathCard, Relic, Site, WorldCard } from "../cards/cards";
 import { TakeOwnableObjectEffect, PutWarbandsFromBagEffect, PlayDenizenAtSiteEffect, MoveOwnWarbandsEffect, PeekAtCardEffect, SetGrandScepterLockEffect, GainSupplyEffect, DrawFromDeckEffect, RevealCardEffect, PayCostToTargetEffect, BecomeExileEffect, MoveWarbandsToEffect, TakeWarbandsIntoBagEffect, MoveResourcesToTargetEffect } from "../effects";
 import { BannerName, OathResource } from "../enums";
 import { OathPlayer, Exile } from "../player";
@@ -82,6 +82,93 @@ export class GrandScepterExileCitizen extends GrandScepterActive {
     }
 }
 
+export class StickyFireAttack extends AttackerBattlePlan<Relic> {
+    name = "Sticky Fire";
+
+    applyBefore(): void {
+        const defender = this.action.campaignResult.defender;
+        if (!defender) return;
+
+        this.action.campaignResult.onSuccessful(true, () => new MakeDecisionAction(this.action.player, "Use Sicky Fire?", () => { 
+            this.action.campaignResult.defenderKills(Infinity);
+            new MoveResourcesToTargetEffect(this.game, this.action.player, OathResource.Favor, 1, defender).do();
+        }));
+    }
+}
+export class StickyFireDefense extends DefenderBattlePlan<Relic> {
+    name = "Sticky Fire";
+
+    applyBefore(): void {
+        const attacker = this.action.campaignResult.attacker;
+        this.action.campaignResult.onSuccessful(false, () => new MakeDecisionAction(this.action.player, "Use Sicky Fire?", () => { 
+            this.action.campaignResult.attackerKills(Infinity);
+            new MoveResourcesToTargetEffect(this.game, this.action.player, OathResource.Favor, 1, attacker).do();
+        }));
+    }
+}
+
+export class CursedCauldronAttack extends AttackerBattlePlan<Relic> {
+    name = "Cursed Cauldron";
+
+    applyBefore(): void {
+        this.action.campaignResult.onSuccessful(true, () => new PutWarbandsFromBagEffect(this.activator.leader, this.action.campaignResult.loserLoss).do());
+    }
+}
+export class CursedCauldronDefense extends DefenderBattlePlan<Relic> {
+    name = "Cursed Cauldron";
+
+    applyBefore(): void {
+        this.action.campaignResult.onSuccessful(false, () => new PutWarbandsFromBagEffect(this.activator.leader, this.action.campaignResult.loserLoss).do());
+    }
+}
+
+export class ObsidianCageAttack extends AttackerBattlePlan<Relic> {
+    name = "Obsidian Cage";
+
+    applyBefore(): void {
+        const defender = this.action.campaignResult.defender;
+        if (!defender) return;
+
+        this.action.campaignResult.onSuccessful(true, () => {
+            for (const [owner, amount] of defender.warbands)
+                new MoveWarbandsToEffect(this.game, this.activator, owner, amount, this.source, defender).do();
+        });
+    }
+}
+export class ObsidianCageDefense extends DefenderBattlePlan<Relic> {
+    name = "Obsidian Cage";
+
+    applyBefore(): void {
+        const attacker = this.action.campaignResult.attacker;
+        this.action.campaignResult.onSuccessful(false, () => {
+            for (const [owner, amount] of attacker.warbands)
+                new MoveWarbandsToEffect(this.game, this.activator, owner, amount, this.source, attacker).do();
+        });
+    }
+}
+export class ObsidianCageActive extends ActivePower<Relic> {
+    name = "Obsidian Cage";
+
+    usePower(): void {
+        const players = new Set<OathPlayer>();
+        for (const playerProxy of Object.values(this.gameProxy.players))
+            if (this.source.getWarbands(playerProxy.leader.original) + this.source.getWarbands(playerProxy.original) > 0)
+                players.add(playerProxy.original);
+        
+        // TODO: "Any number"
+        new ChoosePlayerAction(
+            this.action.player, "Return the warbands to a player",
+            (target: OathPlayer | undefined) => { 
+                if (!target) return;
+                new MoveOwnWarbandsEffect(target.leader, this.source, target, Infinity).do(); 
+                const amount = new TakeWarbandsIntoBagEffect(target, Infinity, this.source).do();
+                new PutWarbandsFromBagEffect(target.leader, amount, target).do();
+            },
+            players
+        ).doNext();
+    }
+}
+
 export class CupOfPlenty extends AccessedActionModifier<Relic> {
     name = "Cup of Plenty";
     modifiedAction = TradeAction;
@@ -148,67 +235,6 @@ export class BookOfRecords extends AccessedEffectModifier<Relic> {
     }
 }
 
-export class CursedCauldronAttack extends AttackerBattlePlan<Relic> {
-    name = "Cursed Cauldron";
-
-    applyBefore(): void {
-        this.action.campaignResult.onSuccessful(true, () => new PutWarbandsFromBagEffect(this.activator.leader, this.action.campaignResult.loserLoss).do());
-    }
-}
-export class CursedCauldronDefense extends DefenderBattlePlan<Relic> {
-    name = "Cursed Cauldron";
-
-    applyBefore(): void {
-        this.action.campaignResult.onSuccessful(false, () => new PutWarbandsFromBagEffect(this.activator.leader, this.action.campaignResult.loserLoss).do());
-    }
-}
-
-export class ObsidianCageAttack extends AttackerBattlePlan<Relic> {
-    name = "Obsidian Cage";
-
-    applyBefore(): void {
-        const defender = this.action.campaignResult.defender;
-        if (!defender) return;
-
-        this.action.campaignResult.onSuccessful(true, () => {
-            for (const [owner, amount] of defender.warbands)
-                new MoveWarbandsToEffect(this.game, this.activator, owner, amount, this.source, defender).do();
-        });
-    }
-}
-export class ObsidianCageDefense extends DefenderBattlePlan<Relic> {
-    name = "Obsidian Cage";
-
-    applyBefore(): void {
-        const attacker = this.action.campaignResult.attacker;
-        this.action.campaignResult.onSuccessful(false, () => {
-            for (const [owner, amount] of attacker.warbands)
-                new MoveWarbandsToEffect(this.game, this.activator, owner, amount, this.source, attacker).do();
-        });
-    }
-}
-export class ObsidianCageActive extends ActivePower<Relic> {
-    name = "Obsidian Cage";
-
-    usePower(): void {
-        const players = new Set<OathPlayer>();
-        for (const player of Object.values(this.game.players))
-            if (this.source.getWarbands(player.leader) + this.source.getWarbands(player) > 0) players.add(player);
-        
-        // TODO: "Any number"
-        new ChoosePlayerAction(
-            this.action.player, "Return the warbands to a player",
-            (target: OathPlayer | undefined) => { 
-                if (!target) return;
-                new MoveOwnWarbandsEffect(target.leader, this.source, target, Infinity).do(); 
-                const amount = new TakeWarbandsIntoBagEffect(target, Infinity, this.source).do();
-                new PutWarbandsFromBagEffect(target.leader, amount, target).do();
-            },
-            players
-        ).doNext();
-    }
-}
-
 export class RingOfDevotionMuster extends ActionModifier<Relic> {
     name = "Ring of Devotion";
     modifiedAction = MusterAction;
@@ -247,7 +273,7 @@ export class DowsingSticks extends ActivePower<Relic> {
         const relic = new DrawFromDeckEffect(this.action.player, this.game.relicDeck, 1).do()[0];
         if (!relic) return;
 
-        new AskForPermissionAction(
+        new MakeDecisionAction(
             this.action.player, "Keep the relic?",
             () => new TakeOwnableObjectEffect(this.game, this.action.player, relic).do(),
             () => relic.putOnBottom(this.action.player)
@@ -275,6 +301,26 @@ export class OracularPig extends ActivePower<Relic> {
     }
 }
 
+export class IvoryEye extends ActivePower<Relic> {
+    name = "Ivory Eye";
+
+    usePower(): void {
+        const cards = new Set<OathCard>();
+        for (const site of this.game.board.sites()) {
+            if (site.facedown) cards.add(site);
+            for (const relic of site.relics) cards.add(relic);
+        }
+        for (const player of Object.values(this.game.players))
+            for (const adviser of player.advisers)
+                if (adviser.facedown) cards.add(adviser);
+
+        new ChooseCardAction(
+            this.action.player, "Peek at a card", cards,
+            (card: OathCard | undefined) => { if (card) new PeekAtCardEffect(this.action.player, card).do(); }
+        ).doNext();
+    }
+}
+
 export class BrassHorse extends ActivePower<Relic> {
     name = "Brass Horse";
     cost = new ResourceCost([[OathResource.Secret, 1]]);
@@ -294,8 +340,27 @@ export class BrassHorse extends ActivePower<Relic> {
                             sites.add(siteProxy.original);
         
         const travelAction = new TravelAction(this.action.player, this.action.player, (s: Site) => !sites.size || sites.has(s));
-        travelAction.noSupplyCost = true;
+        travelAction._noSupplyCost = true;
         travelAction.doNext();
+    }
+}
+
+export class Whistle extends ActivePower<Relic> {
+    name = "Whistle";
+    cost = new ResourceCost([[OathResource.Secret, 1]]);
+
+    usePower(): void {
+        new ChoosePlayerAction(
+            this.action.player, "Force a player to travel to you",
+            (target: OathPlayer | undefined) => {
+                if (!target) return;
+                const travelAction = new TravelAction(target, this.action.player, (s: Site) => s === this.action.player.site)
+                travelAction._noSupplyCost = true;
+                travelAction.doNext();
+                new MoveResourcesToTargetEffect(this.game, this.action.player, OathResource.Secret, 1, target, this.source).doNext();
+            },
+            Object.values(this.gameProxy.players).filter(e => e.site !== this.action.playerProxy.site).map(e => e.original)
+        )
     }
 }
 
@@ -320,30 +385,5 @@ export class CrackedHorn extends ActionModifier<Relic> {
 
     applyBefore(): void {
         this.action.discardOptions = new DiscardOptions(this.game.worldDeck, true);
-    }
-}
-
-export class StickyFireAttack extends AttackerBattlePlan<Relic> {
-    name = "Sticky Fire";
-
-    applyBefore(): void {
-        const defender = this.action.campaignResult.defender;
-        if (!defender) return;
-
-        this.action.campaignResult.onSuccessful(true, () => new AskForPermissionAction(this.action.player, "Use Sicky Fire?", () => { 
-            this.action.campaignResult.defenderKills(Infinity);
-            new MoveResourcesToTargetEffect(this.game, this.action.player, OathResource.Favor, 1, defender).do();
-        }));
-    }
-}
-export class StickyFireDefense extends DefenderBattlePlan<Relic> {
-    name = "Sticky Fire";
-
-    applyBefore(): void {
-        const attacker = this.action.campaignResult.attacker;
-        this.action.campaignResult.onSuccessful(false, () => new AskForPermissionAction(this.action.player, "Use Sicky Fire?", () => { 
-            this.action.campaignResult.attackerKills(Infinity);
-            new MoveResourcesToTargetEffect(this.game, this.action.player, OathResource.Favor, 1, attacker).do();
-        }));
     }
 }

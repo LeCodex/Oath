@@ -2,11 +2,11 @@ import { CardRestriction, OathSuit } from "../enums";
 import { OathPower } from "../powers/powers";
 import { IgnoresCapacity } from "../powers/denizens/denizens";
 import { ASmallFavor, Assassin, BookBurning, ChaosCult, Charlatan, CrackedSageAttack, CrackedSageDefense, DisgracedCaptain, Dissent, GamblingHall, Insomnia, KeyToTheCity, MercenariesAttack, MercenariesDefense, Naysayers, OnlyTwoAdvisers, RelicThief, RoyalAmbitions, Scryer, SilverTongue, Slander, SleightOfHand } from "../powers/denizens/discord";
-import { ActingTroupe, Alchemist, Bewitch, BillowingFogAttack, BillowingFogDefense, CrackingGroundAttack, Dazzle, FireTalkersAttack, FireTalkersDefense, GleamingArmorAttack, GleamingArmorDefense, Jinx, KindredWarriorsAttack, KindredWarriorsDefense, Portal, SpiritSnare, Tutor } from "../powers/denizens/arcane";
-import { BanditRampart, BattleHonorsAttack, BattleHonorsDefense, BearTraps, Captains, CodeOfHonorAttack, CodeOfHonorDefense, Curfew, EncirclementAttack, EncirclementDefense, FieldPromotionAttack, ForcedLabor, Keep, LongbowsAttack, LongbowsDefense, MartialCultureAttack, MartialCultureDefense, MilitaryParadeAttack, MilitaryParadeDefense, Outriders, RoyalTax, Scouts, ShieldWall, SiegeEngines, Specialist, TollRoads, VowOfObedience, VowOfObedienceRest, Wrestlers } from "../powers/denizens/order";
-import { AwaitedReturn, BallotBox, BookBinders, CharmingFriend, ExtraProvisions, FabledFeast, HallOfDebate, HallOfMockery, HeartsAndMinds, Herald, HospitalAttack, HospitalDefense, MarriageActionModifier, MarriageEffectModifier, SaddleMakers, Storyteller, TavernSongs, TheGreatLevyAttack, TheGreatLevyDefense, TravelingDoctorAttack, TravelingDoctorDefense, VillageConstableAttack, VillageConstableDefense, WaysideInn } from "../powers/denizens/hearth";
-import { Bracken, InsectSwarmAttack, InsectSwarmDefense, LongLostHeir, NatureWorshipAttack, NatureWorshipDefense, PiedPiper, Rangers, SmallFriends, ThreateningRoar, VowOfPoverty, VowOfPovertyRest, WalledGarden, WildAllies } from "../powers/denizens/beast";
-import { AncientBinding, AncientForge, AncientPact, BrokenForge, Elders, FamilyWagon, GreatCrusadeAttack, GreatCrusadeDefense, HorseArchersAttack, HorseArchersDefense, LostTongue, LostTongueCampaign, MountainGiantAttack, MountainGiantDefense, MountedPatrol, RivalKhanAttack, RivalKhanDefense, SpellBreaker, StormCaller, WayStation } from "../powers/denizens/nomad";
+import { ActingTroupe, Alchemist, Bewitch, BillowingFogAttack, BillowingFogDefense, BloodPact, CrackingGroundAttack, Dazzle, FallenSpire, FireTalkersAttack, FireTalkersDefense, ForgottenVault, GleamingArmorAttack, GleamingArmorDefense, Inquisitor, Jinx, KindredWarriorsAttack, KindredWarriorsDefense, PlagueEngines, Portal, SpiritSnare, TamingCharm, TerrorSpells, Tutor, WizardSchool } from "../powers/denizens/arcane";
+import { BanditRampart, BattleHonorsAttack, BattleHonorsDefense, BearTraps, Captains, CodeOfHonorAttack, CodeOfHonorDefense, Curfew, EncirclementAttack, EncirclementDefense, FieldPromotionAttack, ForcedLabor, Keep, LongbowsAttack, LongbowsDefense, MartialCultureAttack, MartialCultureDefense, Messenger, MilitaryParadeAttack, MilitaryParadeDefense, Outriders, Palanquin, RoyalTax, Scouts, ShieldWall, SiegeEngines, Specialist, TollRoads, VowOfObedience, VowOfObedienceRest, Wrestlers } from "../powers/denizens/order";
+import { ArmedMob, ARoundOfAle, AwaitedReturn, BallotBox, BookBinders, CharmingFriend, ExtraProvisions, FabledFeast, HallOfDebate, HallOfMockery, HeartsAndMinds, Herald, HospitalAttack, HospitalDefense, Levelers, MarriageActionModifier, MarriageEffectModifier, MemoryOfHome, RelicBreaker, SaddleMakers, Storyteller, TavernSongs, TheGreatLevyAttack, TheGreatLevyDefense, TravelingDoctorAttack, TravelingDoctorDefense, VillageConstableAttack, VillageConstableDefense, WaysideInn } from "../powers/denizens/hearth";
+import { Bracken, FaeMerchant, InsectSwarmAttack, InsectSwarmDefense, LongLostHeir, MemoryOfNature, NatureWorshipAttack, NatureWorshipDefense, PiedPiper, Rangers, SecondChance, SmallFriends, ThreateningRoar, VowOfPoverty, VowOfPovertyRest, WalledGarden, WildAllies, Wolves } from "../powers/denizens/beast";
+import { AncientBinding, AncientForge, AncientPact, BrokenForge, Convoys, Elders, FamilyWagon, GreatCrusadeAttack, GreatCrusadeDefense, HorseArchersAttack, HorseArchersDefense, LostTongue, LostTongueCampaign, MountainGiantAttack, MountainGiantDefense, MountedPatrol, Oracle, RivalKhanAttack, RivalKhanDefense, SpellBreaker, StormCaller, WayStation } from "../powers/denizens/nomad";
 import { Constructor } from "../utils";
 import { Denizen, Edifice } from "./cards";
 
@@ -55,8 +55,8 @@ export const denizenData: Record<string, DenizenData> = {
     InitiationRite:     [OathSuit.Arcane,   [], CardRestriction.Adviser, true],
     VowOfSilence:       [OathSuit.Arcane,   [], CardRestriction.Adviser, true],
     Portal:             [OathSuit.Arcane,   [Portal], CardRestriction.Site],
-    WizardSchool:       [OathSuit.Arcane,   [], CardRestriction.Site],
-    ForgottenVault:     [OathSuit.Arcane,   [], CardRestriction.Site],
+    WizardSchool:       [OathSuit.Arcane,   [WizardSchool], CardRestriction.Site],
+    ForgottenVault:     [OathSuit.Arcane,   [ForgottenVault], CardRestriction.Site],
     MapLibrary:         [OathSuit.Arcane,   [], CardRestriction.Site],
     FireTalkers:        [OathSuit.Arcane,   [FireTalkersAttack, FireTalkersDefense]],
     RustingRay:         [OathSuit.Arcane,   []],
@@ -68,20 +68,20 @@ export const denizenData: Record<string, DenizenData> = {
     Alchemist:          [OathSuit.Arcane,   [Alchemist]],
     Jinx:               [OathSuit.Arcane,   [Jinx]],
     MagiciansCode:      [OathSuit.Arcane,   []],
-    TamingCharm:        [OathSuit.Arcane,   []],
-    Inquisitor:         [OathSuit.Arcane,   []],
+    TamingCharm:        [OathSuit.Arcane,   [TamingCharm]],
+    Inquisitor:         [OathSuit.Arcane,   [Inquisitor]],
     Augury:             [OathSuit.Arcane,   []],
-    TerrorSpells:       [OathSuit.Arcane,   []],
-    BloodPact:          [OathSuit.Arcane,   []],
+    TerrorSpells:       [OathSuit.Arcane,   [TerrorSpells]],
+    BloodPact:          [OathSuit.Arcane,   [BloodPact]],
     Observatory:        [OathSuit.Arcane,   []],
-    PlagueEngines:      [OathSuit.Arcane,   []],
+    PlagueEngines:      [OathSuit.Arcane,   [PlagueEngines]],
     DreamThief:         [OathSuit.Arcane,   []],
     WitchsBargain:      [OathSuit.Arcane,   []],
     Dazzle:             [OathSuit.Arcane,   [Dazzle]],
     Revelation:         [OathSuit.Arcane,   []],
     Bewitch:            [OathSuit.Arcane,   [Bewitch]],
     
-    Palanquin:          [OathSuit.Order,    [], CardRestriction.Adviser],
+    Palanquin:          [OathSuit.Order,    [Palanquin], CardRestriction.Adviser],
     Tyrant:             [OathSuit.Order,    [], CardRestriction.Adviser, true],
     CouncilSeat:        [OathSuit.Order,    [], CardRestriction.Adviser, true],
     VowOfObedience:     [OathSuit.Order,    [VowOfObedience, VowOfObedienceRest], CardRestriction.Adviser, true],
@@ -107,7 +107,7 @@ export const denizenData: Record<string, DenizenData> = {
     PeaceEnvoy:         [OathSuit.Order,    []],
     RelicHunter:        [OathSuit.Order,    []],
     Pressgangs:         [OathSuit.Order,    []],
-    Messenger:          [OathSuit.Order,    []],
+    Messenger:          [OathSuit.Order,    [Messenger]],
     Captains:           [OathSuit.Order,    [Captains]],
     SiegeEngines:       [OathSuit.Order,    [SiegeEngines]],
     KnightsErrant:      [OathSuit.Order,    []],
@@ -128,23 +128,23 @@ export const denizenData: Record<string, DenizenData> = {
     TinkersFair:        [OathSuit.Hearth,   [], CardRestriction.Site],
     WaysideInn:         [OathSuit.Hearth,   [WaysideInn], CardRestriction.Site],
     WelcomingParty:     [OathSuit.Hearth,   [], CardRestriction.Site],
-    ArmedMob:           [OathSuit.Hearth,   [], CardRestriction.Site],
+    ArmedMob:           [OathSuit.Hearth,   [ArmedMob], CardRestriction.Site],
     BallotBox:          [OathSuit.Hearth,   [BallotBox], CardRestriction.Site],
     RowdyPub:           [OathSuit.Hearth,   [], CardRestriction.Site],
-    ARoundOfAle:        [OathSuit.Hearth,   [], CardRestriction.Site, true],
+    ARoundOfAle:        [OathSuit.Hearth,   [ARoundOfAle], CardRestriction.Site, true],
     ExtraProvisions:    [OathSuit.Hearth,   [ExtraProvisions]],
     TravelingDoctor:    [OathSuit.Hearth,   [TravelingDoctorAttack, TravelingDoctorDefense]],
     TheGreatLevy:       [OathSuit.Hearth,   [TheGreatLevyAttack, TheGreatLevyDefense]],
     AwaitedReturn:      [OathSuit.Hearth,   [AwaitedReturn]],
-    MemoryOfHome:       [OathSuit.Hearth,   []],
+    MemoryOfHome:       [OathSuit.Hearth,   [MemoryOfHome]],
     Storyteller:        [OathSuit.Hearth,   [Storyteller]],
     TavernSongs:        [OathSuit.Hearth,   [TavernSongs]],
     Homesteaders:       [OathSuit.Hearth,   []],
     CropRotation:       [OathSuit.Hearth,   []],
     LandWarden:         [OathSuit.Hearth,   []],
     NewsFromAfar:       [OathSuit.Hearth,   []],
-    Levelers:           [OathSuit.Hearth,   []],
-    RelicBreaker:       [OathSuit.Hearth,   []],
+    Levelers:           [OathSuit.Hearth,   [Levelers]],
+    RelicBreaker:       [OathSuit.Hearth,   [RelicBreaker]],
     DeadWriter:         [OathSuit.Hearth,   []],
     FabledFeast:        [OathSuit.Hearth,   [FabledFeast]],
     SaladDays:          [OathSuit.Hearth,   []],
@@ -172,13 +172,13 @@ export const denizenData: Record<string, DenizenData> = {
     WarTortoise:        [OathSuit.Beast,    []],
     Bracken:            [OathSuit.Beast,    [Bracken]],
     ErrandBoy:          [OathSuit.Beast,    []],
-    Wolves:             [OathSuit.Beast,    []],
+    Wolves:             [OathSuit.Beast,    [Wolves]],
     ForestPaths:        [OathSuit.Beast,    []],
-    FaeMerchant:        [OathSuit.Beast,    []],
-    SecondChance:       [OathSuit.Beast,    []],
+    FaeMerchant:        [OathSuit.Beast,    [FaeMerchant]],
+    SecondChance:       [OathSuit.Beast,    [SecondChance]],
     NewGrowth:          [OathSuit.Beast,    []],
     WildCry:            [OathSuit.Beast,    []],
-    MemoryOfNature:     [OathSuit.Beast,    []],
+    MemoryOfNature:     [OathSuit.Beast,    [MemoryOfNature]],
     WildAllies:         [OathSuit.Beast,    [WildAllies]],
     ThreateningRoar:    [OathSuit.Beast,    [ThreateningRoar]],
     AnimalHost:         [OathSuit.Beast,    []],
@@ -195,7 +195,7 @@ export const denizenData: Record<string, DenizenData> = {
     WayStation:         [OathSuit.Nomad,    [WayStation], CardRestriction.Site],
     SpellBreaker:       [OathSuit.Nomad,    [SpellBreaker], CardRestriction.Site],
     Resettle:           [OathSuit.Nomad,    [], CardRestriction.Site],
-    Oracle:             [OathSuit.Nomad,    [], CardRestriction.Site],
+    Oracle:             [OathSuit.Nomad,    [Oracle], CardRestriction.Site],
     GreatHerd:          [OathSuit.Nomad,    [], CardRestriction.Site],
     SacredGround:       [OathSuit.Nomad,    [], CardRestriction.Site, true],
     RainBoots:          [OathSuit.Nomad,    []],
@@ -211,7 +211,7 @@ export const denizenData: Record<string, DenizenData> = {
     Elders:             [OathSuit.Nomad,    [Elders]],
     AncientBinding:     [OathSuit.Nomad,    [AncientBinding]],
     Tents:              [OathSuit.Nomad,    []],
-    Convoys:            [OathSuit.Nomad,    []],
+    Convoys:            [OathSuit.Nomad,    [Convoys]],
     SpecialEnvoy:       [OathSuit.Nomad,    []],
     AFastSteed:         [OathSuit.Nomad,    []],
     RelicWorship:       [OathSuit.Nomad,    []],
@@ -223,7 +223,7 @@ export const edificeData: Record<string, [string, OathSuit, Constructor<OathPowe
     SqualidDistrict:    ["FestivalDistrict",    OathSuit.None,      []],
 
     GreatSpire:         ["FallenSpire",         OathSuit.Arcane,    []],
-    FallenSpire:        ["GreatSpire",          OathSuit.None,      []],
+    FallenSpire:        ["GreatSpire",          OathSuit.None,      [FallenSpire]],
 
     SprawlingRampart:   ["BanditRampart",       OathSuit.Order,     []],
     BanditRampart:      ["SprawlingRampart",    OathSuit.None,      [BanditRampart]],

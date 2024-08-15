@@ -22,8 +22,8 @@ export class OathActionManager extends OathGameObject {
         if (!this.actionsStack.length) this.game.checkForOathkeeper();
         let action = this.actionsStack[this.actionsStack.length - 1];
 
-        let contineNow = action?.start();
-        if (contineNow) return this.resolveTopAction();
+        let continueNow = action?.start();
+        if (continueNow) return this.resolveTopAction();
 
         if (this.noReturn) {
             this.currentEffectsStack.length = 0;

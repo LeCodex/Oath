@@ -13,11 +13,11 @@ export class CardDeck<T extends OathCard> extends OathGameObject {
             if (onBottom) this.cards.push(card); else this.cards.unshift(card);
     }
 
-    draw(amount: number, fromBottom: boolean = false): T[] {
+    draw(amount: number, fromBottom: boolean = false, skip: number = 0): T[] {
         // Why such an involved process instead of just using splice? To make sure the draws are in correct order for reverting
         let cards: T[] = [];
-        for (let i = 0; i < amount; i ++) {
-            const card = this.drawSingleCard(fromBottom)
+        for (let i = skip; i < Math.max(this.cards.length, skip + amount); i ++) {
+            const card = this.drawSingleCard(fromBottom);
             if (card) cards.push(card);
         }
         return cards;
@@ -58,21 +58,10 @@ export class WorldDeck extends SearchableDeck {
     visionsDrawn: number = 0;
     get searchCost() { return this.visionsDrawn < 3 ? this.visionsDrawn < 1 ? 2 : 3 : 4; }
 
-    draw(amount: number, fromBottom: boolean = false): WorldCard[] {
-        // TODO: Put all of this into an effect
-        const cards: WorldCard[] = [];
-        for (let i = 0; i < amount; i++) {
-            const card = this.drawSingleCard(fromBottom);
-            if (!card) break;
-
-            cards.push(card);
-            if (card instanceof VisionBack) {
-                this.visionsDrawn++;
-                break;
-            }
-        }
-
-        return cards;
+    drawSingleCard(fromBottom?: boolean): WorldCard | undefined {
+        const card = super.drawSingleCard(fromBottom);
+        if (card instanceof VisionBack) this.visionsDrawn++;
+        return card;
     }
 
     serialize(): Record<string, any> {

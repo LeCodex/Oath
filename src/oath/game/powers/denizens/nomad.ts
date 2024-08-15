@@ -1,6 +1,8 @@
-import { TravelAction, InvalidActionResolution, CampaignAtttackAction, AskForPermissionAction } from "../../actions/actions";
-import { Denizen, Edifice, Site, WorldCard } from "../../cards/cards";
-import { PayCostToTargetEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PayPowerCost, BecomeCitizenEffect, GiveOwnableObjectEffect, DrawFromDeckEffect, FlipEdificeEffect, MoveResourcesToTargetEffect } from "../../effects";
+import { TravelAction, InvalidActionResolution, CampaignAtttackAction, MakeDecisionAction, ChooseRegionAction, SearchPlayAction } from "../../actions/actions";
+import { Region } from "../../board";
+import { Denizen, Edifice, Site, VisionBack, WorldCard } from "../../cards/cards";
+import { DiscardOptions } from "../../cards/decks";
+import { PayCostToTargetEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PayPowerCost, BecomeCitizenEffect, GiveOwnableObjectEffect, DrawFromDeckEffect, FlipEdificeEffect, MoveResourcesToTargetEffect, DiscardCardEffect } from "../../effects";
 import { BannerName, OathResource, OathSuit } from "../../enums";
 import { OwnableObject, isOwnable } from "../../interfaces";
 import { OathPlayer } from "../../player";
@@ -64,7 +66,7 @@ export class MountainGiantAttack extends AttackerBattlePlan<Denizen> {
     cost = new ResourceCost([[OathResource.Secret, 1]]);
 
     applyBefore(): void {
-        new AskForPermissionAction(this.activator, "±1, or ±3 and discard at end?", () => {
+        new MakeDecisionAction(this.activator, "±1, or ±3 and discard at end?", () => {
             this.action.campaignResult.atkPool++;
         }, () => {
             this.action.campaignResult.atkPool += 3;
@@ -76,7 +78,7 @@ export class MountainGiantDefense extends DefenderBattlePlan<Denizen> {
     name = "Mountain Giant";
 
     applyBefore(): void {
-        new AskForPermissionAction(this.activator, "±1, or ±3 and discard at end?", () => {
+        new MakeDecisionAction(this.activator, "±1, or ±3 and discard at end?", () => {
             this.action.campaignResult.atkPool--;
         }, () => {
             this.action.campaignResult.atkPool -= 3;
@@ -182,6 +184,36 @@ export class AncientBinding extends ActivePower<Denizen> {
     }
 }
 
+export class Convoys extends ActivePower<Denizen> {
+    name = "Convoys";
+    cost = new ResourceCost([[OathResource.Favor, 1]]);
+
+    usePower(): void {
+        new ChooseRegionAction(
+            this.action.player, "Move a discard on top of your region's discard",
+            (region: Region | undefined) => {
+                if (!region) return;
+                for (const card of new DrawFromDeckEffect(this.action.player, region.discard, Infinity, true).do())
+                    new DiscardCardEffect(this.action.player, card, new DiscardOptions(this.action.playerProxy.site.region.discard.original)).do();
+            }
+        )
+    }
+}
+
+export class Oracle extends ActivePower<Denizen> {
+    name = "Oracle";
+    cost = new ResourceCost([[OathResource.Secret, 2]]);
+
+    usePower(): void {
+        for (const [index, card] of this.game.worldDeck.cards.entries()) {
+            if (card instanceof VisionBack) {
+                const vision = new DrawFromDeckEffect(this.action.player, this.game.worldDeck, 1, false, index).do()[0];
+                new SearchPlayAction(this.action.player, vision).doNext();
+            }
+        }
+    }
+}
+
 export class SpellBreaker extends EnemyEffectModifier<Denizen> {
     name = "Spell Breaker";
     modifiedEffect = PayPowerCost;
@@ -220,7 +252,7 @@ export class AncientPact extends WhenPlayed<Denizen> {
         const darkestSecretProxy = this.gameProxy.banners.get(BannerName.DarkestSecret);
         if (darkestSecretProxy?.owner !== this.effect.playerProxy) return;
 
-        new AskForPermissionAction(this.effect.player, "Give Darkest Secret to become a Citizen?", () => {
+        new MakeDecisionAction(this.effect.player, "Give Darkest Secret to become a Citizen?", () => {
             // TODO: Take a Reliquary relic
             new GiveOwnableObjectEffect(this.game, this.game.chancellor, darkestSecretProxy.original).do();
             new BecomeCitizenEffect(this.effect.player).do();
@@ -237,7 +269,7 @@ export class AncientForge extends ActivePower<Edifice> {
         const relic = new DrawFromDeckEffect(this.action.player, this.game.relicDeck, 1).do()[0];
         if (!relic) return;
         
-        new AskForPermissionAction(
+        new MakeDecisionAction(
             this.action.player, "Keep the relic?",
             () => new TakeOwnableObjectEffect(this.game, this.action.player, relic).do(),
             () => relic.putOnBottom(this.action.player)

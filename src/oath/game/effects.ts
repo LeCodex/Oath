@@ -590,17 +590,19 @@ export class DrawFromDeckEffect<T extends OwnableCard> extends PlayerEffect<T[]>
     deck: CardDeck<T>;
     amount: number;
     fromBottom: boolean;
+    skip: number;
     cards: T[];
 
-    constructor(player: OathPlayer, deck: CardDeck<T>, amount: number, fromBottom: boolean = false) {
+    constructor(player: OathPlayer, deck: CardDeck<T>, amount: number, fromBottom: boolean = false, skip: number = 0) {
         super(player);
         this.deck = deck;
         this.amount = amount;
         this.fromBottom = fromBottom;
+        this.skip = skip;
     }
 
     resolve(): T[] {
-        this.cards = this.deck.draw(this.amount, this.fromBottom);
+        this.cards = this.deck.draw(this.amount, this.fromBottom, this.skip);
         for (const card of this.cards) {
             if (this.cards.length > 1) new ClearCardPeekEffect(this.player, card).do();
             new PeekAtCardEffect(this.player, card).do();
@@ -1268,6 +1270,40 @@ export class BecomeExileEffect extends PlayerEffect<void> {
     revert(): void {
         if (!(this.player instanceof Exile) || !this.resolved) return;
         this.player.isCitizen = true;
+    }
+}
+
+export class PutDenizenIntoDispossessedEffect extends OathEffect<void> {
+    denizen: Denizen;
+
+    constructor(game: OathGame, player: OathPlayer | undefined, denizen: Denizen) {
+        super(game, player);
+        this.denizen = denizen;
+    }
+
+    resolve(): void {
+        this.game.dispossessed[this.denizen.name] = this.denizen.data;
+    }
+
+    revert(): void {
+        // The thing that calls this effect is in charge of putting the card back where it was
+        delete this.game.dispossessed[this.denizen.name];
+    }
+}
+
+export class GetRandomCardFromDispossessed extends OathEffect<Denizen> {
+    denizen: Denizen;
+
+    resolve(): Denizen {
+        const keys = Object.keys(this.game.dispossessed);
+        const name = keys[Math.floor(Math.random() * keys.length)];
+        this.denizen = new Denizen(this.game, name, ...this.game.dispossessed[name]);
+        delete this.game.dispossessed[name];
+        return this.denizen;
+    }
+
+    revert(): void {
+        this.game.dispossessed[this.denizen.name] = this.denizen.data;
     }
 }
 

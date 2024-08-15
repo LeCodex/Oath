@@ -1,4 +1,4 @@
-import { AskForPermissionAction, ChooseRegionAction, InvalidActionResolution, TakeFavorFromBankAction, TakeResourceFromPlayerAction } from "../../actions/actions";
+import { MakeDecisionAction, ChooseCardAction, ChooseRegionAction, InvalidActionResolution, TakeFavorFromBankAction, TakeResourceFromPlayerAction } from "../../actions/actions";
 import { Region } from "../../board";
 import { Denizen, Relic, Site, WorldCard } from "../../cards/cards";
 import { D6, DefenseDie } from "../../dice";
@@ -105,7 +105,7 @@ export class RelicThief extends EnemyEffectModifier<Denizen> {
         const rulerProxy = this.sourceProxy.ruler;
         if (!rulerProxy) return;
         if (this.effect.target instanceof Relic && this.effect.playerProxy?.site.region === rulerProxy.site.region) {
-            new AskForPermissionAction(
+            new MakeDecisionAction(
                 rulerProxy.original, "Try to steal " + this.effect.target.name + "?",
                 () => {
                     if (!new PayCostToTargetEffect(this.game, rulerProxy.original, new ResourceCost([[OathResource.Favor, 1], [OathResource.Secret, 1]]), this.source).do())
@@ -129,7 +129,7 @@ export class KeyToTheCity extends WhenPlayed<Denizen> {
         for (const [player, amount] of this.source.site.warbands)
             new TakeWarbandsIntoBagEffect(player, amount, this.source.site).do();
 
-        new PutWarbandsFromBagEffect(this.effect.player.leader, 1, this.source.site).do();
+        new PutWarbandsFromBagEffect(this.effect.playerProxy.leader.original, 1, this.source.site).do();
     }
 }
 
@@ -150,7 +150,14 @@ export class Assassin extends ActivePower<Denizen> {
     cost = new ResourceCost([[OathResource.Favor, 1]]);
 
     usePower(): void {
-        // Action to choose a player to discard from
+        const cards = new Set<WorldCard>();
+        for (const playerProxy of Object.values(this.gameProxy.players)) {
+            if (playerProxy === this.action.playerProxy || playerProxy.site !== this.action.playerProxy.site) continue;
+            for (const adviserProxy of playerProxy.advisers)
+                if (!adviserProxy.original.facedown) cards.add(adviserProxy.original);
+        }
+
+        new ChooseCardAction(this.action.player, "Discard an adviser", cards, (card: WorldCard | undefined) => { if (card) new DiscardCardEffect(this.action.player, card).do(); }).doNext();
     }
 }
 
@@ -246,7 +253,7 @@ export class ASmallFavor extends WhenPlayed<Denizen> {
     name = "ASmallFavor";
 
     whenPlayed(): void {
-        new PutWarbandsFromBagEffect(this.effect.player.leader, 4).do();
+        new PutWarbandsFromBagEffect(this.effect.playerProxy.leader.original, 4).do();
     }
 }
 
@@ -255,7 +262,7 @@ export class RoyalAmbitions extends WhenPlayed<Denizen> {
 
     whenPlayed(): void {
         if (this.effect.playerProxy.ruledSites > this.gameProxy.chancellor.ruledSites)
-            new AskForPermissionAction(this.effect.player, "Become a Citizen?", () => {
+            new MakeDecisionAction(this.effect.player, "Become a Citizen?", () => {
                 // TODO: Take a reliquary relic
                 new BecomeCitizenEffect(this.effect.player).do(); 
             });
@@ -277,6 +284,6 @@ export class SqualidDistrict extends EffectModifier<Denizen> {
         if (!player) return;
         if (this.effect.die !== D6) return;
 
-        new AskForPermissionAction(player, "Add +1 or -1 to " + result[0] + "?", () => result[0]++, () => result[0]--, ["+1", "-1"]).doNext();
+        new MakeDecisionAction(player, "Add +1 or -1 to " + result[0] + "?", () => result[0]++, () => result[0]--, ["+1", "-1"]).doNext();
     }
 }

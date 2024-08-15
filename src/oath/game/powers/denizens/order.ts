@@ -1,6 +1,6 @@
-import { TradeAction, InvalidActionResolution, TravelAction, SearchAction, SearchPlayAction, TakeFavorFromBankAction, CampaignKillWarbandsInForceAction, CampaignResult, AskForPermissionAction, CampaignAction, ActAsIfAtSiteAction, CampaignDefenseAction, ChooseSiteAction, ChoosePlayerAction } from "../../actions/actions";
+import { TradeAction, InvalidActionResolution, TravelAction, SearchAction, SearchPlayAction, TakeFavorFromBankAction, CampaignKillWarbandsInForceAction, CampaignResult, MakeDecisionAction, CampaignAction, ActAsIfAtSiteAction, CampaignDefenseAction, ChooseSiteAction, ChoosePlayerAction, MoveWarbandsAction } from "../../actions/actions";
 import { Denizen, Edifice, Site, Vision } from "../../cards/cards";
-import { PayCostToTargetEffect, MoveResourcesToTargetEffect, TakeWarbandsIntoBagEffect, GainSupplyEffect, TakeResourcesFromBankEffect, BecomeCitizenEffect, PutWarbandsFromBagEffect, ApplyModifiersEffect } from "../../effects";
+import { PayCostToTargetEffect, MoveResourcesToTargetEffect, TakeWarbandsIntoBagEffect, GainSupplyEffect, TakeResourcesFromBankEffect, BecomeCitizenEffect, PutWarbandsFromBagEffect, ApplyModifiersEffect, PutPawnAtSiteEffect } from "../../effects";
 import { OathResource, OathSuit } from "../../enums";
 import { OathPlayer } from "../../player";
 import { ResourceCost } from "../../resources";
@@ -102,7 +102,7 @@ export class MartialCultureAttack extends AttackerBattlePlan<Denizen> {
 
     applyBefore(): void {
         if (!this.action.campaignResult.defender?.isImperial)
-            this.action.campaignResult.onSuccessful(true, () => new AskForPermissionAction(this.activator, "Become a Citizen?", () => new BecomeCitizenEffect(this.activator).do()));
+            this.action.campaignResult.onSuccessful(true, () => new MakeDecisionAction(this.activator, "Become a Citizen?", () => new BecomeCitizenEffect(this.activator).do()));
     }
 }
 export class MartialCultureDefense extends DefenderBattlePlan<Denizen> {
@@ -110,7 +110,7 @@ export class MartialCultureDefense extends DefenderBattlePlan<Denizen> {
 
     applyBefore(): void {
         if (!this.action.campaignResult.defender?.isImperial)
-            this.action.campaignResult.onSuccessful(false, () => new AskForPermissionAction(this.activator, "Become a Citizen?", () => new BecomeCitizenEffect(this.activator).do()));
+            this.action.campaignResult.onSuccessful(false, () => new MakeDecisionAction(this.activator, "Become a Citizen?", () => new BecomeCitizenEffect(this.activator).do()));
     }
 }
 
@@ -305,13 +305,54 @@ export class SiegeEngines extends ActivePower<Denizen> {
             this.action.player, "Kill two warbands",
             (site: Site | undefined) => {
                 if (!site) return;
-                new ChoosePlayerAction(
-                    this.action.player, "Kill two warbands", 
-                    (target: OathPlayer | undefined) => { if (target) new TakeWarbandsIntoBagEffect(target, 2, site).doNext(); },
-                    [...site.warbands.entries()].filter(([_, v]) => v > 0).map(([k, _]) => k)
-                ).doNext();
+                site.killWarbands(this.action.player, 2);
             },
             this.action.playerProxy.site.region.original.sites.filter(e => e.totalWarbands)
+        ).doNext();
+    }
+}
+
+export class Messenger extends ActivePower<Denizen> {
+    name = "Messenger";
+    cost = new ResourceCost([[OathResource.Favor, 1]]);
+
+    usePower(): void {
+        new ChooseSiteAction(
+            this.action.player, "Exchange warbands with a site",
+            (site: Site | undefined) => {
+                if (!site) return;
+                const action = new MoveWarbandsAction(this.action.player);
+                action.playerProxy.site = site;
+                action.doNext();
+                this.usePower();
+            },
+            [...this.gameProxy.board.sites()].filter(e => e.ruler === this.action.playerProxy).map(e => e.original),
+            "Finish"
+        ).doNext();
+    }
+}
+
+export class Palanquin extends ActivePower<Denizen> {
+    name = "Palanquin";
+    cost = new ResourceCost([[OathResource.Favor, 1]]);
+
+    usePower(): void {
+        new ChoosePlayerAction(
+            this.action.player, "Choose a player to move",
+            (target: OathPlayer | undefined) => {
+                if (!target) return;
+                new ChooseSiteAction(
+                    this.action.player, "Force travel to a site",
+                    (site: Site | undefined) => {
+                        if (!site) return;
+                        new PutPawnAtSiteEffect(this.action.player, site).do();
+                        const travelAction = new TravelAction(target, this.action.player, (s: Site) => s === site);
+                        travelAction._noSupplyCost = true;
+                        travelAction.doNext();
+                    }
+                )
+            },
+            Object.values(this.gameProxy.players).filter(e => e !== this.action.playerProxy && e.site.region === this.action.playerProxy.site.region).map(e => e.original)
         ).doNext();
     }
 }
