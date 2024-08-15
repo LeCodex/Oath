@@ -1,4 +1,4 @@
-import { InvalidActionResolution, OathAction, ChooseSuccessor, ChoosePlayer } from "./actions/actions";
+import { InvalidActionResolution, OathAction, ChoosePlayer } from "./actions/actions";
 import { OathActionManager } from "./actions/manager";
 import { SetNewOathkeeperEffect, SetUsurperEffect, WinGameEffect } from "./effects";
 import { OathPower } from "./powers/powers";
@@ -8,13 +8,13 @@ import { DenizenData, denizenData, edificeData } from "./cards/denizens";
 import { relicsData } from "./cards/relics";
 import { sitesData } from "./cards/sites";
 import { BannerName, OathType, OathPhase, OathSuit, RegionName, PlayerColor, OathResource } from "./enums";
-import { Oath, OathTypeToOath } from "./oaths";
+import { Oath, OathOfDevotion, OathOfProtection, OathOfSupremacy, OathOfThePeople, OathTypeToOath } from "./oaths";
 import { Conspiracy, Denizen, Edifice, GrandScepter, Relic, Site, Vision, WorldCard } from "./cards/cards";
 import { Chancellor, Exile, OathPlayer } from "./player";
 import { Banner, DarkestSecret, FavorBank, PeoplesFavor } from "./banks";
 import { AbstractConstructor, Constructor, isExtended, WithOriginal } from "./utils";
 import { parseOathTTSSavefileString, serializeOathGame } from "./parser";
-import { Citizenship, OathGameData } from "./parser/interfaces";
+import { Citizenship } from "./parser/interfaces";
 import { WithPowers } from "./interfaces";
 
 
@@ -71,10 +71,10 @@ export class OathGame extends WithOriginal {
             if (!data) {
                 let card: WorldCard | undefined = {
                     Conspiracy: new Conspiracy(this),
-                    Sanctuary: new Vision(new OathTypeToOath[OathType.Protection](this)),
-                    Rebellion: new Vision(new OathTypeToOath[OathType.ThePeople](this)),
-                    Faith: new Vision(new OathTypeToOath[OathType.Devotion](this)),
-                    Conquest: new Vision(new OathTypeToOath[OathType.Supremacy](this))
+                    Sanctuary: new Vision(new OathOfProtection(this)),
+                    Rebellion: new Vision(new OathOfThePeople(this)),
+                    Faith: new Vision(new OathOfDevotion(this)),
+                    Conquest: new Vision(new OathOfSupremacy(this))
                 }[cardData.name];
                     
                 if (card)
@@ -273,7 +273,11 @@ export class OathGame extends WithOriginal {
     empireWins() {
         const candidates = this.oath.getSuccessorCandidates();
         if (candidates.has(this.chancellor)) new WinGameEffect(this.chancellor).do();
-        new ChooseSuccessor(this.chancellor, candidates).doNext();
+        new ChoosePlayer(
+            this.chancellor, "Choose a Successor",
+            (successor: OathPlayer | undefined) => { if (successor) new WinGameEffect(successor).do(); },
+            [...candidates].filter(e => e instanceof Exile && e.isCitizen)
+        ).doNext();
     }
 
     serialize(): Record<string, any> {
@@ -307,7 +311,8 @@ export class OathGame extends WithOriginal {
         
             chronicleName: this.name,
             gameCount: this.chronicleNumber + 1,
-        
+            
+            // TODO: Store overall state of Citizenships
             playerCitizenship: {[1]: Citizenship.Exile, [2]: Citizenship.Exile, [3]: Citizenship.Exile, [4]: Citizenship.Exile, [5]: Citizenship.Exile},
             oath: this.oath.type,
             suitOrder: [OathSuit.Discord, OathSuit.Arcane, OathSuit.Order, OathSuit.Hearth, OathSuit.Beast, OathSuit.Nomad],
