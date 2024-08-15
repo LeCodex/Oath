@@ -1,7 +1,6 @@
 import { TravelAction, InvalidActionResolution, CampaignAtttackAction, AskForPermissionAction } from "../../actions/actions";
 import { Denizen, Edifice, Site, WorldCard } from "../../cards/cards";
-import { DiscardOptions } from "../../cards/decks";
-import { PayCostToTargetEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PayPowerCost, BecomeCitizenEffect, GiveOwnableObjectEffect, DrawFromDeckEffect, DiscardCardEffect, FlipEdificeEffect } from "../../effects";
+import { PayCostToTargetEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PayPowerCost, BecomeCitizenEffect, GiveOwnableObjectEffect, DrawFromDeckEffect, FlipEdificeEffect, MoveResourcesToTargetEffect } from "../../effects";
 import { BannerName, OathResource, OathSuit } from "../../enums";
 import { OwnableObject, isOwnable } from "../../interfaces";
 import { OathPlayer } from "../../player";
@@ -158,6 +157,28 @@ export class Elders extends ActivePower<Denizen> {
 
     usePower(): void {
         new PutResourcesOnTargetEffect(this.action.game, this.action.player, OathResource.Secret, 1).do();
+    }
+}
+
+export class AncientBinding extends ActivePower<Denizen> {
+    name = "Ancient Binding";
+    cost = new ResourceCost([[OathResource.Secret, 1]], [[OathResource.Secret, 1]]);
+
+    usePower(): void {
+        for (const player of Object.values(this.game.players)) {
+            new MoveResourcesToTargetEffect(this.game, player, OathResource.Secret, player.getResources(OathResource.Secret) - (player === this.action.player ? 0 : 1), undefined).do();
+
+            for (const adviser of player.advisers)
+                new MoveResourcesToTargetEffect(this.game, player, OathResource.Secret, Infinity, undefined, adviser).do();
+
+            for (const relic of player.relics)
+                new MoveResourcesToTargetEffect(this.game, player, OathResource.Secret, Infinity, undefined, relic).do();
+        }
+
+        for (const site of this.game.board.sites())
+            for (const denizen of site.denizens)
+                if (denizen !== this.source)
+                    new MoveResourcesToTargetEffect(this.game, this.action.player, OathResource.Secret, Infinity, undefined, denizen).do();
     }
 }
 

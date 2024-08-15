@@ -1,7 +1,7 @@
 import { TradeAction, TakeResourceFromPlayerAction, TakeFavorFromBankAction, CampaignEndAction, ModifiableAction, AskForPermissionAction, CampaignAtttackAction, InvalidActionResolution, RecoverAction } from "../../actions/actions";
 import { PeoplesFavor } from "../../banks";
 import { Denizen, Edifice } from "../../cards/cards";
-import { TakeWarbandsIntoBagEffect, TakeResourcesFromBankEffect, PlayVisionEffect, PlayWorldCardEffect, OathEffect, PeekAtCardEffect, DiscardCardEffect, PutWarbandsFromBagEffect, BecomeCitizenEffect, SetPeoplesFavorMobState } from "../../effects";
+import { TakeWarbandsIntoBagEffect, TakeResourcesFromBankEffect, PlayVisionEffect, PlayWorldCardEffect, OathEffect, PeekAtCardEffect, DiscardCardEffect, PutWarbandsFromBagEffect, BecomeCitizenEffect, SetPeoplesFavorMobState, PutResourcesOnTargetEffect, PutResourcesIntoBankEffect, GainSupplyEffect } from "../../effects";
 import { OathResource, BannerName, OathSuit } from "../../enums";
 import { ResourceCost } from "../../resources";
 import { DefenderBattlePlan, AccessedActionModifier, ActivePower, WhenPlayed, EnemyEffectModifier, EnemyActionModifier, AccessedEffectModifier, AttackerBattlePlan, ActionModifier } from "../powers";
@@ -225,6 +225,23 @@ export class BallotBox extends ActivePower<Denizen> {
     }
 }
 
+export class Storyteller extends ActivePower<Denizen> {
+    name = "Storyteller";
+    cost = new ResourceCost([[OathResource.Favor, 1]]);
+
+    usePower(): void {
+        new PutResourcesIntoBankEffect(this.game, undefined, this.game.banners.get(BannerName.DarkestSecret), 1).do();
+    }
+}
+
+export class WaysideInn extends ActivePower<Denizen> {
+    name = "Wayside Inn";
+    cost = new ResourceCost([[OathResource.Favor, 1]]);
+
+    usePower(): void {
+        new GainSupplyEffect(this.action.player, 2);
+    }
+}
 
 export class HallOfDebate extends ActionModifier<Edifice> {
     name = "Hall of Debate";

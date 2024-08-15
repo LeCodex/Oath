@@ -1,4 +1,4 @@
-import { Denizen, Edifice, OwnableCard, Relic, Site, WorldCard } from "../cards/cards";
+import { Denizen, Edifice, OathCard, OwnableCard, Relic, Site, WorldCard } from "../cards/cards";
 import { DiscardOptions, SearchableDeck } from "../cards/decks";
 import { AttackDie, DefenseDie } from "../dice";
 import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, PutPawnAtSiteEffect, DiscardCardEffect, MoveOwnWarbandsEffect, MoveAdviserEffect, SetPeoplesFavorMobState, OathEffect, PaySupplyEffect, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, FlipEdificeEffect, ModifiedExecutionEffect, CampaignResolveSuccessfulAndSkullsEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect, CheckCapacityEffect, ApplyModifiersEffect, CampaignJoinDefenderAlliesEffect, MoveWorldCardToAdvisersEffect, DiscardCardGroupEffect } from "../effects";
@@ -13,6 +13,7 @@ import { Banner, PeoplesFavor } from "../banks";
 import { Constructor, isExtended, MaskProxyManager } from "../utils";
 import { SelectNOf, SelectBoolean, SelectNumber } from "./selects";
 import { CampaignActionTarget, RecoverActionTarget, WithPowers } from "../interfaces";
+import { Region } from "../board";
 
 
 
@@ -170,7 +171,7 @@ export abstract class ModifiableAction extends OathAction {
 
     serialize(): Record<string, any> {
         const obj = super.serialize();
-        obj.modifiers = this.modifiers.map(e => e.constructor.name);
+        obj.modifiers = this.modifiers.map(e => e.serialize());
         return obj;
     }
 }
@@ -331,7 +332,7 @@ export class TravelAction extends MajorAction {
         const choices = new Map<string, Site>();
         for (const siteProxy of this.gameProxy.board.sites())
             if (siteProxy !== this.playerProxy.site && this.restriction(siteProxy))
-                choices.set(siteProxy.facedown ? `Facedown ${siteProxy.region.name}` : siteProxy.name, siteProxy);
+                choices.set(siteProxy.visualName(this.player), siteProxy);
         this.selects.site = new SelectNOf("Site", choices, 1);
         return super.start();
     }
@@ -360,7 +361,7 @@ export class RecoverAction extends MajorAction {
 
     start() {
         const choices = new Map<string, RecoverActionTarget>();
-        for (const relicProxy of this.playerProxy.site.relics) if (relicProxy.canRecover(this)) choices.set(relicProxy.name, relicProxy);
+        for (const relicProxy of this.playerProxy.site.relics) if (relicProxy.canRecover(this)) choices.set(relicProxy.visualName(this.player), relicProxy);
         for (const bannerProxy of this.gameProxy.banners.values()) if (bannerProxy.canRecover(this)) choices.set(bannerProxy.name, bannerProxy);
         this.selects.target = new SelectNOf("Target", choices, 1);
         return super.start();
@@ -411,6 +412,7 @@ export class SearchAction extends MajorAction {
     deckProxy: SearchableDeck;
     amount = 3;
     fromBottom = false;
+    cards: WorldCard[];
     discardOptions = new DiscardOptions(this.player.discard);
 
     start() {
@@ -429,8 +431,8 @@ export class SearchAction extends MajorAction {
 
     modifiedExecution() {
         super.modifiedExecution();
-        const cards = new DrawFromDeckEffect(this.player, this.deckProxy.original, this.amount, this.fromBottom).do();
-        new SearchChooseAction(this.player, cards, this.discardOptions).doNext();
+        this.cards = new DrawFromDeckEffect(this.player, this.deckProxy.original, this.amount, this.fromBottom).do();
+        new SearchChooseAction(this.player, this.cards, this.discardOptions).doNext();
     }
 }
 
@@ -615,7 +617,7 @@ export class MayDiscardACardAction extends OathAction {
 
     start() {
         const choices = new Map<string, Denizen>();
-        for (const card of this.cards) choices.set(card.name, card);
+        for (const card of this.cards) choices.set(card.visualName(this.player), card);
         this.selects.card = new SelectNOf("Card", choices, 0, 1);
         return super.start();
     }
@@ -684,14 +686,14 @@ export class CampaignAtttackAction extends ModifiableAction {
                 if (this.playerProxy.site === siteProxy) {
                     this.campaignResult.targets.add(siteProxy.original);
                 } else {
-                    choices.set(siteProxy.name, siteProxy);
+                    choices.set(siteProxy.visualName(this.player), siteProxy);
                 }
             }
         }
 
         if (this.defenderProxy && this.defenderProxy.site === this.playerProxy.site) {
             choices.set("Banish " + this.defenderProxy.name, this.defenderProxy);
-            for (const relicProxy of this.defenderProxy.relics) choices.set(relicProxy.name, relicProxy)
+            for (const relicProxy of this.defenderProxy.relics) choices.set(relicProxy.visualName(this.player), relicProxy)
             for (const bannerProxy of this.defenderProxy.banners) choices.set(bannerProxy.name, bannerProxy);
         }
         this.selects.targets = new SelectNOf("Target(s)", choices, 1 - this.campaignResult.targets.size, choices.size);
@@ -1017,7 +1019,7 @@ export class CampaignSeizeSiteAction extends OathAction {
     constructor(player: OathPlayer, site: Site) {
         super(player);
         this.site = site;
-        this.message = "Choose how many warbands to move to " + site.name;
+        this.message = "Choose how many warbands to move to " + site.visualName(player);
     }
 
     start() {
@@ -1383,7 +1385,8 @@ export class TakeResourceFromPlayerAction extends ChoosePlayerAction {
                 if (!target) return;
                 if (resource === OathResource.Secret && target.getResources(OathResource.Secret) <= 1) return;
                 new MoveResourcesToTargetEffect(this.game, player, resource, amount === undefined ? 1 : amount, player, target).do();
-            }, players
+            },
+            players
         );
     }
 }
@@ -1416,14 +1419,12 @@ export class ChooseSiteAction extends OathAction {
         this.none = none;
     }
 
-    start(none?: string) {
+    start() {
         if (!this.sites) this.sites = new Set([...this.game.board.sites()].filter(e => !e.facedown && e !== this.player.site));
 
         const choices = new Map<string, Site | undefined>();
-        if (none) choices.set(none, undefined);
-        for (const site of this.sites)
-            if (site !== this.player.site)
-                choices.set(site.name, site);
+        if (this.none) choices.set(this.none, undefined);
+        for (const site of this.sites) choices.set(site.visualName(this.player), site);
         this.selects.site = new SelectNOf("Site", choices, 1);
 
         return super.start();
@@ -1442,8 +1443,74 @@ export class ActAsIfAtSiteAction extends ChooseSiteAction {
                 if (!site) return;
                 action.playerProxy.site = action.maskProxyManager.get(site);
                 action.doNext();  // Allow the player to choose other new modifiers
-            }, sites
+            },
+            sites
         );
+    }
+}
+
+
+export class ChooseRegionAction extends OathAction {
+    readonly selects: { region: SelectNOf<Region | undefined> };
+    readonly parameters: { region: (Region | undefined)[] };
+    readonly message: string;
+
+    regions: Set<Region> | undefined;
+    none: string | undefined;
+    callback: (region: Region | undefined) => void;
+
+    constructor(player: OathPlayer, message: string, callback: (region: Region | undefined) => void, regions?: Iterable<Region>, none?: string) {
+        super(player);
+        this.message = message;
+        this.callback = callback;
+        this.regions = regions && new Set(regions);
+        this.none = none;
+    }
+
+    start() {
+        if (!this.regions) this.regions = new Set(Object.values(this.game.board.regions).filter(e => e !== this.player.site.region));
+
+        const choices = new Map<string, Region | undefined>();
+        if (this.none) choices.set(this.none, undefined);
+        for (const region of this.regions) choices.set(region.name, region);
+        this.selects.region = new SelectNOf("Region", choices, 1);
+
+        return super.start();
+    }
+
+    execute(): void {
+        this.callback(this.parameters.region[0]);
+    }
+}
+
+export class ChooseCardAction<T extends OathCard> extends OathAction {
+    readonly selects: { card: SelectNOf<T | undefined> };
+    readonly parameters: { card: (T | undefined)[] };
+    readonly message: string;
+
+    cards: Set<T>;
+    none: string | undefined;
+    callback: (region: T | undefined) => void;
+
+    constructor(player: OathPlayer, message: string, callback: (region: T | undefined) => void, cards: Iterable<T>, none?: string) {
+        super(player);
+        this.message = message;
+        this.callback = callback;
+        this.cards = new Set(cards);
+        this.none = none;
+    }
+
+    start() {
+        const choices = new Map<string, T | undefined>();
+        if (this.none) choices.set(this.none, undefined);
+        for (const card of this.cards) choices.set(card.visualName(this.player), card);
+        this.selects.card = new SelectNOf("Card", choices, 1);
+
+        return super.start();
+    }
+
+    execute(): void {
+        this.callback(this.parameters.card[0]);
     }
 }
 
@@ -1462,7 +1529,7 @@ export class ConspiracyStealAction extends OathAction {
 
     start() {
         const choices = new Map<string, Relic | Banner>();
-        for (const relic of this.player.relics) choices.set(relic.name, relic);
+        for (const relic of this.player.relics) choices.set(relic.visualName(this.player), relic);
         for (const banner of this.player.banners) choices.set(banner.name, banner);
         this.selects.taking = new SelectNOf("Target", choices, 1);
         return super.start();
@@ -1537,7 +1604,7 @@ export class CitizenshipOfferAction extends MakeBindingExchangeOfferAction {
         }
 
         const choices = new Map<string, Relic | Banner>();
-        for (const relic of this.other.relics) choices.set(relic.name, relic);
+        for (const relic of this.other.relics) choices.set(relic.visualName(this.player), relic);
         for (const banner of this.other.banners) choices.set(banner.name, banner);
         this.selects.things = new SelectNOf("Relics and banners", choices);
 

@@ -15,6 +15,8 @@ export function isWithPowers(obj: object): obj is WithPowers {
     return "powers" in obj;
 }
 
+export type SourceType<T> =  T extends OathPower<infer U> ? U : never;
+
 
 export interface AtSite {
     site?: Site;

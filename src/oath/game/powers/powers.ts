@@ -104,6 +104,10 @@ export abstract class ActionModifier<T extends WithPowers> extends ActionPower<T
     applyAtStart(): void { }                        // Applied when the action starts and selects are setup (before choices are made)
     applyBefore(): void { }                         // Applied right before the execution of the action. Actions added by it are executed before the actual body of the modified action
     applyAfter(): void { }                          // Applied after the execution of the action
+    
+    serialize(): string {
+        return this.name;
+    }
 }
 
 export abstract class EnemyActionModifier<T extends OwnableCard> extends ActionModifier<T> {

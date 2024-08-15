@@ -1,7 +1,7 @@
-import { CampaignAtttackAction, CampaignDefenseAction, TakeFavorFromBankAction, TradeAction, TravelAction, InvalidActionResolution, AskForPermissionAction } from "../../actions/actions";
+import { CampaignAtttackAction, CampaignDefenseAction, TakeFavorFromBankAction, TradeAction, TravelAction, InvalidActionResolution, AskForPermissionAction, RestAction, ChooseCardAction } from "../../actions/actions";
 import { Denizen, Site } from "../../cards/cards";
 import { AttackDie, DefenseDie } from "../../dice";
-import { RegionDiscardEffect, PutResourcesOnTargetEffect, RollDiceEffect, BecomeCitizenEffect } from "../../effects";
+import { RegionDiscardEffect, PutResourcesOnTargetEffect, RollDiceEffect, BecomeCitizenEffect, DiscardCardEffect, TakeResourcesFromBankEffect } from "../../effects";
 import { BannerName, OathResource, OathSuit } from "../../enums";
 import { ResourceCost } from "../../resources";
 import { ActionModifier, AttackerBattlePlan, DefenderBattlePlan, ActivePower, WhenPlayed, AccessedActionModifier, EffectModifier } from "../powers";
@@ -149,6 +149,50 @@ export class Alchemist extends ActivePower<Denizen> {
 
     usePower(): void {
         for (let i = 0; i < 4; i++) new TakeFavorFromBankAction(this.action.player, 1).doNext();
+    }
+}
+
+export class WizardSchool extends ActivePower<Denizen> {
+    name = "Wizard School";
+    cost = new ResourceCost([[OathResource.Favor, 1]]);
+
+    usePower(): void {
+        new PutResourcesOnTargetEffect(this.game, this.action.player, OathResource.Secret, 1).do();
+        new RestAction(this.action.player).doNext();
+    }
+}
+
+export class TamingCharm extends ActivePower<Denizen> {
+    name = "Taming Charm";
+    cost = new ResourceCost([[OathResource.Secret, 1]]);
+
+    usePower(): void {
+        new ChooseCardAction(
+            this.action.player, "Discard to gain 2 favor",
+            (card: Denizen | undefined) => {
+                if (!card) return;
+                new DiscardCardEffect(this.action.player, card).do();
+                new TakeResourcesFromBankEffect(this.game, this.action.player, this.game.favorBanks.get(card.suit), 2).do();
+            },
+            [...this.action.player.site.denizens].filter(e => e.suit === OathSuit.Beast || e.suit === OathSuit.Nomad)
+        ).doNext();
+    }
+}
+
+export class Inquisitor extends ActivePower<Denizen> {
+    name = "Inquisitor";
+    cost = new ResourceCost([[OathResource.Favor, 1]]);
+
+    usePower(): void {
+        new ChooseCardAction(
+            this.action.player, "Peek at an adviser",
+            (card: Denizen | undefined) => {
+                if (!card) return;
+                new DiscardCardEffect(this.action.player, card).do();
+                new TakeResourcesFromBankEffect(this.game, this.action.player, this.game.favorBanks.get(card.suit), 2).do();
+            },
+            [...this.action.player.site.denizens].filter(e => e.suit === OathSuit.Beast || e.suit === OathSuit.Nomad)
+        ).doNext();
     }
 }
 

@@ -15,7 +15,7 @@ import { Banner, DarkestSecret, FavorBank, PeoplesFavor } from "./banks";
 import { AbstractConstructor, Constructor, isExtended, WithOriginal } from "./utils";
 import { parseOathTTSSavefileString, serializeOathGame } from "./parser";
 import { Citizenship } from "./parser/interfaces";
-import { WithPowers } from "./interfaces";
+import { SourceType, WithPowers } from "./interfaces";
 
 
 export class OathGame extends WithOriginal {
@@ -207,7 +207,7 @@ export class OathGame extends WithOriginal {
         return data;
     }
 
-    getPowers<T extends OathPower<any>>(type: AbstractConstructor<T>): [WithPowers, Constructor<T>][] {
+    getPowers<T extends OathPower<WithPowers>>(type: AbstractConstructor<T>): [SourceType<T>, Constructor<T>][] {
         const powers: [any, Constructor<T>][] = [];
 
         const reliquary = this.chancellor.reliquary;

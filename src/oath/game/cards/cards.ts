@@ -28,12 +28,18 @@ export abstract class OathCard extends ResourcesAndWarbands implements WithPower
         for (const power of powers) this.powers.add(power);
     }
 
+    abstract get facedownName(): string;
+    
     reveal() {
         this.facedown = false;
     }
-
+    
     hide() {
         this.facedown = true;
+    }
+    
+    visualName(player?: OathPlayer) {
+        return this.facedown && (!player || !this.seenBy.has(player)) ? this.facedownName : this.name;
     }
 
     abstract accessibleBy(player: OathPlayer): boolean;
@@ -83,6 +89,8 @@ export class Site extends OathCard implements CampaignActionTarget {
         this.recoverSuit = recoverSuit;
         this.startingResources = new Map(startingResources);
     }
+
+    get facedownName(): string { return "Facedown " + this.region.name; }
 
     get ruler(): OathPlayer | undefined {
         let max = 0, ruler = undefined;
@@ -163,6 +171,7 @@ export class Site extends OathCard implements CampaignActionTarget {
 export abstract class OwnableCard extends OathCard implements OwnableObject {
     owner?: OathPlayer;
 
+    get facedownName(): string { return "Facedown" + (this.owner ? " " + this.owner.name : ""); }
     get ruler() { return this.owner; }
 
     accessibleBy(player: OathPlayer | undefined): boolean {
@@ -266,6 +275,7 @@ export class Denizen extends WorldCard implements AtSite {
     set suit(_suit: OathSuit) { this._suit = _suit; }
     get ruler() { return super.ruler || this.site?.ruler; }
     get activelyLocked() { return this.locked && !this.facedown; }
+    get facedownName(): string { return super.facedownName + (this.site ? " " + this.site.name : ""); }
     get data(): DenizenData { return [this._suit, [...this.powers], this.restriction, this.locked] }
 
     constructor(game: OathGame, name: string, suit: OathSuit, powers: Iterable<Constructor<OathPower<Denizen>>>, restriction: CardRestriction = CardRestriction.None, locked: boolean = false) {

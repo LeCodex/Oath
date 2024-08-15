@@ -1,4 +1,4 @@
-import { TradeAction, InvalidActionResolution, TravelAction, SearchAction, SearchPlayAction, TakeFavorFromBankAction, CampaignKillWarbandsInForceAction, CampaignResult, AskForPermissionAction, CampaignAction, ActAsIfAtSiteAction, CampaignDefenseAction } from "../../actions/actions";
+import { TradeAction, InvalidActionResolution, TravelAction, SearchAction, SearchPlayAction, TakeFavorFromBankAction, CampaignKillWarbandsInForceAction, CampaignResult, AskForPermissionAction, CampaignAction, ActAsIfAtSiteAction, CampaignDefenseAction, ChooseSiteAction, ChoosePlayerAction } from "../../actions/actions";
 import { Denizen, Edifice, Site, Vision } from "../../cards/cards";
 import { PayCostToTargetEffect, MoveResourcesToTargetEffect, TakeWarbandsIntoBagEffect, GainSupplyEffect, TakeResourcesFromBankEffect, BecomeCitizenEffect, PutWarbandsFromBagEffect, ApplyModifiersEffect } from "../../effects";
 import { OathResource, OathSuit } from "../../enums";
@@ -293,6 +293,26 @@ export class Captains extends ActivePower<Denizen> {
                 sites.add(siteProxy.original);
         
         new ActAsIfAtSiteAction(this.action.player, campaignAction, sites).doNext();
+    }
+}
+
+export class SiegeEngines extends ActivePower<Denizen> {
+    name = "Siege Engines";
+    cost = new ResourceCost([[OathResource.Favor, 1]]);
+
+    usePower(): void {
+        new ChooseSiteAction(
+            this.action.player, "Kill two warbands",
+            (site: Site | undefined) => {
+                if (!site) return;
+                new ChoosePlayerAction(
+                    this.action.player, "Kill two warbands", 
+                    (target: OathPlayer | undefined) => { if (target) new TakeWarbandsIntoBagEffect(target, 2, site).doNext(); },
+                    [...site.warbands.entries()].filter(([_, v]) => v > 0).map(([k, _]) => k)
+                ).doNext();
+            },
+            this.action.playerProxy.site.region.original.sites.filter(e => e.totalWarbands)
+        ).doNext();
     }
 }
 

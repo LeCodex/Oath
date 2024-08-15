@@ -39,11 +39,11 @@ export class WalledGarden extends DefenderBattlePlan<Denizen> {
 
     applyBefore(): void {
         for (const target of this.action.campaignResult.targets) {
-            if (target === this.source.site)
-                for (const siteProxy of this.gameProxy.board.sites())
-                    for (const denizenProxy of siteProxy.denizens)
-                        if (denizenProxy.suit === OathSuit.Beast)
-                            this.action.campaignResult.defPool++;
+            if (target !== this.source.site) return;
+            for (const siteProxy of this.gameProxy.board.sites())
+                for (const denizenProxy of siteProxy.denizens)
+                    if (denizenProxy.suit === OathSuit.Beast)
+                        this.action.campaignResult.defPool++;
         }
     }
 }

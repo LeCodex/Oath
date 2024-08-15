@@ -1,7 +1,8 @@
-import { AskForPermissionAction, InvalidActionResolution, TakeFavorFromBankAction, TakeResourceFromPlayerAction } from "../../actions/actions";
+import { AskForPermissionAction, ChooseRegionAction, InvalidActionResolution, TakeFavorFromBankAction, TakeResourceFromPlayerAction } from "../../actions/actions";
+import { Region } from "../../board";
 import { Denizen, Relic, Site, WorldCard } from "../../cards/cards";
 import { D6, DefenseDie } from "../../dice";
-import { TakeOwnableObjectEffect, TakeWarbandsIntoBagEffect, PutWarbandsFromBagEffect, PutResourcesOnTargetEffect, MoveResourcesToTargetEffect, SetNewOathkeeperEffect, RollDiceEffect, GamblingHallEffect, TakeResourcesFromBankEffect, DiscardCardEffect, BecomeCitizenEffect, PayCostToTargetEffect } from "../../effects";
+import { TakeOwnableObjectEffect, TakeWarbandsIntoBagEffect, PutWarbandsFromBagEffect, PutResourcesOnTargetEffect, MoveResourcesToTargetEffect, SetNewOathkeeperEffect, RollDiceEffect, GamblingHallEffect, TakeResourcesFromBankEffect, DiscardCardEffect, BecomeCitizenEffect, PayCostToTargetEffect, PeekAtCardEffect } from "../../effects";
 import { BannerName, OathResource, OathSuit } from "../../enums";
 import { OathPlayer } from "../../player";
 import { ResourceCost } from "../../resources";
@@ -74,7 +75,7 @@ export class BookBurning extends AttackerBattlePlan<Denizen> {
 
     applyBefore(): void {
         this.action.campaignResult.onSuccessful(true, () => {
-            const defender = this.action.campaignResult.loser;
+            const defender = this.action.campaignResult.defender;
             if (!defender) return;
             new MoveResourcesToTargetEffect(this.game, defender, OathResource.Secret, defender.getResources(OathResource.Secret) - 1, undefined).do()
         });
@@ -87,7 +88,7 @@ export class Slander extends AttackerBattlePlan<Denizen> {
 
     applyBefore(): void {
         this.action.campaignResult.onSuccessful(true, () => {
-            const defender = this.action.campaignResult.loser;
+            const defender = this.action.campaignResult.defender;
             if (!defender) return;
             new MoveResourcesToTargetEffect(this.game, defender, OathResource.Favor, Infinity, undefined).do()
         });
@@ -207,6 +208,18 @@ export class GamblingHall extends ActivePower<Denizen> {
     usePower(): void {
         const faces = new RollDiceEffect(this.action.game, this.action.player, DefenseDie, 4).do();
         new GamblingHallEffect(this.action.player, faces).doNext();
+    }
+}
+
+export class Scryer extends ActivePower<Denizen> {
+    name = "Scryer";
+    cost = new ResourceCost([[OathResource.Secret, 1]]);
+
+    usePower(): void {
+        new ChooseRegionAction(
+            this.action.player, "Peek at a discard pile",
+            (region: Region | undefined) => { if (region) for (const card of region.discard.cards) new PeekAtCardEffect(this.action.player, card).do(); }
+        ).doNext();
     }
 }
 

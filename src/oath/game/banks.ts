@@ -98,7 +98,7 @@ export abstract class Banner extends ResourceBank implements OwnableObject, Reco
 }
 
 export class PeoplesFavor extends Banner {
-    name = "People's Favor";
+    name = "PeoplesFavor";
     type = OathResource.Favor;
     powers = new Set([PeoplesFavorSearch, PeoplesFavorWake]);
     isMob: boolean;
@@ -131,7 +131,7 @@ export class PeoplesFavor extends Banner {
 }
 
 export class DarkestSecret extends Banner {
-    name = "Darkest Secret";
+    name = "DarkestSecret";
     type = OathResource.Secret;
     powers = new Set([DarkestSecretPower]);
 
