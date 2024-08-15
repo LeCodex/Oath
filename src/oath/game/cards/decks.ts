@@ -16,7 +16,7 @@ export class CardDeck<T extends OathCard> extends OathGameObject {
     draw(amount: number, fromBottom: boolean = false, skip: number = 0): T[] {
         // Why such an involved process instead of just using splice? To make sure the draws are in correct order for reverting
         let cards: T[] = [];
-        for (let i = skip; i < Math.max(this.cards.length, skip + amount); i ++) {
+        for (let i = skip; i < Math.min(this.cards.length, skip + amount); i ++) {
             const card = this.drawSingleCard(fromBottom);
             if (card) cards.push(card);
         }

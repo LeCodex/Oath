@@ -218,7 +218,7 @@ export class SetupChooseAction extends OathAction {
     }
 
     start(): boolean {
-        this.selects.card = new SelectNOf("Card", this.cards.map(e => [e.name, e]));
+        this.selects.card = new SelectNOf("Card", this.cards.map(e => [e.name, e]), 1);
         return super.start();
     }
 
