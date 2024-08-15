@@ -1,16 +1,16 @@
-import { Denizen, Edifice, OwnableCard, Relic, Site, VisionBack, WorldCard } from "../cards/cards";
+import { Denizen, Edifice, OwnableCard, Relic, Site, WorldCard } from "../cards/cards";
 import { DiscardOptions, SearchableDeck } from "../cards/decks";
-import { AttackDie, DefenseDie, Die } from "../dice";
-import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, PutPawnAtSiteEffect, DiscardCardEffect, MoveOwnWarbandsEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect, SetNewOathkeeperEffect, SetPeoplesFavorMobState, DiscardCardGroupEffect, OathEffect, PaySupplyEffect, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, FlipEdificeEffect, ModifiedExecutionEffect, CampaignResolveSuccessfulAndSkullsEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect, CheckCapacityEffect, ApplyModifiersEffect, CampaignJoinDefenderAlliesEffect } from "../effects";
-import { BannerName, OathPhase, OathResource, OathResourceName, OathSuit, OathSuitName, OathType, OathTypeName } from "../enums";
+import { AttackDie, DefenseDie } from "../dice";
+import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, PutPawnAtSiteEffect, DiscardCardEffect, MoveOwnWarbandsEffect, MoveAdviserEffect, SetPeoplesFavorMobState, OathEffect, PaySupplyEffect, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, FlipEdificeEffect, ModifiedExecutionEffect, CampaignResolveSuccessfulAndSkullsEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect, CheckCapacityEffect, ApplyModifiersEffect, CampaignJoinDefenderAlliesEffect } from "../effects";
+import { OathPhase, OathResource, OathResourceName, OathSuit, OathSuitName, OathType, OathTypeName } from "../enums";
 import { OathGame } from "../game";
 import { OathGameObject } from "../gameObject";
 import { OathTypeToOath } from "../oaths";
 import { Exile, OathPlayer } from "../player";
-import { ActionModifier, ActionPower, ActivePower, CapacityModifier, OathPower } from "../powers/powers";
+import { ActionModifier, ActivePower, CapacityModifier } from "../powers/powers";
 import { ResourceCost, ResourcesAndWarbands } from "../resources";
 import { Banner, PeoplesFavor } from "../banks";
-import { Constructor, isExtended, MaskProxyManager, shuffleArray } from "../utils";
+import { Constructor, isExtended, MaskProxyManager } from "../utils";
 import { SelectNOf, SelectBoolean, SelectNumber } from "./selects";
 import { CampaignActionTarget, RecoverActionTarget, WithPowers } from "../interfaces";
 
@@ -232,7 +232,7 @@ export class MusterAction extends MajorAction {
         if (new MoveResourcesToTargetEffect(this.game, this.player, this.using, this.amount, this.cardProxy.original).do() < 1)
             throw new InvalidActionResolution("Cannot pay resource cost.");
 
-        new PutWarbandsFromBagEffect(this.player, this.getting).do();
+        new PutWarbandsFromBagEffect(this.player.leader, this.getting).do();
     }
 }
 
@@ -958,7 +958,7 @@ export class CampaignKillWarbandsInForceAction extends OathAction {
             throw new InvalidActionResolution("Invalid total amount of warbands");
         
         for (const source of this.force) {
-            const killed = new TakeWarbandsIntoBagEffect(this.owner, this.parameters[source.name][0], source).do();
+            const killed = new TakeWarbandsIntoBagEffect(this.owner.leader, this.parameters[source.name][0], source).do();
             if (this.attacker)
                 this.result.attackerLoss += killed;
             else
@@ -1003,7 +1003,7 @@ export class CampaignSeizeSiteAction extends OathAction {
     }
 
     execute() {
-        new MoveOwnWarbandsEffect(this.player, this.player, this.site, this.parameters.amount[0]).do();
+        new MoveOwnWarbandsEffect(this.player.leader, this.player, this.site, this.parameters.amount[0]).do();
     }
 }
 
@@ -1156,7 +1156,7 @@ export class MoveWarbandsAction extends ModifiableAction {
         if (from instanceof Site && from.getWarbands(this.player.leader.original) - this.amount < 1)
             throw new InvalidActionResolution("Cannot take the last warband off a site.");
 
-        const effect = new MoveOwnWarbandsEffect(this.player, from, to, this.amount);
+        const effect = new MoveOwnWarbandsEffect(this.player.leader, from, to, this.amount);
         if (this.targetProxy instanceof OathPlayer || this.targetProxy.ruler && this.targetProxy.ruler !== this.playerProxy) {
             const askTo = this.targetProxy instanceof OathPlayer ? this.targetProxy : this.targetProxy.ruler;
             if (askTo) new AskForPermissionAction(askTo.original, `Allow ${this.amount} warbands to move from ${from.name} to ${to.name}?`, () => effect.do()).doNext();
@@ -1324,21 +1324,20 @@ export class ChoosePlayer extends OathAction {
 
     players: Set<OathPlayer>;
     none: string | undefined;
-    canChooseSelf: boolean = false;
     callback: (target: OathPlayer | undefined) => void;
 
     constructor(player: OathPlayer, message: string, callback: (target: OathPlayer | undefined) => void, players?: Iterable<OathPlayer>, none?: string) {
         super(player);
         this.message = message;
         this.callback = callback;
-        this.players = players ? new Set(players) : new Set(Object.values(this.game.players));
+        this.players = players ? new Set(players) : new Set(Object.values(this.game.players).filter(e => e !== player));
         this.none = none;
     }
 
     start() {
         const choices = new Map<string, OathPlayer | undefined>();
         for (const player of this.players)
-            if (player !== this.player || this.canChooseSelf)
+            if (player !== this.player)
                 choices.set(player.name, player);
         if (this.none) choices.set(this.none, undefined);
         this.selects.player = new SelectNOf("Player", choices, 1);
@@ -1382,7 +1381,6 @@ export abstract class ChooseSite extends OathAction {
 
     sites: Set<Site> | undefined;
     none: string | undefined;
-    canChooseCurrentSite: boolean = false;
     callback: (site: Site | undefined) => void;
 
     constructor(player: OathPlayer, message: string, callback: (site: Site | undefined) => void, sites?: Iterable<Site>, none?: string) {
@@ -1394,12 +1392,12 @@ export abstract class ChooseSite extends OathAction {
     }
 
     start(none?: string) {
-        if (!this.sites) this.sites = new Set([...this.game.board.sites()].filter(e => !e.facedown));
+        if (!this.sites) this.sites = new Set([...this.game.board.sites()].filter(e => !e.facedown && e !== this.player.site));
 
         const choices = new Map<string, Site | undefined>();
         if (none) choices.set(none, undefined);
         for (const site of this.sites)
-            if (!(site === this.player.site && !this.canChooseCurrentSite))
+            if (site !== this.player.site)
                 choices.set(site.name, site);
         this.selects.site = new SelectNOf("Site", choices, 1);
 

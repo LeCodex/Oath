@@ -80,23 +80,23 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
     }
 
     moveWarbandsFromBagOnto(target: ResourcesAndWarbands, amount: number): number {
-        const oldBagAmount = this.leader.warbandsInBag;
+        const oldBagAmount = this.warbandsInBag;
         const newBagAmount = Math.max(oldBagAmount - amount);
         const diff = oldBagAmount - newBagAmount;
 
-        this.leader.warbandsInBag -= diff;
-        target.putWarbands(this.leader, diff);
+        this.warbandsInBag -= diff;
+        target.putWarbands(this, diff);
         return diff;
     }
 
     moveWarbandsIntoBagFrom(source: ResourcesAndWarbands, amount: number = Infinity): number {
-        const warbandsAmount = source.takeWarbands(this.leader, amount);
+        const warbandsAmount = source.takeWarbands(this, amount);
         this.leader.warbandsInBag += warbandsAmount;
         return warbandsAmount;
     }
 
     moveOwnWarbands(from: ResourcesAndWarbands, to: ResourcesAndWarbands, amount: number): number {
-        return from.moveWarbandsTo(this.leader, to, amount);
+        return from.moveWarbandsTo(this, to, amount);
     }
 
     addAdviser(card: WorldCard) {

@@ -46,7 +46,7 @@ export class AncientCity extends HomelandSitePower {
     suit = OathSuit.Order;
 
     giveReward(player: OathPlayer): void {
-        new PutWarbandsFromBagEffect(player, 2).do();
+        new PutWarbandsFromBagEffect(player.leader, 2).do();
     }
 }
 

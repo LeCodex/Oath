@@ -1,6 +1,6 @@
 import { InvalidActionResolution, CitizenshipOfferAction, StartBindingExchangeAction, SkeletonKeyAction, TradeAction, CampaignAtttackAction, MusterAction, TravelAction, AskForPermissionAction, ChoosePlayer } from "../actions/actions";
 import { Denizen, GrandScepter, Relic, Site } from "../cards/cards";
-import { TakeOwnableObjectEffect, PutWarbandsFromBagEffect, PlayDenizenAtSiteEffect, MoveOwnWarbandsEffect, PeekAtCardEffect, SetGrandScepterLockEffect, GainSupplyEffect, DrawFromDeckEffect, RevealCardEffect, PayCostToTargetEffect, BecomeExileEffect } from "../effects";
+import { TakeOwnableObjectEffect, PutWarbandsFromBagEffect, PlayDenizenAtSiteEffect, MoveOwnWarbandsEffect, PeekAtCardEffect, SetGrandScepterLockEffect, GainSupplyEffect, DrawFromDeckEffect, RevealCardEffect, PayCostToTargetEffect, BecomeExileEffect, MoveWarbandsToEffect, TakeWarbandsIntoBagEffect } from "../effects";
 import { BannerName, OathResource } from "../enums";
 import { OathPlayer, Exile } from "../player";
 import { OwnableObject, isOwnable } from "../interfaces";
@@ -131,7 +131,7 @@ export class DragonskinDrum extends AccessedActionModifier<Relic> {
     action: TravelAction;
 
     applyAfter(): void {
-        new PutWarbandsFromBagEffect(this.activator, 1).do();
+        new PutWarbandsFromBagEffect(this.activator.leader, 1).do();
     }
 }
 
@@ -150,14 +150,14 @@ export class CursedCauldronAttack extends AttackerBattlePlan<Relic> {
     name = "Cursed Cauldron";
 
     applyBefore(): void {
-        this.action.campaignResult.onSuccessful(true, () => new PutWarbandsFromBagEffect(this.activator, this.action.campaignResult.loserLoss).do());
+        this.action.campaignResult.onSuccessful(true, () => new PutWarbandsFromBagEffect(this.activator.leader, this.action.campaignResult.loserLoss).do());
     }
 }
 export class CursedCauldronDefense extends DefenderBattlePlan<Relic> {
     name = "Cursed Cauldron";
 
     applyBefore(): void {
-        this.action.campaignResult.onSuccessful(false, () => new PutWarbandsFromBagEffect(this.activator, this.action.campaignResult.loserLoss).do());
+        this.action.campaignResult.onSuccessful(false, () => new PutWarbandsFromBagEffect(this.activator.leader, this.action.campaignResult.loserLoss).do());
     }
 }
 
@@ -167,7 +167,10 @@ export class ObsidianCageAttack extends AttackerBattlePlan<Relic> {
     applyBefore(): void {
         const loser = this.action.campaignResult.loser;
         if (!loser) return;
-        this.action.campaignResult.onSuccessful(true, () => new MoveOwnWarbandsEffect(loser, loser, this.source, Infinity).do());
+        this.action.campaignResult.onSuccessful(true, () => {
+            for (const [owner, amount] of loser.warbands)
+                new MoveWarbandsToEffect(this.game, this.activator, owner, amount, this.source, loser).do();
+        });
     }
 }
 export class ObsidianCageDefense extends DefenderBattlePlan<Relic> {
@@ -176,14 +179,31 @@ export class ObsidianCageDefense extends DefenderBattlePlan<Relic> {
     applyBefore(): void {
         const loser = this.action.campaignResult.loser;
         if (!loser) return;
-        this.action.campaignResult.onSuccessful(false, () => new MoveOwnWarbandsEffect(loser, loser, this.source, Infinity).do());
+        this.action.campaignResult.onSuccessful(false, () => {
+            for (const [owner, amount] of loser.warbands)
+                new MoveWarbandsToEffect(this.game, this.activator, owner, amount, this.source, loser).do();
+        });
     }
 }
 export class ObsidianCageActive extends ActivePower<Relic> {
     name = "Obsidian Cage";
 
     usePower(): void {
+        const players = new Set<OathPlayer>();
+        for (const player of Object.values(this.game.players))
+            if (this.source.getWarbands(player.leader) + this.source.getWarbands(player) > 0) players.add(player);
         
+        // TODO: "Any number"
+        new ChoosePlayer(
+            this.action.player, "Return the warbands to a player",
+            (target: OathPlayer | undefined) => { 
+                if (!target) return;
+                new MoveOwnWarbandsEffect(target.leader, this.source, target, Infinity).do(); 
+                const amount = new TakeWarbandsIntoBagEffect(target, Infinity, this.source).do();
+                new PutWarbandsFromBagEffect(target.leader, amount, target).do();
+            },
+            players
+        ).doNext();
     }
 }
 

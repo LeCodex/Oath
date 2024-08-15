@@ -119,7 +119,7 @@ export class FieldPromotionAttack extends AttackerBattlePlan<Denizen> {
     cost = new ResourceCost([[OathResource.Favor, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.onSuccessful(true, () => new PutWarbandsFromBagEffect(this.activator, 3).do());
+        this.action.campaignResult.onSuccessful(true, () => new PutWarbandsFromBagEffect(this.activator.leader, 3).do());
     }
 }
 export class FieldPromotionDefense extends DefenderBattlePlan<Denizen> {
@@ -127,7 +127,7 @@ export class FieldPromotionDefense extends DefenderBattlePlan<Denizen> {
     cost = new ResourceCost([[OathResource.Favor, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.onSuccessful(false, () => new PutWarbandsFromBagEffect(this.activator, 3).do());
+        this.action.campaignResult.onSuccessful(false, () => new PutWarbandsFromBagEffect(this.activator.leader, 3).do());
     }
 }
 
@@ -157,7 +157,7 @@ export class BearTraps extends DefenderBattlePlan<Denizen> {
 
     applyBefore(): void {
         this.action.campaignResult.atkPool--;
-        new TakeWarbandsIntoBagEffect(this.action.campaignResult.attacker, 1).do();
+        new TakeWarbandsIntoBagEffect(this.action.campaignResult.attacker.leader, 1).do();
     }
 }
 

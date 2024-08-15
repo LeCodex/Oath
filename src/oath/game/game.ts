@@ -159,7 +159,7 @@ export class OathGame extends WithOriginal {
         for (const [color, player] of Object.entries(this.players)) {
             player.putResources(OathResource.Favor, Number(color) === PlayerColor.Purple ? 2 : 1);  // TODO: Take favor from supply
             player.putResources(OathResource.Secret, 1);
-            player.moveWarbandsFromBagOnto(player, 3);
+            player.leader.moveWarbandsFromBagOnto(player, 3);
 
             const card = this.worldDeck.drawSingleCard(true);
             if (card) {

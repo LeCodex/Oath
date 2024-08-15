@@ -117,7 +117,7 @@ export class KeyToTheCity extends WhenPlayed<Denizen> {
         for (const [player, amount] of this.source.site.warbands)
             new TakeWarbandsIntoBagEffect(player, amount, this.source.site).do();
 
-        new PutWarbandsFromBagEffect(this.effect.player, 1, this.source.site).do();
+        new PutWarbandsFromBagEffect(this.effect.player.leader, 1, this.source.site).do();
     }
 }
 
@@ -222,7 +222,7 @@ export class ASmallFavor extends WhenPlayed<Denizen> {
     name = "ASmallFavor";
 
     whenPlayed(): void {
-        new PutWarbandsFromBagEffect(this.effect.player, 4).do();
+        new PutWarbandsFromBagEffect(this.effect.player.leader, 4).do();
     }
 }
 

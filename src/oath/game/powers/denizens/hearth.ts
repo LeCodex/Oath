@@ -69,14 +69,14 @@ export class HospitalAttack extends AttackerBattlePlan<Denizen> {
     name = "Hospital";
 
     applyBefore(): void {
-        new PutWarbandsFromBagEffect(this.activator, this.action.campaignResult.attackerLoss, this.source.site);
+        new PutWarbandsFromBagEffect(this.activator.leader, this.action.campaignResult.attackerLoss, this.source.site);
     }
 }
 export class HospitalDefense extends DefenderBattlePlan<Denizen> {
     name = "Hospital";
 
     applyBefore(): void {
-        new PutWarbandsFromBagEffect(this.activator, this.action.campaignResult.defenderLoss, this.source.site);
+        new PutWarbandsFromBagEffect(this.activator.leader, this.action.campaignResult.defenderLoss, this.source.site);
     }
 }
 
@@ -113,7 +113,7 @@ export class AwaitedReturn extends AccessedActionModifier<Denizen> {
     applyBefore(): void {
         // NOTE: I am enforcing that you can only sacrifice warbands of your leader's color
         // while *technically* this restriction doesn't exist but making it an action seems overkill
-        if (new TakeWarbandsIntoBagEffect(this.activator, 1).do() > 0)
+        if (new TakeWarbandsIntoBagEffect(this.activator.leader, 1).do() > 0)
             this.action.noSupplyCost = true;
     }
 }

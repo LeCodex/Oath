@@ -942,7 +942,7 @@ export class DiscardCardEffect<T extends OwnableCard> extends PlayerEffect<void>
         this.flipped = !this.card.facedown;
         this.discardOptions.discard.putCard(this.card, this.discardOptions.onBottom);
         this.card.returnResources();
-        for (const player of this.card.warbands.keys()) new TakeWarbandsIntoBagEffect(player, Infinity, this.card).do();
+        for (const [player, amount] of this.card.warbands) new TakeWarbandsIntoBagEffect(player, amount, this.card).do();
     }
 
     revert(): void {
