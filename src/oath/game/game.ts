@@ -1,6 +1,6 @@
-import { InvalidActionResolution, OathAction, ChooseSuccessor, ChooseNewOathkeeper } from "./actions/actions";
+import { InvalidActionResolution, OathAction, ChooseSuccessor, ChoosePlayer } from "./actions/actions";
 import { OathActionManager } from "./actions/manager";
-import { WinGameEffect } from "./effects";
+import { SetNewOathkeeperEffect, SetUsurperEffect, WinGameEffect } from "./effects";
 import { OathPower } from "./powers/powers";
 import { OathBoard } from "./board";
 import { CardDeck, RelicDeck, WorldDeck } from "./cards/decks";
@@ -259,7 +259,15 @@ export class OathGame extends WithOriginal {
     checkForOathkeeper(): OathAction | undefined {
         const candidates = this.oath.getOathkeeperCandidates();
         if (candidates.has(this.oathkeeper)) return;
-        if (candidates.size) new ChooseNewOathkeeper(this.oathkeeper, candidates).doNext();
+        if (candidates.size)
+            new ChoosePlayer(
+                this.oathkeeper, "Choose the new Oathkeeper",
+                (target: OathPlayer | undefined) => {
+                    if (!target) return;
+                    new SetUsurperEffect(this, false).do();
+                    new SetNewOathkeeperEffect(target).do();
+                }
+            ).doNext();
     }
 
     empireWins() {

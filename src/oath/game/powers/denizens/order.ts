@@ -1,10 +1,10 @@
-import { TradeAction, InvalidActionResolution, TravelAction, SearchAction, SearchPlayAction, TakeFavorFromBankAction, CampaignKillWarbandsInForceAction, CampaignResult, AskForPermissionAction } from "../../actions/actions";
-import { Denizen, Vision } from "../../cards/cards";
-import { PayCostToTargetEffect, MoveResourcesToTargetEffect, TakeWarbandsIntoBagEffect, GainSupplyEffect, TakeResourcesFromBankEffect, BecomeCitizenEffect, PutWarbandsFromBagEffect } from "../../effects";
+import { TradeAction, InvalidActionResolution, TravelAction, SearchAction, SearchPlayAction, TakeFavorFromBankAction, CampaignKillWarbandsInForceAction, CampaignResult, AskForPermissionAction, CampaignAction, ActAsIfAtSiteAction, CampaignDefenseAction } from "../../actions/actions";
+import { Denizen, Edifice, Site, Vision } from "../../cards/cards";
+import { PayCostToTargetEffect, MoveResourcesToTargetEffect, TakeWarbandsIntoBagEffect, GainSupplyEffect, TakeResourcesFromBankEffect, BecomeCitizenEffect, PutWarbandsFromBagEffect, ApplyModifiersEffect } from "../../effects";
 import { OathResource, OathSuit } from "../../enums";
 import { OathPlayer } from "../../player";
 import { ResourceCost } from "../../resources";
-import { AttackerBattlePlan, DefenderBattlePlan, EnemyActionModifier, WhenPlayed, AccessedActionModifier, RestPower } from "../powers";
+import { AttackerBattlePlan, DefenderBattlePlan, EnemyActionModifier, WhenPlayed, AccessedActionModifier, RestPower, ActivePower, ActionModifier } from "../powers";
 
 
 export class LongbowsAttack extends AttackerBattlePlan<Denizen> {
@@ -36,6 +36,29 @@ export class EncirclementDefense extends DefenderBattlePlan<Denizen> {
 
     applyBefore(): void {
         if (this.action.campaignResult.totalDefForce > this.action.campaignResult.totalAtkForce) this.action.campaignResult.atkPool -= 2;
+    }
+}
+
+export class CodeOfHonorAttack extends AttackerBattlePlan<Denizen> {
+    name = "Code of Honor";
+
+    applyBefore(): void {
+        for (const modifier of this.action.modifiers)
+            if (modifier !== this && modifier instanceof AttackerBattlePlan)
+                throw new InvalidActionResolution("Cannot use other battle plans with the Code of Honor");
+
+        this.action.campaignResult.atkPool += 2;
+    }
+}
+export class CodeOfHonorDefense extends DefenderBattlePlan<Denizen> {
+    name = "Code of Honor";
+
+    applyBefore(): void {
+        for (const modifier of this.action.modifiers)
+            if (modifier !== this && modifier instanceof AttackerBattlePlan)
+                throw new InvalidActionResolution("Cannot use other battle plans with the Code of Honor");
+
+        this.action.campaignResult.atkPool -= 2;
     }
 }
 
@@ -163,6 +186,27 @@ export class Outriders extends AttackerBattlePlan<Denizen> {
     }
 }
 
+export class Specialist extends AttackerBattlePlan<Denizen> {
+    name = "Specialist";
+    cost = new ResourceCost([[OathResource.Favor, 2]]);
+
+    applyBefore(): void {
+        new ApplyModifiersEffect(this.action.next, [new SpecialistRestriction(this.source, this.action.next, this.action.player)]).do();
+    }
+}
+export class SpecialistRestriction extends ActionModifier<Denizen> {
+    name = "Specialist";
+    modifiedAction = CampaignDefenseAction;
+    action: CampaignDefenseAction;
+    mustUse = true;
+
+    applyBefore(): void {
+        for (const modifier of this.action.modifiers)
+            if (modifier instanceof DefenderBattlePlan)
+                throw new InvalidActionResolution("Cannot use defender battle plans while under the Specialist");
+    }
+}
+
 export class Curfew extends EnemyActionModifier<Denizen> {
     name = "Curfew";
     modifiedAction = TradeAction;
@@ -237,8 +281,23 @@ export class VowOfObedienceRest extends RestPower<Denizen> {
     }
 }
 
+export class Captains extends ActivePower<Denizen> {
+    name = "Captains";
+    cost = new ResourceCost([[OathResource.Favor, 1]]);
 
-export class BanditRampart extends DefenderBattlePlan<Denizen> {
+    usePower(): void {
+        const campaignAction = new CampaignAction(this.action.player);
+        const sites = new Set<Site>();
+        for (const siteProxy of this.gameProxy.board.sites())
+            if (siteProxy.ruler === this.action.playerProxy)
+                sites.add(siteProxy.original);
+        
+        new ActAsIfAtSiteAction(this.action.player, campaignAction, sites).doNext();
+    }
+}
+
+
+export class BanditRampart extends DefenderBattlePlan<Edifice> {
     name = "Bandit Rampart";
 
     applyBefore(): void {

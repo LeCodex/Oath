@@ -128,7 +128,7 @@ export class ChooseModifiers extends OathAction {
         for (const modifier of modifiers) for (const toIgnore of modifier.applyImmediately(modifiers)) ignore.add(toIgnore);
         for (const modifier of ignore) modifiers.delete(modifier);
 
-        if (!new ApplyModifiersEffect(this.action, this.player, modifiers).do()) return;
+        if (!new ApplyModifiersEffect(this.action, modifiers).do()) return;
         
         if (this.next instanceof ModifiableAction)
             this.next.doNextWithoutModifiers();
@@ -747,7 +747,7 @@ export class CampaignAtttackAction extends ModifiableAction {
         };
 
         // If any powers cost something, then the attacker pays. Shouldn't happen though
-        if (new ApplyModifiersEffect(this.next, this.player, modifiers))
+        if (new ApplyModifiersEffect(this.next, modifiers))
             this.next.doNextWithoutModifiers();
     }
 }
@@ -1173,16 +1173,18 @@ export class AskForPermissionAction extends OathAction {
 
     callback: () => void;
     negativeCallback?: () => void;
+    options: [string, string];
 
-    constructor(player: OathPlayer, message: string, callback: () => void, negativeCallback?: () => void) {
+    constructor(player: OathPlayer, message: string, callback: () => void, negativeCallback?: () => void, options: [string, string] = ["Yes", "No"]) {
         super(player);
         this.callback = callback;
         this.negativeCallback = negativeCallback;
         this.message = message;
+        this.options = options;
     }
 
     start(): boolean {
-        this.selects.allow = new SelectBoolean("Decision", ["Allow", "Deny"]);
+        this.selects.allow = new SelectBoolean("Decision", this.options);
         return super.start();
     }
 
@@ -1214,124 +1216,52 @@ export class ResolveEffectAction extends OathAction {
 }
 
 
-export class AskForRerollAction extends OathAction {
-    readonly selects: { doReroll: SelectBoolean };
-    readonly parameters: { doReroll: boolean[] };
-    readonly message;
+export class ChooseSuit extends OathAction {
+    readonly selects: { suit: SelectNOf<OathSuit | undefined> };
+    readonly parameters: { suit: (OathSuit | undefined)[] };
+    readonly message: string;
 
-    faces: number[];
-    die: typeof Die;
-    power?: OathPower<WithPowers>;
+    suits: Set<OathSuit>;
+    none: string | undefined;
+    callback: (suit: OathSuit | undefined) => void;
 
-    constructor(player: OathPlayer, faces: number[], die: typeof Die, power?: OathPower<WithPowers>) {
+    constructor(player: OathPlayer, message: string, callback: (suit: OathSuit | undefined) => void, suits?: Iterable<OathSuit>, none?: string) {
         super(player);
-        this.faces = faces;
-        this.message = "Do you wish to reroll " + faces.join(",") + "?";
-        this.die = die;
-        this.power = power;
+        this.message = message;
+        this.callback = callback;
+        this.suits = new Set(suits || [OathSuit.Discord, OathSuit.Arcane, OathSuit.Order, OathSuit.Hearth, OathSuit.Beast, OathSuit.Nomad]);
+        this.none = none;
     }
 
     start() {
-        this.selects.doReroll = new SelectBoolean("Decision", ["Reroll", "Don't reroll"]);
-        return super.start();
-    }
-
-    execute(): void {
-        if (this.parameters.doReroll[0]) {
-            if (!this.power || this.power.payCost(this.player)) return;
-            for (const [i, face] of this.die.roll(this.faces.length).entries()) this.faces[i] = face;
-        }
-    }
-}
-
-
-export abstract class ChooseSuit extends OathAction {
-    readonly selects: { suit: SelectNOf<OathSuit | undefined> };
-    readonly parameters: { suit: (OathSuit | undefined)[] };
-
-    suits: Set<OathSuit>;
-    suit: OathSuit | undefined;
-
-    constructor(player: OathPlayer, suits?: Iterable<OathSuit>) {
-        super(player);
-        this.suits = new Set(suits || [OathSuit.Discord, OathSuit.Arcane, OathSuit.Order, OathSuit.Hearth, OathSuit.Beast, OathSuit.Nomad]);
-    }
-
-    start(none?: string) {
         const choices = new Map<string, OathSuit | undefined>();
         for (const suit of this.suits) choices.set(OathSuitName[suit], suit);
-        if (none) choices.set(none, undefined);
+        if (this.none) choices.set(this.none, undefined);
         this.selects.suit = new SelectNOf("Suit", choices, 1);
 
         return super.start();
     }
 
     execute(): void {
-        this.suit = this.parameters.suit[0];
-    }
-}
-
-export class PeoplesFavorReturnAction extends ChooseSuit {
-    readonly message: string;
-
-    banner: PeoplesFavor;
-    amount: number;
-
-    constructor(player: OathPlayer, banner: PeoplesFavor) {
-        super(player);
-        this.banner = banner;
-        this.amount = banner.amount;
-        this.message = "Choose where to start returning the favor (" + this.amount + ")";
-    }
-
-    execute() {
-        super.execute();
-        if (this.suit === undefined) return;
-
-        let amount = this.amount;
-        while (amount > 0) {
-            const bank = this.game.favorBanks.get(this.suit);
-            if (bank) {
-                new MoveBankResourcesEffect(this.game, this.player, this.banner, bank.original, 1).do();
-                amount--;
-            }
-            if (++this.suit > OathSuit.Nomad) this.suit = OathSuit.Discord;
-        }
+        this.callback(this.parameters.suit[0])
     }
 }
 
 export class TakeFavorFromBankAction extends ChooseSuit {
-    readonly message: string;
-
-    amount: number;
-
     constructor(player: OathPlayer, amount: number, suits?: Iterable<OathSuit>) {
-        super(player, suits);
-        this.amount = amount;
-        this.message = "Take " + amount + " from a favor bank";
-    }
-
-    start(none?: string) {
-        for (const suit of this.suits) {
-            const bank = this.game.favorBanks.get(suit);
-            if (bank && !bank.amount) this.suits.delete(suit);
-        }
-        return super.start(none);
-    }
-
-    execute() {
-        super.execute();
-        if (this.suit === undefined) return;
-        new TakeResourcesFromBankEffect(this.game, this.player, this.game.favorBanks.get(this.suit), this.amount).do();
+        super(
+            player, "Take " + amount + " from a favor bank", 
+            (suit: OathSuit | undefined) => { if (suit !== undefined)  new TakeResourcesFromBankEffect(this.game, this.player, this.game.favorBanks.get(suit), amount).do(); } 
+            , suits
+        );
     }
 }
 
 export class PeoplesFavorWakeAction extends ChooseSuit {
-    readonly message = "Put or return favor";
-    readonly banner: PeoplesFavor;
+    banner: PeoplesFavor;
 
     constructor(player: OathPlayer, banner: PeoplesFavor) {
-        super(player);
+        super(player, "Put or return favor", (suit: OathSuit | undefined) => { this.putOrReturnFavor(suit) }, [], "Put favor");
         this.banner = banner;
     }
 
@@ -1342,12 +1272,11 @@ export class PeoplesFavorWakeAction extends ChooseSuit {
             for (const [suit, bank] of this.game.favorBanks) if (bank.amount === min) this.suits.add(suit);
         }
         
-        return super.start("Put favor");
+        return super.start();
     }
 
-    execute(): void {
-        super.execute();
-        const bank = this.suit !== undefined && this.game.favorBanks.get(this.suit);
+    putOrReturnFavor(suit: OathSuit | undefined): void {
+        const bank = suit && this.game.favorBanks.get(suit);
 
         if (bank)
             new MoveBankResourcesEffect(this.game, this.player, this.banner, bank, 1).do();
@@ -1355,7 +1284,7 @@ export class PeoplesFavorWakeAction extends ChooseSuit {
             new PutResourcesIntoBankEffect(this.game, this.player, this.banner, 1).do();
 
         if (this.banner.amount >= 6)
-            new SetPeoplesFavorMobState(this.game, this.player, this.banner, true).do();
+            new SetPeoplesFavorMobState(this.game, this.player, true).do();
     }
 }
 
@@ -1388,98 +1317,113 @@ export class ChooseResourceToTakeAction extends OathAction {
 }
 
 
-export abstract class ChoosePlayer extends OathAction {
+export class ChoosePlayer extends OathAction {
     readonly selects: { player: SelectNOf<OathPlayer | undefined> };
     readonly parameters: { player: (OathPlayer | undefined)[] };
-    readonly canChooseSelf = false;
+    readonly message: string;
 
     players: Set<OathPlayer>;
-    target: OathPlayer | undefined;
+    none: string | undefined;
+    canChooseSelf: boolean = false;
+    callback: (target: OathPlayer | undefined) => void;
 
-    constructor(player: OathPlayer, players?: Iterable<OathPlayer>) {
+    constructor(player: OathPlayer, message: string, callback: (target: OathPlayer | undefined) => void, players?: Iterable<OathPlayer>, none?: string) {
         super(player);
+        this.message = message;
+        this.callback = callback;
         this.players = players ? new Set(players) : new Set(Object.values(this.game.players));
+        this.none = none;
     }
 
-    start(none?: string) {
+    start() {
         const choices = new Map<string, OathPlayer | undefined>();
         for (const player of this.players)
             if (player !== this.player || this.canChooseSelf)
                 choices.set(player.name, player);
-        if (none) choices.set(none, undefined);
+        if (this.none) choices.set(this.none, undefined);
         this.selects.player = new SelectNOf("Player", choices, 1);
 
         return super.start();
     }
 
     execute(): void {
-        this.target = this.parameters.player[0];
+        this.callback(this.parameters.player[0]);
     }
 }
 
 export class TakeResourceFromPlayerAction extends ChoosePlayer {
+    constructor(player: OathPlayer, resource: OathResource, amount?: number, players?: Iterable<OathPlayer>) {
+        super(
+            player, "",
+            (target: OathPlayer | undefined) => {
+                if (!target) return;
+                if (resource === OathResource.Secret && target.getResources(OathResource.Secret) <= 1) return;
+                new MoveResourcesToTargetEffect(this.game, player, resource, amount === undefined ? 1 : amount, player, target).do();
+            }, players
+        );
+    }
+}
+
+export class StartBindingExchangeAction extends ChoosePlayer {
+    constructor(player: OathPlayer, next: Constructor<MakeBindingExchangeOfferAction>, players?: Iterable<OathPlayer>) {
+        super(
+            player, "Start a binding exchange with another player",
+            (target: OathPlayer | undefined) => { if (target) new next(this.player, target, new next(target, this.player)).doNext(); },
+            players
+        );
+    }
+}
+
+
+export abstract class ChooseSite extends OathAction {
+    readonly selects: { site: SelectNOf<Site | undefined> };
+    readonly parameters: { site: (Site | undefined)[] };
     readonly message: string;
 
-    resource: OathResource;
-    amount: number;
+    sites: Set<Site> | undefined;
+    none: string | undefined;
+    canChooseCurrentSite: boolean = false;
+    callback: (site: Site | undefined) => void;
 
-    constructor(player: OathPlayer, resource: OathResource, amount: number, players?: Iterable<OathPlayer>) {
-        super(player, players);
-        this.resource = resource;
-        this.amount = amount || 1;
-        this.message = `Take ${amount} ${OathResourceName[resource]}(s) from a player`
+    constructor(player: OathPlayer, message: string, callback: (site: Site | undefined) => void, sites?: Iterable<Site>, none?: string) {
+        super(player);
+        this.message = message;
+        this.callback = callback;
+        this.sites = sites && new Set(sites);
+        this.none = none;
     }
-    
-    execute() {
-        super.execute();
-        if (!this.target) return;
 
-        // TODO: Where should this check be?
-        if (this.resource === OathResource.Secret && this.target.getResources(OathResource.Secret) <= 1) return;
-        new MoveResourcesToTargetEffect(this.game, this.player, this.resource, this.amount, this.player, this.target).do();
-    }
-}
+    start(none?: string) {
+        if (!this.sites) this.sites = new Set([...this.game.board.sites()].filter(e => !e.facedown));
 
-export class PiedPiperAction extends TakeResourceFromPlayerAction {
-    card: Denizen;
+        const choices = new Map<string, Site | undefined>();
+        if (none) choices.set(none, undefined);
+        for (const site of this.sites)
+            if (!(site === this.player.site && !this.canChooseCurrentSite))
+                choices.set(site.name, site);
+        this.selects.site = new SelectNOf("Site", choices, 1);
 
-    constructor(player: OathPlayer, card: Denizen, players?: Iterable<OathPlayer>) {
-        super(player, OathResource.Favor, 2, players);
-        this.card = card;
-    }
-    
-    execute() {
-        super.execute();
-        if (!this.target) return;
-        const adviser = new MoveAdviserEffect(this.player, this.card).do();
-        new MoveWorldCardToAdvisersEffect(this.game, this.player, adviser, this.target).do();
-    }
-}
-
-export class ChooseNewOathkeeper extends ChoosePlayer {
-    readonly message = "Choose the new Oathkeeper";
-
-    execute(): void {
-        super.execute();
-        if (!this.target) return;
-        new SetUsurperEffect(this.game, false).do();
-        new SetNewOathkeeperEffect(this.target).do();
-    }
-}
-
-export class ConspiracyAction extends ChoosePlayer {
-    readonly message = "Choose a target for the Cosnpiracy";
-
-    start() {
-        return super.start("No one");
+        return super.start();
     }
 
     execute(): void {
-        super.execute();
-        if (!this.target) return;
-        new ConspiracyStealAction(this.player, this.target).doNext();
+        this.callback(this.parameters.site[0]);
     }
 }
+
+export class ActAsIfAtSiteAction extends ChooseSite {
+    constructor(player: OathPlayer, action: ModifiableAction, sites?: Iterable<Site>) {
+        super(
+            player, "Choose a site to act at",
+            (site: Site | undefined) => {
+                if (!site) return;
+                action.playerProxy.site = action.maskProxyManager.get(site);
+                action.doNext();  // Allow the player to choose other new modifiers
+            }, sites
+        );
+    }
+}
+
 
 export class ConspiracyStealAction extends OathAction {
     readonly selects: { taking: SelectNOf<Relic | Banner> };
@@ -1506,107 +1450,6 @@ export class ConspiracyStealAction extends OathAction {
         taking.seize(this.player);
     }
 }
-
-export class StartBindingExchangeAction extends ChoosePlayer {
-    readonly message = "Start a binding exchange with another player";
-
-    next: Constructor<MakeBindingExchangeOfferAction>;
-
-    constructor(player: OathPlayer, next: Constructor<MakeBindingExchangeOfferAction>, players?: Iterable<OathPlayer>) {
-        super(player, players);
-        this.next = next;
-    }
-
-    execute(): void {
-        super.execute();
-        if (!this.target) return;
-        new this.next(this.player, this.target, new this.next(this.target, this.player)).doNext();
-    }
-}
-
-export class ExileCitizenAction extends ChoosePlayer {
-    readonly message = "Exile a Citizen";
-
-    constructor(player: OathPlayer) {
-        const players = [];
-        for (const citizen of Object.values(player.game.players))
-            if (citizen instanceof Exile && citizen.isCitizen)
-                players.push(citizen);
-        
-        super(player, players);
-    }
-
-    execute(): void {
-        super.execute();
-        if (!this.target) return;
-
-        let amount = 5;
-        const peoplesFavor = this.game.banners.get(BannerName.PeoplesFavor);
-        if (this.player === this.game.oathkeeper) amount--;
-        if (this.player === peoplesFavor?.owner) amount--;
-        if (this.target === this.game.oathkeeper) amount++;
-        if (this.target === peoplesFavor?.owner) amount++;
-
-        if (!new PayCostToTargetEffect(this.game, this.player, new ResourceCost([[OathResource.Favor, amount]]), this.target).do())
-            throw new InvalidActionResolution("Cannot pay resource cost");
-
-        new BecomeExileEffect(this.target).do();
-    }
-}
-
-
-export abstract class ChooseSite extends OathAction {
-    readonly selects: { site: SelectNOf<Site | undefined> };
-    readonly parameters: { site: (Site | undefined)[] };
-    readonly canChooseCurrentSite: boolean = false;
-
-    sites: Set<Site>;
-    target: Site | undefined;
-
-    constructor(player: OathPlayer, sites?: Iterable<Site>) {
-        super(player);
-        this.sites = new Set(sites);
-    }
-
-    start(none?: string) {
-        if (!this.sites.size) this.sites = new Set([...this.game.board.sites()].filter(e => !e.facedown));
-
-        const choices = new Map<string, Site | undefined>();
-        if (none) choices.set(none, undefined);
-        for (const site of this.sites)
-            if (!(site === this.player.site && !this.canChooseCurrentSite))
-                choices.set(site.name, site);
-        this.selects.site = new SelectNOf("Site", choices, 1);
-
-        return super.start();
-    }
-
-    execute(): void {
-        this.target = this.parameters.site[0];
-    }
-}
-
-export class ActAsIfAtSiteAction extends ChooseSite {
-    readonly message = "Choose a site to act at";
-    readonly autocompleteSelects = false;
-
-    action: ModifiableAction;
-
-    constructor(player: OathPlayer, action: ModifiableAction, sites?: Iterable<Site>) {
-        super(player, sites);
-        this.action = action;
-    }
-
-    execute(): void {
-        super.execute();
-        if (!this.target) return;
-        this.action.playerProxy.site = this.action.maskProxyManager.get(this.target);
-
-        // Allow the player to choose other new modifiers
-        this.action.doNext();
-    }
-}
-
 
 export class MakeBindingExchangeOfferAction extends OathAction {
     readonly selects: { favors: SelectNumber, secrets: SelectNumber };
@@ -1820,104 +1663,5 @@ export class BuildOrRepairEdificeAction extends OathAction {
             new FlipEdificeEffect(card).do();
         else
             new BuildEdificeFromDenizenEffect(card).do();
-    }
-}
-
-export class AddCardsToWorldDeckAction extends ChooseSuit {
-    readonly message = "Choose a suit to add to the World Deck";
-    
-    start(none?: string): boolean {
-        let max = 0;
-        for (let i: OathSuit = 0; i < 6; i++) {
-            const count = this.player.suitAdviserCount(i);
-            if (count >= max) {
-                max = count;
-                this.suits.clear();
-                this.suits.add(i);
-            } else if (count === max) {
-                this.suits.add(i);
-            }
-        }
-
-        return super.start(none);
-    }
-
-    getRandomCardDataInArchive(suit: OathSuit): string[] {
-        const cardKeys: string[] = [];
-        for (const [key, data] of Object.entries(this.game.archive))
-            if (data[0] === suit) cardKeys.push(key);
-
-        shuffleArray(cardKeys);
-        return cardKeys;
-    }
-
-    execute(): void {
-        super.execute();
-        if (!this.suit) return;
-        
-        // Add cards from the archive
-        const worldDeck = this.game.worldDeck;
-        const worldDeckDiscardOptions = new DiscardOptions(worldDeck, false, true);
-        for (let i = 3; i >= 1; i--) {
-            const cardKeys = this.getRandomCardDataInArchive(this.suit);
-            for (let j = 0; j < i; j++) {
-                const key = cardKeys.pop();
-                if (!key) break;
-                const data = this.game.archive[key];
-                if (!data) break;
-                delete this.game.archive[key];
-
-                new DiscardCardEffect(this.player, new Denizen(this.game, key, ...data), worldDeckDiscardOptions).do();
-            }
-
-            this.suit++;
-            if (this.suit > OathSuit.Nomad) this.suit = OathSuit.Discord;
-        }
-
-        // Remove cards to the Dispossessed
-        const firstDiscard = Object.values(this.game.board.regions)[0].discard;
-        const firstDiscardOptions = new DiscardOptions(firstDiscard, false, true);
-        for (const player of Object.values(this.game.players)) {
-            let discardOptions = firstDiscardOptions;
-            if (player === this.player) discardOptions = worldDeckDiscardOptions;
-            new DiscardCardGroupEffect(this.player, player.advisers, discardOptions).do();
-        }
-        for (const region of Object.values(this.game.board.regions)) {
-            const cards = new DrawFromDeckEffect(this.player, region.discard, region.discard.cards.length).do();
-            new DiscardCardGroupEffect(this.player, cards, firstDiscardOptions).do();
-        }
-
-        firstDiscard.shuffle(); // TODO: Put this in effect
-        for (let i = 0; i < 6; i++) {
-            const cards = new DrawFromDeckEffect(this.player, firstDiscard, 1).do();
-            if (!cards.length) break;
-            const card = cards[0];
-
-            if (!(card instanceof Denizen)) {
-                new DiscardCardEffect(this.player, card, worldDeckDiscardOptions).do();
-                continue;
-            }
-            this.game.dispossessed[card.name] = card.data;
-        }
-        const cards = new DrawFromDeckEffect(this.player, firstDiscard, firstDiscard.cards.length).do();
-        new DiscardCardGroupEffect(this.player, cards, worldDeckDiscardOptions).do();
-        worldDeck.shuffle();
-
-        // Rebuild the World Deck
-        const visions: VisionBack[] = [];
-        for (let i = worldDeck.cards.length - 1; i >= 0; i--) {
-            const card = worldDeck.cards[i];
-            if (card instanceof VisionBack) visions.push(worldDeck.cards.splice(i, 1)[0]);
-        }
-
-        const topPile = worldDeck.cards.splice(0, 10);
-        topPile.push(...visions.splice(0, 2));
-        do { shuffleArray(topPile); } while (topPile[0] instanceof VisionBack);
-        const middlePile = worldDeck.cards.splice(0, 15);
-        middlePile.push(...visions.splice(0, 3));
-        shuffleArray(middlePile);
-
-        for (const card of middlePile.reverse()) worldDeck.putCard(card);
-        for (const card of topPile.reverse()) worldDeck.putCard(card);
     }
 }

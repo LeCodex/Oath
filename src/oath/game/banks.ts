@@ -1,7 +1,7 @@
-import { PeoplesFavorReturnAction, RecoverAction, RecoverBannerPitchAction } from "./actions/actions";
+import { ChooseSuit, RecoverAction, RecoverBannerPitchAction } from "./actions/actions";
 import { RecoverActionTarget, CampaignActionTarget, WithPowers, OwnableObject } from "./interfaces";
-import { PutResourcesIntoBankEffect, TakeOwnableObjectEffect, SetPeoplesFavorMobState, TakeResourcesFromBankEffect } from "./effects";
-import { OathResource } from "./enums";
+import { PutResourcesIntoBankEffect, TakeOwnableObjectEffect, SetPeoplesFavorMobState, TakeResourcesFromBankEffect, MoveBankResourcesEffect } from "./effects";
+import { OathResource, OathSuit } from "./enums";
 import { OathGame } from "./game";
 import { OathGameObject } from "./gameObject";
 import { OathPlayer } from "./player";
@@ -104,8 +104,23 @@ export class PeoplesFavor extends Banner {
     isMob: boolean;
 
     handleRecovery(player: OathPlayer) {
-        new SetPeoplesFavorMobState(this.game, player, this, false).do();
-        new PeoplesFavorReturnAction(player, this).doNext();
+        new SetPeoplesFavorMobState(this.game, player, false).do();
+        new ChooseSuit(
+            player, "Choose where to start returning the favor (" + this.amount + ")",
+            (suit: OathSuit | undefined) => {
+                if (suit === undefined) return;
+
+                let amount = this.amount;
+                while (amount > 0) {
+                    const bank = this.game.favorBanks.get(suit);
+                    if (bank) {
+                        new MoveBankResourcesEffect(this.game, player, this, bank.original, 1).do();
+                        amount--;
+                    }
+                    if (++suit > OathSuit.Nomad) suit = OathSuit.Discord;
+                }
+            }
+        ).doNext();
     }
 
     serialize(): Record<string, any> {

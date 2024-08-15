@@ -1,12 +1,12 @@
 import { CardRestriction, OathSuit } from "../enums";
 import { OathPower } from "../powers/powers";
 import { IgnoresCapacity } from "../powers/denizens/denizens";
-import { Assassin, BookBurning, ChaosCult, Charlatan, CrackedSageAttack, CrackedSageDefense, DisgracedCaptain, Dissent, GamblingHall, Insomnia, KeyToTheCity, MercenariesAttack, MercenariesDefense, Naysayers, OnlyTwoAdvisers, RelicThief, RoyalAmbitions, SilverTongue, Slander, SleightOfHand } from "../powers/denizens/discord";
+import { ASmallFavor, Assassin, BookBurning, ChaosCult, Charlatan, CrackedSageAttack, CrackedSageDefense, DisgracedCaptain, Dissent, GamblingHall, Insomnia, KeyToTheCity, MercenariesAttack, MercenariesDefense, Naysayers, OnlyTwoAdvisers, RelicThief, RoyalAmbitions, SilverTongue, Slander, SleightOfHand } from "../powers/denizens/discord";
 import { ActingTroupe, Alchemist, Bewitch, BillowingFogAttack, BillowingFogDefense, CrackingGroundAttack, Dazzle, FireTalkersAttack, FireTalkersDefense, GleamingArmorAttack, GleamingArmorDefense, Jinx, KindredWarriorsAttack, KindredWarriorsDefense, Portal, SpiritSnare, Tutor } from "../powers/denizens/arcane";
-import { BanditRampart, BattleHonorsAttack, BattleHonorsDefense, BearTraps, Curfew, EncirclementAttack, EncirclementDefense, FieldPromotionAttack, ForcedLabor, Keep, LongbowsAttack, LongbowsDefense, MartialCultureAttack, MartialCultureDefense, MilitaryParadeAttack, MilitaryParadeDefense, Outriders, RoyalTax, Scouts, ShieldWall, TollRoads, VowOfObedience, VowOfObedienceRest, Wrestlers } from "../powers/denizens/order";
-import { AwaitedReturn, BallotBox, BookBinders, CharmingFriend, ExtraProvisions, FabledFeast, HeartsAndMinds, Herald, HospitalAttack, HospitalDefense, MarriageActionModifier, MarriageEffectModifier, SaddleMakers, TavernSongs, TheGreatLevyAttack, TheGreatLevyDefense, TravelingDoctorAttack, TravelingDoctorDefense, VillageConstableAttack, VillageConstableDefense } from "../powers/denizens/hearth";
-import { Bracken, InsectSwarmAttack, InsectSwarmDefense, LongLostHeir, NatureWorshipAttack, NatureWorshipDefense, PiedPiper, Rangers, SmallFriends, ThreateningRoar, VowOfPoverty, VowOfPovertyRest, WalledGarden } from "../powers/denizens/beast";
-import { AncientPact, Elders, FamilyWagon, GreatCrusadeAttack, GreatCrusadeDefense, HorseArchersAttack, HorseArchersDefense, LostTongue, LostTongueCampaign, MountedPatrol, RivalKhanAttack, RivalKhanDefense, SpellBreaker, StormCaller, WayStation } from "../powers/denizens/nomad";
+import { BanditRampart, BattleHonorsAttack, BattleHonorsDefense, BearTraps, Captains, CodeOfHonorAttack, CodeOfHonorDefense, Curfew, EncirclementAttack, EncirclementDefense, FieldPromotionAttack, ForcedLabor, Keep, LongbowsAttack, LongbowsDefense, MartialCultureAttack, MartialCultureDefense, MilitaryParadeAttack, MilitaryParadeDefense, Outriders, RoyalTax, Scouts, ShieldWall, Specialist, TollRoads, VowOfObedience, VowOfObedienceRest, Wrestlers } from "../powers/denizens/order";
+import { AwaitedReturn, BallotBox, BookBinders, CharmingFriend, ExtraProvisions, FabledFeast, HallOfDebate, HallOfMockery, HeartsAndMinds, Herald, HospitalAttack, HospitalDefense, MarriageActionModifier, MarriageEffectModifier, SaddleMakers, TavernSongs, TheGreatLevyAttack, TheGreatLevyDefense, TravelingDoctorAttack, TravelingDoctorDefense, VillageConstableAttack, VillageConstableDefense } from "../powers/denizens/hearth";
+import { Bracken, InsectSwarmAttack, InsectSwarmDefense, LongLostHeir, NatureWorshipAttack, NatureWorshipDefense, PiedPiper, Rangers, SmallFriends, ThreateningRoar, VowOfPoverty, VowOfPovertyRest, WalledGarden, WildAllies } from "../powers/denizens/beast";
+import { AncientForge, AncientPact, BrokenForge, Elders, FamilyWagon, GreatCrusadeAttack, GreatCrusadeDefense, HorseArchersAttack, HorseArchersDefense, LostTongue, LostTongueCampaign, MountainGiantAttack, MountainGiantDefense, MountedPatrol, RivalKhanAttack, RivalKhanDefense, SpellBreaker, StormCaller, WayStation } from "../powers/denizens/nomad";
 import { Constructor } from "../utils";
 import { Denizen, Edifice } from "./cards";
 
@@ -24,7 +24,7 @@ export const denizenData: Record<string, DenizenData> = {
     SilverTongue:       [OathSuit.Discord,  [OnlyTwoAdvisers, SilverTongue], CardRestriction.Adviser, true],
     VowOfRenewal:       [OathSuit.Discord,  [], CardRestriction.Adviser, true],
     FalseProphet:       [OathSuit.Discord,  [], CardRestriction.Adviser, true],
-    ASmallFavor:        [OathSuit.Discord,  [], CardRestriction.Adviser, true],
+    ASmallFavor:        [OathSuit.Discord,  [ASmallFavor], CardRestriction.Adviser, true],
     RoyalAmbitions:     [OathSuit.Discord,  [RoyalAmbitions], CardRestriction.Adviser, true],
     GamblingHall:       [OathSuit.Discord,  [GamblingHall], CardRestriction.Site],
     Gossip:             [OathSuit.Discord,  [], CardRestriction.Site],
@@ -98,17 +98,17 @@ export const denizenData: Record<string, DenizenData> = {
     BearTraps:          [OathSuit.Order,    [BearTraps]],
     Scouts:             [OathSuit.Order,    [Scouts]],
     MartialCulture:     [OathSuit.Order,    [MartialCultureAttack, MartialCultureDefense]],
-    CodeOfHonor:        [OathSuit.Order,    []],
+    CodeOfHonor:        [OathSuit.Order,    [CodeOfHonorAttack, CodeOfHonorDefense]],
     Outriders:          [OathSuit.Order,    [Outriders]],
     FieldPromotion:     [OathSuit.Order,    [FieldPromotionAttack, FieldPromotionAttack]],
     MilitaryParade:     [OathSuit.Order,    [MilitaryParadeAttack, MilitaryParadeDefense]],
-    Specialist:         [OathSuit.Order,    []],
+    Specialist:         [OathSuit.Order,    [Specialist]],
     Encirclement:       [OathSuit.Order,    [EncirclementAttack, EncirclementDefense]],
     PeaceEnvoy:         [OathSuit.Order,    []],
     RelicHunter:        [OathSuit.Order,    []],
     Pressgangs:         [OathSuit.Order,    []],
     Messenger:          [OathSuit.Order,    []],
-    Captains:           [OathSuit.Order,    []],
+    Captains:           [OathSuit.Order,    [Captains]],
     SiegeEngines:       [OathSuit.Order,    []],
     KnightsErrant:      [OathSuit.Order,    []],
     HuntingParty:       [OathSuit.Order,    []],
@@ -179,7 +179,7 @@ export const denizenData: Record<string, DenizenData> = {
     NewGrowth:          [OathSuit.Beast,    []],
     WildCry:            [OathSuit.Beast,    []],
     MemoryOfNature:     [OathSuit.Beast,    []],
-    WildAllies:         [OathSuit.Beast,    []],
+    WildAllies:         [OathSuit.Beast,    [WildAllies]],
     ThreateningRoar:    [OathSuit.Beast,    [ThreateningRoar]],
     AnimalHost:         [OathSuit.Beast,    []],
     
@@ -202,7 +202,7 @@ export const denizenData: Record<string, DenizenData> = {
     HorseArchers:       [OathSuit.Nomad,    [HorseArchersAttack, HorseArchersDefense]],
     WarningSignals:     [OathSuit.Nomad,    []],
     Lancers:            [OathSuit.Nomad,    []],
-    MountainGiant:      [OathSuit.Nomad,    []],
+    MountainGiant:      [OathSuit.Nomad,    [MountainGiantAttack, MountainGiantDefense]],
     RivalKhan:          [OathSuit.Nomad,    [RivalKhanAttack, RivalKhanDefense]],
     MountedPatrol:      [OathSuit.Nomad,    [MountedPatrol]],
     GreatCrusade:       [OathSuit.Nomad,    [GreatCrusadeAttack, GreatCrusadeDefense]],
@@ -219,21 +219,21 @@ export const denizenData: Record<string, DenizenData> = {
 }
 
 export const edificeData: Record<string, [string, OathSuit, Constructor<OathPower<Edifice>>[]]> = {
-    FestivalDistrict:   ["SqualidDistrict",     OathSuit.Discord,  []],
-    SqualidDistrict:    ["FestivalDistrict",    OathSuit.None,     []],
+    FestivalDistrict:   ["SqualidDistrict",     OathSuit.Discord,   []],
+    SqualidDistrict:    ["FestivalDistrict",    OathSuit.None,      []],
 
-    GreatSpire:         ["FallenSpire",         OathSuit.Arcane,   []],
-    FallenSpire:        ["GreatSpire",          OathSuit.None,     []],
+    GreatSpire:         ["FallenSpire",         OathSuit.Arcane,    []],
+    FallenSpire:        ["GreatSpire",          OathSuit.None,      []],
 
-    SprawlingRampart:   ["BanditRampart",       OathSuit.Order,    []],
-    BanditRampart:      ["SprawlingRampart",    OathSuit.None,     [BanditRampart]],
+    SprawlingRampart:   ["BanditRampart",       OathSuit.Order,     []],
+    BanditRampart:      ["SprawlingRampart",    OathSuit.None,      [BanditRampart]],
 
-    HallOfDebate:       ["HallOfMockery",       OathSuit.Hearth,   []],
-    HallOfMockery:      ["HallOfDebate",        OathSuit.None,     []],
+    HallOfDebate:       ["HallOfMockery",       OathSuit.Hearth,    [HallOfDebate]],
+    HallOfMockery:      ["HallOfDebate",        OathSuit.None,      [HallOfMockery]],
 
-    ForestTemple:       ["RuinedTemple",        OathSuit.Beast,    []],
-    RuinedTemple:       ["ForestTemple",        OathSuit.None,     []],
+    ForestTemple:       ["RuinedTemple",        OathSuit.Beast,     []],
+    RuinedTemple:       ["ForestTemple",        OathSuit.None,      []],
 
-    AncientForge:       ["BrokenForge",         OathSuit.Nomad,    []],
-    BrokenForge:        ["AncientForge",        OathSuit.None,     []]
+    AncientForge:       ["BrokenForge",         OathSuit.Nomad,     [AncientForge]],
+    BrokenForge:        ["AncientForge",        OathSuit.None,      [BrokenForge]]
 }

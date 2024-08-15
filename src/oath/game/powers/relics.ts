@@ -1,7 +1,7 @@
-import { InvalidActionResolution, CitizenshipOfferAction, StartBindingExchangeAction, ExileCitizenAction, SkeletonKeyAction, TradeAction, CampaignAtttackAction, MusterAction, TravelAction, AskForPermissionAction } from "../actions/actions";
+import { InvalidActionResolution, CitizenshipOfferAction, StartBindingExchangeAction, SkeletonKeyAction, TradeAction, CampaignAtttackAction, MusterAction, TravelAction, AskForPermissionAction, ChoosePlayer } from "../actions/actions";
 import { Denizen, GrandScepter, Relic, Site } from "../cards/cards";
-import { TakeOwnableObjectEffect, PutWarbandsFromBagEffect, PlayDenizenAtSiteEffect, MoveOwnWarbandsEffect, PeekAtCardEffect, SetGrandScepterLockEffect, GainSupplyEffect, DrawFromDeckEffect, RevealCardEffect } from "../effects";
-import { OathResource } from "../enums";
+import { TakeOwnableObjectEffect, PutWarbandsFromBagEffect, PlayDenizenAtSiteEffect, MoveOwnWarbandsEffect, PeekAtCardEffect, SetGrandScepterLockEffect, GainSupplyEffect, DrawFromDeckEffect, RevealCardEffect, PayCostToTargetEffect, BecomeExileEffect } from "../effects";
+import { BannerName, OathResource } from "../enums";
 import { OathPlayer, Exile } from "../player";
 import { OwnableObject, isOwnable } from "../interfaces";
 import { ResourceCost } from "../resources";
@@ -54,7 +54,29 @@ export class GrandScepterExileCitizen extends GrandScepterActive {
     name = "Exile a Citizen";
 
     usePower(): void {
-        new ExileCitizenAction(this.action.player).doNext();
+        const players = [];
+        for (const citizen of Object.values(this.game.players))
+            if (citizen instanceof Exile && citizen.isCitizen)
+                players.push(citizen);
+
+        new ChoosePlayer(
+            this.action.player, "Exile a Citizen",
+            (target: OathPlayer | undefined) => {
+                if (!target) return;
+
+                let amount = 5;
+                const peoplesFavor = this.game.banners.get(BannerName.PeoplesFavor);
+                if (this.action.player === this.game.oathkeeper) amount--;
+                if (this.action.player === peoplesFavor?.owner) amount--;
+                if (target === this.game.oathkeeper) amount++;
+                if (target === peoplesFavor?.owner) amount++;
+
+                if (!new PayCostToTargetEffect(this.game, this.action.player, new ResourceCost([[OathResource.Favor, amount]]), target).do())
+                    throw new InvalidActionResolution("Cannot pay resource cost");
+
+                new BecomeExileEffect(target).do();
+            }
+        ).doNext();
     }
 }
 
@@ -128,7 +150,6 @@ export class CursedCauldronAttack extends AttackerBattlePlan<Relic> {
     name = "Cursed Cauldron";
 
     applyBefore(): void {
-        if (!this.sourceProxy.ruler) return;
         this.action.campaignResult.onSuccessful(true, () => new PutWarbandsFromBagEffect(this.activator, this.action.campaignResult.loserLoss).do());
     }
 }
@@ -136,8 +157,33 @@ export class CursedCauldronDefense extends DefenderBattlePlan<Relic> {
     name = "Cursed Cauldron";
 
     applyBefore(): void {
-        if (!this.sourceProxy.ruler) return;
         this.action.campaignResult.onSuccessful(false, () => new PutWarbandsFromBagEffect(this.activator, this.action.campaignResult.loserLoss).do());
+    }
+}
+
+export class ObsidianCageAttack extends AttackerBattlePlan<Relic> {
+    name = "Obsidian Cage";
+
+    applyBefore(): void {
+        const loser = this.action.campaignResult.loser;
+        if (!loser) return;
+        this.action.campaignResult.onSuccessful(true, () => new MoveOwnWarbandsEffect(loser, loser, this.source, Infinity).do());
+    }
+}
+export class ObsidianCageDefense extends DefenderBattlePlan<Relic> {
+    name = "Obsidian Cage";
+
+    applyBefore(): void {
+        const loser = this.action.campaignResult.loser;
+        if (!loser) return;
+        this.action.campaignResult.onSuccessful(false, () => new MoveOwnWarbandsEffect(loser, loser, this.source, Infinity).do());
+    }
+}
+export class ObsidianCageActive extends ActivePower<Relic> {
+    name = "Obsidian Cage";
+
+    usePower(): void {
+        
     }
 }
 
@@ -176,10 +222,14 @@ export class DowsingSticks extends ActivePower<Relic> {
     cost = new ResourceCost([[OathResource.Secret, 1]], [[OathResource.Favor, 2]]);
     
     usePower(): void {
-        const relics = new DrawFromDeckEffect(this.action.player, this.game.relicDeck, 1).do();
-        if (relics.length < 1) return;
-        const relic = relics[0];
-        new AskForPermissionAction(this.action.player, "Keep the relic?", () => new TakeOwnableObjectEffect(this.game, this.action.player, relic).do(), () => relic.putOnBottom(this.action.player));
+        const relic = new DrawFromDeckEffect(this.action.player, this.game.relicDeck, 1).do()[0];
+        if (!relic) return;
+
+        new AskForPermissionAction(
+            this.action.player, "Keep the relic?",
+            () => new TakeOwnableObjectEffect(this.game, this.action.player, relic).do(),
+            () => relic.putOnBottom(this.action.player)
+        );
     }
 }
 

@@ -1,5 +1,5 @@
-import { Denizen, Edifice, OathCard, OwnableCard, Relic, Site, Vision, WorldCard } from "./cards/cards";
-import { CardRestriction, OathPhase, OathResource, OathSuit } from "./enums";
+import { Denizen, Edifice, OathCard, OwnableCard, Relic, Site, Vision, VisionBack, WorldCard } from "./cards/cards";
+import { BannerName, CardRestriction, OathPhase, OathResource, OathSuit } from "./enums";
 import { Exile, OathPlayer } from "./player";
 import { ActionModifier, EffectModifier, OathPower, WhenPlayed } from "./powers/powers";
 import { ResourceCost, ResourcesAndWarbands } from "./resources";
@@ -7,7 +7,7 @@ import { Banner, PeoplesFavor, ResourceBank } from "./banks";
 import { OwnableObject, WithPowers } from "./interfaces";
 import { OathGame } from "./game";
 import { OathGameObject } from "./gameObject";
-import { InvalidActionResolution, ModifiableAction, OathAction, AddCardsToWorldDeckAction, BuildOrRepairEdificeAction, ChooseNewCitizensAction, VowOathAction, TakeFavorFromBankAction, ResolveEffectAction, RestAction, WakeAction, CampaignDefenseAction, CampaignResult, SearchDiscardAction, SearchPlayAction } from "./actions/actions";
+import { InvalidActionResolution, ModifiableAction, OathAction, BuildOrRepairEdificeAction, ChooseNewCitizensAction, VowOathAction, ResolveEffectAction, RestAction, WakeAction, CampaignDefenseAction, CampaignResult, SearchDiscardAction, SearchPlayAction, ChooseSuit, TakeFavorFromBankAction } from "./actions/actions";
 import { DiscardOptions } from "./cards/decks";
 import { CardDeck } from "./cards/decks";
 import { Constructor, isExtended, MaskProxyManager, shuffleArray } from "./utils";
@@ -15,7 +15,6 @@ import { AttackDie, D6, DefenseDie, Die } from "./dice";
 import { Oath } from "./oaths";
 import { Region } from "./board";
 import { edificeData } from "./cards/denizens";
-import { Reliquary } from "./reliquary";
 
 
 
@@ -55,7 +54,7 @@ export abstract class OathEffect<T> extends OathGameObject {
     applyModifiers() {
         for (const [sourceProxy, modifier] of this.gameProxy.getPowers(EffectModifier<any>)) {
             const instance = new modifier(sourceProxy.original, this);
-            if (this instanceof instance.modifiedEffect && instance.canUse()) {  // All Effect Modifiers are must-use
+            if (this instanceof instance.modifiedEffect && instance.canUse()) {  // All Effect modifiers are must-use
                 this.modifiers.push(instance);
                 instance.applyBefore();
             }
@@ -123,12 +122,12 @@ export class PopActionFromStackEffect extends OathEffect<OathAction | undefined>
     }
 }
 
-export class ApplyModifiersEffect extends PlayerEffect<boolean> {
+export class ApplyModifiersEffect extends OathEffect<boolean> {
     action: ModifiableAction;
     actionModifiers: Iterable<ActionModifier<WithPowers>>;
 
-    constructor(action: ModifiableAction, player: OathPlayer, actionModifiers: Iterable<ActionModifier<WithPowers>>) {
-        super(player);
+    constructor(action: ModifiableAction, actionModifiers: Iterable<ActionModifier<WithPowers>>) {
+        super(action.game, undefined);
         this.action = action;
         this.actionModifiers = actionModifiers;
     }
@@ -138,7 +137,7 @@ export class ApplyModifiersEffect extends PlayerEffect<boolean> {
 
         let interrupt = false;
         for (const modifier of this.actionModifiers) {
-            if (!modifier.payCost(this.player))
+            if (!modifier.payCost(modifier.activator))
                 throw new InvalidActionResolution("Cannot pay the resource cost of all the modifiers.");
 
             if (!modifier.applyWhenApplied()) interrupt = true;
@@ -1281,8 +1280,10 @@ export class SetPeoplesFavorMobState extends OathEffect<void> {
     state: boolean;
     oldState: boolean;
 
-    constructor(game: OathGame, player: OathPlayer | undefined, banner: PeoplesFavor, state: boolean) {
+    constructor(game: OathGame, player: OathPlayer | undefined, state: boolean) {
         super(game, player);
+        const banner = game.banners.get(BannerName.PeoplesFavor) as PeoplesFavor | undefined;
+        if (!banner) throw new InvalidActionResolution("No People's Favor");
         this.banner = banner;
         this.state = state;
     }
@@ -1350,7 +1351,7 @@ export class GamblingHallEffect extends PlayerEffect<void> {
     }
 
     resolve(): void {
-        new TakeFavorFromBankAction(this.player, DefenseDie.getResult(this.faces)).doNext();
+        new TakeFavorFromBankAction(this.player, DefenseDie.getResult(this.faces));
     }
 
     revert(): void {
@@ -1602,7 +1603,99 @@ export class CleanUpMapEffect extends PlayerEffect<void> {
             this.game.chancellor.reliquary.slots[i].relic = relicDeck.drawSingleCard();
         }
 
-        new AddCardsToWorldDeckAction(this.player).doNext();
+        let max = 0;
+        const suits = new Set<OathSuit>();
+        for (let i: OathSuit = 0; i < 6; i++) {
+            const count = this.player.suitAdviserCount(i);
+            if (count >= max) {
+                max = count;
+                suits.clear();
+                suits.add(i);
+            } else if (count === max) {
+                suits.add(i);
+            }
+        }
+        new ChooseSuit(
+            this.player, "Choose a suit to add to the World Deck", 
+            (suit: OathSuit | undefined) => { if (suit !== undefined) this.addCardsToWorldDeck(suit); },
+            suits
+        ).doNext();
+    }
+
+    getRandomCardDataInArchive(suit: OathSuit): string[] {
+        const cardKeys: string[] = [];
+        for (const [key, data] of Object.entries(this.game.archive))
+            if (data[0] === suit) cardKeys.push(key);
+
+        shuffleArray(cardKeys);
+        return cardKeys;
+    }
+
+    addCardsToWorldDeck(suit: OathSuit) {
+        const worldDeck = this.game.worldDeck;
+        const worldDeckDiscardOptions = new DiscardOptions(worldDeck, false, true);
+        for (let i = 3; i >= 1; i--) {
+            const cardKeys = this.getRandomCardDataInArchive(suit);
+            for (let j = 0; j < i; j++) {
+                const key = cardKeys.pop();
+                if (!key) break;
+                const data = this.game.archive[key];
+                if (!data) break;
+                delete this.game.archive[key];
+
+                new DiscardCardEffect(this.player, new Denizen(this.game, key, ...data), worldDeckDiscardOptions).do();
+            }
+
+            suit++;
+            if (suit > OathSuit.Nomad) suit = OathSuit.Discord;
+        }
+
+        // Remove cards to the Dispossessed
+        const firstDiscard = Object.values(this.game.board.regions)[0].discard;
+        const firstDiscardOptions = new DiscardOptions(firstDiscard, false, true);
+        for (const player of Object.values(this.game.players)) {
+            const discardOptions = player === this.player ? worldDeckDiscardOptions : firstDiscardOptions;
+            new DiscardCardGroupEffect(this.player, player.advisers, discardOptions).do();
+        }
+        for (const region of Object.values(this.game.board.regions)) {
+            const cards = new DrawFromDeckEffect(this.player, region.discard, region.discard.cards.length).do();
+            new DiscardCardGroupEffect(this.player, cards, firstDiscardOptions).do();
+        }
+
+        firstDiscard.shuffle(); // TODO: Put this in effect
+        for (let i = 0; i < 6; i++) {
+            const cards = new DrawFromDeckEffect(this.player, firstDiscard, 1).do();
+            if (!cards.length) break;
+            const card = cards[0];
+
+            if (!(card instanceof Denizen)) {
+                new DiscardCardEffect(this.player, card, worldDeckDiscardOptions).do();
+                continue;
+            }
+            this.game.dispossessed[card.name] = card.data;
+        }
+        const cards = new DrawFromDeckEffect(this.player, firstDiscard, firstDiscard.cards.length).do();
+        new DiscardCardGroupEffect(this.player, cards, worldDeckDiscardOptions).do();
+        worldDeck.shuffle();
+
+        // Rebuild the World Deck
+        const visions: VisionBack[] = [];
+        for (let i = worldDeck.cards.length - 1; i >= 0; i--) {
+            const card = worldDeck.cards[i];
+            if (card instanceof VisionBack) visions.push(worldDeck.cards.splice(i, 1)[0]);
+        }
+
+        const topPile = worldDeck.cards.splice(0, 10);
+        topPile.push(...visions.splice(0, 2));
+        shuffleArray(topPile);
+        const middlePile = worldDeck.cards.splice(0, 15);
+        middlePile.push(...visions.splice(0, 3));
+        shuffleArray(middlePile);
+
+        for (const card of middlePile.reverse()) worldDeck.putCard(card);
+        for (const card of topPile.reverse()) worldDeck.putCard(card);
+
+        this.game.updateSeed(this.player.color);
     }
 
     revert(): void {

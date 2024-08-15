@@ -1,7 +1,8 @@
-import { SearchAction, CampaignAtttackAction, CampaignDefenseAction, TradeAction, TakeFavorFromBankAction, PiedPiperAction, InvalidActionResolution, ActAsIfAtSiteAction, AskForPermissionAction } from "../../actions/actions";
+import { SearchAction, CampaignAtttackAction, CampaignDefenseAction, TradeAction, TakeFavorFromBankAction, InvalidActionResolution, ActAsIfAtSiteAction, AskForPermissionAction, CampaignAction, ChoosePlayer } from "../../actions/actions";
 import { Denizen, Site } from "../../cards/cards";
-import { BecomeCitizenEffect, RegionDiscardEffect } from "../../effects";
+import { BecomeCitizenEffect, MoveAdviserEffect, MoveResourcesToTargetEffect, MoveWorldCardToAdvisersEffect, RegionDiscardEffect } from "../../effects";
 import { OathResource, OathSuit } from "../../enums";
+import { OathPlayer } from "../../player";
 import { ResourceCost } from "../../resources";
 import { AccessedActionModifier, ActionModifier, AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, RestPower, ActivePower } from "../powers";
 
@@ -126,7 +127,15 @@ export class PiedPiper extends ActivePower<Denizen> {
     cost = new ResourceCost([[OathResource.Secret, 1]]);
 
     usePower(): void {
-        new PiedPiperAction(this.action.player, this.source).doNext();
+        new ChoosePlayer(
+            this.action.player, "Send the Pied Piper to steal 2 favor",
+            (target: OathPlayer | undefined) => {
+                if (!target) return;
+                new MoveResourcesToTargetEffect(this.game, this.action.player, OathResource.Favor, 2, this.action.player, target).do();
+                const adviser = new MoveAdviserEffect(this.action.player, this.source).do();
+                new MoveWorldCardToAdvisersEffect(this.game, this.action.player, adviser, target).do();
+            }
+        ).doNext();
     }
 }
 
@@ -161,5 +170,25 @@ export class LongLostHeir extends WhenPlayed<Denizen> {
 
     whenPlayed(): void {
         new AskForPermissionAction(this.effect.player, "Become a Citizen?", () => new BecomeCitizenEffect(this.effect.player).doNext());
+    }
+}
+
+export class WildAllies extends ActivePower<Denizen> {
+    name = "Wild Allies";
+    cost = new ResourceCost([[OathResource.Secret, 1]]);
+
+    usePower(): void {
+        const campaignAction = new CampaignAction(this.action.player);
+        const sites = new Set<Site>();
+        for (const siteProxy of this.gameProxy.board.sites()) {
+            for (const denizenProxy of siteProxy.denizens) {
+                if (denizenProxy.suit === OathSuit.Beast) {
+                    sites.add(siteProxy.original);
+                    break;
+                }
+            }
+        }
+        
+        new ActAsIfAtSiteAction(this.action.player, campaignAction, sites).doNext();
     }
 }

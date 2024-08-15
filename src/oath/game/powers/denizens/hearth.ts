@@ -1,9 +1,10 @@
-import { TradeAction, TakeResourceFromPlayerAction, TakeFavorFromBankAction, CampaignEndAction, ModifiableAction, AskForPermissionAction } from "../../actions/actions";
-import { Denizen } from "../../cards/cards";
-import { TakeWarbandsIntoBagEffect, TakeResourcesFromBankEffect, PlayVisionEffect, PlayWorldCardEffect, OathEffect, PeekAtCardEffect, DiscardCardEffect, PutWarbandsFromBagEffect, BecomeCitizenEffect } from "../../effects";
+import { TradeAction, TakeResourceFromPlayerAction, TakeFavorFromBankAction, CampaignEndAction, ModifiableAction, AskForPermissionAction, CampaignAtttackAction, InvalidActionResolution, RecoverAction } from "../../actions/actions";
+import { PeoplesFavor } from "../../banks";
+import { Denizen, Edifice } from "../../cards/cards";
+import { TakeWarbandsIntoBagEffect, TakeResourcesFromBankEffect, PlayVisionEffect, PlayWorldCardEffect, OathEffect, PeekAtCardEffect, DiscardCardEffect, PutWarbandsFromBagEffect, BecomeCitizenEffect, SetPeoplesFavorMobState } from "../../effects";
 import { OathResource, BannerName, OathSuit } from "../../enums";
 import { ResourceCost } from "../../resources";
-import { DefenderBattlePlan, AccessedActionModifier, ActivePower, WhenPlayed, EnemyEffectModifier, EnemyActionModifier, AccessedEffectModifier, AttackerBattlePlan } from "../powers";
+import { DefenderBattlePlan, AccessedActionModifier, ActivePower, WhenPlayed, EnemyEffectModifier, EnemyActionModifier, AccessedEffectModifier, AttackerBattlePlan, ActionModifier } from "../powers";
 
 
 export class TravelingDoctorAttack extends AttackerBattlePlan<Denizen> {
@@ -221,5 +222,29 @@ export class BallotBox extends ActivePower<Denizen> {
         const peoplesFavorProxy = this.gameProxy.banners.get(BannerName.PeoplesFavor);
         if (peoplesFavorProxy?.owner !== this.action.playerProxy) return;
         new AskForPermissionAction(this.action.player, "Become a Citizen?", () => new BecomeCitizenEffect(this.action.player).do());
+    }
+}
+
+
+export class HallOfDebate extends ActionModifier<Edifice> {
+    name = "Hall of Debate";
+    modifiedAction = CampaignAtttackAction;
+    action: CampaignAtttackAction;
+
+    applyBefore(): void {
+        const peoplesFavor = this.game.banners.get(BannerName.PeoplesFavor);
+        if (peoplesFavor && this.action.campaignResult.targets.has(peoplesFavor))
+            throw new InvalidActionResolution("Cannot target the People's Favor in campaigns with the Hall of Debate");
+    }
+}
+
+export class HallOfMockery extends ActionModifier<Edifice> {
+    name = "Hall of Mockery";
+    modifiedAction = RecoverAction;
+    action: RecoverAction;
+
+    applyAfter(): void {
+        if (this.action.targetProxy === this.gameProxy.banners.get(BannerName.PeoplesFavor))
+            new SetPeoplesFavorMobState(this.game, undefined, true).do();
     }
 }

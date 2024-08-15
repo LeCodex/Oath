@@ -1,6 +1,7 @@
 import { TravelAction, InvalidActionResolution, CampaignAtttackAction, AskForPermissionAction } from "../../actions/actions";
-import { Denizen, Site, WorldCard } from "../../cards/cards";
-import { PayCostToTargetEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PayPowerCost, BecomeCitizenEffect, GiveOwnableObjectEffect } from "../../effects";
+import { Denizen, Edifice, Site, WorldCard } from "../../cards/cards";
+import { DiscardOptions } from "../../cards/decks";
+import { PayCostToTargetEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PayPowerCost, BecomeCitizenEffect, GiveOwnableObjectEffect, DrawFromDeckEffect, DiscardCardEffect, FlipEdificeEffect } from "../../effects";
 import { BannerName, OathResource, OathSuit } from "../../enums";
 import { OwnableObject, isOwnable } from "../../interfaces";
 import { OathPlayer } from "../../player";
@@ -56,6 +57,32 @@ export class GreatCrusadeDefense extends DefenderBattlePlan<Denizen> {
     applyBefore(): void {
         this.action.campaignResult.atkPool -= this.activator.suitRuledCount(OathSuit.Nomad);
         this.action.campaignResult.discardAtEnd(this.source);
+    }
+}
+
+export class MountainGiantAttack extends AttackerBattlePlan<Denizen> {
+    name = "Mountain Giant";
+    cost = new ResourceCost([[OathResource.Secret, 1]]);
+
+    applyBefore(): void {
+        new AskForPermissionAction(this.activator, "±1, or ±3 and discard at end?", () => {
+            this.action.campaignResult.atkPool++;
+        }, () => {
+            this.action.campaignResult.atkPool += 3;
+            this.action.campaignResult.discardAtEnd(this.source);
+        }, ["±1", "±3"]);
+    }
+}
+export class MountainGiantDefense extends DefenderBattlePlan<Denizen> {
+    name = "Mountain Giant";
+
+    applyBefore(): void {
+        new AskForPermissionAction(this.activator, "±1, or ±3 and discard at end?", () => {
+            this.action.campaignResult.atkPool--;
+        }, () => {
+            this.action.campaignResult.atkPool -= 3;
+            this.action.campaignResult.discardAtEnd(this.source);
+        }, ["±1", "±3"]);
     }
 }
 
@@ -177,5 +204,31 @@ export class AncientPact extends WhenPlayed<Denizen> {
             new GiveOwnableObjectEffect(this.game, this.game.chancellor, darkestSecretProxy.original).do();
             new BecomeCitizenEffect(this.effect.player).do();
         });
+    }
+}
+
+
+export class AncientForge extends ActivePower<Edifice> {
+    name = "Ancient Forge";
+    cost = new ResourceCost([[OathResource.Favor, 2]], [[OathResource.Secret, 1]]);
+    
+    usePower(): void {
+        const relic = new DrawFromDeckEffect(this.action.player, this.game.relicDeck, 1).do()[0];
+        if (!relic) return;
+        
+        new AskForPermissionAction(
+            this.action.player, "Keep the relic?",
+            () => new TakeOwnableObjectEffect(this.game, this.action.player, relic).do(),
+            () => relic.putOnBottom(this.action.player)
+        );
+    }
+}
+
+export class BrokenForge extends ActivePower<Edifice> {
+    name = "Broken Forge";
+    cost = new ResourceCost([[OathResource.Favor, 2], [OathResource.Secret, 2]]);
+
+    usePower(): void {
+        new FlipEdificeEffect(this.source).do();
     }
 }

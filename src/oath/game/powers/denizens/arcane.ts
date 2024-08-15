@@ -1,5 +1,6 @@
-import { CampaignAtttackAction, CampaignDefenseAction, TakeFavorFromBankAction, TradeAction, AskForRerollAction, TravelAction, InvalidActionResolution, AskForPermissionAction } from "../../actions/actions";
+import { CampaignAtttackAction, CampaignDefenseAction, TakeFavorFromBankAction, TradeAction, TravelAction, InvalidActionResolution, AskForPermissionAction } from "../../actions/actions";
 import { Denizen, Site } from "../../cards/cards";
+import { AttackDie, DefenseDie } from "../../dice";
 import { RegionDiscardEffect, PutResourcesOnTargetEffect, RollDiceEffect, BecomeCitizenEffect } from "../../effects";
 import { BannerName, OathResource, OathSuit } from "../../enums";
 import { ResourceCost } from "../../resources";
@@ -173,8 +174,14 @@ export class Jinx extends EffectModifier<Denizen> {
     }
 
     applyAfter(result: number[]): void {
-        if (!this.effect.player) return;
-        new AskForRerollAction(this.effect.player, result, this.effect.die, this).doNext();
+        const player = this.effect.player;
+        if (!player) return;
+        if (this.effect.die !== AttackDie || this.effect.die !== DefenseDie) return;
+
+        new AskForPermissionAction(player, "Reroll " + result.join(",") + "?", () => {
+            if (!this.payCost(player)) return;
+            for (const [i, face] of this.effect.die.roll(result.length).entries()) result[i] = face;
+        }).doNext();
     }
 }
 

@@ -1,11 +1,11 @@
 import { AskForPermissionAction, TakeFavorFromBankAction, TakeResourceFromPlayerAction } from "../../actions/actions";
 import { Denizen, Relic, Site, WorldCard } from "../../cards/cards";
-import { DefenseDie } from "../../dice";
+import { D6, DefenseDie } from "../../dice";
 import { TakeOwnableObjectEffect, TakeWarbandsIntoBagEffect, PutWarbandsFromBagEffect, PutResourcesOnTargetEffect, MoveResourcesToTargetEffect, SetNewOathkeeperEffect, RollDiceEffect, GamblingHallEffect, TakeResourcesFromBankEffect, DiscardCardEffect, BecomeCitizenEffect } from "../../effects";
 import { BannerName, OathResource, OathSuit } from "../../enums";
 import { OathPlayer } from "../../player";
 import { ResourceCost } from "../../resources";
-import { EnemyEffectModifier, WhenPlayed, CapacityModifier, ActivePower, RestPower, AttackerBattlePlan, DefenderBattlePlan } from "../powers";
+import { EnemyEffectModifier, WhenPlayed, CapacityModifier, ActivePower, RestPower, AttackerBattlePlan, DefenderBattlePlan, EffectModifier } from "../powers";
 
 
 export class MercenariesAttack extends AttackerBattlePlan<Denizen> {
@@ -235,5 +235,24 @@ export class RoyalAmbitions extends WhenPlayed<Denizen> {
                 // TODO: Take a reliquary relic
                 new BecomeCitizenEffect(this.effect.player).do(); 
             });
+    }
+}
+
+
+export class SqualidDistrict extends EffectModifier<Denizen> {
+    name = "Squalid District";
+    modifiedEffect = RollDiceEffect;
+    effect: RollDiceEffect;
+
+    canUse(): boolean {
+        return !!this.effect.playerProxy && this.effect.playerProxy === this.sourceProxy.ruler;
+    }
+
+    applyAfter(result: number[]): void {
+        const player = this.effect.player;
+        if (!player) return;
+        if (this.effect.die !== D6) return;
+
+        new AskForPermissionAction(player, "Add +1 or -1 to " + result[0] + "?", () => result[0]++, () => result[0]--, ["+1", "-1"]).doNext();
     }
 }
