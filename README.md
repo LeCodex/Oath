@@ -48,6 +48,7 @@ This project is under active development, and major changes are still being made
 ## Credits
 
 - Author - [Le Codex](https://github.com/LeCodex)
+- Oath published by Leder Games, designed by Cole Wherle, with art by Kyle Ferrin. Thanks for making this amazing game and being so open with it!
 
 ## License
 

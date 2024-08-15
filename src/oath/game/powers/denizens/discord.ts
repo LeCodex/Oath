@@ -1,7 +1,7 @@
-import { AskForPermissionAction, TakeFavorFromBankAction, TakeResourceFromPlayerAction } from "../../actions/actions";
+import { AskForPermissionAction, InvalidActionResolution, TakeFavorFromBankAction, TakeResourceFromPlayerAction } from "../../actions/actions";
 import { Denizen, Relic, Site, WorldCard } from "../../cards/cards";
 import { D6, DefenseDie } from "../../dice";
-import { TakeOwnableObjectEffect, TakeWarbandsIntoBagEffect, PutWarbandsFromBagEffect, PutResourcesOnTargetEffect, MoveResourcesToTargetEffect, SetNewOathkeeperEffect, RollDiceEffect, GamblingHallEffect, TakeResourcesFromBankEffect, DiscardCardEffect, BecomeCitizenEffect } from "../../effects";
+import { TakeOwnableObjectEffect, TakeWarbandsIntoBagEffect, PutWarbandsFromBagEffect, PutResourcesOnTargetEffect, MoveResourcesToTargetEffect, SetNewOathkeeperEffect, RollDiceEffect, GamblingHallEffect, TakeResourcesFromBankEffect, DiscardCardEffect, BecomeCitizenEffect, PayCostToTargetEffect } from "../../effects";
 import { BannerName, OathResource, OathSuit } from "../../enums";
 import { OathPlayer } from "../../player";
 import { ResourceCost } from "../../resources";
@@ -100,9 +100,20 @@ export class RelicThief extends EnemyEffectModifier<Denizen> {
     effect: TakeOwnableObjectEffect;
 
     applyAfter(result: void): void {
-        if (!this.sourceProxy.ruler?.original) return;
-        if (this.effect.target instanceof Relic && this.effect.playerProxy?.site.region === this.sourceProxy.ruler?.site.region) {
-            // Roll dice and do stuff, probably after an action to pay the cost
+        // TODO: Trigger when multiple things are taken
+        const rulerProxy = this.sourceProxy.ruler;
+        if (!rulerProxy) return;
+        if (this.effect.target instanceof Relic && this.effect.playerProxy?.site.region === rulerProxy.site.region) {
+            new AskForPermissionAction(
+                rulerProxy.original, "Try to steal " + this.effect.target.name + "?",
+                () => {
+                    if (!new PayCostToTargetEffect(this.game, rulerProxy.original, new ResourceCost([[OathResource.Favor, 1], [OathResource.Secret, 1]]), this.source).do())
+                        throw new InvalidActionResolution("Couldn't pay resource cost");
+
+                    const result = new RollDiceEffect(this.game, rulerProxy.original, DefenseDie, 1).do();
+                    // TODO: Handle result
+                }
+            )
         }
     }
 }

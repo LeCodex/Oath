@@ -56,13 +56,10 @@ export abstract class OathAction extends OathGameObject {
 
     start(): boolean {
         // NOTE: Setup the selects before
-        const values: Record<string, string[]> = {};
-        if (this.autocompleteSelects) {
-            for (const [key, select] of Object.entries(this.selects)) {
-                if (select.choices.size <= select.min) {
-                    this.parameters[key] = [...select.choices.values()];
-                    delete this.selects[key];
-                }
+        for (const [key, select] of Object.entries(this.selects)) {
+            if (this.autocompleteSelects && select.choices.size <= select.min || select.choices.size === 0) {
+                this.parameters[key] = [...select.choices.values()];
+                delete this.selects[key];
             }
         }
 
