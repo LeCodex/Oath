@@ -1,11 +1,11 @@
 import { CampaignAtttackAction, CampaignDefenseAction, TakeFavorFromBankAction, TradeAction, TravelAction, InvalidActionResolution, MakeDecisionAction, RestAction, ChooseCardAction, SearchPlayAction, ChoosePlayerAction, ChooseSiteAction, ChooseNumberAction } from "../../actions/actions";
-import { Conspiracy, Denizen, Edifice, Site, Vision, VisionBack, WorldCard } from "../../cards/cards";
+import { Conspiracy, Denizen, Edifice, Site, WorldCard } from "../../cards/cards";
 import { DiscardOptions } from "../../cards/decks";
 import { AttackDie, DefenseDie } from "../../dice";
-import { RegionDiscardEffect, PutResourcesOnTargetEffect, RollDiceEffect, BecomeCitizenEffect, DiscardCardEffect, TakeResourcesFromBankEffect, PeekAtCardEffect, MoveAdviserEffect, MoveResourcesToTargetEffect, TakeWarbandsIntoBagEffect, PutResourcesIntoBankEffect, MoveBankResourcesEffect, DrawFromDeckEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed } from "../../effects";
+import { RegionDiscardEffect, PutResourcesOnTargetEffect, RollDiceEffect, BecomeCitizenEffect, DiscardCardEffect, TakeResourcesFromBankEffect, PeekAtCardEffect, MoveAdviserEffect, MoveResourcesToTargetEffect, TakeWarbandsIntoBagEffect, PutResourcesIntoBankEffect, DrawFromDeckEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed } from "../../effects";
 import { BannerName, OathResource, OathSuit } from "../../enums";
 import { OathPlayer } from "../../player";
-import { ResourceCost, ResourcesAndWarbands } from "../../resources";
+import { ResourceCost } from "../../resources";
 import { ActionModifier, AttackerBattlePlan, DefenderBattlePlan, ActivePower, WhenPlayed, AccessedActionModifier, EffectModifier } from "../powers";
 
 
@@ -170,7 +170,7 @@ export class TamingCharm extends ActivePower<Denizen> {
 
     usePower(): void {
         new ChooseCardAction(
-            this.action.player, "Discard to gain 2 favor", [...this.action.player.site.denizens].filter(e => e.suit === OathSuit.Beast || e.suit === OathSuit.Nomad),
+            this.action.player, "Discard to gain 2 favor", [...this.action.player.site.denizens].filter(e => e.suit === OathSuit.Beast || e.suit === OathSuit.Nomad && !e.activelyLocked),
             (card: Denizen | undefined) => {
                 if (!card) return;
                 new TakeResourcesFromBankEffect(this.game, this.action.player, this.game.favorBanks.get(card.suit), 2).do();

@@ -154,7 +154,8 @@ export class Assassin extends ActivePower<Denizen> {
         for (const playerProxy of Object.values(this.gameProxy.players)) {
             if (playerProxy === this.action.playerProxy || playerProxy.site !== this.action.playerProxy.site) continue;
             for (const adviserProxy of playerProxy.advisers)
-                if (!adviserProxy.original.facedown) cards.add(adviserProxy.original);
+                if (!adviserProxy.original.facedown && !(adviserProxy instanceof Denizen && adviserProxy.activelyLocked))
+                    cards.add(adviserProxy.original);
         }
 
         new ChooseCardAction(this.action.player, "Discard an adviser", cards, (card: WorldCard | undefined) => { if (card) new DiscardCardEffect(this.action.player, card).do(); }).doNext();

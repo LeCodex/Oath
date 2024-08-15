@@ -1,5 +1,5 @@
 import { InvalidActionResolution, CitizenshipOfferAction, StartBindingExchangeAction, SkeletonKeyAction, TradeAction, CampaignAtttackAction, MusterAction, TravelAction, MakeDecisionAction, ChoosePlayerAction, SearchAction, ChooseCardAction } from "../actions/actions";
-import { Denizen, GrandScepter, OathCard, Relic, Site, WorldCard } from "../cards/cards";
+import { Denizen, GrandScepter, OathCard, Relic, Site } from "../cards/cards";
 import { TakeOwnableObjectEffect, PutWarbandsFromBagEffect, PlayDenizenAtSiteEffect, MoveOwnWarbandsEffect, PeekAtCardEffect, SetGrandScepterLockEffect, GainSupplyEffect, DrawFromDeckEffect, RevealCardEffect, PayCostToTargetEffect, BecomeExileEffect, MoveWarbandsToEffect, TakeWarbandsIntoBagEffect, MoveResourcesToTargetEffect } from "../effects";
 import { BannerName, OathResource } from "../enums";
 import { OathPlayer, Exile } from "../player";
@@ -303,6 +303,7 @@ export class OracularPig extends ActivePower<Relic> {
 
 export class IvoryEye extends ActivePower<Relic> {
     name = "Ivory Eye";
+    cost = new ResourceCost([[OathResource.Secret, 1]]);
 
     usePower(): void {
         const cards = new Set<OathCard>();

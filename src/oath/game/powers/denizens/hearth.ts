@@ -273,7 +273,8 @@ export class ArmedMob extends ActivePower<Denizen> {
 
         const cards = new Set<WorldCard>();
         for (const adviserProxy of darkestSecretProxy.owner.advisers)
-            if (!adviserProxy.original.facedown) cards.add(adviserProxy.original);
+            if (!adviserProxy.original.facedown && !(adviserProxy instanceof Denizen && adviserProxy.activelyLocked))
+                cards.add(adviserProxy.original);
 
         new ChooseCardAction(this.action.player, "Discard an adviser", cards, (card: WorldCard | undefined) => { if (card) new DiscardCardEffect(this.action.player, card).do(); }).doNext();
     }
