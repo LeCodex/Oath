@@ -1,4 +1,4 @@
-import { ChoosePlayer, ConspiracyStealAction } from "../actions/actions";
+import { ChoosePlayerAction, ConspiracyStealAction } from "../actions/actions";
 import { Conspiracy, Denizen } from "../cards/cards";
 import { OathPlayer } from "../player";
 import { WhenPlayed } from "./powers";
@@ -22,7 +22,7 @@ export class ConspiracyPower extends WhenPlayed<Conspiracy> {
             }
         }
 
-        new ChoosePlayer(
+        new ChoosePlayerAction(
             this.effect.player, "", 
             (target: OathPlayer | undefined) => { if (target !== undefined) new ConspiracyStealAction(this.effect.player, target).doNext(); }, 
             targets, "No one"

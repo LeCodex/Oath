@@ -1,6 +1,6 @@
-import { InvalidActionResolution, OathAction, ChoosePlayer } from "./actions/actions";
+import { InvalidActionResolution, OathAction, ChoosePlayerAction, SetupChooseAction, WakeAction, ChooseSiteAction } from "./actions/actions";
 import { OathActionManager } from "./actions/manager";
-import { SetNewOathkeeperEffect, SetUsurperEffect, WinGameEffect } from "./effects";
+import { DrawFromDeckEffect, PutPawnAtSiteEffect, SetNewOathkeeperEffect, SetUsurperEffect, WinGameEffect } from "./effects";
 import { OathPower } from "./powers/powers";
 import { OathBoard } from "./board";
 import { CardDeck, RelicDeck, WorldDeck } from "./cards/decks";
@@ -149,23 +149,29 @@ export class OathGame extends WithOriginal {
         }
 
         const topCradleSite = this.board.regions[RegionName.Cradle].sites[0];
-        this.oathkeeper = this.chancellor = new Chancellor(this, topCradleSite);
+        this.oathkeeper = this.chancellor = new Chancellor(this);
         this.players[PlayerColor.Purple] = this.chancellor;
         for (let i = 1; i < playerCount; i++) {
-            this.players[i] = new Exile(this, topCradleSite, i);
+            this.players[i] = new Exile(this, i);
             this.order.push(i);
         }
 
         for (const [color, player] of Object.entries(this.players)) {
-            player.putResources(OathResource.Favor, Number(color) === PlayerColor.Purple ? 2 : 1);  // TODO: Take favor from supply
+            player.putResources(OathResource.Favor, player === this.chancellor ? 2 : 1);  // TODO: Take favor from supply
             player.putResources(OathResource.Secret, 1);
             player.leader.moveWarbandsFromBagOnto(player, 3);
 
-            const card = this.worldDeck.drawSingleCard(true);
-            if (card) {
-                card.seenBy.add(player);
-                card.setOwner(player);
-            }
+            const cards = new DrawFromDeckEffect(player, this.worldDeck, 3, true).do();
+            
+            if (player !== this.chancellor)
+                new ChooseSiteAction(
+                    player, "Put your pawn at a faceup site (Hand: " + cards.map(e => e.name).join(", ") + ")",
+                    (site: Site | undefined) => { if (site) new PutPawnAtSiteEffect(player, site).do(); }
+                ).doNext();
+            else
+                new PutPawnAtSiteEffect(player, topCradleSite).do();
+            
+            new SetupChooseAction(player, cards).doNext();
         }
 
         this.grandScepter.setOwner(this.chancellor);
@@ -189,6 +195,8 @@ export class OathGame extends WithOriginal {
 
         this.oath = new OathTypeToOath[gameData.oath](this);
         this.oath.setup();
+
+        new WakeAction(this.currentPlayer).doNext();
     }
 
     get currentPlayer(): OathPlayer { return this.players[this.order[this.turn]]; }
@@ -260,7 +268,7 @@ export class OathGame extends WithOriginal {
         const candidates = this.oath.getOathkeeperCandidates();
         if (candidates.has(this.oathkeeper)) return;
         if (candidates.size)
-            new ChoosePlayer(
+            new ChoosePlayerAction(
                 this.oathkeeper, "Choose the new Oathkeeper",
                 (target: OathPlayer | undefined) => {
                     if (!target) return;
@@ -272,8 +280,9 @@ export class OathGame extends WithOriginal {
 
     empireWins() {
         const candidates = this.oath.getSuccessorCandidates();
-        if (candidates.has(this.chancellor)) new WinGameEffect(this.chancellor).do();
-        new ChoosePlayer(
+        if (candidates.has(this.chancellor)) return new WinGameEffect(this.chancellor).do();
+
+        new ChoosePlayerAction(
             this.chancellor, "Choose a Successor",
             (successor: OathPlayer | undefined) => { if (successor) new WinGameEffect(successor).do(); },
             [...candidates].filter(e => e instanceof Exile && e.isCitizen)

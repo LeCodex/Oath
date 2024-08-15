@@ -1,4 +1,4 @@
-import { InvalidActionResolution, CitizenshipOfferAction, StartBindingExchangeAction, SkeletonKeyAction, TradeAction, CampaignAtttackAction, MusterAction, TravelAction, AskForPermissionAction, ChoosePlayer } from "../actions/actions";
+import { InvalidActionResolution, CitizenshipOfferAction, StartBindingExchangeAction, SkeletonKeyAction, TradeAction, CampaignAtttackAction, MusterAction, TravelAction, AskForPermissionAction, ChoosePlayerAction } from "../actions/actions";
 import { Denizen, GrandScepter, Relic, Site } from "../cards/cards";
 import { TakeOwnableObjectEffect, PutWarbandsFromBagEffect, PlayDenizenAtSiteEffect, MoveOwnWarbandsEffect, PeekAtCardEffect, SetGrandScepterLockEffect, GainSupplyEffect, DrawFromDeckEffect, RevealCardEffect, PayCostToTargetEffect, BecomeExileEffect, MoveWarbandsToEffect, TakeWarbandsIntoBagEffect } from "../effects";
 import { BannerName, OathResource } from "../enums";
@@ -59,7 +59,7 @@ export class GrandScepterExileCitizen extends GrandScepterActive {
             if (citizen instanceof Exile && citizen.isCitizen)
                 players.push(citizen);
 
-        new ChoosePlayer(
+        new ChoosePlayerAction(
             this.action.player, "Exile a Citizen",
             (target: OathPlayer | undefined) => {
                 if (!target) return;
@@ -75,7 +75,7 @@ export class GrandScepterExileCitizen extends GrandScepterActive {
                     throw new InvalidActionResolution("Cannot pay resource cost");
 
                 new BecomeExileEffect(target).do();
-            }
+            }, players
         ).doNext();
     }
 }
@@ -194,7 +194,7 @@ export class ObsidianCageActive extends ActivePower<Relic> {
             if (this.source.getWarbands(player.leader) + this.source.getWarbands(player) > 0) players.add(player);
         
         // TODO: "Any number"
-        new ChoosePlayer(
+        new ChoosePlayerAction(
             this.action.player, "Return the warbands to a player",
             (target: OathPlayer | undefined) => { 
                 if (!target) return;

@@ -129,18 +129,6 @@ export class CharmingValley extends SiteActionModifier {
     }
 }
 
-export class NarrowPass extends SiteActionModifier {
-    name = "Narrow Pass";
-    modifiedAction = TravelAction;
-    action: TravelAction;
-    mustUse = true;
-
-    applyBefore(): void {
-        if (this.action.siteProxy !== this.sourceProxy && this.activatorProxy.site.region !== this.sourceProxy.region && this.action.siteProxy.region === this.sourceProxy.region)
-            throw new InvalidActionResolution("Must go through the Narrow Pass");
-    }
-}
-
 export class BuriedGiant extends SiteActionModifier {
     name = "Buried Giant";
     modifiedAction = TravelAction;
@@ -182,7 +170,19 @@ export class ShroudedWood extends SiteActionModifier {
     }
 }
 
-export class TheHiddenPlaceTravel extends SiteActionModifier {
+export class NarrowPass extends ActionModifier<Site> {
+    name = "Narrow Pass";
+    modifiedAction = TravelAction;
+    action: TravelAction;
+    mustUse = true;
+
+    applyBefore(): void {
+        if (this.action.siteProxy !== this.sourceProxy && this.activatorProxy.site.region !== this.sourceProxy.region && this.action.siteProxy.region === this.sourceProxy.region)
+            throw new InvalidActionResolution("Must go through the Narrow Pass");
+    }
+}
+
+export class TheHiddenPlaceTravel extends ActionModifier<Site> {
     name = "The Hidden Place";
     modifiedAction = TravelAction;
     action: TravelAction;
@@ -195,7 +195,7 @@ export class TheHiddenPlaceTravel extends SiteActionModifier {
     }
 }
 
-export class TheHiddenPlaceCampaign extends SiteActionModifier {
+export class TheHiddenPlaceCampaign extends ActionModifier<Site> {
     name = "The Hidden Place";
     modifiedAction = CampaignAtttackAction;
     action: CampaignAtttackAction;

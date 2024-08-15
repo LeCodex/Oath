@@ -1,4 +1,4 @@
-import { SearchAction, CampaignAtttackAction, CampaignDefenseAction, TradeAction, TakeFavorFromBankAction, InvalidActionResolution, ActAsIfAtSiteAction, AskForPermissionAction, CampaignAction, ChoosePlayer } from "../../actions/actions";
+import { SearchAction, CampaignAtttackAction, CampaignDefenseAction, TradeAction, TakeFavorFromBankAction, InvalidActionResolution, ActAsIfAtSiteAction, AskForPermissionAction, CampaignAction, ChoosePlayerAction } from "../../actions/actions";
 import { Denizen, Site } from "../../cards/cards";
 import { BecomeCitizenEffect, MoveAdviserEffect, MoveResourcesToTargetEffect, MoveWorldCardToAdvisersEffect, RegionDiscardEffect } from "../../effects";
 import { OathResource, OathSuit } from "../../enums";
@@ -127,7 +127,7 @@ export class PiedPiper extends ActivePower<Denizen> {
     cost = new ResourceCost([[OathResource.Secret, 1]]);
 
     usePower(): void {
-        new ChoosePlayer(
+        new ChoosePlayerAction(
             this.action.player, "Send the Pied Piper to steal 2 favor",
             (target: OathPlayer | undefined) => {
                 if (!target) return;

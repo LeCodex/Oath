@@ -23,9 +23,8 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
     defense = 2;
     force = this;
 
-    constructor(game: OathGame, site: Site, color: PlayerColor) {
+    constructor(game: OathGame, color: PlayerColor) {
         super(game);
-        this.site = site;
         this.color = color;
     }
 
@@ -163,7 +162,7 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
         obj.name = this.name;
         obj.warbandsInBag = this.warbandsInBag;
         obj.supply = this.supply;
-        obj.site = this.site.name;
+        obj.site = this.site?.name;
         obj.advisers = [...this.advisers].map(e => e.serialize())
         obj.relics = [...this.relics].map(e => e.serialize())
         obj.banners = [...this.banners].map(e => e.name)
@@ -176,8 +175,8 @@ export class Chancellor extends OathPlayer {
     warbandsInBag = 24;
     reliquary = new Reliquary(this.game);
 
-    constructor(game: OathGame, site: Site) {
-        super(game, site, PlayerColor.Purple);
+    constructor(game: OathGame) {
+        super(game, PlayerColor.Purple);
     }
 
     get isImperial(): boolean { return true; }
@@ -207,8 +206,8 @@ export class Exile extends OathPlayer {
     isCitizen: boolean;
     vision?: Vision;
 
-    constructor(game: OathGame, site: Site, color: PlayerColor) {
-        super(game, site, color);
+    constructor(game: OathGame, color: PlayerColor) {
+        super(game, color);
         this.name = "Exile " + color;
     }
 

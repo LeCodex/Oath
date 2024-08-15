@@ -1,7 +1,7 @@
 import { Denizen, Edifice, OwnableCard, Relic, Site, WorldCard } from "../cards/cards";
 import { DiscardOptions, SearchableDeck } from "../cards/decks";
 import { AttackDie, DefenseDie } from "../dice";
-import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, PutPawnAtSiteEffect, DiscardCardEffect, MoveOwnWarbandsEffect, MoveAdviserEffect, SetPeoplesFavorMobState, OathEffect, PaySupplyEffect, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, FlipEdificeEffect, ModifiedExecutionEffect, CampaignResolveSuccessfulAndSkullsEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect, CheckCapacityEffect, ApplyModifiersEffect, CampaignJoinDefenderAlliesEffect } from "../effects";
+import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, PutPawnAtSiteEffect, DiscardCardEffect, MoveOwnWarbandsEffect, MoveAdviserEffect, SetPeoplesFavorMobState, OathEffect, PaySupplyEffect, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, FlipEdificeEffect, ModifiedExecutionEffect, CampaignResolveSuccessfulAndSkullsEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect, CheckCapacityEffect, ApplyModifiersEffect, CampaignJoinDefenderAlliesEffect, MoveWorldCardToAdvisersEffect, DiscardCardGroupEffect } from "../effects";
 import { OathPhase, OathResource, OathResourceName, OathSuit, OathSuitName, OathType, OathTypeName } from "../enums";
 import { OathGame } from "../game";
 import { OathGameObject } from "../gameObject";
@@ -192,6 +192,34 @@ export abstract class MajorAction extends ModifiableAction {
     modifiedExecution() {
         if (!new PaySupplyEffect(this.player, this.actualSupplyCost).do())
             throw new InvalidActionResolution(`Cannot pay Supply cost (${this.actualSupplyCost}).`);
+    }
+}
+
+
+////////////////////////////////////////////
+//                 SETUP                  //
+////////////////////////////////////////////
+export class SetupChooseAction extends OathAction {
+    readonly selects: { card: SelectNOf<WorldCard> };
+    readonly parameters: { card: Denizen[] };
+    readonly message = "Choose a card to start with";
+
+    cards: WorldCard[];
+
+    constructor(player: OathPlayer, cards: Iterable<WorldCard>) {
+        super(player);
+        this.cards = [...cards];
+    }
+
+    start(): boolean {
+        this.selects.card = new SelectNOf("Card", this.cards.map(e => [e.name, e]));
+        return super.start();
+    }
+
+    execute(): void {
+        const card = this.parameters.card[0];
+        new MoveWorldCardToAdvisersEffect(this.game, this.player, card).do();
+        new DiscardCardGroupEffect(this.player, this.cards.filter(e => e !== card)).do();
     }
 }
 
@@ -1213,7 +1241,7 @@ export class ResolveEffectAction extends OathAction {
 }
 
 
-export class ChooseSuit extends OathAction {
+export class ChooseSuitAction extends OathAction {
     readonly selects: { suit: SelectNOf<OathSuit | undefined> };
     readonly parameters: { suit: (OathSuit | undefined)[] };
     readonly message: string;
@@ -1244,7 +1272,7 @@ export class ChooseSuit extends OathAction {
     }
 }
 
-export class TakeFavorFromBankAction extends ChooseSuit {
+export class TakeFavorFromBankAction extends ChooseSuitAction {
     constructor(player: OathPlayer, amount: number, suits?: Iterable<OathSuit>) {
         super(
             player, "Take " + amount + " from a favor bank", 
@@ -1254,7 +1282,7 @@ export class TakeFavorFromBankAction extends ChooseSuit {
     }
 }
 
-export class PeoplesFavorWakeAction extends ChooseSuit {
+export class PeoplesFavorWakeAction extends ChooseSuitAction {
     banner: PeoplesFavor;
 
     constructor(player: OathPlayer, banner: PeoplesFavor) {
@@ -1314,7 +1342,7 @@ export class ChooseResourceToTakeAction extends OathAction {
 }
 
 
-export class ChoosePlayer extends OathAction {
+export class ChoosePlayerAction extends OathAction {
     readonly selects: { player: SelectNOf<OathPlayer | undefined> };
     readonly parameters: { player: (OathPlayer | undefined)[] };
     readonly message: string;
@@ -1347,7 +1375,7 @@ export class ChoosePlayer extends OathAction {
     }
 }
 
-export class TakeResourceFromPlayerAction extends ChoosePlayer {
+export class TakeResourceFromPlayerAction extends ChoosePlayerAction {
     constructor(player: OathPlayer, resource: OathResource, amount?: number, players?: Iterable<OathPlayer>) {
         super(
             player, "",
@@ -1360,7 +1388,7 @@ export class TakeResourceFromPlayerAction extends ChoosePlayer {
     }
 }
 
-export class StartBindingExchangeAction extends ChoosePlayer {
+export class StartBindingExchangeAction extends ChoosePlayerAction {
     constructor(player: OathPlayer, next: Constructor<MakeBindingExchangeOfferAction>, players?: Iterable<OathPlayer>) {
         super(
             player, "Start a binding exchange with another player",
@@ -1371,7 +1399,7 @@ export class StartBindingExchangeAction extends ChoosePlayer {
 }
 
 
-export abstract class ChooseSite extends OathAction {
+export class ChooseSiteAction extends OathAction {
     readonly selects: { site: SelectNOf<Site | undefined> };
     readonly parameters: { site: (Site | undefined)[] };
     readonly message: string;
@@ -1406,7 +1434,7 @@ export abstract class ChooseSite extends OathAction {
     }
 }
 
-export class ActAsIfAtSiteAction extends ChooseSite {
+export class ActAsIfAtSiteAction extends ChooseSiteAction {
     constructor(player: OathPlayer, action: ModifiableAction, sites?: Iterable<Site>) {
         super(
             player, "Choose a site to act at",

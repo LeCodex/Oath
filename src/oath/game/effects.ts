@@ -7,7 +7,7 @@ import { Banner, PeoplesFavor, ResourceBank } from "./banks";
 import { OwnableObject, WithPowers } from "./interfaces";
 import { OathGame } from "./game";
 import { OathGameObject } from "./gameObject";
-import { InvalidActionResolution, ModifiableAction, OathAction, BuildOrRepairEdificeAction, ChooseNewCitizensAction, VowOathAction, ResolveEffectAction, RestAction, WakeAction, CampaignDefenseAction, CampaignResult, SearchDiscardAction, SearchPlayAction, ChooseSuit, TakeFavorFromBankAction } from "./actions/actions";
+import { InvalidActionResolution, ModifiableAction, OathAction, BuildOrRepairEdificeAction, ChooseNewCitizensAction, VowOathAction, ResolveEffectAction, RestAction, WakeAction, CampaignDefenseAction, CampaignResult, SearchDiscardAction, SearchPlayAction, ChooseSuitAction, TakeFavorFromBankAction } from "./actions/actions";
 import { DiscardOptions } from "./cards/decks";
 import { CardDeck } from "./cards/decks";
 import { Constructor, isExtended, MaskProxyManager, shuffleArray } from "./utils";
@@ -1615,7 +1615,7 @@ export class CleanUpMapEffect extends PlayerEffect<void> {
                 suits.add(i);
             }
         }
-        new ChooseSuit(
+        new ChooseSuitAction(
             this.player, "Choose a suit to add to the World Deck", 
             (suit: OathSuit | undefined) => { if (suit !== undefined) this.addCardsToWorldDeck(suit); },
             suits
