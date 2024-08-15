@@ -173,8 +173,8 @@ export class TamingCharm extends ActivePower<Denizen> {
             this.action.player, "Discard to gain 2 favor", [...this.action.player.site.denizens].filter(e => e.suit === OathSuit.Beast || e.suit === OathSuit.Nomad),
             (card: Denizen | undefined) => {
                 if (!card) return;
-                new DiscardCardEffect(this.action.player, card).do();
                 new TakeResourcesFromBankEffect(this.game, this.action.player, this.game.favorBanks.get(card.suit), 2).do();
+                new DiscardCardEffect(this.action.player, card).do();
             }
         ).doNext();
     }

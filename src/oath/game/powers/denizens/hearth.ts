@@ -317,6 +317,7 @@ export class Levelers extends ActivePower<Denizen> {
             this.action.player, "Move 2 favor to a bank with the least favor",
             (suit: OathSuit | undefined) => {
                 if (!suit) return;
+                minSuits.delete(suit);
                 const from = this.game.favorBanks.get(suit);
                 if (!from) return;
 

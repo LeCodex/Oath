@@ -239,7 +239,7 @@ export class MusterAction extends MajorAction {
     readonly parameters: { card: Denizen[] };
     readonly message = "Put a favor on a card to muster";
 
-    supplyCost = 1;
+    _supplyCost = 1;
     cardProxy: Denizen;
     using = OathResource.Favor;
     amount = 1;
@@ -273,7 +273,7 @@ export class TradeAction extends MajorAction {
     readonly parameters: { card: Denizen[], forFavor: boolean[] };
     readonly message = "Put resources on a card to trade";
 
-    supplyCost = 1;
+    _supplyCost = 1;
     cardProxy: Denizen;
     forFavor: boolean;
     paying: Map<OathResource, number>;
@@ -361,7 +361,7 @@ export class RecoverAction extends MajorAction {
     readonly parameters: { target: RecoverActionTarget[] };
     readonly message = "Choose a target to recover";
     
-    supplyCost = 1;
+    _supplyCost = 1;
     targetProxy: RecoverActionTarget;
 
     start() {
@@ -640,7 +640,7 @@ export class CampaignAction extends MajorAction {
     readonly parameters: { defender: (OathPlayer | undefined)[] };
     readonly message = "Choose a defender";
     
-    supplyCost = 2;
+    _supplyCost = 2;
     defenderProxy: OathPlayer | undefined;
 
     start() {
