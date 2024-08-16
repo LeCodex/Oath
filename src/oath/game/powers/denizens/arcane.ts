@@ -267,7 +267,7 @@ export class BloodPact extends ActivePower<Denizen> {
 
     usePower(): void {
         const values = [], max = Math.floor(this.action.player.getWarbands(this.action.playerProxy.leader.original) / 2);
-        for (let i = 1; i < max; i++) values.push(i);
+        for (let i = 1; i <= max; i++) values.push(i);
 
         new ChooseNumberAction(
             this.action.player, "Sacrifice pairs of warbands to get secrets", values,

@@ -113,8 +113,10 @@ export class WayStation extends ActionModifier<Denizen> {
     applyBefore(): void {
         if (!this.sourceProxy.site) return;
         if (this.action.siteProxy === this.sourceProxy.site) {
-            if (!this.activatorProxy.rules(this.sourceProxy)) return;
-            if (!new PayCostToTargetEffect(this.action.game, this.activator, new ResourceCost([[OathResource.Favor, 1]]), this.sourceProxy.ruler?.original).do()) return;
+            if (!this.activatorProxy.rules(this.sourceProxy))
+                if (!new PayCostToTargetEffect(this.action.game, this.activator, new ResourceCost([[OathResource.Favor, 1]]), this.sourceProxy.ruler?.original).do())
+                    return;
+            
             this.action.noSupplyCost = true;
         }
     }

@@ -15,16 +15,17 @@ export class CardDeck<T extends OathCard> extends OathGameObject {
 
     draw(amount: number, fromBottom: boolean = false, skip: number = 0): T[] {
         // Why such an involved process instead of just using splice? To make sure the draws are in correct order for reverting
+        amount = Math.min(this.cards.length - skip, amount);
         let cards: T[] = [];
-        for (let i = skip; i < Math.min(this.cards.length, skip + amount); i ++) {
-            const card = this.drawSingleCard(fromBottom);
+        for (let i = 0; i < amount; i++) {
+            const card = this.drawSingleCard(fromBottom, skip);
             if (card) cards.push(card);
         }
         return cards;
     }
 
-    drawSingleCard(fromBottom: boolean = false): T | undefined {
-        return fromBottom ? this.cards.pop() : this.cards.shift();
+    drawSingleCard(fromBottom: boolean = false, skip: number = 0): T | undefined {
+        return this.cards.splice(fromBottom ? this.cards.length - 1 - skip : skip, 1)[0];
     }
 
     shuffle() {
@@ -60,13 +61,15 @@ export class WorldDeck extends SearchableDeck {
 
     draw(amount: number, fromBottom: boolean = false, skip: number = 0): WorldCard[] {
         for (let i = 0; i < amount; i++) {
-            if (this.cards[i + skip] instanceof VisionBack) {
+            const card = this.cards[fromBottom ? this.cards.length - 1 - i - skip : i + skip];
+            if (!card) break;
+            if (card instanceof VisionBack) {
                 amount = i+1;
                 break;
             }
         }
         
-        return this.draw(amount, fromBottom, skip);
+        return super.draw(amount, fromBottom, skip);
     }
 
     drawSingleCard(fromBottom?: boolean): WorldCard | undefined {

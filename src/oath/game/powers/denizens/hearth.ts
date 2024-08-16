@@ -285,7 +285,7 @@ export class ARoundOfAle extends ActivePower<Denizen> {
     cost = new ResourceCost([[OathResource.Favor, 1]]);
 
     usePower(): void {
-        this.action.player.rest();
+        this.action.player.returnResources();
         new TakeResourcesFromBankEffect(this.game, this.action.player, this.game.favorBanks.get(OathSuit.Hearth), 1, this.source).do();
     }
 }

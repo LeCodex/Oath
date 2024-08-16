@@ -1534,6 +1534,7 @@ export class FlipEdificeEffect extends OathEffect<void> {
                 const [_, ...otherData] = edificeData[other];
                 this.newEdifice = new Edifice(this.game, other, ...otherData);
                 this.newEdifice.putAtSite(this.edifice.site);
+                this.newEdifice.reveal();
 
                 for (const [resource, amount] of this.edifice.resources)
                     new MoveResourcesToTargetEffect(this.game, undefined, resource, amount, this.newEdifice, this.edifice).do();

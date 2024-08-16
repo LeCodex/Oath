@@ -965,7 +965,7 @@ export class CampaignKillWarbandsInForceAction extends OathAction {
         this.owner = attacker ? result.attacker.leader : result.defender?.leader;
         this.force = attacker ? result.atkForce : result.defForce;
         this.attacker = attacker;
-        this.amount = amount;
+        this.amount = Math.min(attacker ? result.totalAtkForce : result.totalDefForce, amount);
     }
 
     start(): boolean {

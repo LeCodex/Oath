@@ -142,6 +142,10 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
     }
 
     rest() {
+        this.returnResources();
+    }
+
+    returnResources() {
         for (const site of this.game.board.sites())
             for (const denizen of site.denizens)
                 denizen.returnResources();

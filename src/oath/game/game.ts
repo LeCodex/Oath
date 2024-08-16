@@ -97,6 +97,13 @@ export class OathGame extends WithOriginal {
             this.relicDeck.putCard(new Relic(this, cardData.name, ...data), true);
         }
 
+        this.oathkeeper = this.chancellor = new Chancellor(this);
+        this.players[PlayerColor.Purple] = this.chancellor;
+        for (let i = 1; i < playerCount; i++) {
+            this.players[i] = new Exile(this, i);
+            this.order.push(i);
+        }
+
         this.board = new OathBoard(this);
         let regionIndex: RegionName = RegionName.Cradle, siteKeys: string[] = [];
         for (const siteData of gameData.sites) {
@@ -117,7 +124,7 @@ export class OathGame extends WithOriginal {
                 if (denizen) {
                     const card = new Denizen(this, denizenOrRelicData.name, ...denizen);
                     card.putAtSite(site);
-                    card.facedown = false;
+                    card.reveal();
                     continue;
                 }
 
@@ -126,7 +133,7 @@ export class OathGame extends WithOriginal {
                     const [_, ...data] = edifice;
                     const card = new Edifice(this, denizenOrRelicData.name, ...data);
                     card.putAtSite(site);
-                    card.facedown = false;
+                    card.reveal();
                     continue;
                 }
 
@@ -147,14 +154,7 @@ export class OathGame extends WithOriginal {
             const fromBottom = this.worldDeck.drawSingleCard(true);
             if (fromBottom) region.discard.putCard(fromBottom);
         }
-
         const topCradleSite = this.board.regions[RegionName.Cradle].sites[0];
-        this.oathkeeper = this.chancellor = new Chancellor(this);
-        this.players[PlayerColor.Purple] = this.chancellor;
-        for (let i = 1; i < playerCount; i++) {
-            this.players[i] = new Exile(this, i);
-            this.order.push(i);
-        }
 
         for (const [color, player] of Object.entries(this.players)) {
             player.putResources(OathResource.Favor, player === this.chancellor ? 2 : 1);  // TODO: Take favor from supply
