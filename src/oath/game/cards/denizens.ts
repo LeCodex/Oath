@@ -2,7 +2,7 @@ import { CardRestriction, OathSuit } from "../enums";
 import { OathPower } from "../powers/powers";
 import { IgnoresCapacity } from "../powers/denizens/denizens";
 import { ASmallFavor, Assassin, BookBurning, ChaosCult, Charlatan, CrackedSageAttack, CrackedSageDefense, DisgracedCaptain, Dissent, GamblingHall, Insomnia, KeyToTheCity, MercenariesAttack, MercenariesDefense, Naysayers, OnlyTwoAdvisers, RelicThief, RoyalAmbitions, Scryer, SilverTongue, Slander, SleightOfHand } from "../powers/denizens/discord";
-import { ActingTroupe, Alchemist, Bewitch, BillowingFogAttack, BillowingFogDefense, BloodPact, CrackingGroundAttack, Dazzle, FallenSpire, FireTalkersAttack, FireTalkersDefense, ForgottenVault, GleamingArmorAttack, GleamingArmorDefense, Inquisitor, Jinx, KindredWarriorsAttack, KindredWarriorsDefense, PlagueEngines, Portal, SpiritSnare, TamingCharm, TerrorSpells, Tutor, WizardSchool } from "../powers/denizens/arcane";
+import { ActingTroupe, Alchemist, Bewitch, BillowingFogAttack, BillowingFogDefense, BloodPact, CrackingGroundAttack, Dazzle, FallenSpire, FireTalkersAttack, FireTalkersDefense, ForgottenVault, GleamingArmorAttack, GleamingArmorDefense, GreatSpire, Inquisitor, Jinx, KindredWarriorsAttack, KindredWarriorsDefense, PlagueEngines, Portal, SpiritSnare, TamingCharm, TerrorSpells, Tutor, WizardSchool } from "../powers/denizens/arcane";
 import { BanditRampart, BattleHonorsAttack, BattleHonorsDefense, BearTraps, Captains, CodeOfHonorAttack, CodeOfHonorDefense, Curfew, EncirclementAttack, EncirclementDefense, FieldPromotionAttack, ForcedLabor, Keep, LongbowsAttack, LongbowsDefense, MartialCultureAttack, MartialCultureDefense, Messenger, MilitaryParadeAttack, MilitaryParadeDefense, Outriders, Palanquin, RoyalTax, Scouts, ShieldWall, SiegeEngines, Specialist, TollRoads, VowOfObedience, VowOfObedienceRest, Wrestlers } from "../powers/denizens/order";
 import { ArmedMob, ARoundOfAle, AwaitedReturn, BallotBox, BookBinders, CharmingFriend, ExtraProvisions, FabledFeast, HallOfDebate, HallOfMockery, HeartsAndMinds, Herald, HospitalAttack, HospitalDefense, Levelers, MarriageActionModifier, MarriageEffectModifier, MemoryOfHome, RelicBreaker, SaddleMakers, Storyteller, TavernSongs, TheGreatLevyAttack, TheGreatLevyDefense, TravelingDoctorAttack, TravelingDoctorDefense, VillageConstableAttack, VillageConstableDefense, WaysideInn } from "../powers/denizens/hearth";
 import { Bracken, FaeMerchant, InsectSwarmAttack, InsectSwarmDefense, LongLostHeir, MemoryOfNature, NatureWorshipAttack, NatureWorshipDefense, PiedPiper, Rangers, SecondChance, SmallFriends, ThreateningRoar, VowOfPoverty, VowOfPovertyRest, WalledGarden, WildAllies, Wolves } from "../powers/denizens/beast";
@@ -222,7 +222,7 @@ export const edificeData: Record<string, [string, OathSuit, Constructor<OathPowe
     FestivalDistrict:   ["SqualidDistrict",     OathSuit.Discord,   []],
     SqualidDistrict:    ["FestivalDistrict",    OathSuit.None,      []],
 
-    GreatSpire:         ["FallenSpire",         OathSuit.Arcane,    []],
+    GreatSpire:         ["FallenSpire",         OathSuit.Arcane,    [GreatSpire]],
     FallenSpire:        ["GreatSpire",          OathSuit.None,      [FallenSpire]],
 
     SprawlingRampart:   ["BanditRampart",       OathSuit.Order,     []],

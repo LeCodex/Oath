@@ -1,4 +1,4 @@
-import { SearchAction, CampaignAtttackAction, CampaignDefenseAction, TradeAction, TakeFavorFromBankAction, InvalidActionResolution, ActAsIfAtSiteAction, MakeDecisionAction, CampaignAction, ChoosePlayerAction, ChooseCardAction, ChooseSuitAction } from "../../actions/actions";
+import { SearchAction, CampaignAtttackAction, CampaignDefenseAction, TradeAction, TakeFavorFromBankAction, InvalidActionResolution, ActAsIfAtSiteAction, MakeDecisionAction, CampaignAction, ChoosePlayersAction, ChooseCardsAction, ChooseSuitsAction } from "../../actions/actions";
 import { Denizen, GrandScepter, Relic, Site } from "../../cards/cards";
 import { BecomeCitizenEffect, DrawFromDeckEffect, MoveAdviserEffect, MoveBankResourcesEffect, MoveResourcesToTargetEffect, MoveWorldCardToAdvisersEffect, PutWarbandsFromBagEffect, RegionDiscardEffect, TakeOwnableObjectEffect, TakeWarbandsIntoBagEffect } from "../../effects";
 import { OathResource, OathSuit } from "../../enums";
@@ -127,13 +127,13 @@ export class PiedPiper extends ActivePower<Denizen> {
     cost = new ResourceCost([[OathResource.Secret, 1]]);
 
     usePower(): void {
-        new ChoosePlayerAction(
+        new ChoosePlayersAction(
             this.action.player, "Send the Pied Piper to steal 2 favor",
-            (target: OathPlayer | undefined) => {
-                if (!target) return;
-                new MoveResourcesToTargetEffect(this.game, this.action.player, OathResource.Favor, 2, this.action.player, target).do();
+            (targets: OathPlayer[]) => {
+                if (!targets.length) return;
+                new MoveResourcesToTargetEffect(this.game, this.action.player, OathResource.Favor, 2, this.action.player, targets[0]).do();
                 const adviser = new MoveAdviserEffect(this.action.player, this.source).do();
-                new MoveWorldCardToAdvisersEffect(this.game, this.action.player, adviser, target).do();
+                new MoveWorldCardToAdvisersEffect(this.game, this.action.player, adviser, targets[0]).do();
             }
         ).doNext();
     }
@@ -198,11 +198,11 @@ export class Wolves extends ActivePower<Denizen> {
     cost = new ResourceCost([[OathResource.Secret, 1]]);
 
     usePower(): void {
-        new ChoosePlayerAction(
+        new ChoosePlayersAction(
             this.action.player, "Kill a warband",
-            (target: OathPlayer | undefined) => {
-                if (!target) return;
-                target.killWarbands(this.action.player);
+            (targets: OathPlayer[]) => {
+                if (!targets.length) return;
+                targets[0].killWarbands(this.action.player);
             },
             Object.values(this.game.players)
         ).doNext();
@@ -218,9 +218,9 @@ export class FaeMerchant extends ActivePower<Denizen> {
         if (!relic) return;
         
         new TakeOwnableObjectEffect(this.game, this.action.player, relic).do();
-        new ChooseCardAction(
+        new ChooseCardsAction(
             this.action.player, "Discard a relic", [...this.action.playerProxy.relics].filter(e => !(e instanceof GrandScepter)).map(e => e.original),
-            (card: Relic | undefined) => { if (card) card.putOnBottom(this.action.player); }
+            (cards: Relic[]) => { if (cards.length) cards[0].putOnBottom(this.action.player); }
         ).doNext();
     }
 }
@@ -240,11 +240,11 @@ export class SecondChance extends ActivePower<Denizen> {
             }
         }
 
-        new ChoosePlayerAction(
+        new ChoosePlayersAction(
             this.action.player, "Kill a warband",
-            (target: OathPlayer | undefined) => {
-                if (!target) return;
-                target.killWarbands(this.action.player);
+            (targets: OathPlayer[]) => {
+                if (!targets.length) return;
+                targets[0].killWarbands(this.action.player);
                 new PutWarbandsFromBagEffect(this.action.playerProxy.leader.original, 1, this.action.player).do();
             },
             players
@@ -266,11 +266,11 @@ export class MemoryOfNature extends ActivePower<Denizen> {
     }
 
     moveFavor(amount: number) {
-        new ChooseSuitAction(
+        new ChooseSuitsAction(
             this.action.player, "Move a favor from one bank to the Beast bank (" + amount + " left)",
-            (suit: OathSuit | undefined) => {
-                if (!suit) return;
-                const from = this.game.favorBanks.get(suit);
+            (suits: OathSuit[]) => {
+                if (!suits.length) return;
+                const from = this.game.favorBanks.get(suits[0]);
                 const to = this.game.favorBanks.get(OathSuit.Beast);
                 if (!from || !to) return;
                 new MoveBankResourcesEffect(this.game, this.action.player, from, to, amount).do();

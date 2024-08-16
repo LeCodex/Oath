@@ -436,8 +436,8 @@ export class SearchAction extends MajorAction {
 
     modifiedExecution() {
         super.modifiedExecution();
-        this.cards = new DrawFromDeckEffect(this.player, this.deckProxy.original, this.amount, this.fromBottom).do();
         new SearchChooseAction(this.player, this.cards, this.discardOptions).doNext();
+        this.cards = new DrawFromDeckEffect(this.player, this.deckProxy.original, this.amount, this.fromBottom).do();
     }
 }
 
@@ -1270,79 +1270,6 @@ export class ChooseNumberAction extends OathAction {
 }
 
 
-export class ChooseSuitAction extends OathAction {
-    readonly selects: { suit: SelectNOf<OathSuit | undefined> };
-    readonly parameters: { suit: (OathSuit | undefined)[] };
-    readonly message: string;
-
-    suits: Set<OathSuit>;
-    none: string | undefined;
-    callback: (suit: OathSuit | undefined) => void;
-
-    constructor(player: OathPlayer, message: string, callback: (suit: OathSuit | undefined) => void, suits?: Iterable<OathSuit>, none?: string) {
-        super(player);
-        this.message = message;
-        this.callback = callback;
-        this.suits = new Set(suits || [OathSuit.Discord, OathSuit.Arcane, OathSuit.Order, OathSuit.Hearth, OathSuit.Beast, OathSuit.Nomad]);
-        this.none = none;
-    }
-
-    start() {
-        const choices = new Map<string, OathSuit | undefined>();
-        for (const suit of this.suits) choices.set(OathSuitName[suit], suit);
-        if (this.none) choices.set(this.none, undefined);
-        this.selects.suit = new SelectNOf("Suit", choices, 1);
-
-        return super.start();
-    }
-
-    execute(): void {
-        this.callback(this.parameters.suit[0])
-    }
-}
-
-export class TakeFavorFromBankAction extends ChooseSuitAction {
-    constructor(player: OathPlayer, amount: number, suits?: Iterable<OathSuit>) {
-        super(
-            player, "Take " + amount + " from a favor bank", 
-            (suit: OathSuit | undefined) => { if (suit !== undefined)  new TakeResourcesFromBankEffect(this.game, this.player, this.game.favorBanks.get(suit), amount).do(); } 
-            , suits
-        );
-    }
-}
-
-export class PeoplesFavorWakeAction extends ChooseSuitAction {
-    banner: PeoplesFavor;
-
-    constructor(player: OathPlayer, banner: PeoplesFavor) {
-        super(player, "Put or return favor", (suit: OathSuit | undefined) => { this.putOrReturnFavor(suit) }, [], "Put favor");
-        this.banner = banner;
-    }
-
-    start() {
-        if (this.banner.amount > 1) {
-            let min = Infinity;
-            for (const bank of this.game.favorBanks.values()) if (bank.amount < min) min = bank.amount;
-            for (const [suit, bank] of this.game.favorBanks) if (bank.amount === min) this.suits.add(suit);
-        }
-        
-        return super.start();
-    }
-
-    putOrReturnFavor(suit: OathSuit | undefined): void {
-        const bank = suit && this.game.favorBanks.get(suit);
-
-        if (bank)
-            new MoveBankResourcesEffect(this.game, this.player, this.banner, bank, 1).do();
-        else
-            new PutResourcesIntoBankEffect(this.game, this.player, this.banner, 1).do();
-
-        if (this.banner.amount >= 6)
-            new SetPeoplesFavorMobState(this.game, this.player, true).do();
-    }
-}
-
-
 export class ChooseResourceToTakeAction extends OathAction {
     readonly selects: { resource: SelectNOf<OathResource> };
     readonly parameters: { resource: OathResource[] };
@@ -1367,112 +1294,6 @@ export class ChooseResourceToTakeAction extends OathAction {
         const resource = this.parameters.resource[0];
         if (resource === undefined) return;
         new MoveResourcesToTargetEffect(this.game, this.player, resource, 1, this.player, this.source).do();   
-    }
-}
-
-
-export class ChoosePlayerAction extends OathAction {
-    readonly selects: { player: SelectNOf<OathPlayer | undefined> };
-    readonly parameters: { player: (OathPlayer | undefined)[] };
-    readonly message: string;
-
-    players: Set<OathPlayer>;
-    none: string | undefined;
-    callback: (target: OathPlayer | undefined) => void;
-
-    constructor(player: OathPlayer, message: string, callback: (target: OathPlayer | undefined) => void, players?: Iterable<OathPlayer>, none?: string) {
-        super(player);
-        this.message = message;
-        this.callback = callback;
-        this.players = players ? new Set(players) : new Set(Object.values(this.game.players).filter(e => e !== player));
-        this.none = none;
-    }
-
-    start() {
-        const choices = new Map<string, OathPlayer | undefined>();
-        for (const player of this.players)
-            if (player !== this.player)
-                choices.set(player.name, player);
-        if (this.none) choices.set(this.none, undefined);
-        this.selects.player = new SelectNOf("Player", choices, 1);
-
-        return super.start();
-    }
-
-    execute(): void {
-        this.callback(this.parameters.player[0]);
-    }
-}
-
-export class TakeResourceFromPlayerAction extends ChoosePlayerAction {
-    constructor(player: OathPlayer, resource: OathResource, amount?: number, players?: Iterable<OathPlayer>) {
-        super(
-            player, "",
-            (target: OathPlayer | undefined) => {
-                if (!target) return;
-                if (resource === OathResource.Secret && target.getResources(OathResource.Secret) <= 1) return;
-                new MoveResourcesToTargetEffect(this.game, player, resource, amount === undefined ? 1 : amount, player, target).do();
-            },
-            players
-        );
-    }
-}
-
-export class StartBindingExchangeAction extends ChoosePlayerAction {
-    constructor(player: OathPlayer, next: Constructor<MakeBindingExchangeOfferAction>, players?: Iterable<OathPlayer>) {
-        super(
-            player, "Start a binding exchange with another player",
-            (target: OathPlayer | undefined) => { if (target) new next(this.player, target, new next(target, this.player)).doNext(); },
-            players
-        );
-    }
-}
-
-
-export class ChooseSiteAction extends OathAction {
-    readonly selects: { site: SelectNOf<Site | undefined> };
-    readonly parameters: { site: (Site | undefined)[] };
-    readonly message: string;
-
-    sites: Set<Site> | undefined;
-    none: string | undefined;
-    callback: (site: Site | undefined) => void;
-
-    constructor(player: OathPlayer, message: string, callback: (site: Site | undefined) => void, sites?: Iterable<Site>, none?: string) {
-        super(player);
-        this.message = message;
-        this.callback = callback;
-        this.sites = sites && new Set(sites);
-        this.none = none;
-    }
-
-    start() {
-        if (!this.sites) this.sites = new Set([...this.game.board.sites()].filter(e => !e.facedown && e !== this.player.site));
-
-        const choices = new Map<string, Site | undefined>();
-        if (this.none) choices.set(this.none, undefined);
-        for (const site of this.sites) choices.set(site.visualName(this.player), site);
-        this.selects.site = new SelectNOf("Site", choices, 1);
-
-        return super.start();
-    }
-
-    execute(): void {
-        this.callback(this.parameters.site[0]);
-    }
-}
-
-export class ActAsIfAtSiteAction extends ChooseSiteAction {
-    constructor(player: OathPlayer, action: ModifiableAction, sites?: Iterable<Site>) {
-        super(
-            player, "Choose a site to act at",
-            (site: Site | undefined) => {
-                if (!site) return;
-                action.playerProxy.site = action.maskProxyManager.get(site);
-                action.doNext();  // Allow the player to choose other new modifiers
-            },
-            sites
-        );
     }
 }
 
@@ -1511,34 +1332,171 @@ export class ChooseRegionAction extends OathAction {
 }
 
 
-export class ChooseCardAction<T extends OathCard> extends OathAction {
-    readonly selects: { card: SelectNOf<T | undefined> };
-    readonly parameters: { card: (T | undefined)[] };
+export abstract class ChooseTsAction<T> extends OathAction {
+    readonly selects: { choices: SelectNOf<T> };
+    readonly parameters: { choices: T[] };
     readonly message: string;
 
-    cards: Set<T>;
-    none: string | undefined;
-    callback: (card: T | undefined) => void;
+    choices: Set<T> | undefined;
+    min: number;
+    max: number;
+    callback: (choices: T[]) => void;
 
-    constructor(player: OathPlayer, message: string, cards: Iterable<T>, callback: (card: T | undefined) => void, none?: string) {
+    constructor(player: OathPlayer, message: string, callback: (choices: T[]) => void, choices?: Iterable<T>, min: number = 1, max: number = min) {
         super(player);
         this.message = message;
         this.callback = callback;
-        this.cards = new Set(cards);
-        this.none = none;
-    }
-
-    start() {
-        const choices = new Map<string, T | undefined>();
-        if (this.none) choices.set(this.none, undefined);
-        for (const card of this.cards) choices.set(card.visualName(this.player), card);
-        this.selects.card = new SelectNOf("Card", choices, 1);
-
-        return super.start();
+        this.min = min;
+        this.max = max;
+        this.choices = choices && new Set(choices);
     }
 
     execute(): void {
-        this.callback(this.parameters.card[0]);
+        this.callback(this.parameters.choices);
+    }
+}
+
+
+export class ChooseSuitsAction extends ChooseTsAction<OathSuit> {
+    start() {
+        if (!this.choices) this.choices = new Set([OathSuit.Discord, OathSuit.Arcane, OathSuit.Order, OathSuit.Hearth, OathSuit.Beast, OathSuit.Nomad]);
+
+        const choices = new Map<string, OathSuit>();
+        for (const suit of this.choices) choices.set(OathSuitName[suit], suit);
+        this.selects.choices = new SelectNOf("Suit", choices, this.min, this.max);
+
+        return super.start();
+    }
+}
+
+export class TakeFavorFromBankAction extends ChooseSuitsAction {
+    constructor(player: OathPlayer, amount: number, suits?: Iterable<OathSuit>) {
+        super(
+            player, "Take " + amount + " from a favor bank", 
+            (suits: OathSuit[]) => { if (suits[0]) new TakeResourcesFromBankEffect(this.game, this.player, this.game.favorBanks.get(suits[0]), amount).do(); },
+            suits
+        );
+    }
+}
+
+export class PeoplesFavorWakeAction extends ChooseSuitsAction {
+    banner: PeoplesFavor;
+
+    constructor(player: OathPlayer, banner: PeoplesFavor) {
+        super(player, "Return favor (choose none to put favor)", (suits: OathSuit[]) => { this.putOrReturnFavor(suits[0]) }, []);
+        this.banner = banner;
+    }
+
+    start() {
+        this.choices = new Set();
+        if (this.banner.amount > 1) {
+            let min = Infinity;
+            for (const [suit, bank] of this.game.favorBanks) {
+                const amount = bank.amount;
+                if (amount <= min) {
+                    if (amount < min) this.choices.clear();
+                    this.choices.add(suit);
+                    min = amount;
+                }
+            }
+        }
+        
+        return super.start();
+    }
+
+    putOrReturnFavor(suit: OathSuit | undefined): void {
+        const bank = suit !== undefined ? this.game.favorBanks.get(suit) : undefined;
+
+        if (bank)
+            new MoveBankResourcesEffect(this.game, this.player, this.banner, bank, 1).do();
+        else
+            new PutResourcesIntoBankEffect(this.game, this.player, this.banner, 1).do();
+
+        if (this.banner.amount >= 6)
+            new SetPeoplesFavorMobState(this.game, this.player, true).do();
+    }
+}
+
+
+export class ChoosePlayersAction extends ChooseTsAction<OathPlayer> {
+    start() {
+        if (!this.choices) this.choices = new Set(Object.values(this.game.players).filter(e => e !== this.player));
+
+        const choices = new Map<string, OathPlayer>();
+        for (const player of this.choices)
+            if (player !== this.player)
+                choices.set(player.name, player);
+        this.selects.choices = new SelectNOf("Player", choices, this.min, this.max);
+
+        return super.start();
+    }
+}
+
+export class TakeResourceFromPlayerAction extends ChoosePlayersAction {
+    constructor(player: OathPlayer, resource: OathResource, amount?: number, players?: Iterable<OathPlayer>) {
+        super(
+            player, "",
+            (targets: OathPlayer[]) => {
+                if (!targets.length) return;
+                if (resource === OathResource.Secret && targets[0].getResources(OathResource.Secret) <= 1) return;
+                new MoveResourcesToTargetEffect(this.game, player, resource, amount === undefined ? 1 : amount, player, targets[0]).do();
+            },
+            players
+        );
+    }
+}
+
+export class StartBindingExchangeAction extends ChoosePlayersAction {
+    constructor(player: OathPlayer, next: Constructor<MakeBindingExchangeOfferAction>, players?: Iterable<OathPlayer>) {
+        super(
+            player, "Start a binding exchange with another player",
+            (targets: OathPlayer[]) => { if (targets.length) new next(this.player, targets[0], new next(targets[0], this.player)).doNext(); },
+            players
+        );
+    }
+}
+
+
+export class ChooseSitesAction extends ChooseTsAction<Site> {
+    start() {
+        if (!this.choices) this.choices = new Set([...this.game.board.sites()].filter(e => !e.facedown && e !== this.player.site));
+
+        const choices = new Map<string, Site>();
+        for (const site of this.choices) choices.set(site.visualName(this.player), site);
+        this.selects.choices = new SelectNOf("Site", choices, this.min, this.max);
+
+        return super.start();
+    }
+}
+
+export class ActAsIfAtSiteAction extends ChooseSitesAction {
+    constructor(player: OathPlayer, action: ModifiableAction, sites?: Iterable<Site>) {
+        super(
+            player, "Choose a site to act at",
+            (sites: Site[]) => {
+                if (!sites[0]) return;
+                action.playerProxy.site = action.maskProxyManager.get(sites[0]);
+                action.doNext();  // Allow the player to choose other new modifiers
+            },
+            sites
+        );
+    }
+}
+
+
+export class ChooseCardsAction<T extends OathCard> extends ChooseTsAction<T> {
+    choices: Set<T>;
+
+    constructor(player: OathPlayer, message: string, cards: Iterable<T>, callback: (card: T[]) => void, min: number = 1, max: number = min) {
+        super(player, message, callback, cards, min, max);
+    }
+
+    start() {
+        const choices = new Map<string, T>();
+        for (const card of this.choices) choices.set(card.visualName(this.player), card);
+        this.selects.choices = new SelectNOf("Card", choices, this.min, this.max);
+
+        return super.start();
     }
 }
 

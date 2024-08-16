@@ -1,4 +1,4 @@
-import { CampaignAtttackAction, CampaignDefenseAction, TakeFavorFromBankAction, TradeAction, TravelAction, InvalidActionResolution, MakeDecisionAction, RestAction, ChooseCardAction, SearchPlayAction, ChoosePlayerAction, ChooseSiteAction, ChooseNumberAction } from "../../actions/actions";
+import { CampaignAtttackAction, CampaignDefenseAction, TakeFavorFromBankAction, TradeAction, TravelAction, InvalidActionResolution, MakeDecisionAction, RestAction, ChooseCardsAction, SearchPlayAction, ChoosePlayersAction, ChooseSitesAction, ChooseNumberAction, SearchAction, SearchChooseAction } from "../../actions/actions";
 import { Conspiracy, Denizen, Edifice, Site, WorldCard } from "../../cards/cards";
 import { DiscardOptions } from "../../cards/decks";
 import { AttackDie, DefenseDie } from "../../dice";
@@ -169,12 +169,12 @@ export class TamingCharm extends ActivePower<Denizen> {
     cost = new ResourceCost([[OathResource.Secret, 1]]);
 
     usePower(): void {
-        new ChooseCardAction(
+        new ChooseCardsAction(
             this.action.player, "Discard to gain 2 favor", [...this.action.player.site.denizens].filter(e => e.suit === OathSuit.Beast || e.suit === OathSuit.Nomad && !e.activelyLocked),
-            (card: Denizen | undefined) => {
-                if (!card) return;
-                new TakeResourcesFromBankEffect(this.game, this.action.player, this.game.favorBanks.get(card.suit), 2).do();
-                new DiscardCardEffect(this.action.player, card).do();
+            (cards: Denizen[]) => {
+                if (!cards.length) return;
+                new TakeResourcesFromBankEffect(this.game, this.action.player, this.game.favorBanks.get(cards[0].suit), 2).do();
+                new DiscardCardEffect(this.action.player, cards[0]).do();
             }
         ).doNext();
     }
@@ -192,9 +192,10 @@ export class Inquisitor extends ActivePower<Denizen> {
                 if (adviserProxy.original.facedown) cards.add(adviserProxy.original);
         }
 
-        new ChooseCardAction(
+        new ChooseCardsAction(
             this.action.player, "Peek at an adviser", cards,
-            (card: WorldCard | undefined) => {
+            (cards: WorldCard[]) => {
+                const card = cards[0];
                 if (!card) return;
                 new PeekAtCardEffect(this.action.player, card).do();
 
@@ -216,18 +217,18 @@ export class TerrorSpells extends ActivePower<Denizen> {
 
         new MakeDecisionAction(
             this.action.player, "Kill at site or on boards? (" + amount + " left)",
-            () => new ChooseSiteAction(
+            () => new ChooseSitesAction(
                 this.action.player, "Kill a warband (" + amount + " left)",
-                (site: Site | undefined) => { 
-                    if (site) site.killWarbands(this.action.player);
+                (sites: Site[]) => { 
+                    if (sites[0]) sites[0].killWarbands(this.action.player);
                     if (--amount) this.usePower(amount);
                 },
                 this.action.playerProxy.site.region.original.sites.filter(e => e.totalWarbands)
             ).doNext(),
-            () => new ChoosePlayerAction(
+            () => new ChoosePlayersAction(
                 this.action.player, "Kill a warband (" + amount + " left)",
-                (target: OathPlayer | undefined) => {
-                    if (target) target.killWarbands(this.action.player);
+                (targets: OathPlayer[]) => {
+                    if (targets[0]) targets[0].killWarbands(this.action.player);
                     if (--amount) this.usePower(amount);
                 },
                 Object.values(this.gameProxy.players).filter(e => e.site.region === this.action.playerProxy.site.region && e.original.totalWarbands > 0).map(e => e.original)
@@ -339,6 +340,31 @@ export class Bewitch extends WhenPlayed<Denizen> {
     }
 }
 
+
+export class GreatSpire extends AccessedActionModifier<Edifice> {
+    name = "Great Spire";
+    modifiedAction = SearchChooseAction;
+    action: SearchChooseAction;
+    cost = new ResourceCost([[OathResource.Secret, 1]]);
+
+    applyWhenApplied(): boolean {
+        new ChooseCardsAction(
+            this.action.player, "Swap cards with the Dispossessed", this.action.cards,
+            (cards: WorldCard[]) => {
+                for (const card of cards) {
+                    if (!(card instanceof Denizen)) continue;
+                    const newCard = new GetRandomCardFromDispossessed(this.game, this.action.player).do();
+                    new PutDenizenIntoDispossessedEffect(this.game, this.action.player, card).do();
+                    this.action.cards.delete(card);
+                    this.action.cards.add(newCard);
+                }
+            },
+            0, this.action.cards.size
+        ).doNext();
+
+        return true;
+    }
+}
 
 export class FallenSpire extends ActivePower<Edifice> {
     name = "Fallen Spire";

@@ -1,4 +1,4 @@
-import { InvalidActionResolution, CitizenshipOfferAction, StartBindingExchangeAction, SkeletonKeyAction, TradeAction, CampaignAtttackAction, MusterAction, TravelAction, MakeDecisionAction, ChoosePlayerAction, SearchAction, ChooseCardAction } from "../actions/actions";
+import { InvalidActionResolution, CitizenshipOfferAction, StartBindingExchangeAction, SkeletonKeyAction, TradeAction, CampaignAtttackAction, MusterAction, TravelAction, MakeDecisionAction, ChoosePlayersAction, SearchAction, ChooseCardsAction } from "../actions/actions";
 import { Denizen, GrandScepter, OathCard, Relic, Site } from "../cards/cards";
 import { TakeOwnableObjectEffect, PutWarbandsFromBagEffect, PlayDenizenAtSiteEffect, MoveOwnWarbandsEffect, PeekAtCardEffect, SetGrandScepterLockEffect, GainSupplyEffect, DrawFromDeckEffect, RevealCardEffect, PayCostToTargetEffect, BecomeExileEffect, MoveWarbandsToEffect, TakeWarbandsIntoBagEffect, MoveResourcesToTargetEffect } from "../effects";
 import { BannerName, OathResource } from "../enums";
@@ -60,9 +60,10 @@ export class GrandScepterExileCitizen extends GrandScepterActive {
             if (citizen instanceof Exile && citizen.isCitizen)
                 players.push(citizen);
 
-        new ChoosePlayerAction(
+        new ChoosePlayersAction(
             this.action.player, "Exile a Citizen",
-            (target: OathPlayer | undefined) => {
+            (targets: OathPlayer[]) => {
+                const target = targets[0];
                 if (!target) return;
 
                 let amount = 5;
@@ -156,9 +157,10 @@ export class ObsidianCageActive extends ActivePower<Relic> {
                 players.add(playerProxy.original);
         
         // TODO: "Any number"
-        new ChoosePlayerAction(
+        new ChoosePlayersAction(
             this.action.player, "Return the warbands to a player",
-            (target: OathPlayer | undefined) => { 
+            (targets: OathPlayer[]) => {
+                const target = targets[0];
                 if (!target) return;
                 new MoveOwnWarbandsEffect(target.leader, this.source, target, Infinity).do(); 
                 const amount = new TakeWarbandsIntoBagEffect(target, Infinity, this.source).do();
@@ -315,9 +317,9 @@ export class IvoryEye extends ActivePower<Relic> {
             for (const adviser of player.advisers)
                 if (adviser.facedown) cards.add(adviser);
 
-        new ChooseCardAction(
+        new ChooseCardsAction(
             this.action.player, "Peek at a card", cards,
-            (card: OathCard | undefined) => { if (card) new PeekAtCardEffect(this.action.player, card).do(); }
+            (cards: OathCard[]) => { if (cards.length) new PeekAtCardEffect(this.action.player, cards[0]).do(); }
         ).doNext();
     }
 }
@@ -351,14 +353,14 @@ export class Whistle extends ActivePower<Relic> {
     cost = new ResourceCost([[OathResource.Secret, 1]]);
 
     usePower(): void {
-        new ChoosePlayerAction(
+        new ChoosePlayersAction(
             this.action.player, "Force a player to travel to you",
-            (target: OathPlayer | undefined) => {
-                if (!target) return;
-                const travelAction = new TravelAction(target, this.action.player, (s: Site) => s === this.action.player.site)
+            (targets: OathPlayer[]) => {
+                if (!targets.length) return;
+                const travelAction = new TravelAction(targets[0], this.action.player, (s: Site) => s === this.action.player.site)
                 travelAction._noSupplyCost = true;
                 travelAction.doNext();
-                new MoveResourcesToTargetEffect(this.game, this.action.player, OathResource.Secret, 1, target, this.source).doNext();
+                new MoveResourcesToTargetEffect(this.game, this.action.player, OathResource.Secret, 1, targets[0], this.source).doNext();
             },
             Object.values(this.gameProxy.players).filter(e => e.site !== this.action.playerProxy.site).map(e => e.original)
         )

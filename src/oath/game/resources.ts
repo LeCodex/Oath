@@ -3,7 +3,7 @@ import { OathResource } from "./enums"
 import { OathGameObject } from "./gameObject";
 import { OathPlayer } from "./player";
 import { ResourceBank } from "./banks";
-import { ChoosePlayerAction } from "./actions/actions";
+import { ChoosePlayersAction } from "./actions/actions";
 
 
 export abstract class ResourcesAndWarbands extends OathGameObject {
@@ -98,9 +98,9 @@ export abstract class ResourcesAndWarbands extends OathGameObject {
     }
 
     killWarbands(player: OathPlayer, amount: number = 1) {
-        new ChoosePlayerAction(
+        new ChoosePlayersAction(
             player, "Kill " + amount + " warband(s)",
-            (owner: OathPlayer | undefined) => { if (owner) new TakeWarbandsIntoBagEffect(owner, amount, this).do(); },
+            (owners: OathPlayer[]) => { if (owners.length) new TakeWarbandsIntoBagEffect(owners[0], amount, this).do(); },
             [...this.warbands.keys()].filter(e => this.getWarbands(e) > 0)
         ).doNext();
     }

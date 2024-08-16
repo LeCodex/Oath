@@ -1,4 +1,4 @@
-import { TradeAction, TakeResourceFromPlayerAction, TakeFavorFromBankAction, CampaignEndAction, ModifiableAction, MakeDecisionAction, CampaignAtttackAction, InvalidActionResolution, RecoverAction, ChooseSuitAction, ChooseCardAction } from "../../actions/actions";
+import { TradeAction, TakeResourceFromPlayerAction, TakeFavorFromBankAction, CampaignEndAction, ModifiableAction, MakeDecisionAction, CampaignAtttackAction, InvalidActionResolution, RecoverAction, ChooseSuitsAction, ChooseCardsAction } from "../../actions/actions";
 import { PeoplesFavor } from "../../banks";
 import { Denizen, Edifice, Relic, WorldCard } from "../../cards/cards";
 import { TakeWarbandsIntoBagEffect, TakeResourcesFromBankEffect, PlayVisionEffect, PlayWorldCardEffect, OathEffect, PeekAtCardEffect, DiscardCardEffect, PutWarbandsFromBagEffect, BecomeCitizenEffect, SetPeoplesFavorMobState, PutResourcesOnTargetEffect, PutResourcesIntoBankEffect, GainSupplyEffect, MoveBankResourcesEffect } from "../../effects";
@@ -248,11 +248,11 @@ export class MemoryOfHome extends ActivePower<Denizen> {
     cost = new ResourceCost([], [[OathResource.Secret, 1]]);
 
     usePower(): void {
-        new ChooseSuitAction(
+        new ChooseSuitsAction(
             this.action.player, "Move all favor from one bank to the Hearth bank",
-            (suit: OathSuit | undefined) => {
-                if (!suit) return;
-                const from = this.game.favorBanks.get(suit);
+            (suits: OathSuit[]) => {
+                if (!suits.length) return;
+                const from = this.game.favorBanks.get(suits[0]);
                 const to = this.game.favorBanks.get(OathSuit.Hearth);
                 if (!from || !to) return;
                 new MoveBankResourcesEffect(this.game, this.action.player, from, to, Infinity).do();
@@ -276,7 +276,7 @@ export class ArmedMob extends ActivePower<Denizen> {
             if (!adviserProxy.original.facedown && !(adviserProxy instanceof Denizen && adviserProxy.activelyLocked))
                 cards.add(adviserProxy.original);
 
-        new ChooseCardAction(this.action.player, "Discard an adviser", cards, (card: WorldCard | undefined) => { if (card) new DiscardCardEffect(this.action.player, card).do(); }).doNext();
+        new ChooseCardsAction(this.action.player, "Discard an adviser", cards, (cards: WorldCard[]) => { if (cards.length) new DiscardCardEffect(this.action.player, cards[0]).do(); }).doNext();
     }
 }
 
@@ -314,19 +314,19 @@ export class Levelers extends ActivePower<Denizen> {
             }
         }
 
-        new ChooseSuitAction(
+        new ChooseSuitsAction(
             this.action.player, "Move 2 favor to a bank with the least favor",
-            (suit: OathSuit | undefined) => {
-                if (!suit) return;
-                minSuits.delete(suit);
-                const from = this.game.favorBanks.get(suit);
+            (suits: OathSuit[]) => {
+                if (!suits.length) return;
+                minSuits.delete(suits[0]);
+                const from = this.game.favorBanks.get(suits[0]);
                 if (!from) return;
 
-                new ChooseSuitAction(
+                new ChooseSuitsAction(
                     this.action.player, "Move 2 favor to a bank with the least favor",
-                    (suit: OathSuit | undefined) => {
-                        if (!suit) return;
-                        const to = this.game.favorBanks.get(suit);
+                    (suits: OathSuit[]) => {
+                        if (!suits.length) return;
+                        const to = this.game.favorBanks.get(suits[0]);
                         if (!to) return;
 
                         new MoveBankResourcesEffect(this.game, this.action.player, from, to, 2).do();
@@ -344,11 +344,11 @@ export class RelicBreaker extends ActivePower<Denizen> {
     cost = new ResourceCost([[OathResource.Favor, 1]]);
 
     usePower(): void {
-        new ChooseCardAction(
+        new ChooseCardsAction(
             this.action.player, "Discard a relic to gain 3 warbands", [...this.action.playerProxy.site.relics].map(e => e.original),
-            (card: Relic | undefined) => {
-                if (!card) return;
-                card.putOnBottom(this.action.player);
+            (cards: Relic[]) => {
+                if (!cards.length) return;
+                cards[0].putOnBottom(this.action.player);
                 new PutWarbandsFromBagEffect(this.action.playerProxy.leader.original, 3, this.action.player).do();
             }
         ).doNext();

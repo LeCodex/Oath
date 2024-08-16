@@ -1,4 +1,4 @@
-import { ChooseSuitAction, RecoverAction, RecoverBannerPitchAction } from "./actions/actions";
+import { ChooseSuitsAction, RecoverAction, RecoverBannerPitchAction } from "./actions/actions";
 import { RecoverActionTarget, CampaignActionTarget, WithPowers, OwnableObject } from "./interfaces";
 import { PutResourcesIntoBankEffect, TakeOwnableObjectEffect, SetPeoplesFavorMobState, TakeResourcesFromBankEffect, MoveBankResourcesEffect } from "./effects";
 import { OathResource, OathSuit } from "./enums";
@@ -105,7 +105,7 @@ export class PeoplesFavor extends Banner {
 
     handleRecovery(player: OathPlayer) {
         new SetPeoplesFavorMobState(this.game, player, false).do();
-        new ChooseSuitAction(
+        new ChooseSuitsAction(
             player, "Choose where to start returning the favor (" + this.amount + ")",
             (suit: OathSuit | undefined) => {
                 if (suit === undefined) return;

@@ -1,4 +1,4 @@
-import { ChoosePlayerAction, ConspiracyStealAction } from "../actions/actions";
+import { ChoosePlayersAction, ConspiracyStealAction } from "../actions/actions";
 import { Conspiracy, Denizen } from "../cards/cards";
 import { OathPlayer } from "../player";
 import { WhenPlayed } from "./powers";
@@ -22,10 +22,10 @@ export class ConspiracyPower extends WhenPlayed<Conspiracy> {
             }
         }
 
-        new ChoosePlayerAction(
-            this.effect.player, "", 
-            (target: OathPlayer | undefined) => { if (target !== undefined) new ConspiracyStealAction(this.effect.player, target).doNext(); }, 
-            targets, "No one"
+        new ChoosePlayersAction(
+            this.effect.player, "Target a player (or no-one) with the Conspiracy", 
+            (targets: OathPlayer[]) => { if (targets.length) new ConspiracyStealAction(this.effect.player, targets[0]).doNext(); }, 
+            targets, 0, 1
         ).doNext();
     }
 }

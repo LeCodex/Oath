@@ -11,12 +11,15 @@ export class SelectNOf<T> {
         this.name = name;
         this.choices = new Map(choices);
 
+        
         if (max === undefined) max = min == -1 ? this.choices.size : min;
+        min = Math.max(min, 0);
+        
         if (min > max) throw new InvalidActionResolution(`Min is above max for select ${this.name}`);
         if (this.choices.size < min && exact) throw new InvalidActionResolution(`Not enough choices for select ${this.name}`);
 
-        this.min = min === -1 ? 0 : min;
-        this.max = max;
+        this.min = min;
+        this.max = Math.min(max, this.choices.size);;
     }
 
     parse(input: Iterable<string>): T[] {
@@ -24,7 +27,7 @@ export class SelectNOf<T> {
         for (const val of input) {
             if (!this.choices.has(val)) throw new InvalidActionResolution(`Invalid choice for select ${this.name}: ${val}`);
             const obj = this.choices.get(val);
-            values.add(obj as T); // We know the value exists, and if it's undefined, then we want that
+            values.add(obj as T); // We know the value exists, and if it's undefined, then we want it to be
         }
         if (values.size < this.min || values.size > this.max) throw new InvalidActionResolution(`Invalid number of values for select ${this.name}`);
 

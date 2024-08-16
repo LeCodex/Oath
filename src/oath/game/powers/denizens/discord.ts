@@ -1,4 +1,4 @@
-import { MakeDecisionAction, ChooseCardAction, ChooseRegionAction, InvalidActionResolution, TakeFavorFromBankAction, TakeResourceFromPlayerAction } from "../../actions/actions";
+import { MakeDecisionAction, ChooseCardsAction, ChooseRegionAction, InvalidActionResolution, TakeFavorFromBankAction, TakeResourceFromPlayerAction } from "../../actions/actions";
 import { Region } from "../../board";
 import { Denizen, Relic, Site, WorldCard } from "../../cards/cards";
 import { D6, DefenseDie } from "../../dice";
@@ -158,7 +158,7 @@ export class Assassin extends ActivePower<Denizen> {
                     cards.add(adviserProxy.original);
         }
 
-        new ChooseCardAction(this.action.player, "Discard an adviser", cards, (card: WorldCard | undefined) => { if (card) new DiscardCardEffect(this.action.player, card).do(); }).doNext();
+        new ChooseCardsAction(this.action.player, "Discard an adviser", cards, (cards: WorldCard[]) => { if (cards.length) new DiscardCardEffect(this.action.player, cards[0]).do(); }).doNext();
     }
 }
 

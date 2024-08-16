@@ -1,4 +1,4 @@
-import { TradeAction, InvalidActionResolution, TravelAction, SearchAction, SearchPlayAction, TakeFavorFromBankAction, CampaignKillWarbandsInForceAction, CampaignResult, MakeDecisionAction, CampaignAction, ActAsIfAtSiteAction, CampaignDefenseAction, ChooseSiteAction, ChoosePlayerAction, MoveWarbandsAction } from "../../actions/actions";
+import { TradeAction, InvalidActionResolution, TravelAction, SearchAction, SearchPlayAction, TakeFavorFromBankAction, CampaignKillWarbandsInForceAction, CampaignResult, MakeDecisionAction, CampaignAction, ActAsIfAtSiteAction, CampaignDefenseAction, ChooseSitesAction, ChoosePlayersAction, MoveWarbandsAction } from "../../actions/actions";
 import { Denizen, Edifice, Site, Vision } from "../../cards/cards";
 import { PayCostToTargetEffect, MoveResourcesToTargetEffect, TakeWarbandsIntoBagEffect, GainSupplyEffect, TakeResourcesFromBankEffect, BecomeCitizenEffect, PutWarbandsFromBagEffect, ApplyModifiersEffect, PutPawnAtSiteEffect } from "../../effects";
 import { OathResource, OathSuit } from "../../enums";
@@ -301,11 +301,11 @@ export class SiegeEngines extends ActivePower<Denizen> {
     cost = new ResourceCost([[OathResource.Favor, 1]]);
 
     usePower(): void {
-        new ChooseSiteAction(
+        new ChooseSitesAction(
             this.action.player, "Kill two warbands",
-            (site: Site | undefined) => {
-                if (!site) return;
-                site.killWarbands(this.action.player, 2);
+            (sites: Site[]) => {
+                if (!sites[0]) return;
+                sites[0].killWarbands(this.action.player, 2);
             },
             this.action.playerProxy.site.region.original.sites.filter(e => e.totalWarbands)
         ).doNext();
@@ -317,17 +317,17 @@ export class Messenger extends ActivePower<Denizen> {
     cost = new ResourceCost([[OathResource.Favor, 1]]);
 
     usePower(): void {
-        new ChooseSiteAction(
-            this.action.player, "Exchange warbands with a site",
-            (site: Site | undefined) => {
-                if (!site) return;
+        new ChooseSitesAction(
+            this.action.player, "Exchange warbands with a site (choose none to finish)",
+            (sites: Site[]) => {
+                if (!sites[0]) return;
                 const action = new MoveWarbandsAction(this.action.player);
-                action.playerProxy.site = site;
+                action.playerProxy.site = action.maskProxyManager.get(sites[0]);
                 action.doNext();
                 this.usePower();
             },
             [...this.gameProxy.board.sites()].filter(e => e.ruler === this.action.playerProxy).map(e => e.original),
-            "Finish"
+            0, 1
         ).doNext();
     }
 }
@@ -337,16 +337,16 @@ export class Palanquin extends ActivePower<Denizen> {
     cost = new ResourceCost([[OathResource.Favor, 1]]);
 
     usePower(): void {
-        new ChoosePlayerAction(
+        new ChoosePlayersAction(
             this.action.player, "Choose a player to move",
-            (target: OathPlayer | undefined) => {
-                if (!target) return;
-                new ChooseSiteAction(
+            (targets: OathPlayer[]) => {
+                if (!targets.length) return;
+                new ChooseSitesAction(
                     this.action.player, "Force travel to a site",
-                    (site: Site | undefined) => {
-                        if (!site) return;
-                        new PutPawnAtSiteEffect(this.action.player, site).do();
-                        const travelAction = new TravelAction(target, this.action.player, (s: Site) => s === site);
+                    (sites: Site[]) => {
+                        if (!sites[0]) return;
+                        new PutPawnAtSiteEffect(this.action.player, sites[0]).do();
+                        const travelAction = new TravelAction(targets[0], this.action.player, (s: Site) => s === sites[0]);
                         travelAction._noSupplyCost = true;
                         travelAction.doNext();
                     }
