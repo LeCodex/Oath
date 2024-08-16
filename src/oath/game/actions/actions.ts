@@ -10,7 +10,7 @@ import { Exile, OathPlayer } from "../player";
 import { ActionModifier, ActivePower, CapacityModifier } from "../powers/powers";
 import { ResourceCost, ResourcesAndWarbands } from "../resources";
 import { Banner, PeoplesFavor } from "../banks";
-import { Constructor, isExtended, MaskProxyManager } from "../utils";
+import { Constructor, inclusiveRange, isExtended, MaskProxyManager } from "../utils";
 import { SelectNOf, SelectBoolean, SelectNumber } from "./selects";
 import { CampaignActionTarget, RecoverActionTarget, WithPowers } from "../interfaces";
 import { Region } from "../board";
@@ -396,10 +396,7 @@ export class RecoverBannerPitchAction extends OathAction {
     }
 
     start() {
-        const values: number[] = [];
-        for (let i = this.banner.amount + 1; i <= this.player.getResources(this.banner.type); i++)
-            values.push(i);
-        this.selects.amount = new SelectNumber("Amount", values);
+        this.selects.amount = new SelectNumber("Amount", inclusiveRange(this.banner.amount + 1, this.player.getResources(this.banner.type)));
         return super.start();
     }
 
@@ -703,9 +700,7 @@ export class CampaignAtttackAction extends ModifiableAction {
         }
         this.selects.targets = new SelectNOf("Target(s)", choices, 1 - this.campaignResult.targets.size, choices.size);
 
-        const values: number[] = [];
-        for (let i = 0; i <= this.playerProxy.totalWarbands; i++) values.push(i);
-        this.selects.pool = new SelectNumber("Attack pool", values);
+        this.selects.pool = new SelectNumber("Attack pool", inclusiveRange(this.playerProxy.totalWarbands));
         
         return super.start();
     }
@@ -972,11 +967,9 @@ export class CampaignKillWarbandsInForceAction extends OathAction {
         if (this.owner) {
             const sources: [string, number][] = [...this.force].map(e => [e.name, e.getWarbands(this.owner)]);
             for (const [key, warbands] of sources) {
-                const values = [];
                 const min = Math.min(warbands, Math.max(0, this.amount - sources.filter(([k, _]) => k !== key).reduce((a, [_, v]) => a + Math.min(v, this.amount), 0)));
                 const max = Math.min(warbands, this.amount);
-                for (let i = min; i <= max; i++) values.push(i);
-                this.selects[key] = new SelectNumber(key, values);
+                this.selects[key] = new SelectNumber(key, inclusiveRange(min, max));
             }
         }
         return super.start();
@@ -1024,9 +1017,7 @@ export class CampaignSeizeSiteAction extends OathAction {
     }
 
     start() {
-        const values: number[] = [];
-        for (let i = 0; i <= this.player.getWarbands(this.player.leader.original); i++) values.push(i);
-        this.selects.amount = new SelectNumber("Amount", values);
+        this.selects.amount = new SelectNumber("Amount", inclusiveRange(this.player.getWarbands(this.player.leader.original)));
         return super.start();
     }
 
@@ -1129,7 +1120,7 @@ export class PlayFacedownAdviserAction extends ModifiableAction {
     }
 
     modifiedExecution(): void {
-        new SearchPlayAction(this.player, new MoveAdviserEffect(this.player, this.playing).do()).doNext();
+        new SearchPlayAction(this.player, new MoveAdviserEffect(this.game, this.player, this.playing).do()).doNext();
     }
 }
 
@@ -1160,10 +1151,8 @@ export class MoveWarbandsAction extends ModifiableAction {
             max = Math.max(max, siteProxy.getWarbands(this.playerProxy.leader.original) - 1);
         }
         this.selects.target = new SelectNOf("Target", choices, 1);
-        
-        const values = [];
-        for (let i = 1; i <= max; i++) values.push(i);
-        this.selects.amount = new SelectNumber("Amount", values);
+
+        this.selects.amount = new SelectNumber("Amount", inclusiveRange(max));
 
         this.selects.giving = new SelectBoolean("Direction", ["Giving", "Taking"]);
 
@@ -1544,14 +1533,8 @@ export class MakeBindingExchangeOfferAction extends OathAction {
     }
 
     start(): boolean {
-        const values = [];
-        for (let i = 0; i <= this.other.getResources(OathResource.Favor); i++) values.push(i);
-        this.selects.favors = new SelectNumber("Favors", values);
-        
-        values.length = 0;
-        for (let i = 0; i <= this.other.getResources(OathResource.Secret); i++) values.push(i);
-        this.selects.secrets = new SelectNumber("Secrets", values);
-
+        this.selects.favors = new SelectNumber("Favors", inclusiveRange(this.other.getResources(OathResource.Favor)));
+        this.selects.secrets = new SelectNumber("Secrets", inclusiveRange(this.other.getResources(OathResource.Secret)));
         return super.start();
     }
 

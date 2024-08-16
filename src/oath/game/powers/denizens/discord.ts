@@ -1,12 +1,13 @@
-import { MakeDecisionAction, ChooseCardsAction, ChooseRegionAction, InvalidActionResolution, TakeFavorFromBankAction, TakeResourceFromPlayerAction } from "../../actions/actions";
+import { MakeDecisionAction, ChooseCardsAction, ChooseRegionAction, InvalidActionResolution, TakeFavorFromBankAction, TakeResourceFromPlayerAction, ChooseSuitsAction, ModifiableAction, ChoosePlayersAction, WakeAction, SearchPlayAction } from "../../actions/actions";
+import { PeoplesFavor } from "../../banks";
 import { Region } from "../../board";
-import { Denizen, Relic, Site, WorldCard } from "../../cards/cards";
+import { Denizen, OathCard, Relic, Site, Vision, WorldCard } from "../../cards/cards";
 import { D6, DefenseDie } from "../../dice";
-import { TakeOwnableObjectEffect, TakeWarbandsIntoBagEffect, PutWarbandsFromBagEffect, PutResourcesOnTargetEffect, MoveResourcesToTargetEffect, SetNewOathkeeperEffect, RollDiceEffect, GamblingHallEffect, TakeResourcesFromBankEffect, DiscardCardEffect, BecomeCitizenEffect, PayCostToTargetEffect, PeekAtCardEffect } from "../../effects";
+import { TakeOwnableObjectEffect, TakeWarbandsIntoBagEffect, PutWarbandsFromBagEffect, PutResourcesOnTargetEffect, MoveResourcesToTargetEffect, SetNewOathkeeperEffect, RollDiceEffect, GamblingHallEffect, TakeResourcesFromBankEffect, DiscardCardEffect, BecomeCitizenEffect, PayCostToTargetEffect, PeekAtCardEffect, OathEffect, WinGameEffect, DrawFromDeckEffect } from "../../effects";
 import { BannerName, OathResource, OathSuit } from "../../enums";
-import { OathPlayer } from "../../player";
+import { Exile, OathPlayer } from "../../player";
 import { ResourceCost } from "../../resources";
-import { EnemyEffectModifier, WhenPlayed, CapacityModifier, ActivePower, RestPower, AttackerBattlePlan, DefenderBattlePlan, EffectModifier } from "../powers";
+import { EnemyEffectModifier, WhenPlayed, CapacityModifier, ActivePower, RestPower, AttackerBattlePlan, DefenderBattlePlan, EffectModifier, ActionModifier, AccessedActionModifier, WakePower } from "../powers";
 
 
 export class MercenariesAttack extends AttackerBattlePlan<Denizen> {
@@ -250,11 +251,159 @@ export class Dissent extends WhenPlayed<Denizen> {
     }
 }
 
+export class Riots extends WhenPlayed<Denizen> {
+    name = "Riots";
+
+    whenPlayed(): void {
+        const peoplesFavorProxy = this.gameProxy.banners.get(BannerName.PeoplesFavor) as PeoplesFavor;
+        if (!peoplesFavorProxy?.isMob) return;
+
+        const suitCounts = new Map<OathSuit, number>();
+        for (const siteProxy of this.gameProxy.board.sites())
+            for (const denizenProxy of siteProxy.denizens)
+                suitCounts.set(denizenProxy.suit, (suitCounts.get(denizenProxy.suit) || 0) + 1);
+        
+        let max = 0;
+        const suits = new Set<OathSuit>();
+        for (const [suit, number] of suitCounts) {
+            if (number >= max) {
+                if (number > max) suits.clear();
+                suits.add(suit);
+                max = number;
+            }
+        }
+
+        new ChooseSuitsAction(
+            this.effect.player, "Discard all other cards at site of the suit with the most",
+            (suits: OathSuit[]) => {
+                if (!suits.length) return;
+                for (const siteProxy of this.gameProxy.board.sites())
+                    for (const denizenProxy of siteProxy.denizens)
+                        if (denizenProxy.suit === suits[0] && denizenProxy !== this.sourceProxy)
+                            new DiscardCardEffect(this.effect.player, denizenProxy.original).do();
+            },
+            suits
+        ).doNext();
+    }
+}
+
+export class Blackmail extends WhenPlayed<Denizen> {
+    name = "Blackmail";
+
+    whenPlayed(): void {
+        const relics = new Set<Relic>();
+        for (const playerProxy of Object.values(this.gameProxy.players)) {
+            if (playerProxy === this.effect.playerProxy || playerProxy.site === this.effect.playerProxy.site) continue;
+            for (const relicProxy of playerProxy.relics) relics.add(relicProxy.original);
+        }
+
+        new ChooseCardsAction(
+            this.effect.player, "Steal a relic unless its owner gives you 3 favor", relics,
+            (cards: Relic[]) => {
+                const relic = cards[0];
+                if (!relic?.owner) return;
+                
+                if (relic.owner.getResources(OathResource.Favor) < 3)
+                    new TakeOwnableObjectEffect(this.game, this.effect.player, relic).do();
+                else
+                    new MakeDecisionAction(
+                        relic.owner, "Let " + this.effect.player.name + " take " + relic.name + ", or give them 3 favor?",
+                        () => new TakeOwnableObjectEffect(this.game, this.effect.player, relic).do(),
+                        () => new MoveResourcesToTargetEffect(this.game, relic.owner, OathResource.Favor, 3, this.effect.player).do(),
+                        ["Give the relic", "Give 3 favor"]
+                    ).doNext();
+            }
+        ).doNext();
+    }
+}
+
 export class ASmallFavor extends WhenPlayed<Denizen> {
     name = "ASmallFavor";
 
     whenPlayed(): void {
         new PutWarbandsFromBagEffect(this.effect.playerProxy.leader.original, 4).do();
+    }
+}
+
+export class BanditChief extends WhenPlayed<Denizen> {
+    name = "Bandit Chief";
+
+    whenPlayed(): void {
+        for (const site of this.game.board.sites())
+            site.killWarbands(this.effect.player, 1);
+    }
+}
+export class BanditChiefAction extends ActionModifier<Denizen> {
+    name = "Bandit Chief";
+    modifiedAction = ModifiableAction;
+    action: ModifiableAction;
+    mustUse = true;
+
+    applyWhenApplied(): boolean {
+        for (const siteProxy of this.gameProxy.board.sites())
+            siteProxy.bandits += 2;
+
+        return true;
+    }
+}
+export class BanditChiefEffect extends EffectModifier<Denizen> {
+    name = "Bandit Chief";
+    modifiedEffect = OathEffect;
+    effect: OathEffect<any>;
+
+    applyWhenApplied(): boolean {
+        for (const siteProxy of this.gameProxy.board.sites())
+            siteProxy.bandits += 2;
+        
+        return true;
+    }
+}
+
+export class FalseProphet extends WhenPlayed<Denizen> {
+    name = "False Prophet";
+
+    whenPlayed(): void {
+        if (this.effect.playerProxy?.isImperial) return;
+
+        const visions = new Set<Vision>();
+        for (const player of Object.values(this.game.players))
+            if (player instanceof Exile && player.vision)  // RAW, it doesn't say "another player has revealed"
+                visions.add(player.vision);
+
+        new ChooseCardsAction(
+            this.effect.player, "Place a warband on a revealed Vision", visions,
+            (cards: OathCard[]) => { if (cards.length) new PutWarbandsFromBagEffect(this.effect.player, 1, cards[0]).do() }
+        ).doNext();
+    }
+}
+export class FalseProphetWake extends WakePower<Denizen> {
+    name = "False Prophet";
+
+    applyWhenApplied(): boolean {
+        if (this.action.playerProxy?.isImperial) return true;
+
+        for (const player of Object.values(this.game.players)) {
+            if (player instanceof Exile && player.vision && player.vision.getWarbands(this.action.player) > 0) {
+                const candidates = player.vision.oath.getOathkeeperCandidates();
+                if (candidates.size === 1 && candidates.has(this.action.player)) {
+                    new WinGameEffect(this.action.player).do();
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+}
+export class FalseProphetDiscard extends EffectModifier<Denizen> {
+    name = "False Prophet";
+    modifiedEffect = DiscardCardEffect;
+    effect: DiscardCardEffect<Vision>;
+
+    applyAfter(result: void): void {
+        const card = new DrawFromDeckEffect(this.effect.player, this.effect.discardOptions.discard, 1, this.effect.discardOptions.onBottom).do()[0];
+        if (!card || !(card instanceof Vision)) return;
+        new SearchPlayAction(this.effect.player, card).doNext();
     }
 }
 
@@ -266,7 +415,19 @@ export class RoyalAmbitions extends WhenPlayed<Denizen> {
             new MakeDecisionAction(this.effect.player, "Become a Citizen?", () => {
                 // TODO: Take a reliquary relic
                 new BecomeCitizenEffect(this.effect.player).do(); 
-            });
+            }).doNext();
+    }
+}
+
+export class SaltTheEarth extends CapacityModifier<Denizen> {
+    name = "Salt the Earth";
+
+    canUse(player: OathPlayer, site?: Site): boolean {
+        return site === this.source.site;
+    }
+
+    updateCapacityInformation(targetProxy: Set<WorldCard>): [number, Iterable<WorldCard>] {
+        return [0, [this.sourceProxy]];  // Also takes care of discarding and checking for locked cards
     }
 }
 

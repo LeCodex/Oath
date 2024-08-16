@@ -1,6 +1,6 @@
 import { TradeAction, InvalidActionResolution, TravelAction, SearchAction, SearchPlayAction, TakeFavorFromBankAction, CampaignKillWarbandsInForceAction, CampaignResult, MakeDecisionAction, CampaignAction, ActAsIfAtSiteAction, CampaignDefenseAction, ChooseSitesAction, ChoosePlayersAction, MoveWarbandsAction } from "../../actions/actions";
 import { Denizen, Edifice, Site, Vision } from "../../cards/cards";
-import { PayCostToTargetEffect, MoveResourcesToTargetEffect, TakeWarbandsIntoBagEffect, GainSupplyEffect, TakeResourcesFromBankEffect, BecomeCitizenEffect, PutWarbandsFromBagEffect, ApplyModifiersEffect, PutPawnAtSiteEffect } from "../../effects";
+import { PayCostToTargetEffect, MoveResourcesToTargetEffect, TakeWarbandsIntoBagEffect, GainSupplyEffect, TakeResourcesFromBankEffect, BecomeCitizenEffect, PutWarbandsFromBagEffect, ApplyModifiersEffect, PutPawnAtSiteEffect, MoveOwnWarbandsEffect } from "../../effects";
 import { OathResource, OathSuit } from "../../enums";
 import { OathPlayer } from "../../player";
 import { ResourceCost } from "../../resources";
@@ -259,6 +259,27 @@ export class RoyalTax extends WhenPlayed<Denizen> {
             if (playerProxy.site.ruler === this.effect.playerProxy.leader)
                 new MoveResourcesToTargetEffect(this.game, this.effect.player, OathResource.Favor, 2, this.effect.player, playerProxy).do();
         }
+    }
+}
+
+export class Garrison extends WhenPlayed<Denizen> {
+    name = "Garrison";
+
+    whenPlayed(): void {
+        const sites = new Set<Site>();
+        const leader = this.effect.playerProxy.leader.original;
+        for (const siteProxy of this.gameProxy.board.sites()) {
+            if (siteProxy.ruler === this.effect.playerProxy) {
+                new PutWarbandsFromBagEffect(leader, 1, this.effect.player).do();
+                sites.add(siteProxy.original);
+            }
+        }
+        
+        new ChooseSitesAction(
+            this.effect.player, "Place a warband on each site you rule",
+            (sites: Site[]) => { for (const site of sites) new MoveOwnWarbandsEffect(leader, this.effect.player, site).do() },
+            sites, Math.min(sites.size, this.effect.player.getWarbands(leader))
+        ).doNext();
     }
 }
 

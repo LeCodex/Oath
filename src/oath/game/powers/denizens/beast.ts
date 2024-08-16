@@ -103,6 +103,20 @@ export class ThreateningRoar extends WhenPlayed<Denizen> {
     }
 }
 
+export class AnimalHost extends WhenPlayed<Denizen> {
+    name = "Animal Host";
+
+    whenPlayed(): void {
+        let amount = 0;
+        for (const siteProxy of this.gameProxy.board.sites())
+            for (const denizenProxy of siteProxy.denizens)
+                if (denizenProxy.suit === OathSuit.Beast)
+                    amount++;
+
+        new PutWarbandsFromBagEffect(this.effect.playerProxy.leader.original, amount, this.effect.player).do();
+    }
+}
+
 export class VowOfPoverty extends AccessedActionModifier<Denizen> {
     name = "Vow of Poverty";
     modifiedAction = TradeAction;
@@ -132,7 +146,7 @@ export class PiedPiper extends ActivePower<Denizen> {
             (targets: OathPlayer[]) => {
                 if (!targets.length) return;
                 new MoveResourcesToTargetEffect(this.game, this.action.player, OathResource.Favor, 2, this.action.player, targets[0]).do();
-                const adviser = new MoveAdviserEffect(this.action.player, this.source).do();
+                const adviser = new MoveAdviserEffect(this.game, this.action.player, this.source).do();
                 new MoveWorldCardToAdvisersEffect(this.game, this.action.player, adviser, targets[0]).do();
             }
         ).doNext();

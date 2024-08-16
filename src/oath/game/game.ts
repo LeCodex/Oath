@@ -3,11 +3,11 @@ import { OathActionManager } from "./actions/manager";
 import { DrawFromDeckEffect, PutPawnAtSiteEffect, SetNewOathkeeperEffect, SetUsurperEffect, WinGameEffect } from "./effects";
 import { OathPower } from "./powers/powers";
 import { OathBoard } from "./board";
-import { CardDeck, RelicDeck, WorldDeck } from "./cards/decks";
+import { CardDeck, WorldDeck } from "./cards/decks";
 import { DenizenData, denizenData, edificeData } from "./cards/denizens";
 import { relicsData } from "./cards/relics";
 import { sitesData } from "./cards/sites";
-import { BannerName, OathType, OathPhase, OathSuit, RegionName, PlayerColor, OathResource } from "./enums";
+import { BannerName, OathPhase, OathSuit, RegionName, PlayerColor, OathResource } from "./enums";
 import { Oath, OathOfDevotion, OathOfProtection, OathOfSupremacy, OathOfThePeople, OathTypeToOath } from "./oaths";
 import { Conspiracy, Denizen, Edifice, GrandScepter, Relic, Site, Vision, WorldCard } from "./cards/cards";
 import { Chancellor, Exile, OathPlayer } from "./player";
@@ -46,7 +46,7 @@ export class OathGame extends WithOriginal {
     ]);
     favorBanks: Map<OathSuit, FavorBank>;
     worldDeck = new WorldDeck(this);
-    relicDeck = new RelicDeck(this);
+    relicDeck = new CardDeck<Relic>(this);
     siteDeck = new CardDeck<Site>(this);
     board: OathBoard;
 

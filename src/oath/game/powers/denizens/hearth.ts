@@ -1,7 +1,7 @@
-import { TradeAction, TakeResourceFromPlayerAction, TakeFavorFromBankAction, CampaignEndAction, ModifiableAction, MakeDecisionAction, CampaignAtttackAction, InvalidActionResolution, RecoverAction, ChooseSuitsAction, ChooseCardsAction } from "../../actions/actions";
+import { TradeAction, TakeResourceFromPlayerAction, TakeFavorFromBankAction, CampaignEndAction, ModifiableAction, MakeDecisionAction, CampaignAtttackAction, InvalidActionResolution, RecoverAction, ChooseSuitsAction, ChooseCardsAction, ChooseSitesAction } from "../../actions/actions";
 import { PeoplesFavor } from "../../banks";
 import { Denizen, Edifice, Relic, WorldCard } from "../../cards/cards";
-import { TakeWarbandsIntoBagEffect, TakeResourcesFromBankEffect, PlayVisionEffect, PlayWorldCardEffect, OathEffect, PeekAtCardEffect, DiscardCardEffect, PutWarbandsFromBagEffect, BecomeCitizenEffect, SetPeoplesFavorMobState, PutResourcesOnTargetEffect, PutResourcesIntoBankEffect, GainSupplyEffect, MoveBankResourcesEffect } from "../../effects";
+import { TakeWarbandsIntoBagEffect, TakeResourcesFromBankEffect, PlayVisionEffect, PlayWorldCardEffect, OathEffect, PeekAtCardEffect, DiscardCardEffect, PutWarbandsFromBagEffect, BecomeCitizenEffect, SetPeoplesFavorMobState, PutResourcesOnTargetEffect, PutResourcesIntoBankEffect, GainSupplyEffect, MoveBankResourcesEffect, DrawFromDeckEffect, TakeOwnableObjectEffect } from "../../effects";
 import { OathResource, BannerName, OathSuit } from "../../enums";
 import { ResourceCost } from "../../resources";
 import { DefenderBattlePlan, AccessedActionModifier, ActivePower, WhenPlayed, EnemyEffectModifier, EnemyActionModifier, AccessedEffectModifier, AttackerBattlePlan, ActionModifier } from "../powers";
@@ -69,14 +69,20 @@ export class HospitalAttack extends AttackerBattlePlan<Denizen> {
     name = "Hospital";
 
     applyBefore(): void {
-        new PutWarbandsFromBagEffect(this.activator.leader, this.action.campaignResult.attackerLoss, this.source.site);
+        this.action.campaignResult.endCallbacks.push(() => {
+            if (this.sourceProxy.site?.ruler === this.activatorProxy.leader)
+                new PutWarbandsFromBagEffect(this.activator.leader, this.action.campaignResult.attackerLoss, this.source.site).do();
+        });
     }
 }
 export class HospitalDefense extends DefenderBattlePlan<Denizen> {
     name = "Hospital";
 
     applyBefore(): void {
-        new PutWarbandsFromBagEffect(this.activator.leader, this.action.campaignResult.defenderLoss, this.source.site);
+        this.action.campaignResult.endCallbacks.push(() => {
+            if (this.sourceProxy.site?.ruler === this.activatorProxy.leader)
+                new PutWarbandsFromBagEffect(this.activator.leader, this.action.campaignResult.defenderLoss, this.source.site).do();
+        });
     }
 }
 
@@ -129,10 +135,37 @@ export class CharmingFriend extends ActivePower<Denizen> {
 }
 
 export class FabledFeast extends WhenPlayed<Denizen> {
-    name = "FabledFeast";
+    name = "Fabled Feast";
 
     whenPlayed(): void {
         new TakeResourcesFromBankEffect(this.game, this.effect.player, this.game.favorBanks.get(OathSuit.Hearth), this.effect.playerProxy.suitRuledCount(OathSuit.Hearth)).do();
+    }
+}
+
+export class SaladDays extends WhenPlayed<Denizen> {
+    name = "Salad Days";
+
+    whenPlayed(): void {
+        new ChooseSuitsAction(
+            this.effect.player, "Take 1 favor from three different banks",
+            (suits: OathSuit[]) => { for (const suit of suits) new TakeResourcesFromBankEffect(this.game, this.effect.player, this.game.favorBanks.get(suit), 1).do(); },
+            undefined, 3
+        ).doNext();
+    }
+}
+
+export class FamilyHeirloom extends WhenPlayed<Denizen> {
+    name = "Family Heirloom";
+
+    whenPlayed(): void {
+        const relic = new DrawFromDeckEffect(this.effect.player, this.game.relicDeck, 1).do()[0];
+        if (!relic) return;
+        
+        new MakeDecisionAction(
+            this.effect.player, "Keep the relic?",
+            () => new TakeOwnableObjectEffect(this.game, this.effect.player, relic).do(),
+            () => relic.putOnBottom(this.effect.player)
+        ).doNext();
     }
 }
 
@@ -175,7 +208,7 @@ export class Herald extends EnemyActionModifier<Denizen> {
     }
 }
 
-export class MarriageActionModifier extends AccessedActionModifier<Denizen> {
+export class MarriageAction extends AccessedActionModifier<Denizen> {
     name = "Marriage";
     modifiedAction = ModifiableAction;
     action: ModifiableAction;
@@ -189,7 +222,7 @@ export class MarriageActionModifier extends AccessedActionModifier<Denizen> {
         return true;
     }
 }
-export class MarriageEffectModifier extends AccessedEffectModifier<Denizen> {
+export class MarriageEffect extends AccessedEffectModifier<Denizen> {
     name = "Marriage";
     modifiedEffect = OathEffect;
     effect: OathEffect<any>;

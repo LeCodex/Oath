@@ -107,7 +107,8 @@ export class PeoplesFavor extends Banner {
         new SetPeoplesFavorMobState(this.game, player, false).do();
         new ChooseSuitsAction(
             player, "Choose where to start returning the favor (" + this.amount + ")",
-            (suit: OathSuit | undefined) => {
+            (suits: OathSuit[]) => {
+                let suit = suits[0];
                 if (suit === undefined) return;
 
                 let amount = this.amount;

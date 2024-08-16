@@ -1,4 +1,4 @@
-import { isMap, isSet, isWeakMap, isWeakSet } from "lodash";
+import { isMap, isSet, random, range } from "lodash";
 
 export type AbstractConstructor<T> = abstract new (...args: any) => T;
 export type Constructor<T> = new (...args: any) => T;
@@ -11,6 +11,11 @@ export function shuffleArray(array: any[]) {
         currentIndex--;
         [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
     }
+}
+
+export function inclusiveRange(start: number, end?: number, step?: number) {
+    if (end !== undefined) end++; else start++;
+    return range(start, end, step);
 }
 
 export abstract class WithOriginal { original = this; }

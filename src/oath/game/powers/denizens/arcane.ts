@@ -7,6 +7,7 @@ import { BannerName, OathResource, OathSuit } from "../../enums";
 import { OathPlayer } from "../../player";
 import { ResourceCost } from "../../resources";
 import { ActionModifier, AttackerBattlePlan, DefenderBattlePlan, ActivePower, WhenPlayed, AccessedActionModifier, EffectModifier } from "../powers";
+import { inclusiveRange } from "../../utils";
 
 
 export class FireTalkersAttack extends AttackerBattlePlan<Denizen> {
@@ -200,9 +201,9 @@ export class Inquisitor extends ActivePower<Denizen> {
                 new PeekAtCardEffect(this.action.player, card).do();
 
                 if (card instanceof Conspiracy)
-                    new SearchPlayAction(this.action.player, new MoveAdviserEffect(this.action.player, card).do()).doNext();
+                    new SearchPlayAction(this.action.player, new MoveAdviserEffect(this.game, this.action.player, card).do()).doNext();
                 else
-                    new MoveResourcesToTargetEffect(this.game, this.action.player, OathResource.Favor, 1, card.owner).do();
+                    new MoveResourcesToTargetEffect(this.game, this.action.player, OathResource.Favor, 1, card.owner, this.source).do();
             }
         ).doNext();
     }
@@ -267,11 +268,8 @@ export class BloodPact extends ActivePower<Denizen> {
     cost = new ResourceCost([[OathResource.Secret, 1]]);
 
     usePower(): void {
-        const values = [], max = Math.floor(this.action.player.getWarbands(this.action.playerProxy.leader.original) / 2);
-        for (let i = 1; i <= max; i++) values.push(i);
-
         new ChooseNumberAction(
-            this.action.player, "Sacrifice pairs of warbands to get secrets", values,
+            this.action.player, "Sacrifice pairs of warbands to get secrets", inclusiveRange(1, Math.floor(this.action.player.getWarbands(this.action.playerProxy.leader.original) / 2)),
             (value: number) => {
                 new TakeWarbandsIntoBagEffect(this.action.playerProxy.leader.original, 2 * value, this.action.player).do();
                 new PutResourcesOnTargetEffect(this.game, this.action.player, OathResource.Secret, value).do();
@@ -337,6 +335,22 @@ export class Bewitch extends WhenPlayed<Denizen> {
     whenPlayed(): void {
         if (this.effect.playerProxy.getAllResources(OathResource.Secret) > this.gameProxy.chancellor.getResources(OathResource.Secret))
             new MakeDecisionAction(this.effect.player, "Become a Citizen?", () => new BecomeCitizenEffect(this.effect.player).do());
+    }
+}
+
+export class Revelation extends WhenPlayed<Denizen> {
+    name = "Revelation";
+
+    whenPlayed(): void {
+        for (const player of Object.values(this.game.players)) {
+            new ChooseNumberAction(
+                player, "Burn favor to gain secrets", inclusiveRange(player.getResources(OathResource.Favor)),
+                (value: number) => {
+                    new MoveResourcesToTargetEffect(this.game, player, OathResource.Favor, value, undefined).do();
+                    new PutResourcesOnTargetEffect(this.game, player, OathResource.Secret, value).do();
+                }
+            ).doNext();
+        }
     }
 }
 

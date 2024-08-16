@@ -43,8 +43,9 @@ export abstract class CapacityModifier<T extends WorldCard> extends PowerWithPro
         return true;
     }
     
-    // Updates the information to calculate capacity in the group the source is in/being played to
-    // First return is the update to capacity (min of all values), second is a set of cards that don't count towards capacity
+    /** Updates the information to calculate capacity in the group the source is in/being played to.
+     *  
+     * First return is the update to capacity (min of all values), second is a set of card proxies that don't count towards capacity. */ 
     updateCapacityInformation(targetProxy: Set<WorldCard>): [number, Iterable<WorldCard>] { return [Infinity, []]; }
 
     ignoreCapacity(cardProxy: WorldCard): boolean { return false; }

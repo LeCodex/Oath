@@ -586,7 +586,7 @@ export class ClearCardPeekEffect extends PlayerEffect<void> {
     }
 }
 
-export class DrawFromDeckEffect<T extends OwnableCard> extends PlayerEffect<T[]> {
+export class DrawFromDeckEffect<T extends OathCard> extends PlayerEffect<T[]> {
     deck: CardDeck<T>;
     amount: number;
     fromBottom: boolean;
@@ -757,22 +757,24 @@ export class PlayVisionEffect extends PlayerEffect<void> {
 }
 
 // TODO: Make freeing the cards into a method
-export class MoveAdviserEffect extends PlayerEffect<WorldCard> {
+export class MoveAdviserEffect extends OathEffect<WorldCard> {
     card: WorldCard;
+    oldOwner: OathPlayer;
 
-    constructor(player: OathPlayer, card: WorldCard) {
-        super(player);
+    constructor(game: OathGame, player: OathPlayer | undefined, card: WorldCard) {
+        super(game, player);
         this.card = card;
     }
 
     resolve(): WorldCard {
         if (!this.card.owner) throw new InvalidActionResolution("Trying to move a non-adviser.");
+        this.oldOwner = this.card.owner;
         this.card.setOwner(undefined);
         return this.card;
     }
 
     revert(): void {
-        this.card.setOwner(this.player);
+        this.card.setOwner(this.oldOwner);
     }
 }
 
@@ -923,24 +925,19 @@ export class CheckCapacityEffect extends PlayerEffect<void> {
     }
 }
 
-export class DiscardCardEffect<T extends OwnableCard> extends PlayerEffect<void> {
+export class DiscardCardEffect<T extends OathCard> extends PlayerEffect<void> {
     card: T;
-    discardOptions: DiscardOptions<any>;
+    discardOptions: DiscardOptions<OathCard>;
     flipped: boolean;
 
-    constructor(player: OathPlayer, card: T, discardOptions?: DiscardOptions<T>) {
+    constructor(player: OathPlayer, card: T, discardOptions?: DiscardOptions<OathCard>) {
         super(player);
         this.card = card;
-        this.discardOptions = discardOptions || new DiscardOptions(card.owner ? card.owner.discard : card instanceof Denizen && card.site ? this.game.board.nextRegion(card.site.region).discard : player.discard);
+        this.discardOptions = discardOptions || new DiscardOptions(card.discard || player.discard);
     }
 
     resolve(): void {
-        if (this.card instanceof Denizen) {
-            if (this.card.activelyLocked && !this.discardOptions.ignoreLocked) return;
-            if (this.card.site) new MoveSiteDenizenEffect(this.game, this.player, this.card).do();
-        }
-        if (this.card.owner) new MoveAdviserEffect(this.player, this.card).do();
-        
+        this.card.free();
         this.flipped = !this.card.facedown;
         this.discardOptions.discard.putCard(this.card, this.discardOptions.onBottom);
         this.card.returnResources();

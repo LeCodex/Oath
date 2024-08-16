@@ -103,6 +103,15 @@ const render = () => {
     }
 
 
+    const effectsNode = document.getElementById("effects");
+    effectsNode.innerHTML = "";
+    if (action) {
+        for (const effect of action.appliedEffects) {
+            effectsNode.appendChild(renderText(effect));
+        }
+    }
+
+
     const actionNode = document.getElementById("action");
     actionNode.innerHTML = "";
     if (action) {

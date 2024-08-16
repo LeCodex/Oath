@@ -1,8 +1,8 @@
-import { TravelAction, InvalidActionResolution, CampaignAtttackAction, MakeDecisionAction, ChooseRegionAction, SearchPlayAction } from "../../actions/actions";
+import { TravelAction, InvalidActionResolution, CampaignAtttackAction, MakeDecisionAction, ChooseRegionAction, SearchPlayAction, ChooseCardsAction } from "../../actions/actions";
 import { Region } from "../../board";
 import { Denizen, Edifice, Site, VisionBack, WorldCard } from "../../cards/cards";
 import { DiscardOptions } from "../../cards/decks";
-import { PayCostToTargetEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PayPowerCost, BecomeCitizenEffect, GiveOwnableObjectEffect, DrawFromDeckEffect, FlipEdificeEffect, MoveResourcesToTargetEffect, DiscardCardEffect } from "../../effects";
+import { PayCostToTargetEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PayPowerCost, BecomeCitizenEffect, GiveOwnableObjectEffect, DrawFromDeckEffect, FlipEdificeEffect, MoveResourcesToTargetEffect, DiscardCardEffect, GainSupplyEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, PeekAtCardEffect, MoveSiteDenizenEffect, MoveWorldCardToAdvisersEffect, MoveAdviserEffect, MoveDenizenToSiteEffect } from "../../effects";
 import { BannerName, OathResource, OathSuit } from "../../enums";
 import { OwnableObject, isOwnable } from "../../interfaces";
 import { OathPlayer } from "../../player";
@@ -66,24 +66,30 @@ export class MountainGiantAttack extends AttackerBattlePlan<Denizen> {
     cost = new ResourceCost([[OathResource.Secret, 1]]);
 
     applyBefore(): void {
-        new MakeDecisionAction(this.activator, "±1, or ±3 and discard at end?", () => {
-            this.action.campaignResult.atkPool++;
-        }, () => {
-            this.action.campaignResult.atkPool += 3;
-            this.action.campaignResult.discardAtEnd(this.source);
-        }, ["±1", "±3"]);
+        new MakeDecisionAction(
+            this.activator, "±1, or ±3 and discard at end?",
+            () => { this.action.campaignResult.atkPool++; },
+            () => {
+                this.action.campaignResult.atkPool += 3;
+                this.action.campaignResult.discardAtEnd(this.source);
+            }, 
+            ["±1", "±3"]
+        ).doNext();
     }
 }
 export class MountainGiantDefense extends DefenderBattlePlan<Denizen> {
     name = "Mountain Giant";
 
     applyBefore(): void {
-        new MakeDecisionAction(this.activator, "±1, or ±3 and discard at end?", () => {
-            this.action.campaignResult.atkPool--;
-        }, () => {
-            this.action.campaignResult.atkPool -= 3;
-            this.action.campaignResult.discardAtEnd(this.source);
-        }, ["±1", "±3"]);
+        new MakeDecisionAction(
+            this.activator, "±1, or ±3 and discard at end?",
+            () => { this.action.campaignResult.atkPool--; },
+            () => {
+                this.action.campaignResult.atkPool -= 3;
+                this.action.campaignResult.discardAtEnd(this.source);
+            },
+            ["±1", "±3"]
+        ).doNext();
     }
 }
 
@@ -262,6 +268,88 @@ export class AncientPact extends WhenPlayed<Denizen> {
     }
 }
 
+export class FaithfulFriend extends WhenPlayed<Denizen> {
+    name = "Faithful Friend";
+
+    whenPlayed(): void {
+        new GainSupplyEffect(this.effect.player, 4).do();
+    }
+}
+
+export class Pilgrimage extends WhenPlayed<Denizen> {
+    name = "Pilgrimage";
+
+    whenPlayed(): void {
+        let amount = 0;
+        for (const denizenProxy of this.effect.playerProxy.site.denizens) {
+            if (!denizenProxy.activelyLocked) {
+                new PutDenizenIntoDispossessedEffect(this.game, this.effect.player, new MoveSiteDenizenEffect(this.game, this.effect.player, denizenProxy.original).do()).do();
+                amount++;
+            }
+        }
+
+        for (let i = 0; i < amount; i++) {
+            const card = new GetRandomCardFromDispossessed(this.game, this.effect.player).do();
+            new PeekAtCardEffect(this.effect.player, card).do();
+            new DiscardCardEffect(this.effect.player, card, new DiscardOptions(this.effect.playerProxy.site.region.discard.original)).do();
+        }
+    }
+}
+
+export class TwinBrother extends WhenPlayed<Denizen> {
+    name = "Twin Brother";
+
+    whenPlayed(): void {
+        const cards = new Set<Denizen>();
+        for (const playerProxy of Object.values(this.gameProxy.players)) {
+            if (playerProxy !== this.effect.playerProxy) continue;
+            for (const adviserProxy of playerProxy.advisers)
+                if (adviserProxy instanceof Denizen && adviserProxy.suit === OathSuit.Nomad && !adviserProxy.activelyLocked)
+                    cards.add(adviserProxy.original);
+        }
+
+        new ChooseCardsAction(
+            this.effect.player, "Swap Twin Brother with another Nomad adviser", cards,
+            (cards: Denizen[]) => {
+                if (!cards.length) return;
+                const otherPlayer = cards[0].owner as OathPlayer;
+                const twinBrother = new MoveAdviserEffect(this.game, this.effect.player, this.source).do();
+                const otherCard = new MoveAdviserEffect(this.game, this.effect.player, cards[0]).do();
+                new MoveWorldCardToAdvisersEffect(this.game, otherPlayer, twinBrother).do();
+                new MoveWorldCardToAdvisersEffect(this.game, this.effect.player, otherCard).do();
+            },
+            0, 1
+        ).doNext();
+    }
+}
+
+export class GreatHerd extends WhenPlayed<Denizen> {
+    name = "Great Herd";
+
+    whenPlayed(): void {
+        const cards = new Set<Denizen>();
+        for (const siteProxy of this.gameProxy.board.sites()) {
+            if (siteProxy !== this.effect.playerProxy.site) continue;
+            for (const denizenProxy of siteProxy.denizens)
+                if (denizenProxy.suit === OathSuit.Nomad && !denizenProxy.activelyLocked)
+                    cards.add(denizenProxy.original);
+        }
+
+        new ChooseCardsAction(
+            this.effect.player, "Swap Great Herd with another Nomad denizen", cards,
+            (cards: Denizen[]) => {
+                if (!cards.length) return;
+                const otherSite = cards[0].site as Site;
+                const greatHerd = new MoveSiteDenizenEffect(this.game, this.effect.player, this.source).do();
+                const otherCard = new MoveSiteDenizenEffect(this.game, this.effect.player, cards[0]).do();
+                new MoveDenizenToSiteEffect(this.game, this.effect.player, greatHerd, otherSite).do();
+                new MoveDenizenToSiteEffect(this.game, this.effect.player, otherCard, this.effect.playerProxy.site.original).do();
+            },
+            0, 1
+        ).doNext();
+    }
+}
+
 
 export class AncientForge extends ActivePower<Edifice> {
     name = "Ancient Forge";
@@ -275,7 +363,7 @@ export class AncientForge extends ActivePower<Edifice> {
             this.action.player, "Keep the relic?",
             () => new TakeOwnableObjectEffect(this.game, this.action.player, relic).do(),
             () => relic.putOnBottom(this.action.player)
-        );
+        ).doNext();
     }
 }
 
