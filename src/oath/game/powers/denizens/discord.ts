@@ -197,7 +197,10 @@ export class Assassin extends ActivePower<Denizen> {
                     cards.add(adviserProxy.original);
         }
 
-        new ChooseCardsAction(this.action.player, "Discard an adviser", cards, (cards: WorldCard[]) => { if (cards.length) new DiscardCardEffect(this.action.player, cards[0]).do(); }).doNext();
+        new ChooseCardsAction(
+            this.action.player, "Discard an adviser", [cards], 
+            (cards: WorldCard[]) => { if (cards.length) new DiscardCardEffect(this.action.player, cards[0]).do(); }
+        ).doNext();
     }
 }
 
@@ -320,7 +323,7 @@ export class Riots extends WhenPlayed<Denizen> {
                         if (denizenProxy.suit === suits[0] && denizenProxy !== this.sourceProxy)
                             new DiscardCardEffect(this.effect.player, denizenProxy.original).do();
             },
-            suits
+            [suits]
         ).doNext();
     }
 }
@@ -336,7 +339,7 @@ export class Blackmail extends WhenPlayed<Denizen> {
         }
 
         new ChooseCardsAction(
-            this.effect.player, "Steal a relic unless its owner gives you 3 favor", relics,
+            this.effect.player, "Steal a relic unless its owner gives you 3 favor", [relics],
             (cards: Relic[]) => {
                 const relic = cards[0];
                 if (!relic?.owner) return;
@@ -409,7 +412,7 @@ export class FalseProphet extends WhenPlayed<Denizen> {
                 visions.add(player.vision);
 
         new ChooseCardsAction(
-            this.effect.player, "Place a warband on a revealed Vision", visions,
+            this.effect.player, "Place a warband on a revealed Vision", [visions],
             (cards: OathCard[]) => { if (cards.length) new PutWarbandsFromBagEffect(this.effect.player, 1, cards[0]).do() }
         ).doNext();
     }
@@ -545,7 +548,7 @@ export class Enchantress extends ActivePower<Denizen> {
         }
 
         new ChooseCardsAction(
-            this.action.player, "Swap with an adviser", cards, 
+            this.action.player, "Swap with an adviser", [cards], 
             (cards: WorldCard[]) => {
                 if (cards.length) return;
                 const otherPlayer = cards[0].owner as OathPlayer;
@@ -558,14 +561,14 @@ export class Enchantress extends ActivePower<Denizen> {
     }
 }
 
-export class SneakAttack extends EnemyActionModifier<Denizen> {
+export class SneakAttack extends ActionModifier<Denizen> {
     name = "Sneak Attack";
     modifiedAction = CampaignEndAction;
     action: CampaignEndAction;
 
     applyBefore(): void {
         const ruler = this.sourceProxy.ruler?.original;
-        if (!ruler) return;
+        if (!ruler || ruler === this.action.player) return;
 
         new MakeDecisionAction(
             ruler, "Campaign against " + this.action.player.name + "?",

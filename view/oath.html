@@ -1,42 +1,46 @@
 <!DOCTYPE html>
-<html>
+<html style="height: 100%;">
     <head>
         <script src="./oath.js"></script>
     </head>
-    <body>
-        <table id="game">
-            <tr>
-                <td colspan="5">
-                    <h2 style="padding: 0; margin: 0; text-align: center;" id="title"></h2>
-                </td>
-            </tr>
-            <tr>
-                <td colspan="5">
-                    <p style="font-size: smaller; color: gray; padding: 0; margin: 0; text-align: center; overflow-wrap: anywhere;" id="seed"></p>
-                </td>
-            </tr>
-            <tr>
-                <td style="white-space: nowrap;">
-                    <ul id="board">
-                    </ul>
-                </td>
-                <td style="white-space: nowrap;">
-                    <ul id="info">
-                    </ul>
-                </td>
-                <td style="white-space: nowrap;">
-                    <ul id="players">
-                    </ul>
-                </td>
-                <td style="white-space: nowrap;">
-                    <ul id="effects">
-                    </ul>
-                </td>
-                <td style="width: 99%;">
-                    <ul id="action">
-                    </ul>
-                </td>
-            </tr>
+    <body style="height: 100%; margin:0;">
+        <table id="game" style="height: 99%;">
+            <tbody style="height: 100%;">
+                <tr>
+                    <td colspan="5">
+                        <h2 style="padding: 0; margin: 0; text-align: center;" id="title"></h2>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="5">
+                        <p style="font-size: smaller; color: gray; padding: 0; margin: 0; text-align: center; overflow-wrap: anywhere;" id="seed"></p>
+                    </td>
+                </tr>
+                <tr style="height: 80%;">
+                    <td style="white-space: nowrap;">
+                        <ul id="board">
+                        </ul>
+                    </td>
+                    <td style="white-space: nowrap;">
+                        <ul id="info">
+                        </ul>
+                    </td>
+                    <td style="white-space: nowrap;">
+                        <ul id="players">
+                        </ul>
+                    </td>
+                    <td style="width: 99%;">
+                        <ul id="action">
+                        </ul>
+                    </td>
+                    <td style="white-space: nowrap; height: 100%;">
+                        <div style="display: flex; justify-content: center; align-items: center; overflow: auto; height: 80%; width: 100%; margin: 0; padding: 0;">
+                            <ul id="effects">
+                            </ul>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
         </table>
     </body>
 </html>

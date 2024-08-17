@@ -278,7 +278,8 @@ export class Garrison extends WhenPlayed<Denizen> {
         new ChooseSitesAction(
             this.effect.player, "Place a warband on each site you rule",
             (sites: Site[]) => { for (const site of sites) new MoveOwnWarbandsEffect(leader, this.effect.player, site).do() },
-            sites, Math.min(sites.size, this.effect.player.getWarbands(leader))
+            [sites],
+            [[Math.min(sites.size, this.effect.player.getWarbands(leader))]]
         ).doNext();
     }
 }
@@ -309,7 +310,7 @@ export class Captains extends ActivePower<Denizen> {
     usePower(): void {
         const campaignAction = new CampaignAction(this.action.player);
         campaignAction._noSupplyCost = true;
-        
+
         const sites = new Set<Site>();
         for (const siteProxy of this.gameProxy.board.sites())
             if (siteProxy.ruler === this.action.playerProxy)
@@ -327,7 +328,7 @@ export class SiegeEngines extends ActivePower<Denizen> {
         new ChooseSitesAction(
             this.action.player, "Kill two warbands",
             (sites: Site[]) => { if (sites.length) new KillWarbandsOnTargetAction(this.action.player, sites[0], 2).doNext(); },
-            this.action.playerProxy.site.region.original.sites.filter(e => e.totalWarbands)
+            [this.action.playerProxy.site.region.original.sites.filter(e => e.totalWarbands)]
         ).doNext();
     }
 }
@@ -346,8 +347,8 @@ export class Messenger extends ActivePower<Denizen> {
                 action.doNext();
                 this.usePower();
             },
-            [...this.gameProxy.board.sites()].filter(e => e.ruler === this.action.playerProxy).map(e => e.original),
-            0, 1
+            [[...this.gameProxy.board.sites()].filter(e => e.ruler === this.action.playerProxy).map(e => e.original)],
+            [[0, 1]]
         ).doNext();
     }
 }
@@ -372,7 +373,7 @@ export class Palanquin extends ActivePower<Denizen> {
                     }
                 )
             },
-            Object.values(this.gameProxy.players).filter(e => e !== this.action.playerProxy && e.site.region === this.action.playerProxy.site.region).map(e => e.original)
+            [Object.values(this.gameProxy.players).filter(e => e !== this.action.playerProxy && e.site.region === this.action.playerProxy.site.region).map(e => e.original)]
         ).doNext();
     }
 }

@@ -309,7 +309,7 @@ export class TwinBrother extends WhenPlayed<Denizen> {
         }
 
         new ChooseCardsAction(
-            this.effect.player, "Swap Twin Brother with another Nomad adviser", cards,
+            this.effect.player, "Swap Twin Brother with another Nomad adviser", [cards],
             (cards: Denizen[]) => {
                 if (!cards.length) return;
                 const otherPlayer = cards[0].owner as OathPlayer;
@@ -318,7 +318,7 @@ export class TwinBrother extends WhenPlayed<Denizen> {
                 new MoveWorldCardToAdvisersEffect(this.game, otherPlayer, twinBrother).do();
                 new MoveWorldCardToAdvisersEffect(this.game, this.effect.player, otherCard).do();
             },
-            0, 1
+            [[0, 1]]
         ).doNext();
     }
 }
@@ -336,7 +336,7 @@ export class GreatHerd extends WhenPlayed<Denizen> {
         }
 
         new ChooseCardsAction(
-            this.effect.player, "Swap Great Herd with another Nomad denizen", cards,
+            this.effect.player, "Swap Great Herd with another Nomad denizen", [cards],
             (cards: Denizen[]) => {
                 if (!cards.length) return;
                 const otherSite = cards[0].site as Site;
@@ -345,7 +345,7 @@ export class GreatHerd extends WhenPlayed<Denizen> {
                 new MoveDenizenToSiteEffect(this.game, this.effect.player, greatHerd, otherSite).do();
                 new MoveDenizenToSiteEffect(this.game, this.effect.player, otherCard, this.effect.playerProxy.site.original).do();
             },
-            0, 1
+            [[0, 1]]
         ).doNext();
     }
 }

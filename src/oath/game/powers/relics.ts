@@ -1,6 +1,6 @@
 import { InvalidActionResolution, CitizenshipOfferAction, StartBindingExchangeAction, SkeletonKeyAction, TradeAction, CampaignAttackAction, MusterAction, TravelAction, MakeDecisionAction, ChoosePlayersAction, SearchAction, ChooseCardsAction } from "../actions/actions";
 import { Denizen, GrandScepter, OathCard, Relic, Site } from "../cards/cards";
-import { TakeOwnableObjectEffect, PutWarbandsFromBagEffect, PlayDenizenAtSiteEffect, MoveOwnWarbandsEffect, PeekAtCardEffect, SetGrandScepterLockEffect, GainSupplyEffect, DrawFromDeckEffect, RevealCardEffect, PayCostToTargetEffect, BecomeExileEffect, MoveWarbandsToEffect, TakeWarbandsIntoBagEffect, MoveResourcesToTargetEffect } from "../effects";
+import { TakeOwnableObjectEffect, PutWarbandsFromBagEffect, PlayDenizenAtSiteEffect, MoveOwnWarbandsEffect, PeekAtCardEffect, SetGrandScepterLockEffect, GainSupplyEffect, DrawFromDeckEffect, RevealCardEffect, PayCostToTargetEffect, BecomeExileEffect, MoveWarbandsToEffect, TakeWarbandsIntoBagEffect, MoveResourcesToTargetEffect, MoveDenizenToSiteEffect, MoveSiteDenizenEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect } from "../effects";
 import { BannerName, OathResource } from "../enums";
 import { OathPlayer, Exile } from "../player";
 import { OwnableObject, isOwnable } from "../interfaces";
@@ -78,7 +78,7 @@ export class GrandScepterExileCitizen extends GrandScepterActive {
 
                 new BecomeExileEffect(target).do();
             },
-            players
+            [players]
         ).doNext();
     }
 }
@@ -166,7 +166,7 @@ export class ObsidianCageActive extends ActivePower<Relic> {
                 const amount = new TakeWarbandsIntoBagEffect(target, Infinity, this.source).do();
                 new PutWarbandsFromBagEffect(target.leader, amount, target).do();
             },
-            players
+            [players]
         ).doNext();
     }
 }
@@ -292,6 +292,28 @@ export class MapRelic extends ActivePower<Relic> {
     }
 }
 
+export class HornedMask extends ActivePower<Relic> {
+    name = "Horned Mask";
+    cost = new ResourceCost([[OathResource.Secret, 1]]);
+
+    usePower(): void {
+        const advisers = [...this.action.playerProxy.advisers].filter(e => e instanceof Denizen).map(e => e.original);
+        const denizens = [...this.action.playerProxy.site.denizens].map(e => e.original);
+
+        new ChooseCardsAction(
+            this.action.player, "Swap an adviser with a denizen at your site", [advisers, denizens],
+            (adviserChoices: Denizen[], denizenChoices: Denizen[]) => {
+                if (!adviserChoices.length && !denizenChoices.length) return;
+                const otherSite = denizenChoices[0].site as Site;
+                const adviser = new MoveAdviserEffect(this.game, this.action.player, adviserChoices[0]).do();
+                const denizen = new MoveSiteDenizenEffect(this.game, this.action.player, denizenChoices[0]).do();
+                new MoveDenizenToSiteEffect(this.game, this.action.player, adviser, otherSite).do();
+                new MoveWorldCardToAdvisersEffect(this.game, this.action.player, denizen).do();
+            }
+        ).doNext();
+    }
+}
+
 export class OracularPig extends ActivePower<Relic> {
     name = "Oracular Pig";
 
@@ -318,7 +340,7 @@ export class IvoryEye extends ActivePower<Relic> {
                 if (adviser.facedown) cards.add(adviser);
 
         new ChooseCardsAction(
-            this.action.player, "Peek at a card", cards,
+            this.action.player, "Peek at a card", [cards],
             (cards: OathCard[]) => { if (cards.length) new PeekAtCardEffect(this.action.player, cards[0]).do(); }
         ).doNext();
     }
@@ -362,7 +384,7 @@ export class Whistle extends ActivePower<Relic> {
                 travelAction.doNext();
                 new MoveResourcesToTargetEffect(this.game, this.action.player, OathResource.Secret, 1, targets[0], this.source).doNext();
             },
-            Object.values(this.gameProxy.players).filter(e => e.site !== this.action.playerProxy.site).map(e => e.original)
+            [Object.values(this.gameProxy.players).filter(e => e.site !== this.action.playerProxy.site).map(e => e.original)]
         )
     }
 }

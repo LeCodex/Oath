@@ -165,7 +165,7 @@ export abstract class ModifiableAction extends OathAction {
         for (const modifier of this.modifiers) modifier.applyBefore();
         new ResolveCallbackAction(this.player, () => this.modifiedExecution()).doNext();  // This allows actions to be slotted before the actual resolution of the action
         for (const modifier of this.modifiers) modifier.applyAfter();
-        new ResolveCallbackAction(this.player, () => { for (const modifier of this.modifiers) modifier.applyAtEnd(); })
+        new ResolveCallbackAction(this.player, () => { for (const modifier of this.modifiers) modifier.applyAtEnd(); }).doNext();
     }
 
     abstract modifiedExecution(): void;
@@ -415,7 +415,7 @@ export class SearchAction extends MajorAction {
     deckProxy: SearchableDeck;
     amount = 3;
     fromBottom = false;
-    cards: WorldCard[];
+    cards: Set<WorldCard>;
     discardOptions = new DiscardOptions(this.player.discard);
 
     start() {
@@ -430,12 +430,12 @@ export class SearchAction extends MajorAction {
         this.deckProxy = this.parameters.deck[0];
         this.supplyCost = this.deckProxy.searchCost;
         super.execute();
+        new ResolveCallbackAction(this.player, () => { new SearchChooseAction(this.player, this.cards, this.discardOptions).doNext(); }).doNext();
     }
 
     modifiedExecution() {
         super.modifiedExecution();
-        new SearchChooseAction(this.player, this.cards, this.discardOptions).doNext();
-        this.cards = new DrawFromDeckEffect(this.player, this.deckProxy.original, this.amount, this.fromBottom).do();
+        this.cards = new Set(new DrawFromDeckEffect(this.player, this.deckProxy.original, this.amount, this.fromBottom).do());
     }
 }
 
@@ -1380,37 +1380,41 @@ export class ChooseRegionAction extends OathAction {
 
 
 export abstract class ChooseTsAction<T> extends OathAction {
-    readonly selects: { choices: SelectNOf<T> };
-    readonly parameters: { choices: T[] };
+    readonly selects: Record<string, SelectNOf<T>>;
+    readonly parameters: Record<string, T[]>;
     readonly message: string;
 
-    choices: Set<T> | undefined;
-    min: number;
-    max: number;
-    callback: (choices: T[]) => void;
+    choices: Set<T>[] | undefined;
+    ranges: [number, number?][]
+    callback: (...choices: T[][]) => void;
 
-    constructor(player: OathPlayer, message: string, callback: (choices: T[]) => void, choices?: Iterable<T>, min: number = 1, max: number = min) {
+    constructor(player: OathPlayer, message: string, callback: (...choices: T[][]) => void, choices?: Iterable<T>[], ranges: [number, number?][] = []) {
         super(player);
         this.message = message;
         this.callback = callback;
-        this.min = min;
-        this.max = max;
-        this.choices = choices && new Set(choices);
+        this.ranges = ranges;
+        this.choices = choices && choices.map(e => new Set(e));
     }
 
+    rangeMin(i: number) { return this.ranges[i] ? this.ranges[i][0] : 1; }
+    rangeMax(i: number) { return this.ranges[i] ? this.ranges[i][1] === undefined ? this.rangeMin(i): this.ranges[i][1] : this.rangeMin(i); }
+
     execute(): void {
-        this.callback(this.parameters.choices);
+        this.callback(...Object.values(this.parameters));
     }
 }
 
 
 export class ChooseSuitsAction extends ChooseTsAction<OathSuit> {
     start() {
-        if (!this.choices) this.choices = new Set(ALL_OATH_SUITS);
+        if (!this.choices) this.choices = [new Set(ALL_OATH_SUITS)];
 
-        const choices = new Map<string, OathSuit>();
-        for (const suit of this.choices) choices.set(OathSuitName[suit], suit);
-        this.selects.choices = new SelectNOf("Suit", choices, this.min, this.max);
+        for (const [i, group] of this.choices.entries()) {
+            const choices = new Map<string, OathSuit>();
+            for (const suit of group)
+                choices.set(OathSuitName[suit], suit);
+            this.selects["choices" + i] = new SelectNOf("Suit", choices, this.rangeMin(i), this.rangeMax(i));
+        }
 
         return super.start();
     }
@@ -1421,7 +1425,7 @@ export class TakeFavorFromBankAction extends ChooseSuitsAction {
         super(
             player, "Take " + amount + " from a favor bank", 
             (suits: OathSuit[]) => { if (suits[0]) new TakeResourcesFromBankEffect(this.game, this.player, this.game.favorBanks.get(suits[0]), amount).do(); },
-            suits
+            suits && [suits]
         );
     }
 }
@@ -1435,10 +1439,10 @@ export class PeoplesFavorWakeAction extends ChooseSuitsAction {
     }
 
     start() {
-        this.choices = new Set();
-        if (this.banner.amount > 1) {
-            this.choices = new Set(minInGroup(this.game.favorBanks.entries(), ([_, v]) => v.amount).map(([k, _]) => k));
-        }
+        if (this.banner.amount > 1)
+            this.choices = [new Set(minInGroup(this.game.favorBanks.entries(), ([_, v]) => v.amount).map(([k, _]) => k))];
+        else
+            this.choices = [new Set()];
         
         return super.start();
     }
@@ -1459,13 +1463,15 @@ export class PeoplesFavorWakeAction extends ChooseSuitsAction {
 
 export class ChoosePlayersAction extends ChooseTsAction<OathPlayer> {
     start() {
-        if (!this.choices) this.choices = new Set(Object.values(this.game.players).filter(e => e !== this.player));
+        if (!this.choices) this.choices = [new Set(Object.values(this.game.players).filter(e => e !== this.player))];
 
-        const choices = new Map<string, OathPlayer>();
-        for (const player of this.choices)
-            if (player !== this.player)
-                choices.set(player.name, player);
-        this.selects.choices = new SelectNOf("Player", choices, this.min, this.max);
+        for (const [i, group] of this.choices.entries()) {
+            const choices = new Map<string, OathPlayer>();
+            for (const player of group)
+                if (player !== this.player)
+                    choices.set(player.name, player);
+            this.selects["choices" + i] = new SelectNOf("Player", choices, this.rangeMin(i), this.rangeMax(i));
+        }
 
         return super.start();
     }
@@ -1480,7 +1486,7 @@ export class TakeResourceFromPlayerAction extends ChoosePlayersAction {
                 if (resource === OathResource.Secret && targets[0].getResources(OathResource.Secret) <= 1) return;
                 new MoveResourcesToTargetEffect(this.game, player, resource, amount === undefined ? 1 : amount, player, targets[0]).do();
             },
-            players
+            players && [players]
         );
     }
 }
@@ -1490,7 +1496,7 @@ export class StartBindingExchangeAction extends ChoosePlayersAction {
         super(
             player, "Start a binding exchange with another player",
             (targets: OathPlayer[]) => { if (targets.length) new next(this.player, targets[0], new next(targets[0], this.player)).doNext(); },
-            players
+            players && [players]
         );
     }
 }
@@ -1498,11 +1504,13 @@ export class StartBindingExchangeAction extends ChoosePlayersAction {
 
 export class ChooseSitesAction extends ChooseTsAction<Site> {
     start() {
-        if (!this.choices) this.choices = new Set([...this.game.board.sites()].filter(e => !e.facedown && e !== this.player.site));
+        if (!this.choices) this.choices = [new Set([...this.game.board.sites()].filter(e => !e.facedown && e !== this.player.site))];
 
-        const choices = new Map<string, Site>();
-        for (const site of this.choices) choices.set(site.visualName(this.player), site);
-        this.selects.choices = new SelectNOf("Site", choices, this.min, this.max);
+        for (const [i, group] of this.choices.entries()) {
+            const choices = new Map<string, Site>();
+            for (const site of group) choices.set(site.visualName(this.player), site);
+            this.selects["choices" + i] = new SelectNOf("Site", choices, this.rangeMin(i), this.rangeMax(i));
+        }
 
         return super.start();
     }
@@ -1517,23 +1525,25 @@ export class ActAsIfAtSiteAction extends ChooseSitesAction {
                 action.playerProxy.site = action.maskProxyManager.get(sites[0]);
                 action.doNext();  // Allow the player to choose other new modifiers
             },
-            sites
+            sites && [sites]
         );
     }
 }
 
 
 export class ChooseCardsAction<T extends OathCard> extends ChooseTsAction<T> {
-    choices: Set<T>;
+    choices: Set<T>[];
 
-    constructor(player: OathPlayer, message: string, cards: Iterable<T>, callback: (card: T[]) => void, min: number = 1, max: number = min) {
-        super(player, message, callback, cards, min, max);
+    constructor(player: OathPlayer, message: string, cards: Iterable<T>[], callback: (...choices: T[][]) => void, ranges: [number, number?][] = []) {
+        super(player, message, callback, cards, ranges);
     }
 
     start() {
-        const choices = new Map<string, T>();
-        for (const card of this.choices) choices.set(card.visualName(this.player), card);
-        this.selects.choices = new SelectNOf("Card", choices, this.min, this.max);
+        for (const [i, group] of this.choices.entries()) {
+            const choices = new Map<string, T>();
+            for (const card of group) choices.set(card.visualName(this.player), card);
+            this.selects["choices" + i] = new SelectNOf("Card", choices, this.rangeMin(i), this.rangeMax(i));
+        }
 
         return super.start();
     }

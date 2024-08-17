@@ -285,7 +285,7 @@ export class OathGame extends WithOriginal {
         new ChoosePlayersAction(
             this.chancellor, "Choose a Successor",
             (targets: OathPlayer[]) => { if (targets.length) new WinGameEffect(targets[0]).do(); },
-            [...candidates].filter(e => e instanceof Exile && e.isCitizen)
+            [[...candidates].filter(e => e instanceof Exile && e.isCitizen)]
         ).doNext();
     }
 

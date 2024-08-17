@@ -194,7 +194,7 @@ export class WildAllies extends ActivePower<Denizen> {
     usePower(): void {
         const campaignAction = new CampaignAction(this.action.player);
         campaignAction._noSupplyCost = true;
-        
+
         const sites = new Set<Site>();
         for (const siteProxy of this.gameProxy.board.sites()) {
             for (const denizenProxy of siteProxy.denizens) {
@@ -217,7 +217,7 @@ export class Wolves extends ActivePower<Denizen> {
         new ChoosePlayersAction(
             this.action.player, "Kill a warband",
             (targets: OathPlayer[]) => { if (targets.length) new KillWarbandsOnTargetAction(this.action.player, targets[0], 1).doNext(); },
-            Object.values(this.game.players)
+            [Object.values(this.game.players)]
         ).doNext();
     }
 }
@@ -232,7 +232,7 @@ export class FaeMerchant extends ActivePower<Denizen> {
         
         new TakeOwnableObjectEffect(this.game, this.action.player, relic).do();
         new ChooseCardsAction(
-            this.action.player, "Discard a relic", [...this.action.playerProxy.relics].filter(e => !(e instanceof GrandScepter)).map(e => e.original),
+            this.action.player, "Discard a relic", [[...this.action.playerProxy.relics].filter(e => !(e instanceof GrandScepter)).map(e => e.original)],
             (cards: Relic[]) => { if (cards.length) cards[0].putOnBottom(this.action.player); }
         ).doNext();
     }
@@ -260,7 +260,7 @@ export class SecondChance extends ActivePower<Denizen> {
                 new KillWarbandsOnTargetAction(this.action.player, targets[0], 1).doNext();
                 new PutWarbandsFromBagEffect(this.action.playerProxy.leader.original, 1, this.action.player).do();
             },
-            players
+            [players]
         ).doNext();
     }
 }

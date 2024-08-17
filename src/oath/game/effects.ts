@@ -740,16 +740,16 @@ export class PlayVisionEffect extends PlayerEffect<void> {
 }
 
 // TODO: Make freeing the cards into a method
-export class MoveAdviserEffect extends OathEffect<WorldCard> {
-    card: WorldCard;
+export class MoveAdviserEffect<T extends WorldCard> extends OathEffect<T> {
+    card: T;
     oldOwner: OathPlayer;
 
-    constructor(game: OathGame, player: OathPlayer | undefined, card: WorldCard) {
+    constructor(game: OathGame, player: OathPlayer | undefined, card: T) {
         super(game, player);
         this.card = card;
     }
 
-    resolve(): WorldCard {
+    resolve(): T {
         if (!this.card.owner) throw new InvalidActionResolution("Trying to move a non-adviser.");
         this.oldOwner = this.card.owner;
         this.card.setOwner(undefined);
@@ -1635,7 +1635,7 @@ export class CleanUpMapEffect extends PlayerEffect<void> {
         new ChooseSuitsAction(
             this.player, "Choose a suit to add to the World Deck", 
             (suits: OathSuit[]) => { if (suits.length) this.addCardsToWorldDeck(suits[0]); },
-            suits
+            [suits]
         ).doNext();
     }
 

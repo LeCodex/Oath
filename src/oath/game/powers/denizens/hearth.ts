@@ -1,7 +1,6 @@
-import { TradeAction, TakeResourceFromPlayerAction, TakeFavorFromBankAction, CampaignEndAction, ModifiableAction, MakeDecisionAction, CampaignAttackAction, InvalidActionResolution, RecoverAction, ChooseSuitsAction, ChooseCardsAction, ChooseSitesAction } from "../../actions/actions";
-import { PeoplesFavor } from "../../banks";
+import { TradeAction, TakeResourceFromPlayerAction, TakeFavorFromBankAction, CampaignEndAction, ModifiableAction, MakeDecisionAction, CampaignAttackAction, InvalidActionResolution, RecoverAction, ChooseSuitsAction, ChooseCardsAction } from "../../actions/actions";
 import { Denizen, Edifice, Relic, WorldCard } from "../../cards/cards";
-import { TakeWarbandsIntoBagEffect, TakeResourcesFromBankEffect, PlayVisionEffect, PlayWorldCardEffect, OathEffect, PeekAtCardEffect, DiscardCardEffect, PutWarbandsFromBagEffect, BecomeCitizenEffect, SetPeoplesFavorMobState, PutResourcesOnTargetEffect, PutResourcesIntoBankEffect, GainSupplyEffect, MoveBankResourcesEffect, DrawFromDeckEffect, TakeOwnableObjectEffect } from "../../effects";
+import { TakeWarbandsIntoBagEffect, TakeResourcesFromBankEffect, PlayVisionEffect, PlayWorldCardEffect, OathEffect, PeekAtCardEffect, DiscardCardEffect, PutWarbandsFromBagEffect, BecomeCitizenEffect, SetPeoplesFavorMobState, PutResourcesIntoBankEffect, GainSupplyEffect, MoveBankResourcesEffect, DrawFromDeckEffect, TakeOwnableObjectEffect } from "../../effects";
 import { OathResource, BannerName, OathSuit, ALL_OATH_SUITS } from "../../enums";
 import { ResourceCost } from "../../resources";
 import { maxInGroup, minInGroup } from "../../utils";
@@ -150,7 +149,8 @@ export class SaladDays extends WhenPlayed<Denizen> {
         new ChooseSuitsAction(
             this.effect.player, "Take 1 favor from three different banks",
             (suits: OathSuit[]) => { for (const suit of suits) new TakeResourcesFromBankEffect(this.game, this.effect.player, this.game.favorBanks.get(suit), 1).do(); },
-            undefined, 3
+            undefined,
+            [[3]]
         ).doNext();
     }
 }
@@ -310,7 +310,10 @@ export class ArmedMob extends ActivePower<Denizen> {
             if (!adviserProxy.original.facedown && !(adviserProxy instanceof Denizen && adviserProxy.activelyLocked))
                 cards.add(adviserProxy.original);
 
-        new ChooseCardsAction(this.action.player, "Discard an adviser", cards, (cards: WorldCard[]) => { if (cards.length) new DiscardCardEffect(this.action.player, cards[0]).do(); }).doNext();
+        new ChooseCardsAction(
+            this.action.player, "Discard an adviser", [cards], 
+            (cards: WorldCard[]) => { if (cards.length) new DiscardCardEffect(this.action.player, cards[0]).do(); }
+        ).doNext();
     }
 }
 
@@ -326,33 +329,22 @@ export class ARoundOfAle extends ActivePower<Denizen> {
 
 export class Levelers extends ActivePower<Denizen> {
     name = "Levelers";
-    cost = new ResourceCost([], [[OathResource.Secret, 1]]);
+    cost = new ResourceCost([[OathResource.Secret, 1]]);
 
     usePower(): void {
         const maxSuits = new Set(maxInGroup(ALL_OATH_SUITS, e => this.game.favorBanks.get(e)?.amount || 0));
         const minSuits = new Set(minInGroup(ALL_OATH_SUITS, e => this.game.favorBanks.get(e)?.amount || Infinity));
 
         new ChooseSuitsAction(
-            this.action.player, "Move 2 favor to a bank with the least favor",
-            (suits: OathSuit[]) => {
-                if (!suits.length) return;
-                minSuits.delete(suits[0]);
-                const from = this.game.favorBanks.get(suits[0]);
-                if (!from) return;
-
-                new ChooseSuitsAction(
-                    this.action.player, "Move 2 favor to a bank with the least favor",
-                    (suits: OathSuit[]) => {
-                        if (!suits.length) return;
-                        const to = this.game.favorBanks.get(suits[0]);
-                        if (!to) return;
-
-                        new MoveBankResourcesEffect(this.game, this.action.player, from, to, 2).do();
-                    },
-                    minSuits
-                ).doNext();
+            this.action.player, "Move 2 favor from a bank with the most favor to a bank with the least",
+            (maxTargets: OathSuit[], minTargets: OathSuit[]) => {
+                if (!minTargets.length || !maxTargets.length) return;
+                const from = this.game.favorBanks.get(maxTargets[0]);
+                const to = this.game.favorBanks.get(minTargets[0]);
+                if (!from || !to) return;
+                new MoveBankResourcesEffect(this.game, this.action.player, from, to, 2).do();
             },
-            maxSuits
+            [maxSuits, minSuits]
         ).doNext();
     }
 }
@@ -363,7 +355,7 @@ export class RelicBreaker extends ActivePower<Denizen> {
 
     usePower(): void {
         new ChooseCardsAction(
-            this.action.player, "Discard a relic to gain 3 warbands", [...this.action.playerProxy.site.relics].map(e => e.original),
+            this.action.player, "Discard a relic to gain 3 warbands", [[...this.action.playerProxy.site.relics].map(e => e.original)],
             (cards: Relic[]) => {
                 if (!cards.length) return;
                 cards[0].putOnBottom(this.action.player);
