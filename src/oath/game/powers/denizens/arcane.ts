@@ -1,4 +1,4 @@
-import { CampaignAtttackAction, CampaignDefenseAction, TakeFavorFromBankAction, TradeAction, TravelAction, InvalidActionResolution, MakeDecisionAction, RestAction, ChooseCardsAction, SearchPlayAction, ChoosePlayersAction, ChooseSitesAction, ChooseNumberAction, SearchAction, SearchChooseAction } from "../../actions/actions";
+import { CampaignAttackAction, CampaignDefenseAction, TakeFavorFromBankAction, TradeAction, TravelAction, InvalidActionResolution, MakeDecisionAction, RestAction, ChooseCardsAction, SearchPlayAction, ChoosePlayersAction, ChooseSitesAction, ChooseNumberAction, SearchAction, SearchChooseAction, KillWarbandsOnTargetAction } from "../../actions/actions";
 import { Conspiracy, Denizen, Edifice, Site, WorldCard } from "../../cards/cards";
 import { DiscardOptions } from "../../cards/decks";
 import { AttackDie, DefenseDie } from "../../dice";
@@ -85,8 +85,8 @@ export class CrackingGroundDefense extends DefenderBattlePlan<Denizen> {
 
 export class GleamingArmorAttack extends ActionModifier<Denizen> {
     name = "Gleaming Armor";
-    modifiedAction = CampaignAtttackAction;
-    action: CampaignAtttackAction;
+    modifiedAction = CampaignAttackAction;
+    action: CampaignAttackAction;
     mustUse = true;
 
     canUse(): boolean {
@@ -221,7 +221,7 @@ export class TerrorSpells extends ActivePower<Denizen> {
             () => new ChooseSitesAction(
                 this.action.player, "Kill a warband (" + amount + " left)",
                 (sites: Site[]) => { 
-                    if (sites[0]) sites[0].killWarbands(this.action.player);
+                    if (sites[0]) new KillWarbandsOnTargetAction(this.action.player, sites[0], 1).doNext();
                     if (--amount) this.usePower(amount);
                 },
                 this.action.playerProxy.site.region.original.sites.filter(e => e.totalWarbands)
@@ -229,7 +229,7 @@ export class TerrorSpells extends ActivePower<Denizen> {
             () => new ChoosePlayersAction(
                 this.action.player, "Kill a warband (" + amount + " left)",
                 (targets: OathPlayer[]) => {
-                    if (targets[0]) targets[0].killWarbands(this.action.player);
+                    if (targets[0]) new KillWarbandsOnTargetAction(this.action.player, targets[0], 1).doNext();
                     if (--amount) this.usePower(amount);
                 },
                 Object.values(this.gameProxy.players).filter(e => e.site.region === this.action.playerProxy.site.region && e.original.totalWarbands > 0).map(e => e.original)

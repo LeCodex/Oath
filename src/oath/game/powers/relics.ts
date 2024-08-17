@@ -1,4 +1,4 @@
-import { InvalidActionResolution, CitizenshipOfferAction, StartBindingExchangeAction, SkeletonKeyAction, TradeAction, CampaignAtttackAction, MusterAction, TravelAction, MakeDecisionAction, ChoosePlayersAction, SearchAction, ChooseCardsAction } from "../actions/actions";
+import { InvalidActionResolution, CitizenshipOfferAction, StartBindingExchangeAction, SkeletonKeyAction, TradeAction, CampaignAttackAction, MusterAction, TravelAction, MakeDecisionAction, ChoosePlayersAction, SearchAction, ChooseCardsAction } from "../actions/actions";
 import { Denizen, GrandScepter, OathCard, Relic, Site } from "../cards/cards";
 import { TakeOwnableObjectEffect, PutWarbandsFromBagEffect, PlayDenizenAtSiteEffect, MoveOwnWarbandsEffect, PeekAtCardEffect, SetGrandScepterLockEffect, GainSupplyEffect, DrawFromDeckEffect, RevealCardEffect, PayCostToTargetEffect, BecomeExileEffect, MoveWarbandsToEffect, TakeWarbandsIntoBagEffect, MoveResourcesToTargetEffect } from "../effects";
 import { BannerName, OathResource } from "../enums";
@@ -201,8 +201,8 @@ export class CircletOfCommand extends EnemyEffectModifier<Relic> {
 }
 export class CircletOfCommandCampaign extends EnemyActionModifier<Relic> {
     name = "Circlet of Command";
-    modifiedAction = CampaignAtttackAction;
-    action: CampaignAtttackAction;
+    modifiedAction = CampaignAttackAction;
+    action: CampaignAttackAction;
 
     applyBefore(): void {
         for (const target of this.action.campaignResult.targets) {

@@ -1,8 +1,8 @@
 import { Denizen, Edifice, OathCard, OwnableCard, Relic, Site, WorldCard } from "../cards/cards";
 import { DiscardOptions, SearchableDeck } from "../cards/decks";
 import { AttackDie, DefenseDie } from "../dice";
-import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, PutPawnAtSiteEffect, DiscardCardEffect, MoveOwnWarbandsEffect, MoveAdviserEffect, SetPeoplesFavorMobState, OathEffect, PaySupplyEffect, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, FlipEdificeEffect, ModifiedExecutionEffect, CampaignResolveSuccessfulAndSkullsEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect, CheckCapacityEffect, ApplyModifiersEffect, CampaignJoinDefenderAlliesEffect, MoveWorldCardToAdvisersEffect, DiscardCardGroupEffect } from "../effects";
-import { OathPhase, OathResource, OathResourceName, OathSuit, OathSuitName, OathType, OathTypeName } from "../enums";
+import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, PutPawnAtSiteEffect, DiscardCardEffect, MoveOwnWarbandsEffect, MoveAdviserEffect, SetPeoplesFavorMobState, OathEffect, PaySupplyEffect, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, FlipEdificeEffect, CampaignResolveSuccessfulAndSkullsEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect, CheckCapacityEffect, ApplyModifiersEffect, CampaignJoinDefenderAlliesEffect, MoveWorldCardToAdvisersEffect, DiscardCardGroupEffect } from "../effects";
+import { ALL_OATH_SUITS, OathPhase, OathResource, OathResourceName, OathSuit, OathSuitName, OathType, OathTypeName } from "../enums";
 import { OathGame } from "../game";
 import { OathGameObject } from "../gameObject";
 import { OathTypeToOath } from "../oaths";
@@ -10,7 +10,7 @@ import { Exile, OathPlayer } from "../player";
 import { ActionModifier, ActivePower, CapacityModifier } from "../powers/powers";
 import { ResourceCost, ResourcesAndWarbands } from "../resources";
 import { Banner, PeoplesFavor } from "../banks";
-import { Constructor, inclusiveRange, isExtended, MaskProxyManager } from "../utils";
+import { Constructor, inclusiveRange, isExtended, MaskProxyManager, minInGroup } from "../utils";
 import { SelectNOf, SelectBoolean, SelectNumber } from "./selects";
 import { CampaignActionTarget, RecoverActionTarget, WithPowers } from "../interfaces";
 import { Region } from "../board";
@@ -163,8 +163,9 @@ export abstract class ModifiableAction extends OathAction {
 
     execute() {
         for (const modifier of this.modifiers) modifier.applyBefore();
-        new ModifiedExecutionEffect(this).doNext();  // This allows actions to be slotted before the actual resolution of the action
+        new ResolveCallbackAction(this.player, () => this.modifiedExecution()).doNext();  // This allows actions to be slotted before the actual resolution of the action
         for (const modifier of this.modifiers) modifier.applyAfter();
+        new ResolveCallbackAction(this.player, () => { for (const modifier of this.modifiers) modifier.applyAtEnd(); })
     }
 
     abstract modifiedExecution(): void;
@@ -655,13 +656,13 @@ export class CampaignAction extends MajorAction {
 
     modifiedExecution() {
         super.modifiedExecution();
-        const next = new CampaignAtttackAction(this.player, this.defenderProxy?.original);
+        const next = new CampaignAttackAction(this.player, this.defenderProxy?.original);
         if (this.defenderProxy?.isImperial) new CampaignJoinDefenderAlliesEffect(next.campaignResult, this.gameProxy.chancellor.original).do();
         next.doNext();
     }
 }
 
-export class CampaignAtttackAction extends ModifiableAction {
+export class CampaignAttackAction extends ModifiableAction {
     readonly selects: { targets: SelectNOf<CampaignActionTarget>, pool: SelectNumber };
     readonly parameters: { targets: CampaignActionTarget[], pool: number[] };
     readonly next: CampaignDefenseAction;
@@ -774,7 +775,7 @@ export class CampaignAtttackAction extends ModifiableAction {
         };
 
         // If any powers cost something, then the attacker pays. Shouldn't happen though
-        if (new ApplyModifiersEffect(this.next, modifiers))
+        if (new ApplyModifiersEffect(this.next, modifiers).do())
             this.next.doNextWithoutModifiers();
     }
 }
@@ -830,6 +831,7 @@ export class CampaignResult extends OathGameObject {
     defenderKillsNoWarbands: boolean = false;
     attackerKillsEntireForce: boolean = false;
     defenderKillsEntireForce: boolean = false;
+    sacrificeValue: number = 1;
 
     attackerLoss: number = 0;
     defenderLoss: number = 0;
@@ -841,7 +843,7 @@ export class CampaignResult extends OathGameObject {
     get atk() { return AttackDie.getResult(this.atkRoll); }
     get def() { return DefenseDie.getResult(this.defRoll) + this.totalDefForce; }
 
-    get requiredSacrifice() { return this.def - this.atk + 1; }
+    get requiredSacrifice() { return Math.ceil((this.def - this.atk + 1) / this.sacrificeValue); }
     get couldSacrifice() { return this.requiredSacrifice > 0 && this.requiredSacrifice <= this.totalAtkForce; }
 
     get winner() { return this.successful ? this.attacker : this.defender; }
@@ -851,12 +853,16 @@ export class CampaignResult extends OathGameObject {
     get loserKillsEntireForce() { return this.successful ? this.defenderKillsEntireForce : this.attackerKillsEntireForce; }
     get loserLoss() { return this.successful ? this.defenderLoss : this.attackerLoss; }
 
+    atEnd(callback: () => void) {
+        this.endCallbacks.push(callback);
+    }
+
     discardAtEnd(denizen: Denizen) {
-        this.endCallbacks.push(() => new DiscardCardEffect(denizen.ruler || this.attacker, denizen).do());
+        this.atEnd(() => new DiscardCardEffect(denizen.ruler || this.attacker, denizen).do());
     }
 
     onSuccessful(successful: boolean, callback: () => void) {
-        this.endCallbacks.push(() => { if (this.successful === successful) callback(); });
+        this.atEnd(() => { if (this.successful === successful) callback(); });
     }
 
     checkForImperialInfighting(maskProxyManager: MaskProxyManager) {
@@ -1233,6 +1239,58 @@ export class ResolveEffectAction extends OathAction {
 }
 
 
+export class ResolveCallbackAction extends OathAction {
+    readonly message = "";
+
+    callback: () => void;
+
+    constructor(player: OathPlayer, callback: () => void) {
+        super(player);
+        this.callback = callback;
+    }
+
+    execute(): void {
+        this.callback();
+    }
+}
+
+
+export class KillWarbandsOnTargetAction extends OathAction {
+    selects: Record<string, SelectNumber> = {};
+    parameters: Record<string, number[]> = {};
+    readonly message;
+
+    target: ResourcesAndWarbands;
+    amount: number;
+
+    constructor(player: OathPlayer, target: ResourcesAndWarbands, amount: number) {
+        super(player);
+        this.message = `Kill ${amount} warbands`;
+        this.target = target;
+        this.amount = amount;
+    }
+
+    start(): boolean {
+        const owners: [string, number][] = [...this.target.warbands].map(([k, v]) => [k.name, v]);
+        for (const [key, warbands] of owners) {
+            const min = Math.min(warbands, Math.max(0, this.amount - owners.filter(([k, _]) => k !== key).reduce((a, [_, v]) => a + Math.min(v, this.amount), 0)));
+            const max = Math.min(warbands, this.amount);
+            this.selects[key] = new SelectNumber(key, inclusiveRange(min, max));
+        }
+        return super.start();
+    }
+
+    execute(): void {
+        const total = Object.values(this.parameters).reduce((a, e) => a + e[0], 0);
+        if (total !== this.amount)
+            throw new InvalidActionResolution("Invalid total amount of warbands");
+        
+        for (const owner of this.target.warbands.keys())
+            new TakeWarbandsIntoBagEffect(owner, this.parameters[owner.name][0], this.target).do();
+    }
+}
+
+
 export class ChooseNumberAction extends OathAction {
     readonly selects: { value: SelectNumber };
     readonly parameters: { value: number[] };
@@ -1348,7 +1406,7 @@ export abstract class ChooseTsAction<T> extends OathAction {
 
 export class ChooseSuitsAction extends ChooseTsAction<OathSuit> {
     start() {
-        if (!this.choices) this.choices = new Set([OathSuit.Discord, OathSuit.Arcane, OathSuit.Order, OathSuit.Hearth, OathSuit.Beast, OathSuit.Nomad]);
+        if (!this.choices) this.choices = new Set(ALL_OATH_SUITS);
 
         const choices = new Map<string, OathSuit>();
         for (const suit of this.choices) choices.set(OathSuitName[suit], suit);
@@ -1379,15 +1437,7 @@ export class PeoplesFavorWakeAction extends ChooseSuitsAction {
     start() {
         this.choices = new Set();
         if (this.banner.amount > 1) {
-            let min = Infinity;
-            for (const [suit, bank] of this.game.favorBanks) {
-                const amount = bank.amount;
-                if (amount <= min) {
-                    if (amount < min) this.choices.clear();
-                    this.choices.add(suit);
-                    min = amount;
-                }
-            }
+            this.choices = new Set(minInGroup(this.game.favorBanks.entries(), ([_, v]) => v.amount).map(([k, _]) => k));
         }
         
         return super.start();

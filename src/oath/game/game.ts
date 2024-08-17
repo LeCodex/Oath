@@ -7,7 +7,7 @@ import { CardDeck, WorldDeck } from "./cards/decks";
 import { DenizenData, denizenData, edificeData } from "./cards/denizens";
 import { relicsData } from "./cards/relics";
 import { sitesData } from "./cards/sites";
-import { BannerName, OathPhase, OathSuit, RegionName, PlayerColor, OathResource } from "./enums";
+import { BannerName, OathPhase, OathSuit, RegionName, PlayerColor, OathResource, ALL_OATH_SUITS } from "./enums";
 import { Oath, OathOfDevotion, OathOfProtection, OathOfSupremacy, OathOfThePeople, OathTypeToOath } from "./oaths";
 import { Conspiracy, Denizen, Edifice, GrandScepter, Relic, Site, Vision, WorldCard } from "./cards/cards";
 import { Chancellor, Exile, OathPlayer } from "./player";
@@ -324,7 +324,7 @@ export class OathGame extends WithOriginal {
             // TODO: Store overall state of Citizenships
             playerCitizenship: {[1]: Citizenship.Exile, [2]: Citizenship.Exile, [3]: Citizenship.Exile, [4]: Citizenship.Exile, [5]: Citizenship.Exile},
             oath: this.oath.type,
-            suitOrder: [OathSuit.Discord, OathSuit.Arcane, OathSuit.Order, OathSuit.Hearth, OathSuit.Beast, OathSuit.Nomad],
+            suitOrder: ALL_OATH_SUITS,
             sites: [...this.board.sites()].map(e => ({ name: e.name, facedown: e.facedown, cards: [...e.denizens, ...e.relics].map(e => ({ name: e.name })) })),
             world: this.worldDeck.cards.map(e => ({ name: e.name })),
             dispossessed: Object.keys(this.dispossessed).map(e => ({ name: e })),

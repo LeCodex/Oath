@@ -1,5 +1,5 @@
 import { ActionModifier } from "./powers";
-import { InvalidActionResolution, CampaignAtttackAction, SearchAction, TradeAction, TravelAction } from "../actions/actions";
+import { InvalidActionResolution, CampaignAttackAction, SearchAction, TradeAction, TravelAction } from "../actions/actions";
 import { OathResource, RegionName } from "../enums";
 import { ReliquarySlot } from "../reliquary";
 
@@ -14,8 +14,8 @@ export abstract class ReliquaryModifier extends ActionModifier<ReliquarySlot> {
 
 export class Brutal extends ReliquaryModifier {
     name = "Brutal";
-    modifiedAction = CampaignAtttackAction;
-    action: CampaignAtttackAction;
+    modifiedAction = CampaignAttackAction;
+    action: CampaignAttackAction;
 
     applyBefore() {
         this.action.campaignResult.attackerKillsEntireForce = true;

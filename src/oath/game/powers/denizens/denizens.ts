@@ -1,6 +1,6 @@
 import { Denizen, Site, WorldCard } from "../../cards/cards";
 import { OathPlayer } from "../../player";
-import { CapacityModifier, OathPower } from "../powers";
+import { CapacityModifier } from "../powers";
 
 
 // ------------------ GENERAL ------------------- //

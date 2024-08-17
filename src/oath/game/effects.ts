@@ -157,23 +157,6 @@ export class ApplyModifiersEffect extends OathEffect<boolean> {
     }
 }
 
-export class ModifiedExecutionEffect extends PlayerEffect<void> {
-    action: ModifiableAction;
-
-    constructor(action: ModifiableAction) {
-        super(action.player);
-        this.action = action;
-    }
-
-    resolve(): void {
-        this.action.modifiedExecution();
-    }
-
-    revert(): void {
-        // Doesn't do anything on its own
-    }
-}
-
 export class PutResourcesOnTargetEffect extends OathEffect<number> {
     resource: OathResource;
     amount: number;
@@ -219,7 +202,7 @@ export class MoveResourcesToTargetEffect extends OathEffect<number> {
         if (this.target)
             this.target.moveResourcesTo(this.resource, this.source, this.amount);
         else
-            this.source?.putResources(this.resource, this.amount);
+            this.source?.putResources(this.resource, this.amount);  // TODO: Take favor from supply
     }
 }
 
@@ -236,7 +219,7 @@ export class PutResourcesIntoBankEffect extends OathEffect<number> {
     }
 
     resolve(): number {
-        if (!this.source) return this.bank?.put(this.amount) || 0;
+        if (!this.source) return this.bank?.put(this.amount) || 0;  // TODO: Take favor from supply 
         return this.source.putResourcesIntoBank(this.bank, this.amount);
     }
 
@@ -262,7 +245,7 @@ export class TakeResourcesFromBankEffect extends OathEffect<number> {
 
     resolve(): number {
         if (!this.target)
-            this.amount = this.bank?.take(this.amount) || 0;
+            this.amount = this.bank?.take(this.amount) || 0;  // TODO: put favor from supply 
         else
             this.amount = this.target.takeResourcesFromBank(this.bank, this.amount);
 

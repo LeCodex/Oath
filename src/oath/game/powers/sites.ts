@@ -1,4 +1,4 @@
-import { InvalidActionResolution, ChooseResourceToTakeAction, WakeAction, TravelAction, CampaignAtttackAction, MusterAction, SearchAction, StartBindingExchangeAction, MakeBindingExchangeOfferAction, SearchPlayAction, MayDiscardACardAction } from "../actions/actions";
+import { InvalidActionResolution, ChooseResourceToTakeAction, WakeAction, TravelAction, CampaignAttackAction, MusterAction, SearchAction, StartBindingExchangeAction, MakeBindingExchangeOfferAction, SearchPlayAction, MayDiscardACardAction } from "../actions/actions";
 import { Site, Denizen } from "../cards/cards";
 import { PlayWorldCardEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PutWarbandsFromBagEffect, TakeResourcesFromBankEffect, FlipSecretsEffect } from "../effects";
 import { OathSuit, OathResource } from "../enums";
@@ -197,8 +197,8 @@ export class TheHiddenPlaceTravel extends ActionModifier<Site> {
 
 export class TheHiddenPlaceCampaign extends ActionModifier<Site> {
     name = "The Hidden Place";
-    modifiedAction = CampaignAtttackAction;
-    action: CampaignAtttackAction;
+    modifiedAction = CampaignAttackAction;
+    action: CampaignAttackAction;
     mustUse = true;
 
     applyBefore(): void {
@@ -228,8 +228,8 @@ export class OpportunitySite extends SiteActionModifier {
 
 export class Plains extends SiteActionModifier {
     name = "Plains";
-    modifiedAction = CampaignAtttackAction;
-    action: CampaignAtttackAction;
+    modifiedAction = CampaignAttackAction;
+    action: CampaignAttackAction;
     mustUse = true;
 
     applyBefore(): void {
@@ -244,8 +244,8 @@ export class Plains extends SiteActionModifier {
 
 export class Mountain extends SiteActionModifier {
     name = "Mountain";
-    modifiedAction = CampaignAtttackAction;
-    action: CampaignAtttackAction;
+    modifiedAction = CampaignAttackAction;
+    action: CampaignAttackAction;
     mustUse = true;
 
     applyBefore(): void {

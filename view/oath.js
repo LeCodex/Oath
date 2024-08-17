@@ -1,5 +1,6 @@
 let game = {};
 let action = undefined;
+let appliedEffects = undefined;
 let gameId = undefined;
 let startOptions = undefined;
 
@@ -32,17 +33,15 @@ const render = () => {
     infoNode.innerHTML = "";
     infoNode.appendChild(renderText("[BANNERS]"));
     for (const [i, banner] of Object.entries(game.banners)) {
-        const bannerNode = infoNode.appendChild(document.createElement("li"));
+        const bannerNode = infoNode.appendChild(renderText(banner.name + ": " + resourceNames[banner.type].repeat(banner.amount)));
         bannerNode.id = "bank" + i;
-        bannerNode.innerText = banner.name + ": " + resourceNames[banner.type].repeat(banner.amount);
     }
 
     const banksNode = infoNode.appendChild(renderText("[BANKS]"));
     const banksList = banksNode.appendChild(document.createElement("ul"));
     for (const [i, bank] of Object.entries(game.favorBanks)) {
-        const bankNode = banksList.appendChild(document.createElement("li"));
-        bankNode.id = "bank" + i
-        bankNode.innerText = suitColors[Number(i)+1] + ": " + "🟡".repeat(bank.amount);
+        const bankNode = banksList.appendChild(renderText(suitColors[Number(i)+1] + ": " + "🟡".repeat(bank.amount)));
+        bankNode.id = "bank" + i;
     }
 
     infoNode.appendChild(renderText("[DECKS]"));
@@ -52,9 +51,8 @@ const render = () => {
     const boardNode = document.getElementById("board");
     boardNode.innerHTML = "";
     for (const [i, region] of Object.entries(game.board.regions)) {
-        const regionNode = boardNode.appendChild(document.createElement("li"));
+        const regionNode = boardNode.appendChild(renderText(region.name));
         regionNode.id = "region" + i;
-        regionNode.innerText = region.name;
 
         const regionList = regionNode.appendChild(document.createElement("ul"));
         for (const site of region.sites) {
@@ -73,9 +71,8 @@ const render = () => {
     const playersNode = document.getElementById("players");
     playersNode.innerHTML = "";
     for (const [i, player] of Object.entries(game.players)) {
-        const playerNode = playersNode.appendChild(document.createElement("li"));
+        const playerNode = playersNode.appendChild(renderText(player.name + (player.isCitizen ? " 💜" : "") + (game.turn == i ? " 🔄" : "") + (game.oathkeeper == i ? game.isUsurper ? " 🥇" : " 🏅": "")));
         playerNode.id = "player" + i;
-        playerNode.innerText = player.name + (player.isCitizen ? " 💜" : "") + (game.turn == i ? " 🔄" : "") + (game.oathkeeper == i ? game.isUsurper ? " 🥇" : " 🏅": "");
 
         const playerList = playerNode.appendChild(document.createElement("ul"));
         // playerList.appendChild(renderText("At " + player.site));
@@ -83,9 +80,8 @@ const render = () => {
         playerList.appendChild(renderText("Resources: " + getResourcesAndWarbandsText(player)));
         if (player.vision) playerList.appendChild(renderText(player.vision.name));
 
-        const thingsNode = playerList.appendChild(document.createElement("li"));
+        const thingsNode = playerList.appendChild(renderText("Things:"));
         thingsNode.id = "playerThings" + i;
-        thingsNode.innerText = "Things:";
         
         const thingsList = thingsNode.appendChild(document.createElement("ul"));
         for (const adviser of player.advisers) thingsList.appendChild(renderCard(adviser));
@@ -93,9 +89,8 @@ const render = () => {
         for (const banner of player.banners) thingsList.appendChild(renderText(banner));
 
         if (player.reliquary) {
-            const reliquaryNode = playerList.appendChild(document.createElement("li"));
+            const reliquaryNode = playerList.appendChild(renderText("Reliquary:"));
             reliquaryNode.id = "reliquary";
-            reliquaryNode.innerText = "Reliquary:";
             
             const reliquaryList = reliquaryNode.appendChild(document.createElement("ul"));
             for (const relic of player.reliquary.relics) reliquaryList.appendChild(relic ? renderCard(relic) : renderText("Empty"));
@@ -105,8 +100,8 @@ const render = () => {
 
     const effectsNode = document.getElementById("effects");
     effectsNode.innerHTML = "";
-    if (action) {
-        for (const effect of action.appliedEffects) {
+    if (appliedEffects) {
+        for (const effect of appliedEffects) {
             effectsNode.appendChild(renderText(effect));
         }
     }
@@ -118,9 +113,8 @@ const render = () => {
         actionNode.innerText = "[" + action.message + "] (" + game.players[action.player].name + ")";
         if (action.modifiers?.length) actionNode.appendChild(renderText("Modifiers: " + action.modifiers.join(", ")));
         for (const [k, select] of Object.entries(action.selects)) {
-            const selectNode = actionNode.appendChild(document.createElement("li"));
+            const selectNode = actionNode.appendChild(renderText(select.name + ` (${select.min}-${select.max})`));
             selectNode.id = "select" + k;
-            selectNode.innerText = select.name + ` (${select.min}-${select.max})`;
             
             const selectList = selectNode.appendChild(document.createElement("ul"));
             for (const [i, choice] of select.choices.entries()) {
@@ -246,6 +240,7 @@ const handleResponse = async (response) => {
     
     game = info.game;
     action = info.activeAction;
+    appliedEffects = info.appliedEffects;
     startOptions = info.startOptions;
     render();
     return info;

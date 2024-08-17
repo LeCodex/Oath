@@ -17,6 +17,8 @@ export enum OathSuit {
     None = -1
 }
 
+export const ALL_OATH_SUITS = [OathSuit.Discord, OathSuit.Arcane, OathSuit.Order, OathSuit.Hearth, OathSuit.Beast, OathSuit.Nomad];
+
 export const OathSuitName = {
     [OathSuit.Discord]: "Discord",
     [OathSuit.Arcane]: "Arcane",

@@ -1,4 +1,4 @@
-import { TravelAction, InvalidActionResolution, CampaignAtttackAction, MakeDecisionAction, ChooseRegionAction, SearchPlayAction, ChooseCardsAction } from "../../actions/actions";
+import { TravelAction, InvalidActionResolution, CampaignAttackAction, MakeDecisionAction, ChooseRegionAction, SearchPlayAction, ChooseCardsAction } from "../../actions/actions";
 import { Region } from "../../board";
 import { Denizen, Edifice, Site, VisionBack, WorldCard } from "../../cards/cards";
 import { DiscardOptions } from "../../cards/decks";
@@ -148,8 +148,8 @@ export class LostTongue extends EnemyEffectModifier<Denizen> {
 }
 export class LostTongueCampaign extends EnemyActionModifier<Denizen> {
     name = "Lost Tongue";
-    modifiedAction = CampaignAtttackAction;
-    action: CampaignAtttackAction;
+    modifiedAction = CampaignAttackAction;
+    action: CampaignAttackAction;
 
     applyBefore(): void {
         for (const target of this.action.campaignResult.targets) {

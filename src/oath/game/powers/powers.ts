@@ -1,4 +1,4 @@
-import { ModifiableAction, RestAction, UsePowerAction, WakeAction, CampaignAtttackAction, CampaignDefenseAction } from "../actions/actions";
+import { ModifiableAction, RestAction, UsePowerAction, WakeAction, CampaignAttackAction, CampaignDefenseAction } from "../actions/actions";
 import { ApplyWhenPlayedEffect, OathEffect, PayPowerCost } from "../effects";
 import { OathCard, OwnableCard, Site, WorldCard } from "../cards/cards";
 import { ResourceCost } from "../resources";
@@ -100,11 +100,18 @@ export abstract class ActionModifier<T extends WithPowers> extends ActionPower<T
         return true;
     }
 
-    applyImmediately(modifiers: Iterable<ActionModifier<any>>): Iterable<ActionModifier<any>> { return []; }    // Applied right after all the possible modifiers are collected
-    applyWhenApplied(): boolean { return true; }    // Applied before the action is added to the list. If returns false, it will not be added
-    applyAtStart(): void { }                        // Applied when the action starts and selects are setup (before choices are made)
-    applyBefore(): void { }                         // Applied right before the execution of the action. Actions added by it are executed before the actual body of the modified action
-    applyAfter(): void { }                          // Applied after the execution of the action
+    /** Applied right after all the possible modifiers are collected */
+    applyImmediately(modifiers: Iterable<ActionModifier<any>>): Iterable<ActionModifier<any>> { return []; }
+    /** Applied before the action is added to the stack. If returns false, it will not be added */
+    applyWhenApplied(): boolean { return true; }
+    /** Applied when the action starts and selects are set up (before choices are made) */
+    applyAtStart(): void { }
+    /** Applied right before the execution of the action is put on the stack */
+    applyBefore(): void { }
+    /** Applied after the execution of the action is put onto the stack */
+    applyAfter(): void { }
+    /** Applied after the full execution of the action */
+    applyAtEnd(): void { }
     
     serialize(): string {
         return this.name;
@@ -144,8 +151,8 @@ export abstract class BattlePlan<T extends OwnableCard> extends ActionModifier<T
 }
 
 export abstract class AttackerBattlePlan<T extends OwnableCard> extends BattlePlan<T> {
-    modifiedAction = CampaignAtttackAction;
-    action: CampaignAtttackAction;
+    modifiedAction = CampaignAttackAction;
+    action: CampaignAttackAction;
 }
 
 export abstract class DefenderBattlePlan<T extends OwnableCard> extends BattlePlan<T> {

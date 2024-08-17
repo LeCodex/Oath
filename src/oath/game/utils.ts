@@ -18,6 +18,40 @@ export function inclusiveRange(start: number, end?: number, step?: number) {
     return range(start, end, step);
 }
 
+export function minInGroup<T>(group: Iterable<T>, propertyOrMap: keyof T | ((e: T) => number)): T[] {
+    let min = Infinity;
+    const subGroup = [];
+    for (const element of group) {
+        const value = typeof propertyOrMap === "function" ? propertyOrMap(element) : element[propertyOrMap];
+        if (typeof value !== "number") throw TypeError(`${value} is not a number`);
+        
+        if (value <= min) {
+            if (value < min) subGroup.length = 0;
+            subGroup.push(element);
+            min = value;
+        }
+    }
+
+    return subGroup;
+}
+
+export function maxInGroup<T>(group: Iterable<T>, propertyOrMap: keyof T | ((e: T) => number)): T[] {
+    let max = 0;
+    const subGroup = [];
+    for (const element of group) {
+        const value = typeof propertyOrMap === "function" ? propertyOrMap(element) : element[propertyOrMap];
+        if (typeof value !== "number") throw TypeError(`${value} is not a number`);
+        
+        if (value >= max) {
+            if (value > max) subGroup.length = 0;
+            subGroup.push(element);
+            max = value;
+        }
+    }
+
+    return subGroup;
+}
+
 export abstract class WithOriginal { original = this; }
 
 type ProxyInfo<T> = { proxy: T, revoke: () => void };

@@ -44,7 +44,7 @@ export abstract class OathCard extends ResourcesAndWarbands implements WithPower
         return this.facedown && (!player || !this.seenBy.has(player)) ? this.facedownName : this.name;
     }
 
-    free(): OathCard { return this; }
+    free(): this { return this; }
     
     returnResources() {
         const amount = this.getResources(OathResource.Secret);
@@ -273,8 +273,8 @@ export abstract class WorldCard extends OwnableCard {
         if (newOwner) newOwner.addAdviser(this);
     }
 
-    free(): WorldCard {
-        if (this.owner) return new MoveAdviserEffect(this.game, this.owner, this).do();
+    free(): this {
+        if (this.owner) return new MoveAdviserEffect(this.game, this.owner, this).do() as this;
         return this;
     }
 }
@@ -301,10 +301,10 @@ export class Denizen extends WorldCard implements AtSite {
     get data(): DenizenData { return [this._suit, [...this.powers], this.restriction, this.locked]; }
     get discard(): CardDeck<WorldCard> | undefined { return super.discard || this.site && this.game.board.nextRegion(this.site.region).discard; }
 
-    free(): Denizen {
-        const card = super.free() as Denizen;
-        if (this.site) return new MoveSiteDenizenEffect(this.game, this.owner, card).do();
-        return card;
+    free(): this {
+        super.free();
+        if (this.site) return new MoveSiteDenizenEffect(this.game, this.owner, this).do() as this;
+        return this;
     }
 
     accessibleBy(player: OathPlayer): boolean {

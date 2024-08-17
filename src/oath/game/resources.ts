@@ -97,14 +97,6 @@ export abstract class ResourcesAndWarbands extends OathGameObject {
             new TakeWarbandsIntoBagEffect(player, amount, this);
     }
 
-    killWarbands(player: OathPlayer, amount: number = 1) {
-        new ChoosePlayersAction(
-            player, "Kill " + amount + " warband(s)",
-            (owners: OathPlayer[]) => { if (owners.length) new TakeWarbandsIntoBagEffect(owners[0], amount, this).do(); },
-            [...this.warbands.keys()].filter(e => this.getWarbands(e) > 0)
-        ).doNext();
-    }
-
     serialize(): Record<string, any> {
         return {
             resources: Object.fromEntries([...this.resources.entries()]),

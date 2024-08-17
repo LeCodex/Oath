@@ -1,13 +1,14 @@
-import { MakeDecisionAction, ChooseCardsAction, ChooseRegionAction, InvalidActionResolution, TakeFavorFromBankAction, TakeResourceFromPlayerAction, ChooseSuitsAction, ModifiableAction, ChoosePlayersAction, WakeAction, SearchPlayAction } from "../../actions/actions";
+import { MakeDecisionAction, ChooseCardsAction, ChooseRegionAction, InvalidActionResolution, TakeFavorFromBankAction, TakeResourceFromPlayerAction, ChooseSuitsAction, ModifiableAction, SearchPlayAction, MusterAction, TravelAction, CampaignAction, KillWarbandsOnTargetAction, CampaignDefenseAction, CampaignAttackAction, CampaignEndAction, RecoverAction } from "../../actions/actions";
 import { PeoplesFavor } from "../../banks";
 import { Region } from "../../board";
 import { Denizen, OathCard, Relic, Site, Vision, WorldCard } from "../../cards/cards";
 import { D6, DefenseDie } from "../../dice";
-import { TakeOwnableObjectEffect, TakeWarbandsIntoBagEffect, PutWarbandsFromBagEffect, PutResourcesOnTargetEffect, MoveResourcesToTargetEffect, SetNewOathkeeperEffect, RollDiceEffect, GamblingHallEffect, TakeResourcesFromBankEffect, DiscardCardEffect, BecomeCitizenEffect, PayCostToTargetEffect, PeekAtCardEffect, OathEffect, WinGameEffect, DrawFromDeckEffect } from "../../effects";
+import { TakeOwnableObjectEffect, TakeWarbandsIntoBagEffect, PutWarbandsFromBagEffect, PutResourcesOnTargetEffect, MoveResourcesToTargetEffect, SetNewOathkeeperEffect, RollDiceEffect, GamblingHallEffect, TakeResourcesFromBankEffect, DiscardCardEffect, BecomeCitizenEffect, PayCostToTargetEffect, PeekAtCardEffect, OathEffect, WinGameEffect, DrawFromDeckEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect } from "../../effects";
 import { BannerName, OathResource, OathSuit } from "../../enums";
 import { Exile, OathPlayer } from "../../player";
 import { ResourceCost } from "../../resources";
-import { EnemyEffectModifier, WhenPlayed, CapacityModifier, ActivePower, RestPower, AttackerBattlePlan, DefenderBattlePlan, EffectModifier, ActionModifier, AccessedActionModifier, WakePower } from "../powers";
+import { EnemyEffectModifier, WhenPlayed, CapacityModifier, ActivePower, RestPower, AttackerBattlePlan, DefenderBattlePlan, EffectModifier, ActionModifier, AccessedActionModifier, WakePower, EnemyActionModifier } from "../powers";
+import { minInGroup } from "../../utils";
 
 
 export class MercenariesAttack extends AttackerBattlePlan<Denizen> {
@@ -91,8 +92,45 @@ export class Slander extends AttackerBattlePlan<Denizen> {
         this.action.campaignResult.onSuccessful(true, () => {
             const defender = this.action.campaignResult.defender;
             if (!defender) return;
-            new MoveResourcesToTargetEffect(this.game, defender, OathResource.Favor, Infinity, undefined).do()
+            new MoveResourcesToTargetEffect(this.game, defender, OathResource.Favor, Infinity, undefined).do();
         });
+    }
+}
+
+export class SecondWind extends AttackerBattlePlan<Denizen> {
+    name = "Second Wind";
+    cost = new ResourceCost([[OathResource.Secret, 1]], [[OathResource.Favor, 1]]);
+
+    applyBefore(): void {
+        this.action.campaignResult.onSuccessful(true, () => {
+            new MakeDecisionAction(
+                this.action.player, "Take a Travel action?",
+                () => {
+                    const travelAction = new TravelAction(this.action.player);
+                    travelAction._noSupplyCost = true;
+                    travelAction.doNext();
+                }
+            ).doNext();
+
+            new MakeDecisionAction(
+                this.action.player, "Take a Campaign action?",
+                () => {
+                    const campaignAction = new CampaignAction(this.action.player);
+                    campaignAction._noSupplyCost = true;
+                    campaignAction.doNext();
+                }
+            ).doNext();
+        });
+    }
+}
+
+export class Zealots extends AttackerBattlePlan<Denizen> {
+    name = "Zealots";
+    cost = new ResourceCost([[OathResource.Favor, 1]]);
+
+    applyAtEnd(): void {
+        if (this.action.campaignResult.totalAtkForce < this.action.campaignResult.totalDefForce)
+            this.action.campaignResult.sacrificeValue = 3;
     }
 }
 
@@ -330,7 +368,7 @@ export class BanditChief extends WhenPlayed<Denizen> {
 
     whenPlayed(): void {
         for (const site of this.game.board.sites())
-            site.killWarbands(this.effect.player, 1);
+            new KillWarbandsOnTargetAction(this.effect.player, site, 1).doNext();
     }
 }
 export class BanditChiefAction extends ActionModifier<Denizen> {
@@ -428,6 +466,132 @@ export class SaltTheEarth extends CapacityModifier<Denizen> {
 
     updateCapacityInformation(targetProxy: Set<WorldCard>): [number, Iterable<WorldCard>] {
         return [0, [this.sourceProxy]];  // Also takes care of discarding and checking for locked cards
+    }
+}
+
+export class Downtrodden extends AccessedActionModifier<Denizen> {
+    name = "Downtrodden";
+    modifiedAction = MusterAction;
+    action: MusterAction;
+
+    applyBefore(): void {
+        let minSuits = minInGroup(this.game.favorBanks, ([_, v]) => v.amount).map(([k, _]) => k);
+        if (minSuits.length === 1 && minSuits[0] === this.action.cardProxy.suit)
+            this.action.amount += 2;
+    }
+}
+
+export class BoilingLake extends EnemyActionModifier<Denizen> {
+    name = "Boiling Lake";
+    modifiedAction = TravelAction;
+    action: TravelAction;
+
+    applyBefore(): void {
+        new KillWarbandsOnTargetAction(this.action.player, this.action.player, 2).doNext();
+    }
+}
+
+export class Gossip extends EnemyActionModifier<Denizen> {
+    name = "Gossip";
+    modifiedAction = SearchPlayAction;
+    action: SearchPlayAction;
+
+    applyBefore(): void {
+        if (this.action.facedown)
+            throw new InvalidActionResolution("Cannot play cards facedown under the Gossip");
+    }
+}
+
+export class BeastTamerAttack extends EnemyActionModifier<Denizen> {
+    name = "Beast Tamer";
+    modifiedAction = CampaignAttackAction;
+    action: CampaignAttackAction;
+
+    applyBefore(): void {
+        for (const modifier of this.action.modifiers)
+            if (
+                modifier instanceof DefenderBattlePlan && modifier.sourceProxy instanceof Denizen && 
+                (modifier.sourceProxy.suit === OathSuit.Beast || modifier.sourceProxy.suit === OathSuit.Nomad)
+            )
+                throw new InvalidActionResolution("Cannot use Beast or Nomad defender battle plans");
+    }
+}
+export class BeastTamerDefense extends EnemyActionModifier<Denizen> {
+    name = "Beast Tamer";
+    modifiedAction = CampaignDefenseAction;
+    action: CampaignDefenseAction;
+
+    applyBefore(): void {
+        for (const modifier of this.action.modifiers)
+            if (
+                modifier instanceof DefenderBattlePlan && modifier.sourceProxy instanceof Denizen && 
+                (modifier.sourceProxy.suit === OathSuit.Beast || modifier.sourceProxy.suit === OathSuit.Nomad)
+            )
+                throw new InvalidActionResolution("Cannot use Beast or Nomad defender battle plans");
+    }
+}
+
+export class Enchantress extends ActivePower<Denizen> {
+    name = "Enchantress";
+    cost = new ResourceCost([], [[OathResource.Secret, 1]]);
+
+    usePower(): void {
+        const cards = new Set<WorldCard>();
+        for (const playerProxy of Object.values(this.gameProxy.players)) {
+            if (playerProxy === this.action.playerProxy || playerProxy.site !== this.action.playerProxy.site) continue;
+            for (const adviserProxy of playerProxy.advisers)
+                if (!adviserProxy.original.facedown && !(adviserProxy instanceof Denizen && adviserProxy.activelyLocked))
+                    cards.add(adviserProxy.original);
+        }
+
+        new ChooseCardsAction(
+            this.action.player, "Swap with an adviser", cards, 
+            (cards: WorldCard[]) => {
+                if (cards.length) return;
+                const otherPlayer = cards[0].owner as OathPlayer;
+                const enchantress = new MoveAdviserEffect(this.game, this.action.player, this.source).do();
+                const otherCard = new MoveAdviserEffect(this.game, this.action.player, cards[0]).do();
+                new MoveWorldCardToAdvisersEffect(this.game, otherPlayer, enchantress).do();
+                new MoveWorldCardToAdvisersEffect(this.game, this.action.player, otherCard).do();
+            }
+        ).doNext();
+    }
+}
+
+export class SneakAttack extends EnemyActionModifier<Denizen> {
+    name = "Sneak Attack";
+    modifiedAction = CampaignEndAction;
+    action: CampaignEndAction;
+
+    applyBefore(): void {
+        const ruler = this.sourceProxy.ruler?.original;
+        if (!ruler) return;
+
+        new MakeDecisionAction(
+            ruler, "Campaign against " + this.action.player.name + "?",
+            () => { new CampaignAttackAction(ruler, this.action.player).doNext(); }
+        )
+    }
+}
+
+export class VowOfRenewal extends EffectModifier<Denizen> {
+    name = "Vow of Renewal";
+    modifiedEffect = MoveResourcesToTargetEffect;
+    effect: MoveResourcesToTargetEffect;
+
+    applyAfter(): void {
+        if (this.effect.resource === OathResource.Favor && !this.effect.target && this.sourceProxy.ruler)
+            new PutResourcesOnTargetEffect(this.game, this.sourceProxy.ruler.original, OathResource.Favor, this.effect.amount).do();
+    }
+}
+export class VowOfRenewalRecover extends AccessedActionModifier<Denizen> {
+    name = "Vow of Renewal";
+    modifiedAction = RecoverAction;
+    action: RecoverAction;
+
+    applyBefore(): void {
+        if (this.action.targetProxy === this.gameProxy.banners.get(BannerName.PeoplesFavor))
+            throw new InvalidActionResolution("Cannot recover the People's Favor with the Vow of Renewal");
     }
 }
 

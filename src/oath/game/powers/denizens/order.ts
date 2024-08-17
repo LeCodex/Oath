@@ -1,4 +1,4 @@
-import { TradeAction, InvalidActionResolution, TravelAction, SearchAction, SearchPlayAction, TakeFavorFromBankAction, CampaignKillWarbandsInForceAction, CampaignResult, MakeDecisionAction, CampaignAction, ActAsIfAtSiteAction, CampaignDefenseAction, ChooseSitesAction, ChoosePlayersAction, MoveWarbandsAction } from "../../actions/actions";
+import { TradeAction, InvalidActionResolution, TravelAction, SearchAction, SearchPlayAction, TakeFavorFromBankAction, CampaignKillWarbandsInForceAction, CampaignResult, MakeDecisionAction, CampaignAction, ActAsIfAtSiteAction, CampaignDefenseAction, ChooseSitesAction, ChoosePlayersAction, MoveWarbandsAction, KillWarbandsOnTargetAction } from "../../actions/actions";
 import { Denizen, Edifice, Site, Vision } from "../../cards/cards";
 import { PayCostToTargetEffect, MoveResourcesToTargetEffect, TakeWarbandsIntoBagEffect, GainSupplyEffect, TakeResourcesFromBankEffect, BecomeCitizenEffect, PutWarbandsFromBagEffect, ApplyModifiersEffect, PutPawnAtSiteEffect, MoveOwnWarbandsEffect } from "../../effects";
 import { OathResource, OathSuit } from "../../enums";
@@ -308,6 +308,8 @@ export class Captains extends ActivePower<Denizen> {
 
     usePower(): void {
         const campaignAction = new CampaignAction(this.action.player);
+        campaignAction._noSupplyCost = true;
+        
         const sites = new Set<Site>();
         for (const siteProxy of this.gameProxy.board.sites())
             if (siteProxy.ruler === this.action.playerProxy)
@@ -324,10 +326,7 @@ export class SiegeEngines extends ActivePower<Denizen> {
     usePower(): void {
         new ChooseSitesAction(
             this.action.player, "Kill two warbands",
-            (sites: Site[]) => {
-                if (!sites[0]) return;
-                sites[0].killWarbands(this.action.player, 2);
-            },
+            (sites: Site[]) => { if (sites.length) new KillWarbandsOnTargetAction(this.action.player, sites[0], 2).doNext(); },
             this.action.playerProxy.site.region.original.sites.filter(e => e.totalWarbands)
         ).doNext();
     }

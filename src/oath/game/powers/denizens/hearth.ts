@@ -1,9 +1,10 @@
-import { TradeAction, TakeResourceFromPlayerAction, TakeFavorFromBankAction, CampaignEndAction, ModifiableAction, MakeDecisionAction, CampaignAtttackAction, InvalidActionResolution, RecoverAction, ChooseSuitsAction, ChooseCardsAction, ChooseSitesAction } from "../../actions/actions";
+import { TradeAction, TakeResourceFromPlayerAction, TakeFavorFromBankAction, CampaignEndAction, ModifiableAction, MakeDecisionAction, CampaignAttackAction, InvalidActionResolution, RecoverAction, ChooseSuitsAction, ChooseCardsAction, ChooseSitesAction } from "../../actions/actions";
 import { PeoplesFavor } from "../../banks";
 import { Denizen, Edifice, Relic, WorldCard } from "../../cards/cards";
 import { TakeWarbandsIntoBagEffect, TakeResourcesFromBankEffect, PlayVisionEffect, PlayWorldCardEffect, OathEffect, PeekAtCardEffect, DiscardCardEffect, PutWarbandsFromBagEffect, BecomeCitizenEffect, SetPeoplesFavorMobState, PutResourcesOnTargetEffect, PutResourcesIntoBankEffect, GainSupplyEffect, MoveBankResourcesEffect, DrawFromDeckEffect, TakeOwnableObjectEffect } from "../../effects";
-import { OathResource, BannerName, OathSuit } from "../../enums";
+import { OathResource, BannerName, OathSuit, ALL_OATH_SUITS } from "../../enums";
 import { ResourceCost } from "../../resources";
+import { maxInGroup, minInGroup } from "../../utils";
 import { DefenderBattlePlan, AccessedActionModifier, ActivePower, WhenPlayed, EnemyEffectModifier, EnemyActionModifier, AccessedEffectModifier, AttackerBattlePlan, ActionModifier } from "../powers";
 
 
@@ -69,7 +70,7 @@ export class HospitalAttack extends AttackerBattlePlan<Denizen> {
     name = "Hospital";
 
     applyBefore(): void {
-        this.action.campaignResult.endCallbacks.push(() => {
+        this.action.campaignResult.atEnd(() => {
             if (this.sourceProxy.site?.ruler === this.activatorProxy.leader)
                 new PutWarbandsFromBagEffect(this.activator.leader, this.action.campaignResult.attackerLoss, this.source.site).do();
         });
@@ -79,7 +80,7 @@ export class HospitalDefense extends DefenderBattlePlan<Denizen> {
     name = "Hospital";
 
     applyBefore(): void {
-        this.action.campaignResult.endCallbacks.push(() => {
+        this.action.campaignResult.atEnd(() => {
             if (this.sourceProxy.site?.ruler === this.activatorProxy.leader)
                 new PutWarbandsFromBagEffect(this.activator.leader, this.action.campaignResult.defenderLoss, this.source.site).do();
         });
@@ -328,24 +329,8 @@ export class Levelers extends ActivePower<Denizen> {
     cost = new ResourceCost([], [[OathResource.Secret, 1]]);
 
     usePower(): void {
-        let max = 0, min = Infinity;
-        const maxSuits = new Set<OathSuit>(), minSuits = new Set<OathSuit>();
-        for (let suit = OathSuit.Discord; suit <= OathSuit.Nomad; suit++) {
-            const amount = this.game.favorBanks.get(suit)?.amount;
-            if (!amount) continue;
-
-            if (amount >= max) {
-                if (amount > max) maxSuits.clear();
-                maxSuits.add(suit);
-                max = amount;
-            }
-
-            if (amount <= min) {
-                if (amount < min) minSuits.clear();
-                minSuits.add(suit);
-                min = amount;
-            }
-        }
+        const maxSuits = new Set(maxInGroup(ALL_OATH_SUITS, e => this.game.favorBanks.get(e)?.amount || 0));
+        const minSuits = new Set(minInGroup(ALL_OATH_SUITS, e => this.game.favorBanks.get(e)?.amount || Infinity));
 
         new ChooseSuitsAction(
             this.action.player, "Move 2 favor to a bank with the least favor",
@@ -391,8 +376,8 @@ export class RelicBreaker extends ActivePower<Denizen> {
 
 export class HallOfDebate extends ActionModifier<Edifice> {
     name = "Hall of Debate";
-    modifiedAction = CampaignAtttackAction;
-    action: CampaignAtttackAction;
+    modifiedAction = CampaignAttackAction;
+    action: CampaignAttackAction;
 
     applyBefore(): void {
         const peoplesFavor = this.game.banners.get(BannerName.PeoplesFavor);

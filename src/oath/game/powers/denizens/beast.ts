@@ -1,4 +1,4 @@
-import { SearchAction, CampaignAtttackAction, CampaignDefenseAction, TradeAction, TakeFavorFromBankAction, InvalidActionResolution, ActAsIfAtSiteAction, MakeDecisionAction, CampaignAction, ChoosePlayersAction, ChooseCardsAction, ChooseSuitsAction } from "../../actions/actions";
+import { SearchAction, CampaignAttackAction, CampaignDefenseAction, TradeAction, TakeFavorFromBankAction, InvalidActionResolution, ActAsIfAtSiteAction, MakeDecisionAction, CampaignAction, ChoosePlayersAction, ChooseCardsAction, ChooseSuitsAction, KillWarbandsOnTargetAction } from "../../actions/actions";
 import { Denizen, GrandScepter, Relic, Site } from "../../cards/cards";
 import { BecomeCitizenEffect, DrawFromDeckEffect, MoveAdviserEffect, MoveBankResourcesEffect, MoveResourcesToTargetEffect, MoveWorldCardToAdvisersEffect, PutWarbandsFromBagEffect, RegionDiscardEffect, TakeOwnableObjectEffect, TakeWarbandsIntoBagEffect } from "../../effects";
 import { OathResource, OathSuit } from "../../enums";
@@ -60,8 +60,8 @@ export class Bracken extends AccessedActionModifier<Denizen> {
 
 export class InsectSwarmAttack extends ActionModifier<Denizen> {
     name = "Insect Swarm";
-    modifiedAction = CampaignAtttackAction;
-    action: CampaignAtttackAction;
+    modifiedAction = CampaignAttackAction;
+    action: CampaignAttackAction;
     mustUse = true;
 
     canUse(): boolean {
@@ -193,6 +193,8 @@ export class WildAllies extends ActivePower<Denizen> {
 
     usePower(): void {
         const campaignAction = new CampaignAction(this.action.player);
+        campaignAction._noSupplyCost = true;
+        
         const sites = new Set<Site>();
         for (const siteProxy of this.gameProxy.board.sites()) {
             for (const denizenProxy of siteProxy.denizens) {
@@ -214,10 +216,7 @@ export class Wolves extends ActivePower<Denizen> {
     usePower(): void {
         new ChoosePlayersAction(
             this.action.player, "Kill a warband",
-            (targets: OathPlayer[]) => {
-                if (!targets.length) return;
-                targets[0].killWarbands(this.action.player);
-            },
+            (targets: OathPlayer[]) => { if (targets.length) new KillWarbandsOnTargetAction(this.action.player, targets[0], 1).doNext(); },
             Object.values(this.game.players)
         ).doNext();
     }
@@ -258,7 +257,7 @@ export class SecondChance extends ActivePower<Denizen> {
             this.action.player, "Kill a warband",
             (targets: OathPlayer[]) => {
                 if (!targets.length) return;
-                targets[0].killWarbands(this.action.player);
+                new KillWarbandsOnTargetAction(this.action.player, targets[0], 1).doNext();
                 new PutWarbandsFromBagEffect(this.action.playerProxy.leader.original, 1, this.action.player).do();
             },
             players

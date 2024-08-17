@@ -37,9 +37,9 @@ export class Reliquary extends OathGameObject {
 
 export class ReliquarySlot extends OathGameObject implements WithPowers {
     relic?: Relic;
-    powers: Set<Constructor<OathPower<WithPowers>>>;
+    powers: Set<Constructor<OathPower<ReliquarySlot>>>;
 
-    constructor(game: OathGame, powers: Iterable<Constructor<OathPower<WithPowers>>>, relic?: Relic) {
+    constructor(game: OathGame, powers: Iterable<Constructor<OathPower<ReliquarySlot>>>, relic?: Relic) {
         super(game);
         this.relic = relic;
         this.powers = new Set(powers);
