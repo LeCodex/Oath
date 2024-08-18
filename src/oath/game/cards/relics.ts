@@ -1,5 +1,5 @@
 import { OathPower } from "../powers/powers";
-import { BookOfRecords, BrassHorse, CircletOfCommand, CrackedHorn, CupOfPlenty, CursedCauldronAttack, CursedCauldronDefense, DowsingSticks, DragonskinDrum, IvoryEye, MapRelic, ObsidianCageActive, ObsidianCageAttack, ObsidianCageDefense, OracularPig, RingOfDevotionMuster, RingOfDevotionRestriction, SkeletonKey, StickyFireAttack, StickyFireDefense, TruthfulHarp, Whistle } from "../powers/relics";
+import { BanditCrownAction, BanditCrownEffect, BookOfRecords, BrassHorse, CircletOfCommand, CrackedHorn, CupOfPlenty, CursedCauldronAttack, CursedCauldronDefense, DowsingSticks, DragonskinDrum, GrandMaskAction, GrandMaskEffect, HornedMask, IvoryEye, MapRelic, ObsidianCageActive, ObsidianCageAttack, ObsidianCageDefense, OracularPig, RingOfDevotionMuster, RingOfDevotionRestriction, SkeletonKey, StickyFireAttack, StickyFireDefense, TruthfulHarp, Whistle } from "../powers/relics";
 import { Constructor } from "../utils";
 import { Relic } from "./cards";
 
@@ -12,8 +12,8 @@ export const relicsData: Record<string, [number, Constructor<OathPower<Relic>>[]
     BrassHorse:         [2, [BrassHorse]],
     StickyFire:         [2, [StickyFireAttack, StickyFireDefense]],
     TruthfulHarp:       [2, [TruthfulHarp]],
-    GrandMask:          [2, []],
-    HornedMask:         [2, []],
+    GrandMask:          [2, [GrandMaskAction, GrandMaskEffect]],
+    HornedMask:         [2, [HornedMask]],
     Whistle:            [2, [Whistle]],
     CrackedHorn:        [2, [CrackedHorn]],
     IvoryEye:           [2, [IvoryEye]],
@@ -23,5 +23,5 @@ export const relicsData: Record<string, [number, Constructor<OathPower<Relic>>[]
     SkeletonKey:        [3, [SkeletonKey]],
     Map:                [3, [MapRelic]],
     DowsingSticks:      [3, [DowsingSticks]],
-    BanditCrown:        [3, []],
+    BanditCrown:        [3, [BanditCrownAction, BanditCrownEffect]],
 }

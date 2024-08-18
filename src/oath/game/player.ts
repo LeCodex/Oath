@@ -61,7 +61,7 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
         let total = 0;
         for (const site of this.game.board.sites()) {
             for (const denizen of site.denizens) {
-                if (denizen.ruler === this) total++;
+                if (this.rules(denizen)) total++;
             }
         }
 

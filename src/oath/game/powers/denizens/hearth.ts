@@ -4,7 +4,7 @@ import { TakeWarbandsIntoBagEffect, TakeResourcesFromBankEffect, PlayVisionEffec
 import { OathResource, BannerName, OathSuit, ALL_OATH_SUITS } from "../../enums";
 import { ResourceCost } from "../../resources";
 import { maxInGroup, minInGroup } from "../../utils";
-import { DefenderBattlePlan, AccessedActionModifier, ActivePower, WhenPlayed, EnemyEffectModifier, EnemyActionModifier, AccessedEffectModifier, AttackerBattlePlan, ActionModifier } from "../powers";
+import { DefenderBattlePlan, AccessedActionModifier, ActivePower, WhenPlayed, EnemyEffectModifier, EnemyActionModifier, AccessedEffectModifier, AttackerBattlePlan, ActionModifier, EffectModifier } from "../powers";
 
 
 export class TravelingDoctorAttack extends AttackerBattlePlan<Denizen> {
@@ -209,30 +209,34 @@ export class Herald extends EnemyActionModifier<Denizen> {
     }
 }
 
-export class MarriageAction extends AccessedActionModifier<Denizen> {
+export class MarriageActionModifier extends ActionModifier<Denizen> {
     name = "Marriage";
     modifiedAction = ModifiableAction;
     action: ModifiableAction;
     mustUse = true;
 
     applyWhenApplied(): boolean {
-        const originalFn = this.activatorProxy.suitAdviserCount.bind(this.activatorProxy);
-        this.activatorProxy.suitAdviserCount = (suit: OathSuit) => {
+        const rulerProxy = this.sourceProxy.ruler;
+        if (!rulerProxy) return true;
+        const originalFn = rulerProxy.suitAdviserCount.bind(rulerProxy);
+        rulerProxy.suitAdviserCount = (suit: OathSuit) => {
             return originalFn(suit) + (suit === OathSuit.Hearth ? 1 : 0);
         };
+
         return true;
     }
 }
-export class MarriageEffect extends AccessedEffectModifier<Denizen> {
+export class MarriageEffect extends EffectModifier<Denizen> {
     name = "Marriage";
     modifiedEffect = OathEffect;
     effect: OathEffect<any>;
     mustUse = true;
 
     applyWhenApplied(): void {
-        if (!this.effect.playerProxy) return;
-        const originalFn = this.effect.playerProxy.suitAdviserCount.bind(this.effect.playerProxy);
-        this.effect.playerProxy.suitAdviserCount = (suit: OathSuit) => {
+        const rulerProxy = this.sourceProxy.ruler;
+        if (!rulerProxy) return;
+        const originalFn = rulerProxy.suitAdviserCount.bind(rulerProxy);
+        rulerProxy.suitAdviserCount = (suit: OathSuit) => {
             return originalFn(suit) + (suit === OathSuit.Hearth ? 1 : 0);
         };
     }

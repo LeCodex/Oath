@@ -184,8 +184,10 @@ export class Site extends OathCard implements CampaignActionTarget {
 export abstract class OwnableCard extends OathCard implements OwnableObject {
     owner?: OathPlayer;
 
+    protected _ruler() { return this.owner; }
+    get ruler() { return this._ruler(); }
+    set ruler(_ruler: OathPlayer | undefined) { this._ruler = () => _ruler; }
     get facedownName(): string { return (this.owner ? this.owner.name + "'s facedown" : "facedown") + " "; }
-    get ruler() { return this.owner; }
 
     accessibleBy(player: OathPlayer | undefined): boolean {
         return player === this.owner;
@@ -292,10 +294,10 @@ export class Denizen extends WorldCard implements AtSite {
         this.locked = locked;
     }
 
+    protected _ruler() { return super._ruler() || this.site?.ruler };
     protected _suit: OathSuit;
     get suit() { return this.facedown ? OathSuit.None : this._suit; }
     set suit(_suit: OathSuit) { this._suit = _suit; }
-    get ruler() { return super.ruler || this.site?.ruler; }
     get activelyLocked() { return this.locked && !this.facedown; }
     get facedownName(): string { return super.facedownName + "denizen" + (this.site ? " at " + this.site.name : ""); }
     get data(): DenizenData { return [this._suit, [...this.powers], this.restriction, this.locked]; }

@@ -1,12 +1,13 @@
-import { InvalidActionResolution, CitizenshipOfferAction, StartBindingExchangeAction, SkeletonKeyAction, TradeAction, CampaignAttackAction, MusterAction, TravelAction, MakeDecisionAction, ChoosePlayersAction, SearchAction, ChooseCardsAction } from "../actions/actions";
-import { Denizen, GrandScepter, OathCard, Relic, Site } from "../cards/cards";
-import { TakeOwnableObjectEffect, PutWarbandsFromBagEffect, PlayDenizenAtSiteEffect, MoveOwnWarbandsEffect, PeekAtCardEffect, SetGrandScepterLockEffect, GainSupplyEffect, DrawFromDeckEffect, RevealCardEffect, PayCostToTargetEffect, BecomeExileEffect, MoveWarbandsToEffect, TakeWarbandsIntoBagEffect, MoveResourcesToTargetEffect, MoveDenizenToSiteEffect, MoveSiteDenizenEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect } from "../effects";
+import { InvalidActionResolution, CitizenshipOfferAction, StartBindingExchangeAction, SkeletonKeyAction, TradeAction, CampaignAttackAction, MusterAction, TravelAction, MakeDecisionAction, ChoosePlayersAction, SearchAction, ChooseCardsAction, ModifiableAction } from "../actions/actions";
+import { Denizen, GrandScepter, OathCard, OwnableCard, Relic, Site } from "../cards/cards";
+import { TakeOwnableObjectEffect, PutWarbandsFromBagEffect, PlayDenizenAtSiteEffect, MoveOwnWarbandsEffect, PeekAtCardEffect, SetGrandScepterLockEffect, GainSupplyEffect, DrawFromDeckEffect, RevealCardEffect, PayCostToTargetEffect, BecomeExileEffect, MoveWarbandsToEffect, TakeWarbandsIntoBagEffect, MoveResourcesToTargetEffect, MoveDenizenToSiteEffect, MoveSiteDenizenEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect, OathEffect } from "../effects";
 import { BannerName, OathResource } from "../enums";
 import { OathPlayer, Exile } from "../player";
 import { OwnableObject, isOwnable } from "../interfaces";
 import { ResourceCost } from "../resources";
-import { AccessedActionModifier, EnemyEffectModifier, EnemyActionModifier, AccessedEffectModifier, AttackerBattlePlan, DefenderBattlePlan, ActionModifier, EffectModifier, ActivePower, RestPower } from "./powers";
+import { AccessedActionModifier, EnemyEffectModifier, EnemyActionModifier, AccessedEffectModifier, AttackerBattlePlan, DefenderBattlePlan, ActionModifier, EffectModifier, ActivePower, RestPower, BattlePlan } from "./powers";
 import { DiscardOptions } from "../cards/decks";
+import { isExtended } from "../utils";
 
 
 export class GrandScepterSeize extends EffectModifier<GrandScepter> {
@@ -410,5 +411,104 @@ export class CrackedHorn extends ActionModifier<Relic> {
 
     applyBefore(): void {
         this.action.discardOptions = new DiscardOptions(this.game.worldDeck, true);
+    }
+}
+
+export class BanditCrownAction extends ActionModifier<Relic> {
+    name = "Bandit Crown";
+    modifiedAction = ModifiableAction;
+    action: ModifiableAction;
+    mustUse = true;
+
+    applyWhenApplied(): boolean {
+        const rulerProxy = this.sourceProxy.ruler;
+        if (!rulerProxy) return true;
+
+        for (const siteProxy of this.gameProxy.board.sites()) {
+            if (siteProxy.ruler && siteProxy.ruler !== rulerProxy) continue;
+            const originalFn = siteProxy.getWarbands.bind(rulerProxy);
+            siteProxy.getWarbands = (owner: OathPlayer) => {
+                return originalFn(owner) + (owner === rulerProxy.original ? siteProxy.bandits : 0);
+            };
+        }
+        return true;
+    }
+}
+export class BanditCrownEffect extends EffectModifier<Relic> {
+    name = "Bandit Crown";
+    modifiedEffect = OathEffect;
+    effect: OathEffect<any>;
+    mustUse = true;
+
+    applyWhenApplied(): void {
+        const rulerProxy = this.sourceProxy.ruler;
+        if (!rulerProxy) return;
+
+        for (const siteProxy of this.gameProxy.board.sites()) {
+            if (siteProxy.ruler && siteProxy.ruler !== rulerProxy) continue;
+            const originalFn = siteProxy.getWarbands.bind(siteProxy);
+            siteProxy.getWarbands = (owner: OathPlayer) => {
+                return originalFn(owner) + (owner === rulerProxy.original ? siteProxy.bandits : 0);
+            };
+        }
+    }
+}
+
+export class GrandMaskAction extends ActionModifier<Relic> {
+    name = "Grand Mask";
+    modifiedAction = ModifiableAction;
+    action: ModifiableAction;
+    mustUse = true;
+
+    applyWhenApplied(): boolean {
+        const rulerProxy = this.sourceProxy.ruler;
+        if (rulerProxy !== this.gameProxy.currentPlayer) return true;
+
+        const overrideRule = new Set();
+        for (const siteProxy of this.gameProxy.board.sites()) {
+            if (!siteProxy.ruler?.isImperial) continue;
+            for (const denizenProxy of siteProxy.denizens) {
+                let isBattlePlan = false;
+                for (const power of denizenProxy.powers) {
+                    if (isExtended(power, BattlePlan)) {
+                        isBattlePlan = true;
+                        break;
+                    }
+                }
+                if (isBattlePlan) continue;
+                denizenProxy.ruler = rulerProxy.original;
+            }
+        }
+
+        return true;
+    }
+}
+export class GrandMaskEffect extends EffectModifier<Relic> {
+    name = "Grand Mask";
+    modifiedEffect = OathEffect;
+    effect: OathEffect<any>;
+    mustUse = true;
+
+    applyWhenApplied(): void {
+        const rulerProxy = this.sourceProxy.ruler;
+        if (rulerProxy !== this.gameProxy.currentPlayer) return;
+
+        const overrideRule = new Set();
+        for (const siteProxy of this.gameProxy.board.sites()) {
+            if (!siteProxy.ruler?.isImperial) continue;
+            for (const denizenProxy of siteProxy.denizens) {
+                let isBattlePlan = false;
+                for (const power of denizenProxy.powers) {
+                    if (isExtended(power, BattlePlan)) {
+                        isBattlePlan = true;
+                        break;
+                    }
+                }
+                if (isBattlePlan) continue;
+                denizenProxy.ruler = rulerProxy.original;
+            }
+        }
+
+        return;
     }
 }
