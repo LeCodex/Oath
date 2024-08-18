@@ -2,8 +2,6 @@ import { OathAction, InvalidActionResolution,  UsePowerAction, PlayFacedownAdvis
 import { OathEffect, AddActionToStackEffect, PopActionFromStackEffect } from "../effects";
 import { OathGameObject } from "../gameObject";
 import { Constructor } from "../utils";
-import { OathPlayer } from "../player";
-
 
 
 export class OathActionManager extends OathGameObject {
@@ -36,8 +34,8 @@ export class OathActionManager extends OathGameObject {
         const returnData = {
             activeAction: action?.serialize(),
             startOptions: !action ? Object.keys(this.startOptions) : undefined,
-            appliedEffects: this.currentEffectsStack.map(e => e.constructor.name),
-            cancelledEffects: this.cancelledEffects.map(e => e.constructor.name),
+            appliedEffects: this.currentEffectsStack.map(e => e.serialize() && {effect: e.constructor.name, ...e.serialize()}).filter(e => e),
+            cancelledEffects: this.cancelledEffects.map(e => e.serialize() && {effect: e.constructor.name, ...e.serialize()}).filter(e => e),
             game: this.game.serialize()
         };
         this.cancelledEffects.length = 0;
@@ -137,20 +135,3 @@ export class OathActionManager extends OathGameObject {
         return reverted;
     }
 }
-
-
-export class ResolveEffectAction extends OathAction {
-    readonly message = "";
-
-    effect: OathEffect<any>;
-
-    constructor(player: OathPlayer, effect: OathEffect<any>) {
-        super(player);
-        this.effect = effect;
-    }
-
-    execute(): void {
-        this.effect.do();
-    }
-}
-

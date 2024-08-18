@@ -101,8 +101,14 @@ const render = () => {
     const effectsNode = document.getElementById("effects");
     effectsNode.innerHTML = "";
     if (appliedEffects) {
-        for (const effect of appliedEffects) {
-            effectsNode.appendChild(renderText(effect));
+        for (const [i, effect] of appliedEffects.entries()) {
+            const effectNode = effectsNode.appendChild(renderText(effect.effect));
+            effectNode.id = "effect" + i;
+
+            const effectsList = effectNode.appendChild(document.createElement("ul"));
+            for (const [key, value] of Object.entries(effect))
+                if (key !== "effect")
+                    effectsList.appendChild(renderText(`${key}: ${value}`));
         }
     }
 

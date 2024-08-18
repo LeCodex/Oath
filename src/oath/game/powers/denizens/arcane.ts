@@ -370,6 +370,7 @@ export class GreatSpire extends AccessedActionModifier<Edifice> {
                 for (const card of cards) {
                     const newCard = new GetRandomCardFromDispossessed(this.game, this.action.player).do();
                     new PutDenizenIntoDispossessedEffect(this.game, this.action.player, card).do();
+                    new PeekAtCardEffect(this.action.player, newCard).do();
 
                     // TODO: Put this in an effect
                     this.action.cards.delete(card);

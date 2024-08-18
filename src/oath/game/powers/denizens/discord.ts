@@ -3,12 +3,13 @@ import { PeoplesFavor } from "../../banks";
 import { Region } from "../../board";
 import { Denizen, OathCard, Relic, Site, Vision, WorldCard } from "../../cards/cards";
 import { D6, DefenseDie } from "../../dice";
-import { TakeOwnableObjectEffect, TakeWarbandsIntoBagEffect, PutWarbandsFromBagEffect, PutResourcesOnTargetEffect, MoveResourcesToTargetEffect, SetNewOathkeeperEffect, RollDiceEffect, GamblingHallEffect, TakeResourcesFromBankEffect, DiscardCardEffect, BecomeCitizenEffect, PayCostToTargetEffect, PeekAtCardEffect, OathEffect, WinGameEffect, DrawFromDeckEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect } from "../../effects";
+import { TakeOwnableObjectEffect, TakeWarbandsIntoBagEffect, PutWarbandsFromBagEffect, PutResourcesOnTargetEffect, MoveResourcesToTargetEffect, SetNewOathkeeperEffect, RollDiceEffect, TakeResourcesFromBankEffect, DiscardCardEffect, BecomeCitizenEffect, PayCostToTargetEffect, PeekAtCardEffect, OathEffect, WinGameEffect, DrawFromDeckEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect } from "../../effects";
 import { BannerName, OathResource, OathSuit } from "../../enums";
 import { Exile, OathPlayer } from "../../player";
 import { ResourceCost } from "../../resources";
 import { EnemyEffectModifier, WhenPlayed, CapacityModifier, ActivePower, RestPower, AttackerBattlePlan, DefenderBattlePlan, EffectModifier, ActionModifier, AccessedActionModifier, WakePower, EnemyActionModifier } from "../powers";
 import { minInGroup } from "../../utils";
+import { ResolveCallbackAction } from "../../actions/actions";
 
 
 export class MercenariesAttack extends AttackerBattlePlan<Denizen> {
@@ -257,7 +258,7 @@ export class GamblingHall extends ActivePower<Denizen> {
 
     usePower(): void {
         const faces = new RollDiceEffect(this.action.game, this.action.player, DefenseDie, 4).do();
-        new GamblingHallEffect(this.action.player, faces).doNext();
+        new ResolveCallbackAction(this.action.player, () => new TakeFavorFromBankAction(this.action.player, DefenseDie.getResult(faces))).doNext();
     }
 }
 

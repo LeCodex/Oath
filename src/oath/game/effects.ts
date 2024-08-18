@@ -7,11 +7,11 @@ import { Banner, PeoplesFavor, ResourceBank } from "./banks";
 import { OwnableObject, WithPowers } from "./interfaces";
 import { OathGame } from "./game";
 import { OathGameObject } from "./gameObject";
-import { InvalidActionResolution, ModifiableAction, OathAction, BuildOrRepairEdificeAction, ChooseNewCitizensAction, VowOathAction, ResolveEffectAction, RestAction, WakeAction, CampaignDefenseAction, CampaignResult, SearchDiscardAction, SearchPlayOrDiscardAction, ChooseSuitsAction, TakeFavorFromBankAction } from "./actions/actions";
+import { InvalidActionResolution, ModifiableAction, OathAction, BuildOrRepairEdificeAction, ChooseNewCitizensAction, VowOathAction, RestAction, WakeAction, CampaignDefenseAction, CampaignResult, SearchDiscardAction, SearchPlayOrDiscardAction, ChooseSuitsAction, ResolveEffectAction } from "./actions/actions";
 import { DiscardOptions } from "./cards/decks";
 import { CardDeck } from "./cards/decks";
 import { Constructor, isExtended, MaskProxyManager, shuffleArray } from "./utils";
-import { AttackDie, D6, DefenseDie, Die } from "./dice";
+import { AttackDie, D6, Die } from "./dice";
 import { Oath } from "./oaths";
 import { Region } from "./board";
 import { edificeData } from "./cards/denizens";
@@ -68,6 +68,10 @@ export abstract class OathEffect<T> extends OathGameObject {
     };
 
     abstract revert(): void;
+
+    serialize(): Record<string, any> | undefined {
+        return undefined;
+    }
 }
 
 export abstract class PlayerEffect<T> extends OathEffect<T> {
@@ -177,6 +181,14 @@ export class PutResourcesOnTargetEffect extends OathEffect<number> {
     revert(): void {
         this.target?.takeResources(this.resource, this.amount);
     }
+
+    serialize(): Record<string, any> | undefined {
+        return {
+            target: this.target?.name,
+            resource: this.resource,
+            amount: this.amount
+        };
+    }
 }
 
 export class MoveResourcesToTargetEffect extends OathEffect<number> {
@@ -204,6 +216,15 @@ export class MoveResourcesToTargetEffect extends OathEffect<number> {
         else
             this.source?.putResources(this.resource, this.amount);  // TODO: Take favor from supply
     }
+
+    serialize(): Record<string, any> | undefined {
+        return {
+            source: this.source?.name,
+            target: this.target?.name,
+            resource: this.resource,
+            amount: this.amount
+        };
+    }
 }
 
 export class PutResourcesIntoBankEffect extends OathEffect<number> {
@@ -228,6 +249,14 @@ export class PutResourcesIntoBankEffect extends OathEffect<number> {
             this.bank?.take(this.amount);
         else
             this.source.takeResourcesFromBank(this.bank, this.amount);
+    }
+
+    serialize(): Record<string, any> | undefined {
+        return {
+            bank: this.bank?.serialize(),
+            source: this.source?.name,
+            amount: this.amount
+        };
     }
 }
 
@@ -258,6 +287,14 @@ export class TakeResourcesFromBankEffect extends OathEffect<number> {
         else
             this.target.putResourcesIntoBank(this.bank, this.amount);
     }
+
+    serialize(): Record<string, any> | undefined {
+        return {
+            bank: this.bank?.serialize(),
+            target: this.target?.name,
+            amount: this.amount
+        };
+    }
 }
 
 export class MoveBankResourcesEffect extends OathEffect<number> {
@@ -279,6 +316,14 @@ export class MoveBankResourcesEffect extends OathEffect<number> {
 
     revert(): void {
         this.to.moveTo(this.from, this.amount);
+    }
+
+    serialize(): Record<string, any> | undefined {
+        return {
+            from: this.from.serialize(),
+            to: this.to.serialize(),
+            amount: this.amount
+        };
     }
 }
 
@@ -396,6 +441,14 @@ export class FlipSecretsEffect extends OathEffect<number> {
         this.source.takeResources(this.facedown ? OathResource.FlippedSecret : OathResource.Secret, this.amount);
         this.source.putResources(this.facedown ? OathResource.Secret : OathResource.FlippedSecret, this.amount);
     }
+
+    serialize(): Record<string, any> | undefined {
+        return {
+            source: this.source?.name,
+            amount: this.amount,
+            facedown: this.facedown
+        };
+    }
 }
 
 export class MoveWarbandsToEffect extends OathEffect<number> {
@@ -420,6 +473,15 @@ export class MoveWarbandsToEffect extends OathEffect<number> {
     revert(): void {
         if (this.source) this.target.moveWarbandsTo(this.owner, this.source, this.amount);
     }
+
+    serialize(): Record<string, any> | undefined {
+        return {
+            owner: this.owner.name,
+            source: this.source?.name,
+            target: this.target?.name,
+            amount: this.amount
+        };
+    }
 }
 
 export class MoveOwnWarbandsEffect extends PlayerEffect<number> {
@@ -442,6 +504,15 @@ export class MoveOwnWarbandsEffect extends PlayerEffect<number> {
     revert(): void {
         this.player.moveOwnWarbands(this.to, this.from, this.amount);
     }
+
+    serialize(): Record<string, any> | undefined {
+        return {
+            owner: this.player.name,
+            source: this.from.name,
+            target: this.to.name,
+            amount: this.amount
+        };
+    }
 }
 
 export class PutWarbandsFromBagEffect extends PlayerEffect<number> {
@@ -462,6 +533,14 @@ export class PutWarbandsFromBagEffect extends PlayerEffect<number> {
     revert(): void {
         this.player.moveWarbandsIntoBagFrom(this.target, this.amount);
     }
+
+    serialize(): Record<string, any> | undefined {
+        return {
+            owner: this.player.name,
+            target: this.target.name,
+            amount: this.amount
+        };
+    }
 }
 
 export class TakeWarbandsIntoBagEffect extends PlayerEffect<number> {
@@ -481,6 +560,14 @@ export class TakeWarbandsIntoBagEffect extends PlayerEffect<number> {
 
     revert(): void {
         this.player.moveWarbandsFromBagOnto(this.target, this.amount);
+    }
+
+    serialize(): Record<string, any> | undefined {
+        return {
+            owner: this.player.name,
+            target: this.target.name,
+            amount: this.amount
+        };
     }
 }
 
@@ -509,6 +596,13 @@ export class PutPawnAtSiteEffect extends PlayerEffect<void> {
         // This effect SHOULD NOT get reverted
         this.player.site = this.oldSite;
         if (this.revealedSite) this.site.hide();
+    }
+
+    serialize(): Record<string, any> | undefined {
+        return {
+            player: this.player.name,
+            site: this.site.name
+        };
     }
 }
 
@@ -759,6 +853,13 @@ export class MoveAdviserEffect<T extends WorldCard> extends OathEffect<T> {
     revert(): void {
         this.card.setOwner(this.oldOwner);
     }
+
+    serialize(): Record<string, any> | undefined {
+        return {
+            owner: this.card.owner?.name,
+            card: this.card.name
+        };
+    }
 }
 
 export class MoveSiteDenizenEffect extends OathEffect<Denizen> {
@@ -780,6 +881,13 @@ export class MoveSiteDenizenEffect extends OathEffect<Denizen> {
     revert(): void {
         this.card.putAtSite(this.oldSite);
     }
+
+    serialize(): Record<string, any> | undefined {
+        return {
+            site: this.card.site?.name,
+            card: this.card.name
+        };
+    }
 }
 
 export class MoveSiteRelicEffect extends OathEffect<Relic> {
@@ -800,6 +908,13 @@ export class MoveSiteRelicEffect extends OathEffect<Relic> {
 
     revert(): void {
         this.relic.putAtSite(this.oldSite);
+    }
+
+    serialize(): Record<string, any> | undefined {
+        return {
+            site: this.relic.site?.name,
+            relic: this.relic.name
+        };
     }
 }
 
@@ -823,6 +938,13 @@ export class MoveWorldCardToAdvisersEffect extends OathEffect<void> {
         // The thing that calls this effect is in charge of putting the card back where it was
         this.card.setOwner(undefined);
     }
+
+    serialize(): Record<string, any> | undefined {
+        return {
+            card: this.card.name,
+            target: this.target?.name
+        };
+    }
 }
 
 export class MoveDenizenToSiteEffect extends OathEffect<void> {
@@ -844,6 +966,13 @@ export class MoveDenizenToSiteEffect extends OathEffect<void> {
     revert(): void {
         // The thing that calls this effect is in charge of putting the card back where it was
         this.card.setOwner(undefined);
+    }
+
+    serialize(): Record<string, any> | undefined {
+        return {
+            card: this.card.name,
+            target: this.target?.name
+        };
     }
 }
 
@@ -963,6 +1092,13 @@ export class TakeOwnableObjectEffect extends OathEffect<void> {
         this.target.setOwner(this.oldOwner);
         if (this.target instanceof OwnableCard && this.flipFaceup) this.target.hide();
     }
+
+    serialize(): Record<string, any> | undefined {
+        return {
+            player: this.player?.name,
+            target: (this.target as unknown as ResourcesAndWarbands).name,
+        };
+    }
 }
 
 export class GiveOwnableObjectEffect extends OathEffect<void> {
@@ -984,11 +1120,19 @@ export class GiveOwnableObjectEffect extends OathEffect<void> {
     revert(): void {
         this.target.setOwner(this.oldOwner);
     }
+
+    serialize(): Record<string, any> | undefined {
+        return {
+            player: this.to?.name,
+            target: (this.target as unknown as ResourcesAndWarbands).name,
+        };
+    }
 }
 
 export class RollDiceEffect extends OathEffect<number[]> {
     die: typeof Die;
     amount: number;
+    result: number[];
 
     constructor(game: OathGame, player: OathPlayer | undefined, die: typeof Die, amount: number) {
         super(game, player);
@@ -999,12 +1143,20 @@ export class RollDiceEffect extends OathEffect<number[]> {
     resolve(): number[] {
         // Side note: Because of powers like Jinx and Squalid District, the result of this should NOT be processed in its current action,
         // but in a consecutive one, so a new action can be slotted in-between
-        return this.die.roll(this.amount);
+        this.result = this.die.roll(this.amount);
+        return this.result;
     }
 
     revert(): void {
         // This is a "read" effect, and so cannot be reverted (and should not need to)
         // In this case, a dice roll should not get reverted
+    }
+
+    serialize(): Record<string, any> | undefined {
+        return {
+            die: this.die.name,
+            result: this.result
+        };
     }
 }
 
@@ -1057,6 +1209,12 @@ export class SetNewOathkeeperEffect extends PlayerEffect<void> {
     revert(): void {
         this.game.oathkeeper = this.oldOathkeeper;
     }
+
+    serialize(): Record<string, any> | undefined {
+        return {
+            player: this.player.name
+        };
+    }
 }
 
 export class SetUsurperEffect extends OathEffect<void> {
@@ -1075,6 +1233,12 @@ export class SetUsurperEffect extends OathEffect<void> {
 
     revert(): void {
         this.game.isUsurper = this.oldUsurper;
+    }
+
+    serialize(): Record<string, any> | undefined {
+        return {
+            usurper: this.usurper
+        };
     }
 }
 
@@ -1098,6 +1262,13 @@ export class PaySupplyEffect extends PlayerEffect<boolean> {
     revert(): void {
         this.player.supply += this.amount;
     }
+
+    serialize(): Record<string, any> | undefined {
+        return {
+            player: this.player.name,
+            amount: this.amount
+        };
+    }
 }
 
 export class GainSupplyEffect extends PlayerEffect<void> {
@@ -1116,6 +1287,13 @@ export class GainSupplyEffect extends PlayerEffect<void> {
 
     revert(): void {
         this.player.supply -= this.amount;
+    }
+
+    serialize(): Record<string, any> | undefined {
+        return {
+            player: this.player.name,
+            amount: this.amount
+        };
     }
 }
 
@@ -1136,6 +1314,12 @@ export class ChangePhaseEffect extends OathEffect<void> {
     
     revert(): void {
         this.game.phase = this.oldPhase;
+    }
+
+    serialize(): Record<string, any> | undefined {
+        return {
+            phase: this.phase
+        };
     }
 }
 
@@ -1233,6 +1417,12 @@ export class BecomeCitizenEffect extends PlayerEffect<void> {
         this.player.isCitizen = false;
         this.player.setVision(this.oldVision);
     }
+
+    serialize(): Record<string, any> | undefined {
+        return {
+            player: this.player
+        };
+    }
 }
 
 export class BecomeExileEffect extends PlayerEffect<void> {
@@ -1250,6 +1440,12 @@ export class BecomeExileEffect extends PlayerEffect<void> {
     revert(): void {
         if (!(this.player instanceof Exile) || !this.resolved) return;
         this.player.isCitizen = true;
+    }
+
+    serialize(): Record<string, any> | undefined {
+        return {
+            player: this.player
+        };
     }
 }
 
@@ -1269,6 +1465,12 @@ export class PutDenizenIntoDispossessedEffect extends OathEffect<void> {
         // The thing that calls this effect is in charge of putting the card back where it was
         delete this.game.dispossessed[this.denizen.name];
     }
+
+    serialize(): Record<string, any> | undefined {
+        return {
+            card: this.denizen.name
+        };
+    }
 }
 
 export class GetRandomCardFromDispossessed extends OathEffect<Denizen> {
@@ -1284,6 +1486,12 @@ export class GetRandomCardFromDispossessed extends OathEffect<Denizen> {
 
     revert(): void {
         this.game.dispossessed[this.denizen.name] = this.denizen.data;
+    }
+
+    serialize(): Record<string, any> | undefined {
+        return {
+            card: this.denizen.name
+        };
     }
 }
 
@@ -1311,6 +1519,12 @@ export class SetPeoplesFavorMobState extends OathEffect<void> {
 
     revert(): void {
         this.banner.isMob = this.oldState;
+    }
+
+    serialize(): Record<string, any> | undefined {
+        return {
+            state: this.state
+        };
     }
 }
 
@@ -1355,23 +1569,6 @@ export class RegionDiscardEffect extends PlayerEffect<void> {
 
     revert(): void {
         // DOesn't do anything on its own
-    }
-}
-
-export class GamblingHallEffect extends PlayerEffect<void> {
-    faces: number[];
-
-    constructor(player: OathPlayer, faces: number[]) {
-        super(player);
-        this.faces = faces;
-    }
-
-    resolve(): void {
-        new TakeFavorFromBankAction(this.player, DefenseDie.getResult(this.faces));
-    }
-
-    revert(): void {
-        // Doesn't do anything on its own
     }
 }
 
@@ -1437,6 +1634,13 @@ export class TakeReliquaryRelicEffect extends PlayerEffect<void> {
     revert(): void {
         if (this.relic) this.game.chancellor.reliquary.putRelic(this.relic, this.index);
     }
+
+    serialize(): Record<string, any> | undefined {
+        return {
+            player: this.player.name,
+            relic: this.relic?.name
+        };
+    }
 }
 
 
@@ -1456,11 +1660,17 @@ export class WinGameEffect extends PlayerEffect<void> {
         else
             new BuildOrRepairEdificeAction(this.player).doNext();
         
-        new CleanUpMapEffect(this.player).doNext();
+        new FinishChronicle(this.player).doNext();
     }
 
     revert(): void {
         this.game.oath = this.oldOath;
+    }
+
+    serialize(): Record<string, any> | undefined {
+        return {
+            player: this.player.name
+        };
     }
 }
 
@@ -1494,6 +1704,13 @@ export class BuildEdificeFromDenizenEffect extends OathEffect<void> {
         this.site.region.discard.drawSingleCard();
         this.denizen.putAtSite(this.site);
         this.edifice.setOwner(undefined);
+    }
+
+    serialize(): Record<string, any> | undefined {
+        return {
+            denizen: this.denizen.name,
+            edifice: this.edifice.name
+        };
     }
 }
 
@@ -1532,9 +1749,16 @@ export class FlipEdificeEffect extends OathEffect<void> {
         this.edifice.putAtSite(this.newEdifice.site);
         this.newEdifice.setOwner(undefined);
     }
+
+    serialize(): Record<string, any> | undefined {
+        return {
+            edifice: this.edifice.name,
+            newEdifice: this.newEdifice.name
+        };
+    }
 }
 
-export class CleanUpMapEffect extends PlayerEffect<void> {
+export class FinishChronicle extends PlayerEffect<void> {
     oldRegions = new Map<Region, Site[]>();
     discardedDenizens = new Map<Site, Set<Denizen>>();
 

@@ -532,12 +532,12 @@ export class SearchPlayOrDiscardAction extends ModifiableAction {
 
     start() {
         const sitesChoice = new Map<string, Site | boolean | undefined>();
-        sitesChoice.set("Faceup adviser", true);
+        sitesChoice.set("Faceup adviser", false);
         sitesChoice.set("Facedown adviser", true);
         sitesChoice.set(this.playerProxy.site.name, this.playerProxy.site);
         sitesChoice.set("Discard", undefined);
         this.selects.choice = new SelectNOf("Choice", sitesChoice, 1);
-        
+
         return super.start();
     }
 
@@ -1198,6 +1198,40 @@ export class MoveWarbandsAction extends ModifiableAction {
     }
 }
 
+
+////////////////////////////////////////////
+//              OTHER ACTIONS             //
+////////////////////////////////////////////
+export class ResolveEffectAction extends OathAction {
+    readonly message = "";
+
+    effect: OathEffect<any>;
+
+    constructor(player: OathPlayer, effect: OathEffect<any>) {
+        super(player);
+        this.effect = effect;
+    }
+
+    execute(): void {
+        this.effect.do();
+    }
+}
+
+export class ResolveCallbackAction extends OathAction {
+    readonly message = "";
+
+    callback: () => void;
+
+    constructor(player: OathPlayer, callback: () => void) {
+        super(player);
+        this.callback = callback;
+    }
+
+    execute(): void {
+        this.callback();
+    }
+}
+
 export class MakeDecisionAction extends OathAction {
     readonly selects: { allow: SelectBoolean };
     readonly parameters: { allow: boolean[] };
@@ -1227,42 +1261,6 @@ export class MakeDecisionAction extends OathAction {
             this.negativeCallback();
     }
 }
-
-
-////////////////////////////////////////////
-//              OTHER ACTIONS             //
-////////////////////////////////////////////
-export class ResolveEffectAction extends OathAction {
-    readonly message = "";
-
-    effect: OathEffect<any>;
-
-    constructor(player: OathPlayer, effect: OathEffect<any>) {
-        super(player);
-        this.effect = effect;
-    }
-
-    execute(): void {
-        this.effect.do();
-    }
-}
-
-
-export class ResolveCallbackAction extends OathAction {
-    readonly message = "";
-
-    callback: () => void;
-
-    constructor(player: OathPlayer, callback: () => void) {
-        super(player);
-        this.callback = callback;
-    }
-
-    execute(): void {
-        this.callback();
-    }
-}
-
 
 export class KillWarbandsOnTargetAction extends OathAction {
     selects: Record<string, SelectNumber> = {};
