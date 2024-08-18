@@ -459,7 +459,7 @@ export class SearchChooseAction extends ModifiableAction {
     start() {
         const cardsChoice = new Map<string, WorldCard>();
         for (const card of this.cards) cardsChoice.set(card.name, card);
-        this.selects.cards = new SelectNOf("Card(s)", cardsChoice, 0, this.playingAmount);
+        this.selects.cards = new SelectNOf("Card(s)", cardsChoice, 1, this.playingAmount);
         return super.start();
     }
 
@@ -472,7 +472,7 @@ export class SearchChooseAction extends ModifiableAction {
         const discarding = new Set(this.cards);
         for (const card of this.playing) discarding.delete(card);
         new SearchDiscardAction(this.player, discarding, Infinity, this.discardOptions).doNext();
-        for (const card of this.playing) new SearchPlayAction(this.player, card.original, this.discardOptions).doNext();
+        for (const card of this.playing) new SearchPlayOrDiscardAction(this.player, card.original, this.discardOptions).doNext();
     }
 }
 
@@ -512,9 +512,9 @@ export class SearchDiscardAction extends ModifiableAction {
     }
 }
 
-export class SearchPlayAction extends ModifiableAction {
-    readonly selects: { site: SelectNOf<Site | undefined>, facedown: SelectBoolean }
-    readonly parameters: { site: (Site | undefined)[], facedown: boolean[] }
+export class SearchPlayOrDiscardAction extends ModifiableAction {
+    readonly selects: { choice: SelectNOf<Site | boolean | undefined>}
+    readonly parameters: { choice: (Site | boolean | undefined)[] }
     readonly message: string;
     
     cardProxy: WorldCard;
@@ -526,24 +526,30 @@ export class SearchPlayAction extends ModifiableAction {
     constructor(player: OathPlayer, card: WorldCard, discardOptions?: DiscardOptions<any>) {
         super(player);
         this.cardProxy = this.maskProxyManager.get(card);
-        this.message = "Play " + this.cardProxy.name;
+        this.message = "Play or discard " + this.cardProxy.name;
         this.discardOptions = discardOptions || new DiscardOptions(player.discard);
     }
 
     start() {
-        const sitesChoice = new Map<string, Site | undefined>();
-        sitesChoice.set("Advisers", undefined);
+        const sitesChoice = new Map<string, Site | boolean | undefined>();
+        sitesChoice.set("Faceup adviser", true);
+        sitesChoice.set("Facedown adviser", true);
         sitesChoice.set(this.playerProxy.site.name, this.playerProxy.site);
-        this.selects.site = new SelectNOf("Place", sitesChoice, 1);
-
-        this.selects.facedown = new SelectBoolean("Orientation", ["Facedown", "Faceup"]);
-
+        sitesChoice.set("Discard", undefined);
+        this.selects.choice = new SelectNOf("Choice", sitesChoice, 1);
+        
         return super.start();
     }
 
     execute() {
-        this.siteProxy = this.parameters.site[0];
-        this.facedown = this.parameters.facedown[0];
+        const choice = this.parameters.choice[0];
+        if (choice === undefined) {
+            new DiscardCardEffect(this.player, this.cardProxy, this.discardOptions).do();
+            return;
+        }
+
+        this.siteProxy = typeof choice === "boolean" ? undefined : choice;
+        this.facedown = typeof choice === "boolean" ? choice : false;
         this.canReplace = this.siteProxy === undefined;
         super.execute();
     }
@@ -581,7 +587,7 @@ export class SearchPlayAction extends ModifiableAction {
 
     modifiedExecution() {
         this.cardProxy.facedown = this.facedown;  // Editing the copy to reflect the new state
-        const [capacity, takesSpaceInTargetProxies, ignoresCapacity] = SearchPlayAction.getCapacityInformation(this.maskProxyManager, this.playerProxy, this.siteProxy, this.cardProxy);
+        const [capacity, takesSpaceInTargetProxies, ignoresCapacity] = SearchPlayOrDiscardAction.getCapacityInformation(this.maskProxyManager, this.playerProxy, this.siteProxy, this.cardProxy);
 
         const excess = Math.max(0, takesSpaceInTargetProxies.length - capacity + 1);  // +1 because we are playing a card there
         const discardable = takesSpaceInTargetProxies.filter(e => !(e instanceof Denizen && e.activelyLocked)).map(e => e.original);
@@ -843,7 +849,10 @@ export class CampaignResult extends OathGameObject {
     get atk() { return AttackDie.getResult(this.atkRoll); }
     get def() { return DefenseDie.getResult(this.defRoll) + this.totalDefForce; }
 
-    get requiredSacrifice() { return Math.ceil((this.def - this.atk + 1) / this.sacrificeValue); }
+    get requiredSacrifice() {
+        const diff = this.def - this.atk + 1;
+        return this.sacrificeValue === 0 ? diff > 0 ? Infinity : 0 : Math.ceil(diff / this.sacrificeValue);
+    }
     get couldSacrifice() { return this.requiredSacrifice > 0 && this.requiredSacrifice <= this.totalAtkForce; }
 
     get winner() { return this.successful ? this.attacker : this.defender; }
@@ -1126,7 +1135,7 @@ export class PlayFacedownAdviserAction extends ModifiableAction {
     }
 
     modifiedExecution(): void {
-        new SearchPlayAction(this.player, new MoveAdviserEffect(this.game, this.player, this.playing).do()).doNext();
+        new SearchPlayOrDiscardAction(this.player, new MoveAdviserEffect(this.game, this.player, this.playing).do()).doNext();
     }
 }
 

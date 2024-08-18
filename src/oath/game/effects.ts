@@ -7,7 +7,7 @@ import { Banner, PeoplesFavor, ResourceBank } from "./banks";
 import { OwnableObject, WithPowers } from "./interfaces";
 import { OathGame } from "./game";
 import { OathGameObject } from "./gameObject";
-import { InvalidActionResolution, ModifiableAction, OathAction, BuildOrRepairEdificeAction, ChooseNewCitizensAction, VowOathAction, ResolveEffectAction, RestAction, WakeAction, CampaignDefenseAction, CampaignResult, SearchDiscardAction, SearchPlayAction, ChooseSuitsAction, TakeFavorFromBankAction } from "./actions/actions";
+import { InvalidActionResolution, ModifiableAction, OathAction, BuildOrRepairEdificeAction, ChooseNewCitizensAction, VowOathAction, ResolveEffectAction, RestAction, WakeAction, CampaignDefenseAction, CampaignResult, SearchDiscardAction, SearchPlayOrDiscardAction, ChooseSuitsAction, TakeFavorFromBankAction } from "./actions/actions";
 import { DiscardOptions } from "./cards/decks";
 import { CardDeck } from "./cards/decks";
 import { Constructor, isExtended, MaskProxyManager, shuffleArray } from "./utils";
@@ -892,7 +892,7 @@ export class CheckCapacityEffect extends PlayerEffect<void> {
             const site = origin instanceof Site ? origin : undefined;
             const player = origin instanceof OathPlayer ? origin : origin.ruler || this.player;
             
-            const [capacity, takesSpaceInTargetProxies, _] = SearchPlayAction.getCapacityInformation(this.maskProxyManager, player, site);
+            const [capacity, takesSpaceInTargetProxies, _] = SearchPlayOrDiscardAction.getCapacityInformation(this.maskProxyManager, player, site);
             const excess = Math.max(0, takesSpaceInTargetProxies.length - capacity);
             const discardable = takesSpaceInTargetProxies.filter(e => !(e instanceof Denizen && e.activelyLocked)).map(e => e.original);
 

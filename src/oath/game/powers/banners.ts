@@ -1,4 +1,4 @@
-import { WakeAction, SearchPlayAction, MayDiscardACardAction, SearchAction, PeoplesFavorWakeAction } from "../actions/actions";
+import { WakeAction, SearchPlayOrDiscardAction, MayDiscardACardAction, SearchAction, PeoplesFavorWakeAction } from "../actions/actions";
 import { Banner, PeoplesFavor, DarkestSecret } from "../banks";
 import { ActionModifier } from "./powers";
 
@@ -11,14 +11,14 @@ export abstract class BannerActionModifier<T extends Banner> extends ActionModif
 
 export class PeoplesFavorSearch extends BannerActionModifier<PeoplesFavor> {
     name = "People's Favor";
-    modifiedAction = SearchPlayAction;
-    action: SearchPlayAction;
+    modifiedAction = SearchPlayOrDiscardAction;
+    action: SearchPlayOrDiscardAction;
     mustUse = true; // Not strictly true, but it involves a choice either way, so it's better to always include it
 
     applyAtStart(): void {
         for (const siteProxy of this.activatorProxy.site.region.sites)
             if (!siteProxy.facedown)
-                this.action.selects.site.choices.set(siteProxy.name, siteProxy);
+                this.action.selects.choice.choices.set(siteProxy.name, siteProxy);
     }
 
     applyBefore(): void {

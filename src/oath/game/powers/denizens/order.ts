@@ -1,4 +1,4 @@
-import { TradeAction, InvalidActionResolution, TravelAction, SearchAction, SearchPlayAction, TakeFavorFromBankAction, CampaignKillWarbandsInForceAction, CampaignResult, MakeDecisionAction, CampaignAction, ActAsIfAtSiteAction, CampaignDefenseAction, ChooseSitesAction, ChoosePlayersAction, MoveWarbandsAction, KillWarbandsOnTargetAction } from "../../actions/actions";
+import { TradeAction, InvalidActionResolution, TravelAction, SearchAction, SearchPlayOrDiscardAction, TakeFavorFromBankAction, CampaignKillWarbandsInForceAction, CampaignResult, MakeDecisionAction, CampaignAction, ActAsIfAtSiteAction, CampaignDefenseAction, ChooseSitesAction, ChoosePlayersAction, MoveWarbandsAction, KillWarbandsOnTargetAction } from "../../actions/actions";
 import { Denizen, Edifice, Site, Vision } from "../../cards/cards";
 import { PayCostToTargetEffect, MoveResourcesToTargetEffect, TakeWarbandsIntoBagEffect, GainSupplyEffect, TakeResourcesFromBankEffect, BecomeCitizenEffect, PutWarbandsFromBagEffect, ApplyModifiersEffect, PutPawnAtSiteEffect, MoveOwnWarbandsEffect } from "../../effects";
 import { OathResource, OathSuit } from "../../enums";
@@ -286,8 +286,8 @@ export class Garrison extends WhenPlayed<Denizen> {
 
 export class VowOfObedience extends AccessedActionModifier<Denizen> {
     name = "Vow of Obedience";
-    modifiedAction = SearchPlayAction;
-    action: SearchPlayAction;
+    modifiedAction = SearchPlayOrDiscardAction;
+    action: SearchPlayOrDiscardAction;
     mustUse = true;
 
     applyBefore(): void {

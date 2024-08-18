@@ -1,4 +1,4 @@
-import { InvalidActionResolution, ChooseResourceToTakeAction, WakeAction, TravelAction, CampaignAttackAction, MusterAction, SearchAction, StartBindingExchangeAction, MakeBindingExchangeOfferAction, SearchPlayAction, MayDiscardACardAction } from "../actions/actions";
+import { InvalidActionResolution, ChooseResourceToTakeAction, WakeAction, TravelAction, CampaignAttackAction, MusterAction, SearchAction, StartBindingExchangeAction, MakeBindingExchangeOfferAction, SearchPlayOrDiscardAction, MayDiscardACardAction } from "../actions/actions";
 import { Site, Denizen } from "../cards/cards";
 import { PlayWorldCardEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PutWarbandsFromBagEffect, TakeResourcesFromBankEffect, FlipSecretsEffect } from "../effects";
 import { OathSuit, OathResource } from "../enums";
@@ -282,8 +282,8 @@ export class Marshes extends SiteActionModifier {
 
 export class GreatSlum extends SiteActionModifier {
     name = "Great Slum";
-    modifiedAction = SearchPlayAction;
-    action: SearchPlayAction;
+    modifiedAction = SearchPlayOrDiscardAction;
+    action: SearchPlayOrDiscardAction;
     mustUse = true;
 
     applyBefore(): void {
@@ -296,6 +296,7 @@ export class TheTribunal extends ActivePower<Site> {
     name = "The Tribunal";
 
     usePower(): void {
+        // Can't enforce future actions, so just do a basic binding exchange
         new StartBindingExchangeAction(this.action.player, MakeBindingExchangeOfferAction).doNext();
     }
 }

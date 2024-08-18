@@ -1,4 +1,4 @@
-import { TravelAction, InvalidActionResolution, CampaignAttackAction, MakeDecisionAction, ChooseRegionAction, SearchPlayAction, ChooseCardsAction } from "../../actions/actions";
+import { TravelAction, InvalidActionResolution, CampaignAttackAction, MakeDecisionAction, ChooseRegionAction, SearchPlayOrDiscardAction, ChooseCardsAction } from "../../actions/actions";
 import { Region } from "../../board";
 import { Denizen, Edifice, Site, VisionBack, WorldCard } from "../../cards/cards";
 import { DiscardOptions } from "../../cards/decks";
@@ -216,7 +216,7 @@ export class Oracle extends ActivePower<Denizen> {
         for (const [index, card] of this.game.worldDeck.cards.entries()) {
             if (card instanceof VisionBack) {
                 const vision = new DrawFromDeckEffect(this.action.player, this.game.worldDeck, 1, false, index).do()[0];
-                new SearchPlayAction(this.action.player, vision).doNext();
+                new SearchPlayOrDiscardAction(this.action.player, vision).doNext();
             }
         }
     }

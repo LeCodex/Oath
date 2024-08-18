@@ -1,4 +1,4 @@
-import { CampaignAttackAction, CampaignDefenseAction, TakeFavorFromBankAction, TradeAction, TravelAction, InvalidActionResolution, MakeDecisionAction, RestAction, ChooseCardsAction, SearchPlayAction, ChoosePlayersAction, ChooseSitesAction, ChooseNumberAction, SearchAction, SearchChooseAction, KillWarbandsOnTargetAction } from "../../actions/actions";
+import { CampaignAttackAction, CampaignDefenseAction, TakeFavorFromBankAction, TradeAction, TravelAction, InvalidActionResolution, MakeDecisionAction, RestAction, ChooseCardsAction, SearchPlayOrDiscardAction, ChoosePlayersAction, ChooseSitesAction, ChooseNumberAction, SearchAction, SearchChooseAction, KillWarbandsOnTargetAction } from "../../actions/actions";
 import { Conspiracy, Denizen, Edifice, Site, WorldCard } from "../../cards/cards";
 import { DiscardOptions } from "../../cards/decks";
 import { AttackDie, DefenseDie } from "../../dice";
@@ -202,7 +202,7 @@ export class Inquisitor extends ActivePower<Denizen> {
                 new PeekAtCardEffect(this.action.player, card).do();
 
                 if (card instanceof Conspiracy)
-                    new SearchPlayAction(this.action.player, new MoveAdviserEffect(this.game, this.action.player, card).do()).doNext();
+                    new SearchPlayOrDiscardAction(this.action.player, new MoveAdviserEffect(this.game, this.action.player, card).do()).doNext();
                 else
                     new MoveResourcesToTargetEffect(this.game, this.action.player, OathResource.Favor, 1, card.owner, this.source).do();
             }

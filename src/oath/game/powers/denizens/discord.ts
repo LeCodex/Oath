@@ -1,4 +1,4 @@
-import { MakeDecisionAction, ChooseCardsAction, ChooseRegionAction, InvalidActionResolution, TakeFavorFromBankAction, TakeResourceFromPlayerAction, ChooseSuitsAction, ModifiableAction, SearchPlayAction, MusterAction, TravelAction, CampaignAction, KillWarbandsOnTargetAction, CampaignDefenseAction, CampaignAttackAction, CampaignEndAction, RecoverAction } from "../../actions/actions";
+import { MakeDecisionAction, ChooseCardsAction, ChooseRegionAction, InvalidActionResolution, TakeFavorFromBankAction, TakeResourceFromPlayerAction, ChooseSuitsAction, ModifiableAction, SearchPlayOrDiscardAction, MusterAction, TravelAction, CampaignAction, KillWarbandsOnTargetAction, CampaignDefenseAction, CampaignAttackAction, CampaignEndAction, RecoverAction } from "../../actions/actions";
 import { PeoplesFavor } from "../../banks";
 import { Region } from "../../board";
 import { Denizen, OathCard, Relic, Site, Vision, WorldCard } from "../../cards/cards";
@@ -444,7 +444,7 @@ export class FalseProphetDiscard extends EffectModifier<Denizen> {
     applyAfter(result: void): void {
         const card = new DrawFromDeckEffect(this.effect.player, this.effect.discardOptions.discard, 1, this.effect.discardOptions.onBottom).do()[0];
         if (!card || !(card instanceof Vision)) return;
-        new SearchPlayAction(this.effect.player, card).doNext();
+        new SearchPlayOrDiscardAction(this.effect.player, card).doNext();
     }
 }
 
@@ -496,8 +496,8 @@ export class BoilingLake extends EnemyActionModifier<Denizen> {
 
 export class Gossip extends EnemyActionModifier<Denizen> {
     name = "Gossip";
-    modifiedAction = SearchPlayAction;
-    action: SearchPlayAction;
+    modifiedAction = SearchPlayOrDiscardAction;
+    action: SearchPlayOrDiscardAction;
 
     applyBefore(): void {
         if (this.action.facedown)
