@@ -11,14 +11,14 @@ export class LongbowsAttack extends AttackerBattlePlan<Denizen> {
     name = "Longbows";
 
     applyBefore(): void {
-        this.action.campaignResult.atkPool++;
+        this.action.campaignResult.params.atkPool++;
     }
 }
 export class LongbowsDefense extends DefenderBattlePlan<Denizen> {
     name = "Longbows";
 
     applyBefore(): void {
-        this.action.campaignResult.atkPool--;
+        this.action.campaignResult.params.atkPool--;
     }
 }
 
@@ -27,7 +27,7 @@ export class EncirclementAttack extends AttackerBattlePlan<Denizen> {
     cost = new ResourceCost([[OathResource.Favor, 1]]);
 
     applyBefore(): void {
-        if (this.action.campaignResult.totalAtkForce > this.action.campaignResult.totalDefForce) this.action.campaignResult.atkPool += 2;
+        if (this.action.campaignResult.totalAtkForce > this.action.campaignResult.totalDefForce) this.action.campaignResult.params.atkPool += 2;
     }
 }
 export class EncirclementDefense extends DefenderBattlePlan<Denizen> {
@@ -35,7 +35,7 @@ export class EncirclementDefense extends DefenderBattlePlan<Denizen> {
     cost = new ResourceCost([[OathResource.Favor, 1]]);
 
     applyBefore(): void {
-        if (this.action.campaignResult.totalDefForce > this.action.campaignResult.totalAtkForce) this.action.campaignResult.atkPool -= 2;
+        if (this.action.campaignResult.totalDefForce > this.action.campaignResult.totalAtkForce) this.action.campaignResult.params.atkPool -= 2;
     }
 }
 
@@ -47,7 +47,7 @@ export class CodeOfHonorAttack extends AttackerBattlePlan<Denizen> {
             if (modifier !== this && modifier instanceof AttackerBattlePlan)
                 throw new InvalidActionResolution("Cannot use other battle plans with the Code of Honor");
 
-        this.action.campaignResult.atkPool += 2;
+        this.action.campaignResult.params.atkPool += 2;
     }
 }
 export class CodeOfHonorDefense extends DefenderBattlePlan<Denizen> {
@@ -58,7 +58,7 @@ export class CodeOfHonorDefense extends DefenderBattlePlan<Denizen> {
             if (modifier !== this && modifier instanceof AttackerBattlePlan)
                 throw new InvalidActionResolution("Cannot use other battle plans with the Code of Honor");
 
-        this.action.campaignResult.atkPool -= 2;
+        this.action.campaignResult.params.atkPool -= 2;
     }
 }
 
@@ -136,8 +136,8 @@ export class ShieldWall extends DefenderBattlePlan<Denizen> {
     cost = new ResourceCost([[OathResource.Favor, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.defPool += 2;
-        this.action.campaignResult.defenderKillsEntireForce = true;
+        this.action.campaignResult.params.defPool += 2;
+        this.action.campaignResult.params.defenderKillsEntireForce = true;
     }
 }
 
@@ -146,7 +146,7 @@ export class Wrestlers extends DefenderBattlePlan<Denizen> {
 
     applyBefore(): void {
         if (this.action.campaignResult.totalDefForce > 0) {
-            this.action.campaignResult.defPool++;
+            this.action.campaignResult.params.defPool++;
             new CampaignKillWarbandsInForceAction(this.action.campaignResult, false, 1).doNext();
         }
     }
@@ -156,7 +156,7 @@ export class BearTraps extends DefenderBattlePlan<Denizen> {
     name = "Bear Traps";
 
     applyBefore(): void {
-        this.action.campaignResult.atkPool--;
+        this.action.campaignResult.params.atkPool--;
         new TakeWarbandsIntoBagEffect(this.action.campaignResult.attacker.leader, 1).do();
     }
 }
@@ -165,8 +165,8 @@ export class Keep extends DefenderBattlePlan<Denizen> {
     name = "Keep";
 
     applyBefore(): void {
-        if (this.source.site && this.action.campaignResult.targets.has(this.source.site))
-            this.action.campaignResult.defPool += 2;
+        if (this.source.site && this.action.campaignResult.params.targets.has(this.source.site))
+            this.action.campaignResult.params.defPool += 2;
     }
 }
 
@@ -182,7 +182,7 @@ export class Outriders extends AttackerBattlePlan<Denizen> {
     name = "Outriders";
 
     applyBefore(): void {
-        this.action.campaignResult.ignoreSkulls = true;
+        this.action.campaignResult.params.ignoreSkulls = true;
     }
 }
 
@@ -383,7 +383,7 @@ export class BanditRampart extends DefenderBattlePlan<Edifice> {
     name = "Bandit Rampart";
 
     applyBefore(): void {
-        if (this.source.site && this.action.campaignResult.targets.has(this.source.site))
-            this.action.campaignResult.atkPool -= 2;
+        if (this.source.site && this.action.campaignResult.params.targets.has(this.source.site))
+            this.action.campaignResult.params.atkPool -= 2;
     }
 }

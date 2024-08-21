@@ -17,7 +17,7 @@ export class MercenariesAttack extends AttackerBattlePlan<Denizen> {
     cost = new ResourceCost([[OathResource.Favor, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.atkPool += 3;
+        this.action.campaignResult.params.atkPool += 3;
         this.action.campaignResult.onSuccessful(false, () => new DiscardCardEffect(this.activator, this.source).do());
     }
 }
@@ -26,32 +26,32 @@ export class MercenariesDefense extends DefenderBattlePlan<Denizen> {
     cost = new ResourceCost([[OathResource.Favor, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.atkPool -= 3;
+        this.action.campaignResult.params.atkPool -= 3;
         this.action.campaignResult.onSuccessful(true, () => new DiscardCardEffect(this.activator, this.source).do());
     }
 }
 
 export class CrackedSageAttack extends AttackerBattlePlan<Denizen> {
-    name = "Disgraced Captain";
+    name = "Cracked Sage";
     cost = new ResourceCost([[OathResource.Secret, 1]], [[OathResource.Favor, 1]]);
 
     applyBefore(): void {
         if (!this.action.campaignResult.defender) return;
         for (const adviser of this.action.campaignResult.defender.advisers) {
             if (!(adviser instanceof Denizen) || adviser.suit !== OathSuit.Arcane) continue;
-            this.action.campaignResult.atkPool += 4;
+            this.action.campaignResult.params.atkPool += 4;
             break;
         }
     }
 }
 export class CrackedSageDefense extends DefenderBattlePlan<Denizen> {
-    name = "Disgraced Captain";
+    name = "Cracked Sage";
     cost = new ResourceCost([[OathResource.Secret, 1]], [[OathResource.Favor, 1]]);
 
     applyBefore(): void {
         for (const adviser of this.action.campaignResult.attacker.advisers) {
             if (!(adviser instanceof Denizen) || adviser.suit !== OathSuit.Arcane) continue;
-            this.action.campaignResult.atkPool -= 4;
+            this.action.campaignResult.params.atkPool -= 4;
             break;
         }
     }
@@ -62,11 +62,11 @@ export class DisgracedCaptain extends AttackerBattlePlan<Denizen> {
     cost = new ResourceCost([[OathResource.Favor, 1]], [[OathResource.Favor, 1]]);
 
     applyBefore(): void {
-        for (const target of this.action.campaignResult.targets) {
+        for (const target of this.action.campaignResult.params.targets) {
             if (!(target instanceof Site)) continue;
             for (const denizenProxy of this.action.maskProxyManager.get(target).denizens) {
                 if (denizenProxy.suit !== OathSuit.Order) continue;
-                this.action.campaignResult.atkPool += 4;
+                this.action.campaignResult.params.atkPool += 4;
                 break;
             }
         }
@@ -131,7 +131,7 @@ export class Zealots extends AttackerBattlePlan<Denizen> {
 
     applyAtEnd(): void {
         if (this.action.campaignResult.totalAtkForce < this.action.campaignResult.totalDefForce)
-            this.action.campaignResult.sacrificeValue = 3;
+            this.action.campaignResult.params.sacrificeValue = 3;
     }
 }
 

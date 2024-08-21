@@ -161,6 +161,29 @@ export class ApplyModifiersEffect extends OathEffect<boolean> {
     }
 }
 
+export class UpdateObjectEffect<T extends object> extends OathEffect<void> {
+    obj: T;
+    key: keyof T;
+    value: T[keyof T];
+    oldValue: T[keyof T];
+
+    constructor(game: OathGame, obj: T, key: keyof T, value: T[keyof T]) {
+        super(game, undefined);
+        this.obj = obj;
+        this.key = key;
+        this.value = value;
+    }
+
+    resolve(): void {
+        this.oldValue = this.obj[this.key];
+        this.obj[this.key] = this.value;
+    }
+
+    revert(): void {
+        this.obj[this.key] = this.oldValue;
+    }
+}
+
 export class PutResourcesOnTargetEffect extends OathEffect<number> {
     resource: OathResource;
     amount: number;
@@ -1175,6 +1198,12 @@ export class CampaignJoinDefenderAlliesEffect extends PlayerEffect<void> {
     revert(): void {
         this.campaignResult.defenderAllies.delete(this.player);
     }
+
+    serialize(): Record<string, any> | undefined {
+        return {
+            player: this.player
+        };
+    }
 }
 
 export class CampaignResolveSuccessfulAndSkullsEffect extends PlayerEffect<void> {
@@ -1189,7 +1218,7 @@ export class CampaignResolveSuccessfulAndSkullsEffect extends PlayerEffect<void>
         const campaignResult = this.action.campaignResult;
         campaignResult.successful = campaignResult.atk > campaignResult.def;
 
-        if (!campaignResult.ignoreKilling && !campaignResult.ignoreSkulls)
+        if (!campaignResult.params.ignoreKilling && !campaignResult.params.ignoreSkulls)
             campaignResult.attackerKills(AttackDie.getSkulls(campaignResult.atkRoll));
     }
 

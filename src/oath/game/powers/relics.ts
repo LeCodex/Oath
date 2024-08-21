@@ -91,7 +91,7 @@ export class StickyFireAttack extends AttackerBattlePlan<Relic> {
         const defender = this.action.campaignResult.defender;
         if (!defender) return;
 
-        this.action.campaignResult.onSuccessful(true, () => new MakeDecisionAction(this.action.player, "Use Sicky Fire?", () => { 
+        this.action.campaignResult.onSuccessful(true, () => new MakeDecisionAction(this.action.player, "Use Sticky Fire?", () => { 
             this.action.campaignResult.defenderKills(Infinity);
             new MoveResourcesToTargetEffect(this.game, this.action.player, OathResource.Favor, 1, defender).do();
         }));
@@ -102,7 +102,7 @@ export class StickyFireDefense extends DefenderBattlePlan<Relic> {
 
     applyBefore(): void {
         const attacker = this.action.campaignResult.attacker;
-        this.action.campaignResult.onSuccessful(false, () => new MakeDecisionAction(this.action.player, "Use Sicky Fire?", () => { 
+        this.action.campaignResult.onSuccessful(false, () => new MakeDecisionAction(this.action.player, "Use Sticky Fire?", () => { 
             this.action.campaignResult.attackerKills(Infinity);
             new MoveResourcesToTargetEffect(this.game, this.action.player, OathResource.Favor, 1, attacker).do();
         }));
@@ -206,13 +206,13 @@ export class CircletOfCommandCampaign extends EnemyActionModifier<Relic> {
     action: CampaignAttackAction;
 
     applyBefore(): void {
-        for (const target of this.action.campaignResult.targets) {
+        for (const target of this.action.campaignResult.params.targets) {
             if (isOwnable(target)) {
                 const targetProxy = this.action.maskProxyManager.get(target);
                 circletOfCommandCheckOwnable(this.sourceProxy, targetProxy, this.activatorProxy);
             }
 
-            if (target === this.sourceProxy.ruler?.original) this.action.campaignResult.defPool += 1;
+            if (target === this.sourceProxy.ruler?.original) this.action.campaignResult.params.defPool += 1;
         }
     }
 }

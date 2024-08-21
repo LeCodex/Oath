@@ -1,4 +1,4 @@
-import { isMap, isSet, random, range } from "lodash";
+import { clone, cloneWith, CloneWithCustomizer, isMap, isSet, random, range } from "lodash";
 
 export type AbstractConstructor<T> = abstract new (...args: any) => T;
 export type Constructor<T> = new (...args: any) => T;
@@ -218,4 +218,21 @@ export class MaskedMap<K, V extends object> implements Map<K, V> {
 
     [Symbol.iterator]() { return this.entries(); }
     get [Symbol.toStringTag]() { return this.map[Symbol.toStringTag]; }
+}
+
+
+export class DataObject {
+    copy: this
+    
+    save() {
+        const customizer = (value: any, key?: PropertyKey, object?: any, stack?: any) => {
+            if (key === "copy") return undefined;
+            if (typeof value === "object") return clone(value);
+        }
+        this.copy = cloneWith(this, customizer);
+    }
+
+    restore() {
+        Object.assign(this, this.copy);
+    }
 }

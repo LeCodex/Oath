@@ -12,7 +12,7 @@ export class NatureWorshipAttack extends AttackerBattlePlan<Denizen> {
     cost = new ResourceCost([[OathResource.Secret, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.atkPool += this.activator.suitAdviserCount(OathSuit.Beast);
+        this.action.campaignResult.params.atkPool += this.activator.suitAdviserCount(OathSuit.Beast);
     }
 }
 export class NatureWorshipDefense extends DefenderBattlePlan<Denizen> {
@@ -20,7 +20,7 @@ export class NatureWorshipDefense extends DefenderBattlePlan<Denizen> {
     cost = new ResourceCost([[OathResource.Secret, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.atkPool -= this.activator.suitAdviserCount(OathSuit.Beast);
+        this.action.campaignResult.params.atkPool -= this.activator.suitAdviserCount(OathSuit.Beast);
     }
 }
 
@@ -29,8 +29,8 @@ export class Rangers extends AttackerBattlePlan<Denizen> {
     cost = new ResourceCost([[OathResource.Favor, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.ignoreSkulls = true;
-        if (this.action.campaignResult.defPool >= 4) this.action.campaignResult.atkPool += 2;
+        this.action.campaignResult.params.ignoreSkulls = true;
+        if (this.action.campaignResult.params.defPool >= 4) this.action.campaignResult.params.atkPool += 2;
     }
 }
 
@@ -38,12 +38,12 @@ export class WalledGarden extends DefenderBattlePlan<Denizen> {
     name = "Walled Garden";
 
     applyBefore(): void {
-        for (const target of this.action.campaignResult.targets) {
+        for (const target of this.action.campaignResult.params.targets) {
             if (target !== this.source.site) return;
             for (const siteProxy of this.gameProxy.board.sites())
                 for (const denizenProxy of siteProxy.denizens)
                     if (denizenProxy.suit === OathSuit.Beast)
-                        this.action.campaignResult.defPool++;
+                        this.action.campaignResult.params.defPool++;
         }
     }
 }

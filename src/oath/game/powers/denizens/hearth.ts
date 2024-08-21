@@ -11,7 +11,7 @@ export class TravelingDoctorAttack extends AttackerBattlePlan<Denizen> {
     name = "Traveling Doctor";
 
     applyBefore(): void {
-        this.action.campaignResult.attackerKillsNoWarbands = true;
+        this.action.campaignResult.params.attackerKillsNoWarbands = true;
         this.action.campaignResult.onSuccessful(false, () => new DiscardCardEffect(this.activator, this.source).do());
     }
 }
@@ -19,7 +19,7 @@ export class TravelingDoctorDefense extends DefenderBattlePlan<Denizen> {
     name = "Traveling Doctor";
 
     applyBefore(): void {
-        this.action.campaignResult.defenderKillsNoWarbands = true;
+        this.action.campaignResult.params.defenderKillsNoWarbands = true;
         this.action.campaignResult.onSuccessful(true, () => new DiscardCardEffect(this.activator, this.source).do());
     }
 }
@@ -30,7 +30,7 @@ export class VillageConstableAttack extends AttackerBattlePlan<Denizen> {
     applyBefore(): void {
         const peoplesFavorProxy = this.gameProxy.banners.get(BannerName.PeoplesFavor);
         if (peoplesFavorProxy?.owner?.original === this.action.campaignResult.defender) return;
-        this.action.campaignResult.atkPool += 2;
+        this.action.campaignResult.params.atkPool += 2;
     }
 }
 export class VillageConstableDefense extends DefenderBattlePlan<Denizen> {
@@ -39,7 +39,7 @@ export class VillageConstableDefense extends DefenderBattlePlan<Denizen> {
     applyBefore(): void {
         const peoplesFavorProxy = this.gameProxy.banners.get(BannerName.PeoplesFavor);
         if (peoplesFavorProxy?.owner?.original === this.action.campaignResult.attacker) return;
-        this.action.campaignResult.atkPool -= 2;
+        this.action.campaignResult.params.atkPool -= 2;
     }
 }
 
@@ -50,8 +50,8 @@ export class TheGreatLevyAttack extends AttackerBattlePlan<Denizen> {
     applyBefore(): void {
         const peoplesFavorProxy = this.gameProxy.banners.get(BannerName.PeoplesFavor);
         if (peoplesFavorProxy?.owner?.original === this.action.campaignResult.defender) return;
-        this.action.campaignResult.atkPool += 3;
-        this.action.campaignResult.ignoreSkulls = true;
+        this.action.campaignResult.params.atkPool += 3;
+        this.action.campaignResult.params.ignoreSkulls = true;
     }
 }
 export class TheGreatLevyDefense extends DefenderBattlePlan<Denizen> {
@@ -61,7 +61,7 @@ export class TheGreatLevyDefense extends DefenderBattlePlan<Denizen> {
     applyBefore(): void {
         const peoplesFavorProxy = this.gameProxy.banners.get(BannerName.PeoplesFavor);
         if (peoplesFavorProxy?.owner?.original === this.action.campaignResult.attacker) return;
-        this.action.campaignResult.atkPool -= 3;
+        this.action.campaignResult.params.atkPool -= 3;
     }
 }
 
@@ -107,7 +107,7 @@ export class ExtraProvisions extends DefenderBattlePlan<Denizen> {
     cost = new ResourceCost([[OathResource.Favor, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.defPool += 1;
+        this.action.campaignResult.params.defPool += 1;
     }
 }
 
@@ -209,7 +209,7 @@ export class Herald extends EnemyActionModifier<Denizen> {
     }
 }
 
-export class MarriageActionModifier extends ActionModifier<Denizen> {
+export class MarriageAction extends ActionModifier<Denizen> {
     name = "Marriage";
     modifiedAction = ModifiableAction;
     action: ModifiableAction;
@@ -377,7 +377,7 @@ export class HallOfDebate extends ActionModifier<Edifice> {
 
     applyBefore(): void {
         const peoplesFavor = this.game.banners.get(BannerName.PeoplesFavor);
-        if (peoplesFavor && this.action.campaignResult.targets.has(peoplesFavor))
+        if (peoplesFavor && this.action.campaignResult.params.targets.has(peoplesFavor))
             throw new InvalidActionResolution("Cannot target the People's Favor in campaigns with the Hall of Debate");
     }
 }

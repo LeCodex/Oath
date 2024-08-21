@@ -10,7 +10,7 @@ import { Exile, OathPlayer } from "../player";
 import { ActionModifier, ActivePower, CapacityModifier } from "../powers/powers";
 import { ResourceCost, ResourcesAndWarbands } from "../resources";
 import { Banner, PeoplesFavor } from "../banks";
-import { Constructor, inclusiveRange, isExtended, MaskProxyManager, minInGroup } from "../utils";
+import { Constructor, inclusiveRange, isExtended, MaskProxyManager, minInGroup, DataObject} from "../utils";
 import { SelectNOf, SelectBoolean, SelectNumber } from "./selects";
 import { CampaignActionTarget, RecoverActionTarget, WithPowers } from "../interfaces";
 import { Region } from "../board";
@@ -687,13 +687,18 @@ export class CampaignAttackAction extends ModifiableAction {
         this.campaignResult.checkForImperialInfighting(this.maskProxyManager);
     }
 
+    doNext(): void {
+        super.doNext();
+        this.campaignResult.params.save();
+    }
+
     start() {
-        this.campaignResult.targets.clear();
+        this.campaignResult.params.restore();
         const choices = new Map<string, CampaignActionTarget>();
         for (const siteProxy of this.gameProxy.board.sites()) { 
             if (!siteProxy.facedown && siteProxy.ruler === this.defenderProxy) {
                 if (this.playerProxy.site === siteProxy) {
-                    this.campaignResult.targets.add(siteProxy.original);
+                    this.campaignResult.params.targets.add(siteProxy.original);
                 } else {
                     choices.set(siteProxy.visualName(this.player), siteProxy);
                 }
@@ -705,7 +710,7 @@ export class CampaignAttackAction extends ModifiableAction {
             for (const relicProxy of this.defenderProxy.relics) choices.set(relicProxy.visualName(this.player), relicProxy)
             for (const bannerProxy of this.defenderProxy.banners) choices.set(bannerProxy.name, bannerProxy);
         }
-        this.selects.targets = new SelectNOf("Target(s)", choices, 1 - this.campaignResult.targets.size, choices.size);
+        this.selects.targets = new SelectNOf("Target(s)", choices, 1 - this.campaignResult.params.targets.size, choices.size);
 
         this.selects.pool = new SelectNumber("Attack pool", inclusiveRange(this.playerProxy.totalWarbands));
         
@@ -716,14 +721,14 @@ export class CampaignAttackAction extends ModifiableAction {
     get campaignResult() { return this.next.campaignResult; }
 
     execute() {
-        for (const targetProxy of this.parameters.targets) this.campaignResult.targets.add(targetProxy.original);
-        this.campaignResult.atkPool = this.parameters.pool[0];
-        this.campaignResult.defPool = 0;
+        for (const targetProxy of this.parameters.targets) this.campaignResult.params.targets.add(targetProxy.original);
+        this.campaignResult.params.atkPool = this.parameters.pool[0];
+        this.campaignResult.params.defPool = 0;
 
         const allyProxiesCandidates = new Set<OathPlayer>();
-        for (const target of this.campaignResult.targets) {
+        for (const target of this.campaignResult.params.targets) {
             const targetProxy = this.maskProxyManager.get(target);
-            this.campaignResult.defPool += targetProxy.defense;
+            this.campaignResult.params.defPool += targetProxy.defense;
             
             for (const playerProxy of Object.values(this.gameProxy.players)) {
                 const siteProxy = targetProxy instanceof Site ? targetProxy : this.playerProxy.site;
@@ -733,7 +738,7 @@ export class CampaignAttackAction extends ModifiableAction {
         }
         
         if (this.campaignResult.defender && this.maskProxyManager.get(this.campaignResult.defender) === this.gameProxy.oathkeeper)
-            this.campaignResult.defPool += this.gameProxy.isUsurper ? 2 : 1;
+            this.campaignResult.params.defPool += this.gameProxy.isUsurper ? 2 : 1;
 
         for (const allyProxy of allyProxiesCandidates) {
             const ally = allyProxy.original;
@@ -746,27 +751,27 @@ export class CampaignAttackAction extends ModifiableAction {
     }
 
     modifiedExecution() {
-        this.campaignResult.defForce = new Set();
-        for (const target of this.campaignResult.targets) {
+        this.campaignResult.params.defForce = new Set();
+        for (const target of this.campaignResult.params.targets) {
             const force = target.force;
-            if (force) this.campaignResult.defForce.add(force);
+            if (force) this.campaignResult.params.defForce.add(force);
         }
 
         for (const ally of this.campaignResult.defenderAllies) {
             if (ally.site === this.player.site) {
-                this.campaignResult.defForce.add(ally);
+                this.campaignResult.params.defForce.add(ally);
                 continue;
             }
             
-            for (const target of this.campaignResult.targets) {
+            for (const target of this.campaignResult.params.targets) {
                 if (target instanceof Site && ally.site === target) {
-                    this.campaignResult.defForce.add(ally);
+                    this.campaignResult.params.defForce.add(ally);
                     continue;
                 }
             }
         }
         
-        this.campaignResult.atkForce = new Set([this.player]);
+        this.campaignResult.params.atkForce = new Set([this.player]);
 
         if (this.campaignResult.defender) {
             this.next.doNext();
@@ -804,6 +809,12 @@ export class CampaignDefenseAction extends ModifiableAction {
             if (ally !== this.player)
                 next = new ChooseModifiers(next, ally);
         next.doNext();
+        this.campaignResult.params.save();
+    }
+
+    start(): boolean {
+        this.campaignResult.params.restore();
+        return super.start();
     }
 
     execute() {
@@ -817,19 +828,13 @@ export class CampaignDefenseAction extends ModifiableAction {
     }
 }
 
-export class CampaignResult extends OathGameObject {
-    attacker: OathPlayer;
-    defender: OathPlayer | undefined;
-    defenderAllies = new Set<OathPlayer>();
+export class CampaignResultParameters extends DataObject {
     targets = new Set<CampaignActionTarget>();
     atkPool: number;
     defPool: number;
     atkForce: Set<ResourcesAndWarbands>;  // The force is all your warbands on the objects in this array
     defForce: Set<ResourcesAndWarbands>;
-    
-    atkRoll: number[] = [];
-    defRoll: number[] = [];
-    successful: boolean;
+    endCallbacks: (() => void)[] = [];
     
     ignoreSkulls: boolean = false;
     ignoreKilling: boolean = false;
@@ -838,32 +843,41 @@ export class CampaignResult extends OathGameObject {
     attackerKillsEntireForce: boolean = false;
     defenderKillsEntireForce: boolean = false;
     sacrificeValue: number = 1;
-
+}
+export class CampaignResult extends OathGameObject {
+    attacker: OathPlayer;
+    defender: OathPlayer | undefined;
+    defenderAllies = new Set<OathPlayer>();
+    
+    params = new CampaignResultParameters();
+    
+    atkRoll: number[] = [];
+    defRoll: number[] = [];
+    successful: boolean;
     attackerLoss: number = 0;
     defenderLoss: number = 0;
-    endCallbacks: (() => void)[] = [];
 
-    get totalAtkForce() { return [...this.atkForce].reduce((a, e) => a + e.getWarbands(this.attacker.leader.original), 0); }
-    get totalDefForce() { return [...this.defForce].reduce((a, e) => a + e.getWarbands(this.defender?.leader.original), 0); }
+    get totalAtkForce() { return [...this.params.atkForce].reduce((a, e) => a + e.getWarbands(this.attacker.leader.original), 0); }
+    get totalDefForce() { return [...this.params.defForce].reduce((a, e) => a + e.getWarbands(this.defender?.leader.original), 0); }
 
     get atk() { return AttackDie.getResult(this.atkRoll); }
     get def() { return DefenseDie.getResult(this.defRoll) + this.totalDefForce; }
 
     get requiredSacrifice() {
         const diff = this.def - this.atk + 1;
-        return this.sacrificeValue === 0 ? diff > 0 ? Infinity : 0 : Math.ceil(diff / this.sacrificeValue);
+        return this.params.sacrificeValue === 0 ? diff > 0 ? Infinity : 0 : Math.ceil(diff / this.params.sacrificeValue);
     }
     get couldSacrifice() { return this.requiredSacrifice > 0 && this.requiredSacrifice <= this.totalAtkForce; }
 
     get winner() { return this.successful ? this.attacker : this.defender; }
     get loser() { return this.successful ? this.defender : this.attacker; }
     get loserTotalForce() { return this.successful ? this.totalDefForce : this.totalAtkForce; }
-    get loserKillsNoWarbands() { return this.successful ? this.defenderKillsNoWarbands : this.attackerKillsNoWarbands; }
-    get loserKillsEntireForce() { return this.successful ? this.defenderKillsEntireForce : this.attackerKillsEntireForce; }
+    get loserKillsNoWarbands() { return this.successful ? this.params.defenderKillsNoWarbands : this.params.attackerKillsNoWarbands; }
+    get loserKillsEntireForce() { return this.successful ? this.params.defenderKillsEntireForce : this.params.attackerKillsEntireForce; }
     get loserLoss() { return this.successful ? this.defenderLoss : this.attackerLoss; }
-
+    
     atEnd(callback: () => void) {
-        this.endCallbacks.push(callback);
+        this.params.endCallbacks.push(callback);
     }
 
     discardAtEnd(denizen: Denizen) {
@@ -884,11 +898,11 @@ export class CampaignResult extends OathGameObject {
     }
 
     rollAttack() {
-        this.atkRoll = new RollDiceEffect(this.game, this.attacker, AttackDie, this.atkPool).do();
+        this.atkRoll = new RollDiceEffect(this.game, this.attacker, AttackDie, this.params.atkPool).do();
     }
 
     rollDefense() {
-        this.defRoll = new RollDiceEffect(this.game, this.defender, DefenseDie, this.defPool + (this.atkPool < 0 ? -this.atkPool : 0)).do();
+        this.defRoll = new RollDiceEffect(this.game, this.defender, DefenseDie, this.params.defPool + (this.params.atkPool < 0 ? -this.params.atkPool : 0)).do();
     }
     
     attackerKills(amount: number) {
@@ -923,7 +937,13 @@ export class CampaignEndAction extends ModifiableAction {
         this.campaignResult.checkForImperialInfighting(this.maskProxyManager);
     }
 
+    doNext(): void {
+        super.doNext();
+        this.campaignResult.params.save();
+    }
+
     start() {
+        this.campaignResult.params.restore();
         if (this.campaignResult.couldSacrifice) {
             this.selects.doSacrifice = new SelectBoolean("Decision", [`Sacrifice ${this.campaignResult.requiredSacrifice} warbands`, "Abandon"]);
         } else {
@@ -944,13 +964,13 @@ export class CampaignEndAction extends ModifiableAction {
             this.campaignResult.successful = true;
         }
 
-        if (this.campaignResult.loser && !this.campaignResult.ignoreKilling && !this.campaignResult.loserKillsNoWarbands)
+        if (this.campaignResult.loser && !this.campaignResult.params.ignoreKilling && !this.campaignResult.loserKillsNoWarbands)
             this.campaignResult.loserKills(Math.floor(this.campaignResult.loserTotalForce / (this.campaignResult.loserKillsEntireForce ? 1 : 2)));
 
         if (this.campaignResult.successful)
-            for (const target of this.campaignResult.targets) target.seize(this.campaignResult.attacker);
+            for (const target of this.campaignResult.params.targets) target.seize(this.campaignResult.attacker);
 
-        for (const func of this.campaignResult.endCallbacks)
+        for (const func of this.campaignResult.params.endCallbacks)
             func();
 
         console.log(this.campaignResult);
@@ -973,7 +993,7 @@ export class CampaignKillWarbandsInForceAction extends OathAction {
         this.message = `Kill ${amount} warbands`;
         this.result = result;
         this.owner = attacker ? result.attacker.leader : result.defender?.leader;
-        this.force = attacker ? result.atkForce : result.defForce;
+        this.force = attacker ? result.params.atkForce : result.params.defForce;
         this.attacker = attacker;
         this.amount = Math.min(attacker ? result.totalAtkForce : result.totalDefForce, amount);
     }
@@ -1441,7 +1461,7 @@ export class PeoplesFavorWakeAction extends ChooseSuitsAction {
     banner: PeoplesFavor;
 
     constructor(player: OathPlayer, banner: PeoplesFavor) {
-        super(player, "Return favor (choose none to put favor)", (suits: OathSuit[]) => { this.putOrReturnFavor(suits[0]) }, []);
+        super(player, "Return favor (choose none to put favor)", (suits: OathSuit[]) => { this.putOrReturnFavor(suits[0]) }, [], [[0, 1]]);
         this.banner = banner;
     }
 

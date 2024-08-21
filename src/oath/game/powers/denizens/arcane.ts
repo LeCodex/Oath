@@ -8,7 +8,6 @@ import { OathPlayer } from "../../player";
 import { ResourceCost } from "../../resources";
 import { ActionModifier, AttackerBattlePlan, DefenderBattlePlan, ActivePower, WhenPlayed, AccessedActionModifier, EffectModifier } from "../powers";
 import { inclusiveRange } from "../../utils";
-import { min } from "lodash";
 
 
 export class FireTalkersAttack extends AttackerBattlePlan<Denizen> {
@@ -18,7 +17,7 @@ export class FireTalkersAttack extends AttackerBattlePlan<Denizen> {
     applyBefore(): void {
         const darkestSecretProxy = this.gameProxy.banners.get(BannerName.DarkestSecret);
         if (darkestSecretProxy?.owner !== this.activatorProxy) return;
-        this.action.campaignResult.atkPool += 3;
+        this.action.campaignResult.params.atkPool += 3;
     }
 }
 export class FireTalkersDefense extends DefenderBattlePlan<Denizen> {
@@ -28,7 +27,7 @@ export class FireTalkersDefense extends DefenderBattlePlan<Denizen> {
     applyBefore(): void {
         const darkestSecretProxy = this.gameProxy.banners.get(BannerName.DarkestSecret);
         if (darkestSecretProxy?.owner !== this.activatorProxy) return;
-        this.action.campaignResult.atkPool -= 3;
+        this.action.campaignResult.params.atkPool -= 3;
     }
 }
 
@@ -37,7 +36,7 @@ export class BillowingFogAttack extends AttackerBattlePlan<Denizen> {
     cost = new ResourceCost([[OathResource.Secret, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.attackerKillsNoWarbands = true;
+        this.action.campaignResult.params.attackerKillsNoWarbands = true;
     }
 }
 export class BillowingFogDefense extends DefenderBattlePlan<Denizen> {
@@ -45,7 +44,7 @@ export class BillowingFogDefense extends DefenderBattlePlan<Denizen> {
     cost = new ResourceCost([[OathResource.Secret, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.defenderKillsNoWarbands = true;
+        this.action.campaignResult.params.defenderKillsNoWarbands = true;
     }
 }
 
@@ -54,8 +53,8 @@ export class KindredWarriorsAttack extends AttackerBattlePlan<Denizen> {
     cost = new ResourceCost([[OathResource.Secret, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.ignoreSkulls = true;
-        this.action.campaignResult.atkPool += (this.activator.ruledSuits - 1);
+        this.action.campaignResult.params.ignoreSkulls = true;
+        this.action.campaignResult.params.atkPool += (this.activator.ruledSuits - 1);
     }
 }
 export class KindredWarriorsDefense extends DefenderBattlePlan<Denizen> {
@@ -63,7 +62,7 @@ export class KindredWarriorsDefense extends DefenderBattlePlan<Denizen> {
     cost = new ResourceCost([[OathResource.Secret, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.atkPool -= (this.activator.ruledSuits - 1);
+        this.action.campaignResult.params.atkPool -= (this.activator.ruledSuits - 1);
     }
 }
 
@@ -72,7 +71,7 @@ export class CrackingGroundAttack extends AttackerBattlePlan<Denizen> {
     cost = new ResourceCost([], [[OathResource.Secret, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.atkPool += [...this.action.campaignResult.targets].filter(e => e instanceof Site).length;
+        this.action.campaignResult.params.atkPool += [...this.action.campaignResult.params.targets].filter(e => e instanceof Site).length;
     }
 }
 export class CrackingGroundDefense extends DefenderBattlePlan<Denizen> {
@@ -80,7 +79,7 @@ export class CrackingGroundDefense extends DefenderBattlePlan<Denizen> {
     cost = new ResourceCost([], [[OathResource.Secret, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.atkPool -= [...this.action.campaignResult.targets].filter(e => e instanceof Site).length;
+        this.action.campaignResult.params.atkPool -= [...this.action.campaignResult.params.targets].filter(e => e instanceof Site).length;
     }
 }
 

@@ -202,7 +202,7 @@ export class TheHiddenPlaceCampaign extends ActionModifier<Site> {
     mustUse = true;
 
     applyBefore(): void {
-        for (const target of this.action.campaignResult.targets) {
+        for (const target of this.action.campaignResult.params.targets) {
             if (target === this.source || isAtSite(target) && target.site === this.source) {
                 if (new FlipSecretsEffect(this.game, this.activator, 1, true).do() < 1)
                     throw new InvalidActionResolution("Cannot pay resource cost for The Hidden Place");
@@ -233,9 +233,9 @@ export class Plains extends SiteActionModifier {
     mustUse = true;
 
     applyBefore(): void {
-        for (const target of this.action.campaignResult.targets) {
+        for (const target of this.action.campaignResult.params.targets) {
             if (target === this.source || isAtSite(target) && target.site === this.source) {
-                this.action.campaignResult.atkPool++;
+                this.action.campaignResult.params.atkPool++;
                 return
             }
         }
@@ -249,9 +249,9 @@ export class Mountain extends SiteActionModifier {
     mustUse = true;
 
     applyBefore(): void {
-        for (const target of this.action.campaignResult.targets) {
+        for (const target of this.action.campaignResult.params.targets) {
             if (target === this.source || isAtSite(target) && target.site === this.source) {
-                this.action.campaignResult.atkPool--;
+                this.action.campaignResult.params.atkPool--;
                 return
             }
         }
