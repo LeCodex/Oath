@@ -717,8 +717,8 @@ export class CampaignAttackAction extends ModifiableAction {
         return super.start();
     }
 
-    // TODO: This is part of the action, and so should get reset to its starting state in start
     get campaignResult() { return this.next.campaignResult; }
+    get campaignResultProxy() { return this.next.campaignResultProxy; }
 
     execute() {
         for (const targetProxy of this.parameters.targets) this.campaignResult.params.targets.add(targetProxy.original);
@@ -802,6 +802,7 @@ export class CampaignDefenseAction extends ModifiableAction {
     }
 
     get campaignResult() { return this.next.campaignResult; }
+    get campaignResultProxy() { return this.next.campaignResultProxy; }
 
     doNext(): void {
         let next = new ChooseModifiers(this);
@@ -857,6 +858,14 @@ export class CampaignResult extends OathGameObject {
     attackerLoss: number = 0;
     defenderLoss: number = 0;
 
+    get winner() { return this.successful ? this.attacker : this.defender; }
+    get loser() { return this.successful ? this.defender : this.attacker; }
+    get loserTotalForce() { return this.successful ? this.totalDefForce : this.totalAtkForce; }
+    get loserKillsNoWarbands() { return this.successful ? this.params.defenderKillsNoWarbands : this.params.attackerKillsNoWarbands; }
+    get loserKillsEntireForce() { return this.successful ? this.params.defenderKillsEntireForce : this.params.attackerKillsEntireForce; }
+    get loserLoss() { return this.successful ? this.defenderLoss : this.attackerLoss; }
+    get loserKills() { return this.successful ? this.defenderKills : this.attackerKills; }
+
     get totalAtkForce() { return [...this.params.atkForce].reduce((a, e) => a + e.getWarbands(this.attacker.leader.original), 0); }
     get totalDefForce() { return [...this.params.defForce].reduce((a, e) => a + e.getWarbands(this.defender?.leader.original), 0); }
 
@@ -869,13 +878,6 @@ export class CampaignResult extends OathGameObject {
     }
     get couldSacrifice() { return this.requiredSacrifice > 0 && this.requiredSacrifice <= this.totalAtkForce; }
 
-    get winner() { return this.successful ? this.attacker : this.defender; }
-    get loser() { return this.successful ? this.defender : this.attacker; }
-    get loserTotalForce() { return this.successful ? this.totalDefForce : this.totalAtkForce; }
-    get loserKillsNoWarbands() { return this.successful ? this.params.defenderKillsNoWarbands : this.params.attackerKillsNoWarbands; }
-    get loserKillsEntireForce() { return this.successful ? this.params.defenderKillsEntireForce : this.params.attackerKillsEntireForce; }
-    get loserLoss() { return this.successful ? this.defenderLoss : this.attackerLoss; }
-    
     atEnd(callback: () => void) {
         this.params.endCallbacks.push(callback);
     }
@@ -914,10 +916,6 @@ export class CampaignResult extends OathGameObject {
         if (amount) new CampaignKillWarbandsInForceAction(this, false, amount).doNext();
     }
 
-    loserKills(amount: number) {
-        if (this.successful) this.defenderKills(amount); else this.attackerKills(amount);
-    }
-
     resolve() {
         this.rollDefense();
         this.rollAttack();
@@ -930,6 +928,7 @@ export class CampaignEndAction extends ModifiableAction {
     readonly message = "Sacrifice is needed to win";
     
     campaignResult = new CampaignResult(this.game);
+    campaignResultProxy = this.maskProxyManager.get(this.campaignResult);
     doSacrifice: boolean;
 
     constructor(player: OathPlayer) {
@@ -944,8 +943,8 @@ export class CampaignEndAction extends ModifiableAction {
 
     start() {
         this.campaignResult.params.restore();
-        if (this.campaignResult.couldSacrifice) {
-            this.selects.doSacrifice = new SelectBoolean("Decision", [`Sacrifice ${this.campaignResult.requiredSacrifice} warbands`, "Abandon"]);
+        if (this.campaignResultProxy.couldSacrifice) {
+            this.selects.doSacrifice = new SelectBoolean("Decision", [`Sacrifice ${this.campaignResultProxy.requiredSacrifice} warbands`, "Abandon"]);
         } else {
             this.parameters.doSacrifice = [false];
         }
@@ -960,12 +959,12 @@ export class CampaignEndAction extends ModifiableAction {
 
     modifiedExecution() {
         if (this.doSacrifice) {
-            this.campaignResult.attackerKills(this.campaignResult.requiredSacrifice);
+            this.campaignResult.attackerKills(this.campaignResultProxy.requiredSacrifice);
             this.campaignResult.successful = true;
         }
 
         if (this.campaignResult.loser && !this.campaignResult.params.ignoreKilling && !this.campaignResult.loserKillsNoWarbands)
-            this.campaignResult.loserKills(Math.floor(this.campaignResult.loserTotalForce / (this.campaignResult.loserKillsEntireForce ? 1 : 2)));
+            this.campaignResult.loserKills(Math.floor(this.campaignResultProxy.loserTotalForce / (this.campaignResult.loserKillsEntireForce ? 1 : 2)));
 
         if (this.campaignResult.successful)
             for (const target of this.campaignResult.params.targets) target.seize(this.campaignResult.attacker);
