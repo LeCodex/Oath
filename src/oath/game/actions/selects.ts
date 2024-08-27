@@ -10,7 +10,6 @@ export class SelectNOf<T> {
     constructor(name: string, choices: Iterable<[string, T]>, min: number = -1, max?: number, exact: boolean = true) {
         this.name = name;
         this.choices = new Map(choices);
-
         
         if (max === undefined) max = min == -1 ? this.choices.size : min;
         min = Math.max(min, 0);
@@ -19,7 +18,7 @@ export class SelectNOf<T> {
         if (this.choices.size < min && exact) throw new InvalidActionResolution(`Not enough choices for select ${this.name}`);
 
         this.min = min;
-        this.max = Math.min(max, this.choices.size);;
+        this.max = Math.min(max, this.choices.size);
     }
 
     parse(input: Iterable<string>): T[] {

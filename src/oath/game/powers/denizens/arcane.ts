@@ -1,13 +1,13 @@
-import { CampaignAttackAction, CampaignDefenseAction, TakeFavorFromBankAction, TradeAction, TravelAction, InvalidActionResolution, MakeDecisionAction, RestAction, ChooseCardsAction, SearchPlayOrDiscardAction, ChoosePlayersAction, ChooseSitesAction, ChooseNumberAction, SearchAction, SearchChooseAction, KillWarbandsOnTargetAction } from "../../actions/actions";
-import { Conspiracy, Denizen, Edifice, Site, WorldCard } from "../../cards/cards";
+import { CampaignAttackAction, CampaignDefenseAction, TakeFavorFromBankAction, TradeAction, TravelAction, InvalidActionResolution, MakeDecisionAction, RestAction, ChooseCardsAction, SearchPlayOrDiscardAction, ChoosePlayersAction, ChooseSitesAction, ChooseNumberAction, SearchAction, SearchChooseAction, KillWarbandsOnTargetAction, MusterAction, RecoverAction, ModifiableAction, RecoverBannerPitchAction } from "../../actions/actions";
+import { Conspiracy, Denizen, Edifice, Relic, Site, WorldCard } from "../../cards/cards";
 import { DiscardOptions } from "../../cards/decks";
 import { AttackDie, DefenseDie } from "../../dice";
-import { RegionDiscardEffect, PutResourcesOnTargetEffect, RollDiceEffect, BecomeCitizenEffect, DiscardCardEffect, TakeResourcesFromBankEffect, PeekAtCardEffect, MoveAdviserEffect, MoveResourcesToTargetEffect, TakeWarbandsIntoBagEffect, PutResourcesIntoBankEffect, DrawFromDeckEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed } from "../../effects";
+import { RegionDiscardEffect, PutResourcesOnTargetEffect, RollDiceEffect, BecomeCitizenEffect, DiscardCardEffect, TakeResourcesFromBankEffect, PeekAtCardEffect, MoveAdviserEffect, MoveResourcesToTargetEffect, TakeWarbandsIntoBagEffect, PutResourcesIntoBankEffect, DrawFromDeckEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, PayCostToTargetEffect, MoveWorldCardToAdvisersEffect } from "../../effects";
 import { BannerName, OathResource, OathSuit } from "../../enums";
 import { OathPlayer } from "../../player";
 import { ResourceCost } from "../../resources";
-import { ActionModifier, AttackerBattlePlan, DefenderBattlePlan, ActivePower, WhenPlayed, AccessedActionModifier, EffectModifier } from "../powers";
-import { inclusiveRange } from "../../utils";
+import { ActionModifier, AttackerBattlePlan, DefenderBattlePlan, ActivePower, WhenPlayed, AccessedActionModifier, EffectModifier, AccessedEffectModifier } from "../powers";
+import { AbstractConstructor, inclusiveRange } from "../../utils";
 
 
 export class FireTalkersAttack extends AttackerBattlePlan<Denizen> {
@@ -329,6 +329,132 @@ export class Portal extends AccessedActionModifier<Denizen> {
     }
 }
 
+export class SecretSignal extends AccessedActionModifier<Denizen> {
+    name = "Secret Signal";
+    modifiedAction = TradeAction;
+    action: TradeAction;
+    
+    applyAfter(): void {
+        if (this.action.getting.get(OathResource.Favor) === 1)
+            new TakeResourcesFromBankEffect(this.game, this.action.player, this.game.favorBanks.get(this.action.cardProxy.suit), 1).do();
+    }
+}
+
+export class InitiationRite extends AccessedActionModifier<Denizen> {
+    name = "Initiation Rite";
+    modifiedAction = MusterAction;
+    action: MusterAction;
+    
+    applyBefore(): void {
+        this.action.using = OathResource.Secret;
+    }
+}
+
+export class SealingWard extends AccessedActionModifier<Denizen> {
+    name = "Sealing Ward";
+    modifiedAction = CampaignAttackAction;
+    action: CampaignAttackAction;
+    
+    applyAfter(): void {
+        for (const target of this.action.campaignResult.params.targets)
+            if (target instanceof Relic && target.owner === this.sourceProxy.ruler?.original)
+                this.action.campaignResult.params.defPool += 1;
+    }
+}
+
+export class Augury extends AccessedActionModifier<Denizen> {
+    name = "Augury";
+    modifiedAction = SearchAction;
+    action: SearchAction;
+    
+    applyBefore(): void {
+        this.action.amount++;
+    }
+}
+
+export class Observatory extends AccessedActionModifier<Denizen> {
+    name = "Observatory";
+    modifiedAction = SearchAction;
+    action: SearchAction;
+    
+    applyAtStart(): void {
+        if (this.action.playerProxy.site === this.sourceProxy.site)
+            for (const region of Object.values(this.game.board.regions))
+                this.action.selects.deck.choices.set(region.name, region.discard);
+    }
+}
+
+export class MapLibrary extends AccessedActionModifier<Denizen> {
+    name = "Map Library";
+    modifiedAction = TradeAction;
+    action: TradeAction;
+    
+    applyAtStart(): void {
+        if (this.action.playerProxy.site === this.sourceProxy.site)
+            for (const siteProxy of this.sourceProxy.site.region.sites)
+                for (const denizenProxy of siteProxy.denizens)
+                    this.action.selects.card.choices.set(denizenProxy.name, denizenProxy);
+    }
+}
+
+export class MasterOfDisguise extends AccessedActionModifier<Denizen> {
+    name = "Master of Disguise";
+    modifiedAction = TradeAction;
+    action: TradeAction;
+
+    applyImmediately(modifiers: Iterable<ActionModifier<any>>): Iterable<ActionModifier<any>> {
+        // Ignore all other modifiers, since we are going to select them again anyways
+        // TODO: Have a flag for all the "act as if" powers? Currently, if you choose two of them, they cancel each other out
+        return [...modifiers].filter(e => e !== this);
+    }
+
+    applyWhenApplied(): boolean {
+        new ChoosePlayersAction(
+            this.activator, "Act as if you have another player's advisers",
+            (players: OathPlayer[]) => {
+                if (!players[0]) return;
+                this.action.playerProxy.advisers = new Set(players[0].advisers);
+                this.action.doNext();  // Allow the player to choose other new modifiers
+            }
+        ).doNext();
+        return false;
+    }
+}
+
+export class WitchsBargain extends ActivePower<Denizen> {
+    name = "Witch's Bargain";
+    cost = new ResourceCost([[OathResource.Secret, 1]]);
+
+    usePower(): void {
+        new ChoosePlayersAction(
+            this.action.player, "Bargain with players at your site",
+            (players: OathPlayer[]) => {
+                for (const player of players) {
+                    const maxSecrets = this.action.player.getResources(OathResource.Secret);
+                    const maxFavors = Math.floor(this.action.player.getResources(OathResource.Favor) / 2);
+                    
+                    new ChooseNumberAction(
+                        this.action.player, "Give favors to take secrets (positive), or vice versa (negative)", inclusiveRange(-maxSecrets, maxFavors),
+                        (value: number) => {
+                            let giftedResource = OathResource.Favor, takenResource = OathResource.Secret;
+                            let giving = value * 2, taking = value;
+                            if (value < 0) {
+                                giftedResource = OathResource.Secret, takenResource = OathResource.Favor;
+                                giving = -value, taking = -value * 2;
+                            }
+                            
+                            if (new MoveResourcesToTargetEffect(this.game, this.action.player, giftedResource, giving, player).do() > 0)
+                                new MoveResourcesToTargetEffect(this.game, this.action.player, takenResource, taking, this.action.player, player).do();
+                        }
+                    ).doNext();
+                }
+            },
+            [Object.values(this.gameProxy.players).filter(e => e.site === this.action.playerProxy.site).map(e => e.original)],
+            [[1, Infinity]]
+        ).doNext();
+    }
+}
+
 export class Bewitch extends WhenPlayed<Denizen> {
     name = "Bewitch";
 
@@ -351,6 +477,65 @@ export class Revelation extends WhenPlayed<Denizen> {
                 }
             ).doNext();
         }
+    }
+}
+
+export class VowOfSilence extends AccessedEffectModifier<Denizen> {
+    name = "Vow of Silence";
+    modifiedEffect = MoveResourcesToTargetEffect;
+    effect: MoveResourcesToTargetEffect;
+
+    applyAfter(): void {
+        if (this.effect.resource === OathResource.Secret && this.effect.source === this.sourceProxy.ruler?.original)
+            this.effect.amount = 0;
+    }
+}
+export class VowOfSilenceRecover extends AccessedActionModifier<Denizen> {
+    name = "Vow of Silence";
+    modifiedAction = RecoverAction;
+    action: RecoverAction;
+
+    applyBefore(): void {
+        if (this.action.targetProxy === this.gameProxy.banners.get(BannerName.DarkestSecret))
+            throw new InvalidActionResolution("Cannot recover the Darkest Secret with the Vow of Silence");
+    }
+}
+export class VowOfSilencePitch extends ActionModifier<Denizen> {
+    name = "Vow of Silence";
+    modifiedAction = RecoverBannerPitchAction;
+    action: RecoverBannerPitchAction;
+
+    applyAfter(): void {
+        new PutResourcesOnTargetEffect(this.game, this.sourceProxy.ruler?.original, OathResource.Secret, this.action.amount).do();
+    }
+}
+
+export class DreamThief extends ActivePower<Denizen> {
+    name = "Dream Thief";
+    cost = new ResourceCost([[OathResource.Favor, 2]]);
+
+    usePower(): void {
+        const cards = new Set<WorldCard>();
+        for (const playerProxy of Object.values(this.gameProxy.players)) {
+            if (playerProxy === this.action.playerProxy || playerProxy.site !== this.action.playerProxy.site) continue;
+            for (const adviserProxy of playerProxy.advisers)
+                if (adviserProxy.original.facedown && !(adviserProxy instanceof Denizen && adviserProxy.activelyLocked))
+                    cards.add(adviserProxy.original);
+        }
+
+        new ChooseCardsAction(
+            this.action.player, "Swap two facedown advisers", [cards], 
+            (cards: WorldCard[]) => {
+                if (cards.length < 2) return;
+                const player1 = cards[0].owner as OathPlayer;
+                const player2 = cards[1].owner as OathPlayer;
+                const firstCard = new MoveAdviserEffect(this.game, this.action.player, cards[0]).do();
+                const secondCard = new MoveAdviserEffect(this.game, this.action.player, cards[1]).do();
+                new MoveWorldCardToAdvisersEffect(this.game, player2, firstCard).do();
+                new MoveWorldCardToAdvisersEffect(this.game, player1, secondCard).do();
+            },
+            [[2]]
+        ).doNext();
     }
 }
 

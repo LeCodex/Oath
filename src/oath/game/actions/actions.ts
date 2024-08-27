@@ -384,12 +384,13 @@ export class RecoverAction extends MajorAction {
     }
 }
 
-export class RecoverBannerPitchAction extends OathAction {
+export class RecoverBannerPitchAction extends ModifiableAction {
     readonly selects: { amount: SelectNumber };
     readonly parameters: { amount: number[] };
     readonly message = "Put resources onto the banner";
 
     banner: Banner;
+    amount: number;
 
     constructor(player: OathPlayer, banner: Banner) {
         super(player);
@@ -401,8 +402,9 @@ export class RecoverBannerPitchAction extends OathAction {
         return super.start();
     }
 
-    execute() {
-        this.banner.original.finishRecovery(this.player, this.parameters.amount[0]);
+    modifiedExecution() {
+        this.amount = this.parameters.amount[0];
+        this.banner.original.finishRecovery(this.player, this.amount);
     }
 }
 

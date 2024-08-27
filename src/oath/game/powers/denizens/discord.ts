@@ -1,7 +1,7 @@
 import { MakeDecisionAction, ChooseCardsAction, ChooseRegionAction, InvalidActionResolution, TakeFavorFromBankAction, TakeResourceFromPlayerAction, ChooseSuitsAction, ModifiableAction, SearchPlayOrDiscardAction, MusterAction, TravelAction, CampaignAction, KillWarbandsOnTargetAction, CampaignDefenseAction, CampaignAttackAction, CampaignEndAction, RecoverAction } from "../../actions/actions";
 import { PeoplesFavor } from "../../banks";
 import { Region } from "../../board";
-import { Denizen, OathCard, Relic, Site, Vision, WorldCard } from "../../cards/cards";
+import { Denizen, Edifice, OathCard, Relic, Site, Vision, WorldCard } from "../../cards/cards";
 import { D6, DefenseDie } from "../../dice";
 import { TakeOwnableObjectEffect, TakeWarbandsIntoBagEffect, PutWarbandsFromBagEffect, PutResourcesOnTargetEffect, MoveResourcesToTargetEffect, SetNewOathkeeperEffect, RollDiceEffect, TakeResourcesFromBankEffect, DiscardCardEffect, BecomeCitizenEffect, PayCostToTargetEffect, PeekAtCardEffect, OathEffect, WinGameEffect, DrawFromDeckEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect } from "../../effects";
 import { BannerName, OathResource, OathSuit } from "../../enums";
@@ -551,7 +551,7 @@ export class Enchantress extends ActivePower<Denizen> {
         new ChooseCardsAction(
             this.action.player, "Swap with an adviser", [cards], 
             (cards: WorldCard[]) => {
-                if (cards.length) return;
+                if (!cards.length) return;
                 const otherPlayer = cards[0].owner as OathPlayer;
                 const enchantress = new MoveAdviserEffect(this.game, this.action.player, this.source).do();
                 const otherCard = new MoveAdviserEffect(this.game, this.action.player, cards[0]).do();
@@ -600,7 +600,7 @@ export class VowOfRenewalRecover extends AccessedActionModifier<Denizen> {
 }
 
 
-export class SqualidDistrict extends EffectModifier<Denizen> {
+export class SqualidDistrict extends EffectModifier<Edifice> {
     name = "Squalid District";
     modifiedEffect = RollDiceEffect;
     effect: RollDiceEffect;

@@ -2,7 +2,7 @@ import { CardRestriction, OathSuit } from "../enums";
 import { OathPower } from "../powers/powers";
 import { IgnoresCapacity } from "../powers/denizens/denizens";
 import { ASmallFavor, Assassin, BanditChiefAction, BanditChiefEffect, BanditChief, Blackmail, BookBurning, ChaosCult, Charlatan, CrackedSageAttack, CrackedSageDefense, DisgracedCaptain, Dissent, GamblingHall, Insomnia, KeyToTheCity, MercenariesAttack, MercenariesDefense, Naysayers, OnlyTwoAdvisers, RelicThief, Riots, RoyalAmbitions, Scryer, SilverTongue, Slander, SleightOfHand, SaltTheEarth, FalseProphet, FalseProphetWake, FalseProphetDiscard, Downtrodden, SecondWind, BoilingLake, Gossip, BeastTamerAttack, BeastTamerDefense, Enchantress, SneakAttack, VowOfRenewal, VowOfRenewalRecover, Zealots, SqualidDistrict } from "../powers/denizens/discord";
-import { ActingTroupe, Alchemist, Bewitch, BillowingFogAttack, BillowingFogDefense, BloodPact, CrackingGroundAttack, Dazzle, FallenSpire, FireTalkersAttack, FireTalkersDefense, ForgottenVault, GleamingArmorAttack, GleamingArmorDefense, GreatSpire, Inquisitor, Jinx, KindredWarriorsAttack, KindredWarriorsDefense, PlagueEngines, Portal, Revelation, SpiritSnare, TamingCharm, TerrorSpells, Tutor, WizardSchool } from "../powers/denizens/arcane";
+import { ActingTroupe, Alchemist, Augury, Bewitch, BillowingFogAttack, BillowingFogDefense, BloodPact, CrackingGroundAttack, Dazzle, DreamThief, FallenSpire, FireTalkersAttack, FireTalkersDefense, ForgottenVault, GleamingArmorAttack, GleamingArmorDefense, GreatSpire, InitiationRite, Inquisitor, Jinx, KindredWarriorsAttack, KindredWarriorsDefense, MapLibrary, MasterOfDisguise, Observatory, PlagueEngines, Portal, Revelation, SealingWard, SecretSignal, SpiritSnare, TamingCharm, TerrorSpells, Tutor, VowOfSilence, VowOfSilencePitch, VowOfSilenceRecover, WitchsBargain, WizardSchool } from "../powers/denizens/arcane";
 import { BanditRampart, BattleHonorsAttack, BattleHonorsDefense, BearTraps, Captains, CodeOfHonorAttack, CodeOfHonorDefense, Curfew, EncirclementAttack, EncirclementDefense, FieldPromotionAttack, ForcedLabor, Garrison, Keep, LongbowsAttack, LongbowsDefense, MartialCultureAttack, MartialCultureDefense, Messenger, MilitaryParadeAttack, MilitaryParadeDefense, Outriders, Palanquin, RoyalTax, Scouts, ShieldWall, SiegeEngines, Specialist, TollRoads, VowOfObedience, VowOfObedienceRest, Wrestlers } from "../powers/denizens/order";
 import { ArmedMob, ARoundOfAle, AwaitedReturn, BallotBox, BookBinders, CharmingFriend, ExtraProvisions, FabledFeast, FamilyHeirloom, HallOfDebate, HallOfMockery, HeartsAndMinds, Herald, HospitalAttack, HospitalDefense, Levelers, MarriageAction, MarriageEffect, MemoryOfHome, RelicBreaker, SaddleMakers, SaladDays, Storyteller, TavernSongs, TheGreatLevyAttack, TheGreatLevyDefense, TravelingDoctorAttack, TravelingDoctorDefense, VillageConstableAttack, VillageConstableDefense, WaysideInn } from "../powers/denizens/hearth";
 import { AnimalHost, Bracken, FaeMerchant, InsectSwarmAttack, InsectSwarmDefense, LongLostHeir, MemoryOfNature, NatureWorshipAttack, NatureWorshipDefense, PiedPiper, Rangers, SecondChance, SmallFriends, ThreateningRoar, VowOfPoverty, VowOfPovertyRest, WalledGarden, WildAllies, Wolves } from "../powers/denizens/beast";
@@ -49,15 +49,15 @@ export const denizenData: Record<string, DenizenData> = {
     
     Tutor:              [OathSuit.Arcane,   [Tutor],                                                CardRestriction.Adviser],
     ActingTroupe:       [OathSuit.Arcane,   [ActingTroupe],                                         CardRestriction.Adviser],
-    SecretSignal:       [OathSuit.Arcane,   [], CardRestriction.Adviser],
-    MasterOfDisguise:   [OathSuit.Arcane,   [], CardRestriction.Adviser],
-    SealingWard:        [OathSuit.Arcane,   [], CardRestriction.Adviser, true],
-    InitiationRite:     [OathSuit.Arcane,   [], CardRestriction.Adviser, true],
-    VowOfSilence:       [OathSuit.Arcane,   [], CardRestriction.Adviser, true],
+    SecretSignal:       [OathSuit.Arcane,   [SecretSignal],                                         CardRestriction.Adviser],
+    MasterOfDisguise:   [OathSuit.Arcane,   [MasterOfDisguise],                                     CardRestriction.Adviser],
+    SealingWard:        [OathSuit.Arcane,   [SealingWard],                                          CardRestriction.Adviser, true],
+    InitiationRite:     [OathSuit.Arcane,   [InitiationRite],                                       CardRestriction.Adviser, true],
+    VowOfSilence:       [OathSuit.Arcane,   [VowOfSilence, VowOfSilenceRecover, VowOfSilencePitch], CardRestriction.Adviser, true],
     Portal:             [OathSuit.Arcane,   [Portal],                                               CardRestriction.Site],
     WizardSchool:       [OathSuit.Arcane,   [WizardSchool],                                         CardRestriction.Site],
     ForgottenVault:     [OathSuit.Arcane,   [ForgottenVault],                                       CardRestriction.Site],
-    MapLibrary:         [OathSuit.Arcane,   [], CardRestriction.Site],
+    MapLibrary:         [OathSuit.Arcane,   [MapLibrary],                                           CardRestriction.Site],
     FireTalkers:        [OathSuit.Arcane,   [FireTalkersAttack, FireTalkersDefense]],
     RustingRay:         [OathSuit.Arcane,   []],
     BillowingFog:       [OathSuit.Arcane,   [BillowingFogAttack, BillowingFogDefense]],
@@ -70,13 +70,13 @@ export const denizenData: Record<string, DenizenData> = {
     MagiciansCode:      [OathSuit.Arcane,   []],
     TamingCharm:        [OathSuit.Arcane,   [TamingCharm]],
     Inquisitor:         [OathSuit.Arcane,   [Inquisitor]],
-    Augury:             [OathSuit.Arcane,   []],
+    Augury:             [OathSuit.Arcane,   [Augury]],
     TerrorSpells:       [OathSuit.Arcane,   [TerrorSpells]],
     BloodPact:          [OathSuit.Arcane,   [BloodPact]],
-    Observatory:        [OathSuit.Arcane,   []],
+    Observatory:        [OathSuit.Arcane,   [Observatory]],
     PlagueEngines:      [OathSuit.Arcane,   [PlagueEngines]],
-    DreamThief:         [OathSuit.Arcane,   []],
-    WitchsBargain:      [OathSuit.Arcane,   []],
+    DreamThief:         [OathSuit.Arcane,   [DreamThief]],
+    WitchsBargain:      [OathSuit.Arcane,   [WitchsBargain]],
     Dazzle:             [OathSuit.Arcane,   [Dazzle]],
     Revelation:         [OathSuit.Arcane,   [Revelation]],
     Bewitch:            [OathSuit.Arcane,   [Bewitch]],
