@@ -1,10 +1,12 @@
-import { TradeAction, InvalidActionResolution, TravelAction, SearchAction, SearchPlayOrDiscardAction, TakeFavorFromBankAction, CampaignKillWarbandsInForceAction, CampaignResult, MakeDecisionAction, CampaignAction, ActAsIfAtSiteAction, CampaignDefenseAction, ChooseSitesAction, ChoosePlayersAction, MoveWarbandsAction, KillWarbandsOnTargetAction } from "../../actions/actions";
-import { Denizen, Edifice, Site, Vision } from "../../cards/cards";
-import { PayCostToTargetEffect, MoveResourcesToTargetEffect, TakeWarbandsIntoBagEffect, GainSupplyEffect, TakeResourcesFromBankEffect, BecomeCitizenEffect, PutWarbandsFromBagEffect, ApplyModifiersEffect, PutPawnAtSiteEffect, MoveOwnWarbandsEffect } from "../../effects";
-import { OathResource, OathSuit } from "../../enums";
+import { TradeAction, InvalidActionResolution, TravelAction, SearchAction, SearchPlayOrDiscardAction, TakeFavorFromBankAction, CampaignKillWarbandsInForceAction, CampaignResult, MakeDecisionAction, CampaignAction, ActAsIfAtSiteAction, CampaignDefenseAction, ChooseSitesAction, ChoosePlayersAction, MoveWarbandsAction, KillWarbandsOnTargetAction, RecoverAction, MusterAction } from "../../actions/actions";
+import { Denizen, Edifice, Relic, Site, Vision } from "../../cards/cards";
+import { PayCostToTargetEffect, MoveResourcesToTargetEffect, TakeWarbandsIntoBagEffect, GainSupplyEffect, TakeResourcesFromBankEffect, BecomeCitizenEffect, PutWarbandsFromBagEffect, ApplyModifiersEffect, PutPawnAtSiteEffect, MoveOwnWarbandsEffect, BecomeExileEffect, PlayVisionEffect, TakeOwnableObjectEffect } from "../../effects";
+import { BannerName, OathResource, OathSuit } from "../../enums";
+import { OathGameObject } from "../../gameObject";
+import { CampaignActionTarget } from "../../interfaces";
 import { OathPlayer } from "../../player";
 import { ResourceCost } from "../../resources";
-import { AttackerBattlePlan, DefenderBattlePlan, EnemyActionModifier, WhenPlayed, AccessedActionModifier, RestPower, ActivePower, ActionModifier } from "../powers";
+import { AttackerBattlePlan, DefenderBattlePlan, EnemyActionModifier, WhenPlayed, AccessedActionModifier, RestPower, ActivePower, ActionModifier, AccessedEffectModifier, EnemyEffectModifier } from "../powers";
 
 
 export class LongbowsAttack extends AttackerBattlePlan<Denizen> {
@@ -55,7 +57,7 @@ export class CodeOfHonorDefense extends DefenderBattlePlan<Denizen> {
 
     applyBefore(): void {
         for (const modifier of this.action.modifiers)
-            if (modifier !== this && modifier instanceof AttackerBattlePlan)
+            if (modifier !== this && modifier instanceof DefenderBattlePlan)
                 throw new InvalidActionResolution("Cannot use other battle plans with the Code of Honor");
 
         this.action.campaignResult.params.atkPool -= 2;
@@ -128,6 +130,46 @@ export class FieldPromotionDefense extends DefenderBattlePlan<Denizen> {
 
     applyBefore(): void {
         this.action.campaignResult.onSuccessful(false, () => new PutWarbandsFromBagEffect(this.activator.leader, 3).do());
+    }
+}
+
+export class PeaceEnvoyAttack extends AttackerBattlePlan<Denizen> {
+    name = "Peace Envoy";
+    cost = new ResourceCost([[OathResource.Favor, 1]]);
+
+    applyWhenApplied(): boolean {
+        for (const modifier of this.action.modifiers)
+            if (modifier !== this && modifier instanceof DefenderBattlePlan)
+                throw new InvalidActionResolution("Cannot use other battle plans with the Peace Envoy");
+
+        // TODO: This will mean no other modifiers get to do anything. Is this fine?
+        if (this.action.campaignResultProxy.defender?.site === this.activatorProxy.site) {
+            if (new MoveResourcesToTargetEffect(this.game, this.activator, OathResource.Favor, this.action.campaignResult.params.defPool, this.action.campaignResult.defender).do()) {
+                this.action.campaignResult.successful = true;
+                this.action.next.next.doNext();
+            }
+        }
+
+        return false;
+    }
+}
+export class PeaceEnvoyDefense extends DefenderBattlePlan<Denizen> {
+    name = "Peace Envoy";
+    cost = new ResourceCost([[OathResource.Favor, 1]]);
+
+    applyWhenApplied(): boolean {
+        for (const modifier of this.action.modifiers)
+            if (modifier !== this && modifier instanceof DefenderBattlePlan)
+                throw new InvalidActionResolution("Cannot use other battle plans with the Peace Envoy");
+
+        if (this.action.campaignResultProxy.attacker.site === this.activatorProxy.site) {
+            if (new MoveResourcesToTargetEffect(this.game, this.activator, OathResource.Favor, this.action.campaignResult.params.defPool, this.action.campaignResult.attacker).do()) {
+                this.action.campaignResult.successful = false;
+                this.action.next.doNext();
+            }
+        }
+
+        return false;
     }
 }
 
@@ -207,6 +249,48 @@ export class SpecialistRestriction extends ActionModifier<Denizen> {
     }
 }
 
+export class RelicHunter extends AttackerBattlePlan<Denizen> {
+    name = "Relic Hunter";
+
+    applyAtStart(): void {
+        for (const siteProxy of this.gameProxy.board.sites()) {
+            for (const relicProxy of siteProxy.relics) {
+                this.action.selects.targets.choices.set(relicProxy.visualName(this.activator), new RelicWrapper(relicProxy.original));
+            }
+        }
+    }
+
+    applyBefore(): void {
+        for (const target of this.action.campaignResult.params.targets) {
+            if (target instanceof RelicWrapper) {
+                let targetedSite = false;
+                for (const target2 of this.action.campaignResult.params.targets) {
+                    if (target.relic.site === target2) {
+                        targetedSite = true;
+                        break;
+                    }
+                }
+
+                if (!targetedSite) throw new InvalidActionResolution("Must target the site to also target the relic");
+            }
+        }
+    }
+}
+export class RelicWrapper extends OathGameObject implements CampaignActionTarget {
+    defense = 1;
+    force = undefined;
+    relic: Relic;
+
+    constructor(relic: Relic) {
+        super(relic.game);
+        this.relic = relic;
+    }
+
+    seize(player: OathPlayer): void {
+        this.relic.seize(player);
+    }
+}
+
 export class Curfew extends EnemyActionModifier<Denizen> {
     name = "Curfew";
     modifiedAction = TradeAction;
@@ -248,6 +332,103 @@ export class ForcedLabor extends EnemyActionModifier<Denizen> {
     applyBefore(): void {
         if (!new PayCostToTargetEffect(this.game, this.activator, new ResourceCost([[OathResource.Favor, 1]]), this.sourceProxy.ruler?.original).do())
             throw new InvalidActionResolution("Cannot pay the Forced Labor.");
+    }
+}
+
+export class SecretPolice extends EnemyEffectModifier<Denizen> {
+    name = "Secret Police";
+    modifiedEffect = PlayVisionEffect;
+    effect: PlayVisionEffect;
+    mustUse = true;
+
+    canUse(): boolean {
+        return super.canUse() && this.effect.playerProxy.site?.ruler === this.sourceProxy.ruler;
+    }
+
+    applyBefore(): void {
+        throw new InvalidActionResolution("Cannot play Visions under the Secret Police.");
+    }
+}
+
+export class TomeGuardians extends EnemyActionModifier<Denizen> {
+    name = "Tome Guardians";
+    modifiedAction = RecoverAction;
+    action: RecoverAction;
+    mustUse = true;
+
+    applyBefore(): void {
+        if (this.action.targetProxy === this.gameProxy.banners.get(BannerName.DarkestSecret))
+            throw new InvalidActionResolution("Cannot recover the Darkest Secret from the Tome Guardians.");
+    }
+}
+
+export class Tyrant extends AccessedActionModifier<Denizen> {
+    name = "Tyrant";
+    modifiedAction = TravelAction;
+    action: TravelAction;
+    museUse = true;
+
+    applyAfter(): void {
+        new KillWarbandsOnTargetAction(this.action.player, this.action.siteProxy.original, 1).doNext();
+    }
+}
+
+export class CouncilSeat extends AccessedEffectModifier<Denizen> {
+    name = "Council Seat";
+    modifiedEffect = BecomeExileEffect;
+    effect: BecomeExileEffect;
+    museUse = true;
+
+    applyBefore(): void {
+        throw new InvalidActionResolution("Cannot be exiled with the Council Seat");
+    }
+}
+
+export class Pressgangs extends AccessedActionModifier<Denizen> {
+    name = "Pressgangs";
+    modifiedAction = MusterAction;
+    action: MusterAction;
+
+    applyAtStart(): void {
+        // TODO: This doesn't take other modifiers into account. There is none like that, but if you had something similar to Map Library for mustering, this wouldn't work with it
+        for (const denizenProxy of this.action.playerProxy.site.denizens)
+            this.action.selects.card.choices.set(denizenProxy.visualName(this.action.player), denizenProxy.original);
+    }
+}
+
+export class KnightsErrant extends AccessedActionModifier<Denizen> {
+    name = "Knights Errant";
+    modifiedAction = MusterAction;
+    action: MusterAction;
+    mustUse = true;  // Involves a choice, so better to include it by default
+
+    applyAfter(): void {
+        new MakeDecisionAction(this.action.player, "Start a campaign?",
+            () => {
+                const campaignAction = new CampaignAction(this.action.player);
+                campaignAction._noSupplyCost = true;
+                campaignAction.doNext();
+            }
+        ).doNext();
+    }
+}
+
+export class HuntingParty extends AccessedActionModifier<Denizen> {
+    name = "Hunting Party";
+    modifiedAction = SearchAction;
+    action: SearchAction;
+    mustUse = true;  // Involves a choice, so better to include it by default
+
+    applyAfter(): void {
+        if (this.action.deckProxy === this.gameProxy.worldDeck) {
+            new MakeDecisionAction(this.action.player, "Start a campaign?",
+                () => { 
+                    const campaignAction = new CampaignAction(this.action.player);
+                    campaignAction._noSupplyCost = true;
+                    campaignAction.doNext();
+                }
+            ).doNext();
+        }
     }
 }
 
@@ -378,6 +559,17 @@ export class Palanquin extends ActivePower<Denizen> {
     }
 }
 
+
+export class SprawlingRampart extends DefenderBattlePlan<Edifice> {
+    name = "Sprawling Rampart";
+
+    applyBefore(): void {
+        for (const target of this.action.campaignResult.params.targets) {
+            if (target instanceof Site && this.action.maskProxyManager.get(target).ruler === this.sourceProxy.ruler)
+                this.action.campaignResult.params.defPool++;
+        }
+    }
+}
 
 export class BanditRampart extends DefenderBattlePlan<Edifice> {
     name = "Bandit Rampart";
