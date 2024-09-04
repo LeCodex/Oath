@@ -146,6 +146,7 @@ export class PeaceEnvoyAttack extends AttackerBattlePlan<Denizen> {
         if (this.action.campaignResultProxy.defender?.site === this.activatorProxy.site) {
             if (new MoveResourcesToTargetEffect(this.game, this.activator, OathResource.Favor, this.action.campaignResult.params.defPool, this.action.campaignResult.defender).do()) {
                 this.action.campaignResult.successful = true;
+                this.action.campaignResult.params.ignoreKilling = true;
                 this.action.next.next.doNext();
             }
         }
@@ -165,6 +166,7 @@ export class PeaceEnvoyDefense extends DefenderBattlePlan<Denizen> {
         if (this.action.campaignResultProxy.attacker.site === this.activatorProxy.site) {
             if (new MoveResourcesToTargetEffect(this.game, this.activator, OathResource.Favor, this.action.campaignResult.params.defPool, this.action.campaignResult.attacker).do()) {
                 this.action.campaignResult.successful = false;
+                this.action.campaignResult.params.ignoreKilling = true;
                 this.action.next.doNext();
             }
         }
@@ -564,8 +566,8 @@ export class SprawlingRampart extends DefenderBattlePlan<Edifice> {
     name = "Sprawling Rampart";
 
     applyBefore(): void {
-        for (const target of this.action.campaignResult.params.targets) {
-            if (target instanceof Site && this.action.maskProxyManager.get(target).ruler === this.sourceProxy.ruler)
+        for (const targetProxy of this.action.campaignResultProxy.params.targets) {
+            if (targetProxy instanceof Site && targetProxy.ruler === this.sourceProxy.ruler)
                 this.action.campaignResult.params.defPool++;
         }
     }

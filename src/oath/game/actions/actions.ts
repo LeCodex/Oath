@@ -451,6 +451,8 @@ export class SearchChooseAction extends ModifiableAction {
     playingAmount: number;
     discardOptions: DiscardOptions<any>;
 
+    playActions: SearchPlayOrDiscardAction[] = [];
+
     constructor(player: OathPlayer, cards: Iterable<WorldCard>, discardOptions?: DiscardOptions<any>, amount: number = 1) {
         super(player);
         this.discardOptions = discardOptions || new DiscardOptions(player.discard);
@@ -474,7 +476,13 @@ export class SearchChooseAction extends ModifiableAction {
         const discarding = new Set(this.cards);
         for (const card of this.playing) discarding.delete(card);
         new SearchDiscardAction(this.player, discarding, Infinity, this.discardOptions).doNext();
-        for (const card of this.playing) new SearchPlayOrDiscardAction(this.player, card.original, this.discardOptions).doNext();
+        
+        this.playActions.length = 0;
+        for (const card of this.playing) {
+            const playAction = new SearchPlayOrDiscardAction(this.player, card.original, this.discardOptions)
+            this.playActions.push(playAction);
+            playAction.doNext();
+        }
     }
 }
 

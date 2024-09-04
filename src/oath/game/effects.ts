@@ -952,6 +952,9 @@ export class MoveWorldCardToAdvisersEffect extends OathEffect<void> {
     }
 
     resolve(): void {
+        if (!this.card.facedown && this.card instanceof Denizen && this.maskProxyManager.get(this.card).restriction === CardRestriction.Site)
+            throw new InvalidActionResolution("Cannot move site-only cards to advisers.");
+
         if (!this.target) return;
         this.card.setOwner(this.target);
         new CheckCapacityEffect(this.target, [this.target]).do();
@@ -981,6 +984,9 @@ export class MoveDenizenToSiteEffect extends OathEffect<void> {
     }
 
     resolve(): void {
+        if (this.maskProxyManager.get(this.card).restriction === CardRestriction.Adviser)
+            throw new InvalidActionResolution("Cannot move adviser-only cards to sites.");
+
         if (!this.target) return;
         this.card.putAtSite(this.target);
         new CheckCapacityEffect(this.player || this.game.currentPlayer, [this.target]).do();
