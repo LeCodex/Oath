@@ -3,9 +3,9 @@ import { OathPower } from "../powers/powers";
 import { IgnoresCapacity } from "../powers/denizens/denizens";
 import { ASmallFavor, Assassin, BanditChiefAction, BanditChiefEffect, BanditChief, Blackmail, BookBurning, ChaosCult, Charlatan, CrackedSageAttack, CrackedSageDefense, DisgracedCaptain, Dissent, GamblingHall, Insomnia, KeyToTheCity, MercenariesAttack, MercenariesDefense, Naysayers, OnlyTwoAdvisers, RelicThief, Riots, RoyalAmbitions, Scryer, SilverTongue, Slander, SleightOfHand, SaltTheEarth, FalseProphet, FalseProphetWake, FalseProphetDiscard, Downtrodden, SecondWind, BoilingLake, Gossip, BeastTamerAttack, BeastTamerDefense, Enchantress, SneakAttack, VowOfRenewal, VowOfRenewalRecover, Zealots, SqualidDistrict } from "../powers/denizens/discord";
 import { ActingTroupe, Alchemist, Augury, Bewitch, BillowingFogAttack, BillowingFogDefense, BloodPact, CrackingGroundAttack, Dazzle, DreamThief, FallenSpire, FireTalkersAttack, FireTalkersDefense, ForgottenVault, GleamingArmorAttack, GleamingArmorDefense, GreatSpire, InitiationRite, Inquisitor, Jinx, KindredWarriorsAttack, KindredWarriorsDefense, MapLibrary, MasterOfDisguise, Observatory, PlagueEngines, Portal, Revelation, SealingWard, SecretSignal, SpiritSnare, TamingCharm, TerrorSpells, Tutor, VowOfSilence, VowOfSilencePitch, VowOfSilenceRecover, WitchsBargain, WizardSchool } from "../powers/denizens/arcane";
-import { BanditRampart, BattleHonorsAttack, BattleHonorsDefense, BearTraps, Captains, CodeOfHonorAttack, CodeOfHonorDefense, CouncilSeat, Curfew, EncirclementAttack, EncirclementDefense, FieldPromotionAttack, ForcedLabor, Garrison, HuntingParty, Keep, KnightsErrant, LongbowsAttack, LongbowsDefense, MartialCultureAttack, MartialCultureDefense, Messenger, MilitaryParadeAttack, MilitaryParadeDefense, Outriders, Palanquin, PeaceEnvoyAttack, PeaceEnvoyDefense, Pressgangs, RelicHunter, RoyalTax, Scouts, SecretPolice, ShieldWall, SiegeEngines, Specialist, SprawlingRampart, TollRoads, TomeGuardians, Tyrant, VowOfObedience, VowOfObedienceRest, Wrestlers } from "../powers/denizens/order";
+import { BanditRampart, BattleHonorsAttack, BattleHonorsDefense, BearTraps, Captains, CodeOfHonorAttack, CodeOfHonorDefense, CouncilSeat, Curfew, EncirclementAttack, EncirclementDefense, FieldPromotionAttack, ForcedLabor, Garrison, HuntingParty, Keep, KnightsErrant, LongbowsAttack, LongbowsDefense, MartialCultureAttack, MartialCultureDefense, Messenger, MilitaryParadeAttack, MilitaryParadeDefense, Outriders, Palanquin, PeaceEnvoyAttack, PeaceEnvoyDefense, Pressgangs, RelicHunter, RoyalTax, Scouts, SecretPolice, ShieldWall, SiegeEngines, Specialist, SprawlingRampart, TollRoads, TomeGuardians, TomeGuardiansAttack, Tyrant, VowOfObedience, VowOfObedienceRest, Wrestlers } from "../powers/denizens/order";
 import { ArmedMob, ARoundOfAle, AwaitedReturn, BallotBox, BookBinders, CharmingFriend, CropRotation, ExtraProvisions, FabledFeast, FamilyHeirloom, HallOfDebate, HallOfMockery, HeartsAndMinds, Herald, Homesteaders, HospitalAttack, HospitalDefense, LandWarden, Levelers, MarriageAction, MarriageEffect, MemoryOfHome, NewsFromAfar, RelicBreaker, RowdyPub, SaddleMakers, SaladDays, Storyteller, TavernSongs, TheGreatLevyAttack, TheGreatLevyDefense, TravelingDoctorAttack, TravelingDoctorDefense, VillageConstableAttack, VillageConstableDefense, VowOfPeace, VowOfPeaceDefense, WaysideInn, WelcomingParty } from "../powers/denizens/hearth";
-import { AnimalHost, Bracken, FaeMerchant, InsectSwarmAttack, InsectSwarmDefense, LongLostHeir, MemoryOfNature, NatureWorshipAttack, NatureWorshipDefense, PiedPiper, Rangers, SecondChance, SmallFriends, ThreateningRoar, VowOfPoverty, VowOfPovertyRest, WalledGarden, WildAllies, Wolves } from "../powers/denizens/beast";
+import { AnimalHost, AnimalPlaymates, Birdsong, Bracken, ErrandBoy, FaeMerchant, ForestCouncilMuster, ForestCouncilTrade, ForestPaths, GiantPython, GraspingVines, InsectSwarmAttack, InsectSwarmDefense, LongLostHeir, MarshSpirit, MemoryOfNature, Mushrooms, NatureWorshipAttack, NatureWorshipDefense, NewGrowth, PiedPiper, Rangers, RovingTerror, SecondChance, SmallFriends, TheOldOak, ThreateningRoar, TrueNamesAttack, TrueNamesDefense, VowOfBeastkin, VowOfPoverty, VowOfPovertyRest, VowOfUnionAttack, VowOfUnionTravel, WalledGarden, WildAllies, WildCry, Wolves } from "../powers/denizens/beast";
 import { AncientBinding, AncientForge, AncientPact, BrokenForge, Convoys, Elders, FaithfulFriend, FamilyWagon, GreatCrusadeAttack, GreatCrusadeDefense, GreatHerd, HorseArchersAttack, HorseArchersDefense, LostTongue, LostTongueCampaign, MountainGiantAttack, MountainGiantDefense, MountedPatrol, Oracle, Pilgrimage, RivalKhanAttack, RivalKhanDefense, SpellBreaker, StormCaller, TwinBrother, WayStation } from "../powers/denizens/nomad";
 import { Constructor } from "../utils";
 import { Denizen, Edifice } from "./cards";
@@ -89,7 +89,7 @@ export const denizenData: Record<string, DenizenData> = {
     TollRoads:          [OathSuit.Order,    [TollRoads],                                            CardRestriction.Site],
     ForcedLabor:        [OathSuit.Order,    [ForcedLabor],                                          CardRestriction.Site],
     SecretPolice:       [OathSuit.Order,    [SecretPolice],                                         CardRestriction.Site],
-    TomeGuardians:      [OathSuit.Order,    [TomeGuardians],                                        CardRestriction.Site],
+    TomeGuardians:      [OathSuit.Order,    [TomeGuardians, TomeGuardiansAttack],                   CardRestriction.Site],
     Keep:               [OathSuit.Order,    [Keep],                                                 CardRestriction.Site, true],
     Longbows:           [OathSuit.Order,    [LongbowsAttack, LongbowsDefense]],
     ShieldWall:         [OathSuit.Order,    [ShieldWall]],
@@ -149,35 +149,35 @@ export const denizenData: Record<string, DenizenData> = {
     FabledFeast:        [OathSuit.Hearth,   [FabledFeast]],
     SaladDays:          [OathSuit.Hearth,   [SaladDays]],
     
-    GiantPython:        [OathSuit.Beast,    [], CardRestriction.Adviser],
+    GiantPython:        [OathSuit.Beast,    [GiantPython],                                          CardRestriction.Adviser],
     SmallFriends:       [OathSuit.Beast,    [SmallFriends],                                         CardRestriction.Adviser],
     PiedPiper:          [OathSuit.Beast,    [IgnoresCapacity, PiedPiper],                           CardRestriction.Adviser],
-    AnimalPlaymates:    [OathSuit.Beast,    [], CardRestriction.Adviser],
-    TrueNames:          [OathSuit.Beast,    [], CardRestriction.Adviser],
-    Birdsong:           [OathSuit.Beast,    [], CardRestriction.Adviser],
+    AnimalPlaymates:    [OathSuit.Beast,    [AnimalPlaymates],                                      CardRestriction.Adviser],
+    TrueNames:          [OathSuit.Beast,    [TrueNamesAttack, TrueNamesDefense],                    CardRestriction.Adviser],
+    Birdsong:           [OathSuit.Beast,    [Birdsong],                                             CardRestriction.Adviser],
     LongLostHeir:       [OathSuit.Beast,    [LongLostHeir],                                         CardRestriction.Adviser, true],
     VowOfPoverty:       [OathSuit.Beast,    [VowOfPoverty, VowOfPovertyRest],                       CardRestriction.Adviser, true],
-    VowOfUnion:         [OathSuit.Beast,    [], CardRestriction.Adviser, true],
-    VowOfBeastkin:      [OathSuit.Beast,    [], CardRestriction.Adviser, true],
+    VowOfUnion:         [OathSuit.Beast,    [VowOfUnionAttack, VowOfUnionTravel],                   CardRestriction.Adviser, true],
+    VowOfBeastkin:      [OathSuit.Beast,    [VowOfBeastkin],                                        CardRestriction.Adviser, true],
     WalledGarden:       [OathSuit.Beast,    [WalledGarden],                                         CardRestriction.Site],
-    TheOldOak:          [OathSuit.Beast,    [], CardRestriction.Site],
-    RovingTerror:       [OathSuit.Beast,    [], CardRestriction.Site],
-    GraspingVines:      [OathSuit.Beast,    [], CardRestriction.Site],
-    Mushrooms:          [OathSuit.Beast,    [], CardRestriction.Site],
-    MarshSpirit:        [OathSuit.Beast,    [], CardRestriction.Site],
-    ForestCouncil:      [OathSuit.Beast,    [], CardRestriction.Site, true],
+    TheOldOak:          [OathSuit.Beast,    [TheOldOak],                                            CardRestriction.Site],
+    RovingTerror:       [OathSuit.Beast,    [RovingTerror],                                         CardRestriction.Site],
+    GraspingVines:      [OathSuit.Beast,    [GraspingVines],                                        CardRestriction.Site],
+    Mushrooms:          [OathSuit.Beast,    [Mushrooms],                                            CardRestriction.Site],
+    MarshSpirit:        [OathSuit.Beast,    [MarshSpirit],                                          CardRestriction.Site],
+    ForestCouncil:      [OathSuit.Beast,    [ForestCouncilTrade, ForestCouncilMuster],              CardRestriction.Site, true],
     InsectSwarm:        [OathSuit.Beast,    [InsectSwarmAttack, InsectSwarmDefense]],
     Rangers:            [OathSuit.Beast,    [Rangers]],
     NatureWorship:      [OathSuit.Beast,    [NatureWorshipAttack, NatureWorshipDefense]],
     WarTortoise:        [OathSuit.Beast,    []],
     Bracken:            [OathSuit.Beast,    [Bracken]],
-    ErrandBoy:          [OathSuit.Beast,    []],
+    ErrandBoy:          [OathSuit.Beast,    [ErrandBoy]],
     Wolves:             [OathSuit.Beast,    [Wolves]],
-    ForestPaths:        [OathSuit.Beast,    []],
+    ForestPaths:        [OathSuit.Beast,    [ForestPaths]],
     FaeMerchant:        [OathSuit.Beast,    [FaeMerchant]],
     SecondChance:       [OathSuit.Beast,    [SecondChance]],
-    NewGrowth:          [OathSuit.Beast,    []],
-    WildCry:            [OathSuit.Beast,    []],
+    NewGrowth:          [OathSuit.Beast,    [NewGrowth]],
+    WildCry:            [OathSuit.Beast,    [WildCry]],
     MemoryOfNature:     [OathSuit.Beast,    [MemoryOfNature]],
     WildAllies:         [OathSuit.Beast,    [WildAllies]],
     ThreateningRoar:    [OathSuit.Beast,    [ThreateningRoar]],

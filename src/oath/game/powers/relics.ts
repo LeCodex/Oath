@@ -1,11 +1,11 @@
-import { InvalidActionResolution, CitizenshipOfferAction, StartBindingExchangeAction, SkeletonKeyAction, TradeAction, CampaignAttackAction, MusterAction, TravelAction, MakeDecisionAction, ChoosePlayersAction, SearchAction, ChooseCardsAction, ModifiableAction } from "../actions/actions";
-import { Denizen, GrandScepter, OathCard, OwnableCard, Relic, Site } from "../cards/cards";
-import { TakeOwnableObjectEffect, PutWarbandsFromBagEffect, PlayDenizenAtSiteEffect, MoveOwnWarbandsEffect, PeekAtCardEffect, SetGrandScepterLockEffect, GainSupplyEffect, DrawFromDeckEffect, RevealCardEffect, PayCostToTargetEffect, BecomeExileEffect, MoveWarbandsToEffect, TakeWarbandsIntoBagEffect, MoveResourcesToTargetEffect, MoveDenizenToSiteEffect, MoveSiteDenizenEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect, OathEffect } from "../effects";
+import { InvalidActionResolution, CitizenshipOfferAction, StartBindingExchangeAction, SkeletonKeyAction, TradeAction, MusterAction, TravelAction, MakeDecisionAction, ChoosePlayersAction, SearchAction, ChooseCardsAction, ModifiableAction } from "../actions/actions";
+import { Denizen, GrandScepter, OathCard, Relic, Site } from "../cards/cards";
+import { TakeOwnableObjectEffect, PutWarbandsFromBagEffect, PlayDenizenAtSiteEffect, MoveOwnWarbandsEffect, PeekAtCardEffect, SetGrandScepterLockEffect, GainSupplyEffect, DrawFromDeckEffect, RevealCardEffect, PayCostToTargetEffect, BecomeExileEffect, MoveWarbandsToEffect, TakeWarbandsIntoBagEffect, MoveResourcesToTargetEffect, MoveDenizenToSiteEffect, MoveWorldCardToAdvisersEffect, OathEffect } from "../effects";
 import { BannerName, OathResource } from "../enums";
 import { OathPlayer, Exile } from "../player";
 import { OwnableObject, isOwnable } from "../interfaces";
 import { ResourceCost } from "../resources";
-import { AccessedActionModifier, EnemyEffectModifier, EnemyActionModifier, AccessedEffectModifier, AttackerBattlePlan, DefenderBattlePlan, ActionModifier, EffectModifier, ActivePower, RestPower, BattlePlan } from "./powers";
+import { AccessedActionModifier, EnemyEffectModifier, AccessedEffectModifier, AttackerBattlePlan, DefenderBattlePlan, ActionModifier, EffectModifier, ActivePower, RestPower, BattlePlan, AttackerEnemyCampaignModifier } from "./powers";
 import { DiscardOptions } from "../cards/decks";
 import { isExtended } from "../utils";
 
@@ -200,10 +200,8 @@ export class CircletOfCommand extends EnemyEffectModifier<Relic> {
         circletOfCommandCheckOwnable(this.sourceProxy, targetProxy, this.effect.playerProxy);
     }
 }
-export class CircletOfCommandCampaign extends EnemyActionModifier<Relic> {
+export class CircletOfCommandCampaign extends AttackerEnemyCampaignModifier<Relic> {
     name = "Circlet of Command";
-    modifiedAction = CampaignAttackAction;
-    action: CampaignAttackAction;
 
     applyBefore(): void {
         for (const target of this.action.campaignResult.params.targets) {
@@ -306,10 +304,8 @@ export class HornedMask extends ActivePower<Relic> {
             (adviserChoices: Denizen[], denizenChoices: Denizen[]) => {
                 if (!adviserChoices.length && !denizenChoices.length) return;
                 const otherSite = denizenChoices[0].site as Site;
-                const adviser = new MoveAdviserEffect(this.game, this.action.player, adviserChoices[0]).do();
-                const denizen = new MoveSiteDenizenEffect(this.game, this.action.player, denizenChoices[0]).do();
-                new MoveDenizenToSiteEffect(this.game, this.action.player, adviser, otherSite).do();
-                new MoveWorldCardToAdvisersEffect(this.game, this.action.player, denizen).do();
+                new MoveDenizenToSiteEffect(this.game, this.action.player, adviserChoices[0], otherSite).do();
+                new MoveWorldCardToAdvisersEffect(this.game, this.action.player, denizenChoices[0]).do();
             }
         ).doNext();
     }
@@ -425,10 +421,10 @@ export class BanditCrownAction extends ActionModifier<Relic> {
         if (!rulerProxy) return true;
 
         for (const siteProxy of this.gameProxy.board.sites()) {
-            if (siteProxy.ruler && siteProxy.ruler !== rulerProxy) continue;
+            if (siteProxy.ruler && siteProxy.ruler !== rulerProxy.leader) continue;
             const originalFn = siteProxy.getWarbands.bind(rulerProxy);
             siteProxy.getWarbands = (owner: OathPlayer) => {
-                return originalFn(owner) + (owner === rulerProxy.original ? siteProxy.bandits : 0);
+                return originalFn(owner) + (owner === rulerProxy.leader.original ? siteProxy.bandits : 0);
             };
         }
         return true;
@@ -445,10 +441,10 @@ export class BanditCrownEffect extends EffectModifier<Relic> {
         if (!rulerProxy) return;
 
         for (const siteProxy of this.gameProxy.board.sites()) {
-            if (siteProxy.ruler && siteProxy.ruler !== rulerProxy) continue;
+            if (siteProxy.ruler && siteProxy.ruler !== rulerProxy.leader) continue;
             const originalFn = siteProxy.getWarbands.bind(siteProxy);
             siteProxy.getWarbands = (owner: OathPlayer) => {
-                return originalFn(owner) + (owner === rulerProxy.original ? siteProxy.bandits : 0);
+                return originalFn(owner) + (owner === rulerProxy.leader.original ? siteProxy.bandits : 0);
             };
         }
     }

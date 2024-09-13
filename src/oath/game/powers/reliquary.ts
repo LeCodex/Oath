@@ -43,7 +43,7 @@ export class Careless extends ReliquaryModifier {
     action: TradeAction;
 
     applyBefore(): void {
-        this.action.getting.set(OathResource.Secret, Math.max(0, (this.action.getting.get(OathResource.Secret) || 0) - 1));
+        this.action.getting.set(OathResource.Secret, (this.action.getting.get(OathResource.Secret) || 0) - 1);
         this.action.getting.set(OathResource.Favor, (this.action.getting.get(OathResource.Favor) || 0) + 1);
     }
 }

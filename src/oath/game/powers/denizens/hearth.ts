@@ -1,6 +1,6 @@
-import { TradeAction, TakeResourceFromPlayerAction, TakeFavorFromBankAction, CampaignEndAction, ModifiableAction, MakeDecisionAction, CampaignAttackAction, InvalidActionResolution, RecoverAction, ChooseSuitsAction, ChooseCardsAction, MusterAction, SearchPlayOrDiscardAction, MayDiscardACardAction, SearchAction, CampaignAction, CampaignDefenseAction, SearchChooseAction, ResolveCallbackAction } from "../../actions/actions";
+import { TradeAction, TakeResourceFromPlayerAction, TakeFavorFromBankAction, CampaignEndAction, ModifiableAction, MakeDecisionAction, CampaignAttackAction, InvalidActionResolution, RecoverAction, ChooseSuitsAction, ChooseCardsAction, MusterAction, SearchPlayOrDiscardAction, MayDiscardACardAction, SearchAction, CampaignDefenseAction, SearchChooseAction, ResolveCallbackAction, KillWarbandsOnTargetAction } from "../../actions/actions";
 import { Denizen, Edifice, Relic, WorldCard } from "../../cards/cards";
-import { TakeWarbandsIntoBagEffect, TakeResourcesFromBankEffect, PlayVisionEffect, PlayWorldCardEffect, OathEffect, PeekAtCardEffect, DiscardCardEffect, PutWarbandsFromBagEffect, BecomeCitizenEffect, SetPeoplesFavorMobState, PutResourcesIntoBankEffect, GainSupplyEffect, MoveBankResourcesEffect, DrawFromDeckEffect, TakeOwnableObjectEffect, ApplyModifiersEffect, MoveDenizenToSiteEffect, MoveAdviserEffect } from "../../effects";
+import { TakeResourcesFromBankEffect, PlayVisionEffect, PlayWorldCardEffect, OathEffect, PeekAtCardEffect, DiscardCardEffect, PutWarbandsFromBagEffect, BecomeCitizenEffect, SetPeoplesFavorMobState, PutResourcesIntoBankEffect, GainSupplyEffect, MoveBankResourcesEffect, DrawFromDeckEffect, TakeOwnableObjectEffect, ApplyModifiersEffect, MoveDenizenToSiteEffect } from "../../effects";
 import { OathResource, BannerName, OathSuit, ALL_OATH_SUITS } from "../../enums";
 import { ResourceCost } from "../../resources";
 import { maxInGroup, minInGroup } from "../../utils";
@@ -117,10 +117,10 @@ export class AwaitedReturn extends AccessedActionModifier<Denizen> {
     action: TradeAction;
 
     applyBefore(): void {
-        // NOTE: I am enforcing that you can only sacrifice warbands of your leader's color
-        // while *technically* this restriction doesn't exist but making it an action seems overkill
-        if (new TakeWarbandsIntoBagEffect(this.activator.leader, 1).do() > 0)
+        if (this.activator.totalWarbands) {
+            new KillWarbandsOnTargetAction(this.activator, this.activator, 1).doNext();
             this.action.noSupplyCost = true;
+        }
     }
 }
 
@@ -132,7 +132,7 @@ export class RowdyPub extends AccessedActionModifier<Denizen> {
 
     applyBefore(): void {
         if (this.action.cardProxy === this.sourceProxy)
-            this.action.amount++;
+            this.action.getting++;
     }
 }
 
@@ -347,8 +347,7 @@ export class Homesteaders extends ActivePower<Denizen> {
             [[...this.action.playerProxy.advisers].filter(e => e instanceof Denizen && !e.facedown).map(e => e.original)],
             (cards: Denizen[]) => {
                 if (!cards[0]) return;
-                const denizen = new MoveAdviserEffect(this.game, this.action.player, cards[0]).do();
-                new MoveDenizenToSiteEffect(this.game, this.action.player, denizen, this.action.playerProxy.site.original).do()
+                new MoveDenizenToSiteEffect(this.game, this.action.player, cards[0], this.action.playerProxy.site.original).do()
             }
         ).doNext();
     }
@@ -394,7 +393,7 @@ export class WaysideInn extends ActivePower<Denizen> {
 }
 
 export class MemoryOfHome extends ActivePower<Denizen> {
-    name = "Memory Of Home";
+    name = "Memory of Home";
     cost = new ResourceCost([], [[OathResource.Secret, 1]]);
 
     usePower(): void {
@@ -418,8 +417,7 @@ export class ArmedMob extends ActivePower<Denizen> {
     usePower(): void {
         const darkestSecretProxy = this.gameProxy.banners.get(BannerName.DarkestSecret);
         const peoplesFavorProxy = this.gameProxy.banners.get(BannerName.PeoplesFavor);
-        if (!darkestSecretProxy?.owner) return;
-        if (darkestSecretProxy.owner === peoplesFavorProxy?.owner) return;
+        if (!darkestSecretProxy?.owner || darkestSecretProxy.owner === peoplesFavorProxy?.owner) return;
 
         const cards = new Set<WorldCard>();
         for (const adviserProxy of darkestSecretProxy.owner.advisers)

@@ -1,13 +1,13 @@
-import { CampaignAttackAction, CampaignDefenseAction, TakeFavorFromBankAction, TradeAction, TravelAction, InvalidActionResolution, MakeDecisionAction, RestAction, ChooseCardsAction, SearchPlayOrDiscardAction, ChoosePlayersAction, ChooseSitesAction, ChooseNumberAction, SearchAction, SearchChooseAction, KillWarbandsOnTargetAction, MusterAction, RecoverAction, ModifiableAction, RecoverBannerPitchAction } from "../../actions/actions";
+import { CampaignAttackAction, CampaignDefenseAction, TakeFavorFromBankAction, TradeAction, TravelAction, InvalidActionResolution, MakeDecisionAction, RestAction, ChooseCardsAction, SearchPlayOrDiscardAction, ChoosePlayersAction, ChooseSitesAction, ChooseNumberAction, SearchAction, KillWarbandsOnTargetAction, MusterAction, RecoverAction, RecoverBannerPitchAction } from "../../actions/actions";
 import { Conspiracy, Denizen, Edifice, Relic, Site, WorldCard } from "../../cards/cards";
 import { DiscardOptions } from "../../cards/decks";
 import { AttackDie, DefenseDie } from "../../dice";
-import { RegionDiscardEffect, PutResourcesOnTargetEffect, RollDiceEffect, BecomeCitizenEffect, DiscardCardEffect, TakeResourcesFromBankEffect, PeekAtCardEffect, MoveAdviserEffect, MoveResourcesToTargetEffect, TakeWarbandsIntoBagEffect, PutResourcesIntoBankEffect, DrawFromDeckEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, PayCostToTargetEffect, MoveWorldCardToAdvisersEffect } from "../../effects";
+import { RegionDiscardEffect, PutResourcesOnTargetEffect, RollDiceEffect, BecomeCitizenEffect, DiscardCardEffect, TakeResourcesFromBankEffect, PeekAtCardEffect, MoveAdviserEffect, MoveResourcesToTargetEffect, TakeWarbandsIntoBagEffect, PutResourcesIntoBankEffect, DrawFromDeckEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, MoveWorldCardToAdvisersEffect } from "../../effects";
 import { BannerName, OathResource, OathSuit } from "../../enums";
 import { OathPlayer } from "../../player";
 import { ResourceCost } from "../../resources";
 import { ActionModifier, AttackerBattlePlan, DefenderBattlePlan, ActivePower, WhenPlayed, AccessedActionModifier, EffectModifier, AccessedEffectModifier } from "../powers";
-import { AbstractConstructor, inclusiveRange } from "../../utils";
+import { inclusiveRange } from "../../utils";
 
 
 export class FireTalkersAttack extends AttackerBattlePlan<Denizen> {
@@ -529,10 +529,8 @@ export class DreamThief extends ActivePower<Denizen> {
                 if (cards.length < 2) return;
                 const player1 = cards[0].owner as OathPlayer;
                 const player2 = cards[1].owner as OathPlayer;
-                const firstCard = new MoveAdviserEffect(this.game, this.action.player, cards[0]).do();
-                const secondCard = new MoveAdviserEffect(this.game, this.action.player, cards[1]).do();
-                new MoveWorldCardToAdvisersEffect(this.game, player2, firstCard).do();
-                new MoveWorldCardToAdvisersEffect(this.game, player1, secondCard).do();
+                new MoveWorldCardToAdvisersEffect(this.game, player2, cards[0]).do();
+                new MoveWorldCardToAdvisersEffect(this.game, player1, cards[1]).do();
             },
             [[2]]
         ).doNext();

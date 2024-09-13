@@ -1,4 +1,4 @@
-import { TradeAction, InvalidActionResolution, TravelAction, SearchAction, SearchPlayOrDiscardAction, TakeFavorFromBankAction, CampaignKillWarbandsInForceAction, CampaignResult, MakeDecisionAction, CampaignAction, ActAsIfAtSiteAction, CampaignDefenseAction, ChooseSitesAction, ChoosePlayersAction, MoveWarbandsAction, KillWarbandsOnTargetAction, RecoverAction, MusterAction } from "../../actions/actions";
+import { TradeAction, InvalidActionResolution, TravelAction, SearchAction, SearchPlayOrDiscardAction, TakeFavorFromBankAction, CampaignKillWarbandsInForceAction, CampaignResult, MakeDecisionAction, CampaignAction, ActAsIfAtSiteAction, CampaignDefenseAction, ChooseSitesAction, ChoosePlayersAction, MoveWarbandsAction, KillWarbandsOnTargetAction, MusterAction } from "../../actions/actions";
 import { Denizen, Edifice, Relic, Site, Vision } from "../../cards/cards";
 import { PayCostToTargetEffect, MoveResourcesToTargetEffect, TakeWarbandsIntoBagEffect, GainSupplyEffect, TakeResourcesFromBankEffect, BecomeCitizenEffect, PutWarbandsFromBagEffect, ApplyModifiersEffect, PutPawnAtSiteEffect, MoveOwnWarbandsEffect, BecomeExileEffect, PlayVisionEffect, TakeOwnableObjectEffect } from "../../effects";
 import { BannerName, OathResource, OathSuit } from "../../enums";
@@ -6,7 +6,7 @@ import { OathGameObject } from "../../gameObject";
 import { CampaignActionTarget } from "../../interfaces";
 import { OathPlayer } from "../../player";
 import { ResourceCost } from "../../resources";
-import { AttackerBattlePlan, DefenderBattlePlan, EnemyActionModifier, WhenPlayed, AccessedActionModifier, RestPower, ActivePower, ActionModifier, AccessedEffectModifier, EnemyEffectModifier } from "../powers";
+import { AttackerBattlePlan, DefenderBattlePlan, EnemyActionModifier, WhenPlayed, AccessedActionModifier, RestPower, ActivePower, ActionModifier, AccessedEffectModifier, EnemyEffectModifier, AttackerEnemyCampaignModifier } from "../powers";
 
 
 export class LongbowsAttack extends AttackerBattlePlan<Denizen> {
@@ -352,15 +352,23 @@ export class SecretPolice extends EnemyEffectModifier<Denizen> {
     }
 }
 
-export class TomeGuardians extends EnemyActionModifier<Denizen> {
+export class TomeGuardians extends EnemyEffectModifier<Denizen> {
     name = "Tome Guardians";
-    modifiedAction = RecoverAction;
-    action: RecoverAction;
-    mustUse = true;
+    modifiedEffect = TakeOwnableObjectEffect;
+    effect: TakeOwnableObjectEffect;
 
     applyBefore(): void {
-        if (this.action.targetProxy === this.gameProxy.banners.get(BannerName.DarkestSecret))
-            throw new InvalidActionResolution("Cannot recover the Darkest Secret from the Tome Guardians.");
+        if (this.effect.maskProxyManager.get(this.effect.target) === this.gameProxy.banners.get(BannerName.DarkestSecret))
+            throw new InvalidActionResolution("Cannot take the Darkest Secret from the Tome Guardians.");
+    }
+}
+export class TomeGuardiansAttack extends AttackerEnemyCampaignModifier<Denizen> {
+    name = "Tome Guardians";
+
+    applyBefore(): void {
+        for (const targetProxy of this.action.campaignResultProxy.params.targets)
+            if (targetProxy === this.gameProxy.banners.get(BannerName.DarkestSecret))
+                throw new InvalidActionResolution("Cannot target the Darkest Secret under the Tome Guardians.");
     }
 }
 
@@ -452,7 +460,7 @@ export class Garrison extends WhenPlayed<Denizen> {
         const sites = new Set<Site>();
         const leader = this.effect.playerProxy.leader.original;
         for (const siteProxy of this.gameProxy.board.sites()) {
-            if (siteProxy.ruler === this.effect.playerProxy) {
+            if (siteProxy.ruler === this.effect.playerProxy.leader) {
                 new PutWarbandsFromBagEffect(leader, 1, this.effect.player).do();
                 sites.add(siteProxy.original);
             }
@@ -496,7 +504,7 @@ export class Captains extends ActivePower<Denizen> {
 
         const sites = new Set<Site>();
         for (const siteProxy of this.gameProxy.board.sites())
-            if (siteProxy.ruler === this.action.playerProxy)
+            if (siteProxy.ruler === this.action.playerProxy.leader)
                 sites.add(siteProxy.original);
         
         new ActAsIfAtSiteAction(this.action.player, campaignAction, sites).doNext();

@@ -1,13 +1,13 @@
-import { MakeDecisionAction, ChooseCardsAction, ChooseRegionAction, InvalidActionResolution, TakeFavorFromBankAction, TakeResourceFromPlayerAction, ChooseSuitsAction, ModifiableAction, SearchPlayOrDiscardAction, MusterAction, TravelAction, CampaignAction, KillWarbandsOnTargetAction, CampaignDefenseAction, CampaignAttackAction, CampaignEndAction, RecoverAction } from "../../actions/actions";
+import { MakeDecisionAction, ChooseCardsAction, ChooseRegionAction, InvalidActionResolution, TakeFavorFromBankAction, TakeResourceFromPlayerAction, ChooseSuitsAction, ModifiableAction, SearchPlayOrDiscardAction, MusterAction, TravelAction, CampaignAction, KillWarbandsOnTargetAction, CampaignAttackAction, CampaignEndAction, RecoverAction } from "../../actions/actions";
 import { PeoplesFavor } from "../../banks";
 import { Region } from "../../board";
 import { Denizen, Edifice, OathCard, Relic, Site, Vision, WorldCard } from "../../cards/cards";
 import { D6, DefenseDie } from "../../dice";
-import { TakeOwnableObjectEffect, TakeWarbandsIntoBagEffect, PutWarbandsFromBagEffect, PutResourcesOnTargetEffect, MoveResourcesToTargetEffect, SetNewOathkeeperEffect, RollDiceEffect, TakeResourcesFromBankEffect, DiscardCardEffect, BecomeCitizenEffect, PayCostToTargetEffect, PeekAtCardEffect, OathEffect, WinGameEffect, DrawFromDeckEffect, MoveAdviserEffect, MoveWorldCardToAdvisersEffect } from "../../effects";
+import { TakeOwnableObjectEffect, TakeWarbandsIntoBagEffect, PutWarbandsFromBagEffect, PutResourcesOnTargetEffect, MoveResourcesToTargetEffect, SetNewOathkeeperEffect, RollDiceEffect, TakeResourcesFromBankEffect, DiscardCardEffect, BecomeCitizenEffect, PayCostToTargetEffect, PeekAtCardEffect, OathEffect, WinGameEffect, DrawFromDeckEffect, MoveWorldCardToAdvisersEffect } from "../../effects";
 import { BannerName, OathResource, OathSuit } from "../../enums";
 import { Exile, OathPlayer } from "../../player";
 import { ResourceCost } from "../../resources";
-import { EnemyEffectModifier, WhenPlayed, CapacityModifier, ActivePower, RestPower, AttackerBattlePlan, DefenderBattlePlan, EffectModifier, ActionModifier, AccessedActionModifier, WakePower, EnemyActionModifier } from "../powers";
+import { EnemyEffectModifier, WhenPlayed, CapacityModifier, ActivePower, RestPower, AttackerBattlePlan, DefenderBattlePlan, EffectModifier, ActionModifier, AccessedActionModifier, WakePower, EnemyActionModifier, AttackerEnemyCampaignModifier, DefenderEnemyCampaignModifier } from "../powers";
 import { minInGroup } from "../../utils";
 import { ResolveCallbackAction } from "../../actions/actions";
 
@@ -444,7 +444,7 @@ export class FalseProphetDiscard extends EffectModifier<Denizen> {
 
     applyAfter(result: void): void {
         const card = new DrawFromDeckEffect(this.effect.player, this.effect.discardOptions.discard, 1, this.effect.discardOptions.onBottom).do()[0];
-        if (!card || !(card instanceof Vision)) return;
+        if (!(card instanceof Vision)) return;
         new SearchPlayOrDiscardAction(this.effect.player, card).doNext();
     }
 }
@@ -481,7 +481,7 @@ export class Downtrodden extends AccessedActionModifier<Denizen> {
     applyBefore(): void {
         let minSuits = minInGroup(this.game.favorBanks, ([_, v]) => v.amount).map(([k, _]) => k);
         if (minSuits.length === 1 && minSuits[0] === this.action.cardProxy.suit)
-            this.action.amount += 2;
+            this.action.getting += 2;
     }
 }
 
@@ -491,7 +491,8 @@ export class BoilingLake extends EnemyActionModifier<Denizen> {
     action: TravelAction;
 
     applyBefore(): void {
-        new KillWarbandsOnTargetAction(this.action.player, this.action.player, 2).doNext();
+        if (this.action.siteProxy == this.sourceProxy.site)
+            new KillWarbandsOnTargetAction(this.action.player, this.action.player, 2).doNext();
     }
 }
 
@@ -506,24 +507,20 @@ export class Gossip extends EnemyActionModifier<Denizen> {
     }
 }
 
-export class BeastTamerAttack extends EnemyActionModifier<Denizen> {
+export class BeastTamerAttack extends AttackerEnemyCampaignModifier<Denizen> {
     name = "Beast Tamer";
-    modifiedAction = CampaignAttackAction;
-    action: CampaignAttackAction;
 
     applyBefore(): void {
         for (const modifier of this.action.modifiers)
             if (
-                modifier instanceof DefenderBattlePlan && modifier.sourceProxy instanceof Denizen && 
+                modifier instanceof AttackerBattlePlan && modifier.sourceProxy instanceof Denizen && 
                 (modifier.sourceProxy.suit === OathSuit.Beast || modifier.sourceProxy.suit === OathSuit.Nomad)
             )
-                throw new InvalidActionResolution("Cannot use Beast or Nomad defender battle plans");
+                throw new InvalidActionResolution("Cannot use Beast or Nomad battle plans against Beast Tamer");
     }
 }
-export class BeastTamerDefense extends EnemyActionModifier<Denizen> {
+export class BeastTamerDefense extends DefenderEnemyCampaignModifier<Denizen> {
     name = "Beast Tamer";
-    modifiedAction = CampaignDefenseAction;
-    action: CampaignDefenseAction;
 
     applyBefore(): void {
         for (const modifier of this.action.modifiers)
@@ -531,7 +528,7 @@ export class BeastTamerDefense extends EnemyActionModifier<Denizen> {
                 modifier instanceof DefenderBattlePlan && modifier.sourceProxy instanceof Denizen && 
                 (modifier.sourceProxy.suit === OathSuit.Beast || modifier.sourceProxy.suit === OathSuit.Nomad)
             )
-                throw new InvalidActionResolution("Cannot use Beast or Nomad defender battle plans");
+                throw new InvalidActionResolution("Cannot use Beast or Nomad battle plans against Beast Tamer");
     }
 }
 
@@ -553,10 +550,8 @@ export class Enchantress extends ActivePower<Denizen> {
             (cards: WorldCard[]) => {
                 if (!cards.length) return;
                 const otherPlayer = cards[0].owner as OathPlayer;
-                const enchantress = new MoveAdviserEffect(this.game, this.action.player, this.source).do();
-                const otherCard = new MoveAdviserEffect(this.game, this.action.player, cards[0]).do();
-                new MoveWorldCardToAdvisersEffect(this.game, otherPlayer, enchantress).do();
-                new MoveWorldCardToAdvisersEffect(this.game, this.action.player, otherCard).do();
+                new MoveWorldCardToAdvisersEffect(this.game, otherPlayer, this.source).do();
+                new MoveWorldCardToAdvisersEffect(this.game, this.action.player, cards[0]).do();
             }
         ).doNext();
     }

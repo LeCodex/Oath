@@ -122,13 +122,13 @@ export abstract class EnemyActionModifier<T extends OwnableCard> extends ActionM
     mustUse = true;
 
     canUse(): boolean {
-        return this.action.playerProxy.enemyWith(this.sourceProxy.ruler);
+        return this.activatorProxy.enemyWith(this.sourceProxy.ruler);
     }
 }
 
 export abstract class AccessedActionModifier<T extends OwnableCard> extends ActionModifier<T> {
     canUse(): boolean {
-        return this.sourceProxy.accessibleBy(this.action.playerProxy) && this.sourceProxy.empty;
+        return this.sourceProxy.accessibleBy(this.activatorProxy) && this.sourceProxy.empty;
     }
 }
 
@@ -146,7 +146,7 @@ export abstract class RestPower<T extends OwnableCard> extends AccessedActionMod
 
 export abstract class BattlePlan<T extends OwnableCard> extends ActionModifier<T> {
     canUse(): boolean {
-        return this.action.playerProxy.rules(this.sourceProxy);
+        return this.activatorProxy.rules(this.sourceProxy);
     }
 }
 
@@ -158,6 +158,32 @@ export abstract class AttackerBattlePlan<T extends OwnableCard> extends BattlePl
 export abstract class DefenderBattlePlan<T extends OwnableCard> extends BattlePlan<T> {
     modifiedAction = CampaignDefenseAction;
     action: CampaignDefenseAction;
+}
+
+export abstract class AttackerEnemyCampaignModifier<T extends OwnableCard> extends ActionModifier<T> {
+    modifiedAction = CampaignAttackAction;
+    action: CampaignAttackAction;
+    mustUse = true;
+
+    canUse(): boolean {
+        return (
+            (this.source.ruler === this.action.campaignResult.defender || !!this.source.ruler && this.action.campaignResult.defenderAllies.has(this.source.ruler))
+            && this.activator === this.action.campaignResult.attacker
+        );
+    }
+}
+
+export abstract class DefenderEnemyCampaignModifier<T extends OwnableCard> extends ActionModifier<T> {
+    modifiedAction = CampaignDefenseAction;
+    action: CampaignDefenseAction;
+    mustUse = true;
+
+    canUse(): boolean {
+        return (
+            (this.activator === this.action.campaignResult.defender || this.action.campaignResult.defenderAllies.has(this.activator))
+            && this.source.ruler === this.action.campaignResult.attacker
+        );
+    }
 }
 
 export abstract class EffectModifier<T extends WithPowers> extends PowerWithProxy<T> {

@@ -265,7 +265,7 @@ export class River extends SiteActionModifier {
     mustUse = true;
 
     applyBefore(): void {
-        if (this.activatorProxy === this.sourceProxy.ruler) this.action.amount++;
+        if (this.activatorProxy === this.sourceProxy.ruler) this.action.getting++;
     }
 }
 

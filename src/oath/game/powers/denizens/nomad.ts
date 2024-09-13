@@ -1,13 +1,13 @@
-import { TravelAction, InvalidActionResolution, CampaignAttackAction, MakeDecisionAction, ChooseRegionAction, SearchPlayOrDiscardAction, ChooseCardsAction } from "../../actions/actions";
+import { TravelAction, InvalidActionResolution, MakeDecisionAction, ChooseRegionAction, SearchPlayOrDiscardAction, ChooseCardsAction } from "../../actions/actions";
 import { Region } from "../../board";
 import { Denizen, Edifice, Site, VisionBack, WorldCard } from "../../cards/cards";
 import { DiscardOptions } from "../../cards/decks";
-import { PayCostToTargetEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PayPowerCost, BecomeCitizenEffect, GiveOwnableObjectEffect, DrawFromDeckEffect, FlipEdificeEffect, MoveResourcesToTargetEffect, DiscardCardEffect, GainSupplyEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, PeekAtCardEffect, MoveSiteDenizenEffect, MoveWorldCardToAdvisersEffect, MoveAdviserEffect, MoveDenizenToSiteEffect } from "../../effects";
+import { PayCostToTargetEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PayPowerCost, BecomeCitizenEffect, GiveOwnableObjectEffect, DrawFromDeckEffect, FlipEdificeEffect, MoveResourcesToTargetEffect, DiscardCardEffect, GainSupplyEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, PeekAtCardEffect, MoveWorldCardToAdvisersEffect, MoveDenizenToSiteEffect } from "../../effects";
 import { BannerName, OathResource, OathSuit } from "../../enums";
 import { OwnableObject, isOwnable } from "../../interfaces";
 import { OathPlayer } from "../../player";
 import { ResourceCost } from "../../resources";
-import { ActionModifier, EnemyEffectModifier, EnemyActionModifier, ActivePower, CapacityModifier, AttackerBattlePlan, DefenderBattlePlan, WhenPlayed } from "../powers";
+import { ActionModifier, EnemyEffectModifier, ActivePower, CapacityModifier, AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, AttackerEnemyCampaignModifier } from "../powers";
 
 
 export class HorseArchersAttack extends AttackerBattlePlan<Denizen> {
@@ -146,10 +146,8 @@ export class LostTongue extends EnemyEffectModifier<Denizen> {
         lostTongueCheckOwnable(this.sourceProxy, targetProxy, this.effect.playerProxy);
     }
 }
-export class LostTongueCampaign extends EnemyActionModifier<Denizen> {
+export class LostTongueCampaign extends AttackerEnemyCampaignModifier<Denizen> {
     name = "Lost Tongue";
-    modifiedAction = CampaignAttackAction;
-    action: CampaignAttackAction;
 
     applyBefore(): void {
         for (const target of this.action.campaignResult.params.targets) {
@@ -283,7 +281,7 @@ export class Pilgrimage extends WhenPlayed<Denizen> {
         let amount = 0;
         for (const denizenProxy of this.effect.playerProxy.site.denizens) {
             if (!denizenProxy.activelyLocked) {
-                new PutDenizenIntoDispossessedEffect(this.game, this.effect.player, new MoveSiteDenizenEffect(this.game, this.effect.player, denizenProxy.original).do()).do();
+                new PutDenizenIntoDispossessedEffect(this.game, this.effect.player, denizenProxy.original).do();
                 amount++;
             }
         }
@@ -313,10 +311,8 @@ export class TwinBrother extends WhenPlayed<Denizen> {
             (cards: Denizen[]) => {
                 if (!cards.length) return;
                 const otherPlayer = cards[0].owner as OathPlayer;
-                const twinBrother = new MoveAdviserEffect(this.game, this.effect.player, this.source).do();
-                const otherCard = new MoveAdviserEffect(this.game, this.effect.player, cards[0]).do();
-                new MoveWorldCardToAdvisersEffect(this.game, otherPlayer, twinBrother).do();
-                new MoveWorldCardToAdvisersEffect(this.game, this.effect.player, otherCard).do();
+                new MoveWorldCardToAdvisersEffect(this.game, otherPlayer, this.source).do();
+                new MoveWorldCardToAdvisersEffect(this.game, this.effect.player, cards[0]).do();
             },
             [[0, 1]]
         ).doNext();
@@ -340,10 +336,8 @@ export class GreatHerd extends WhenPlayed<Denizen> {
             (cards: Denizen[]) => {
                 if (!cards.length) return;
                 const otherSite = cards[0].site as Site;
-                const greatHerd = new MoveSiteDenizenEffect(this.game, this.effect.player, this.source).do();
-                const otherCard = new MoveSiteDenizenEffect(this.game, this.effect.player, cards[0]).do();
-                new MoveDenizenToSiteEffect(this.game, this.effect.player, greatHerd, otherSite).do();
-                new MoveDenizenToSiteEffect(this.game, this.effect.player, otherCard, this.effect.playerProxy.site.original).do();
+                new MoveDenizenToSiteEffect(this.game, this.effect.player, this.source, otherSite).do();
+                new MoveDenizenToSiteEffect(this.game, this.effect.player, cards[0], this.effect.playerProxy.site.original).do();
             },
             [[0, 1]]
         ).doNext();

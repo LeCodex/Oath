@@ -956,6 +956,7 @@ export class MoveWorldCardToAdvisersEffect extends OathEffect<void> {
             throw new InvalidActionResolution("Cannot move site-only cards to advisers.");
 
         if (!this.target) return;
+        this.card.free();
         this.card.setOwner(this.target);
         new CheckCapacityEffect(this.target, [this.target]).do();
     }
@@ -988,6 +989,7 @@ export class MoveDenizenToSiteEffect extends OathEffect<void> {
             throw new InvalidActionResolution("Cannot move adviser-only cards to sites.");
 
         if (!this.target) return;
+        this.card.free();
         this.card.putAtSite(this.target);
         new CheckCapacityEffect(this.player || this.game.currentPlayer, [this.target]).do();
     }
@@ -1493,6 +1495,7 @@ export class PutDenizenIntoDispossessedEffect extends OathEffect<void> {
     }
 
     resolve(): void {
+        this.denizen.free();
         this.game.dispossessed[this.denizen.name] = this.denizen.data;
     }
 

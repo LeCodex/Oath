@@ -706,7 +706,7 @@ export class CampaignAttackAction extends ModifiableAction {
         this.campaignResult.params.restore();
         const choices = new Map<string, CampaignActionTarget>();
         for (const siteProxy of this.gameProxy.board.sites()) { 
-            if (!siteProxy.facedown && siteProxy.ruler === this.defenderProxy) {
+            if (!siteProxy.facedown && siteProxy.ruler === this.defenderProxy?.leader) {
                 if (this.playerProxy.site === siteProxy) {
                     this.campaignResult.params.targets.add(siteProxy.original);
                 } else {
