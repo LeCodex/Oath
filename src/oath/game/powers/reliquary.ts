@@ -8,7 +8,7 @@ export abstract class ReliquaryModifier extends ActionModifier<ReliquarySlot> {
     mustUse = true;
 
     canUse(): boolean {
-        return super.canUse() && this.activatorProxy === this.action.gameProxy.chancellor;
+        return super.canUse() && this.activatorProxy === this.gameProxy.chancellor;
     }
 }
 

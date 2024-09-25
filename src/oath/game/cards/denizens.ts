@@ -5,8 +5,8 @@ import { ASmallFavor, Assassin, BanditChiefAction, BanditChiefEffect, BanditChie
 import { ActingTroupe, Alchemist, Augury, Bewitch, BillowingFogAttack, BillowingFogDefense, BloodPact, CrackingGroundAttack, Dazzle, DreamThief, FallenSpire, FireTalkersAttack, FireTalkersDefense, ForgottenVault, GleamingArmorAttack, GleamingArmorDefense, GreatSpire, InitiationRite, Inquisitor, Jinx, KindredWarriorsAttack, KindredWarriorsDefense, MapLibrary, MasterOfDisguise, Observatory, PlagueEngines, Portal, Revelation, SealingWard, SecretSignal, SpiritSnare, TamingCharm, TerrorSpells, Tutor, VowOfSilence, VowOfSilencePitch, VowOfSilenceRecover, WitchsBargain, WizardSchool } from "../powers/denizens/arcane";
 import { BanditRampart, BattleHonorsAttack, BattleHonorsDefense, BearTraps, Captains, CodeOfHonorAttack, CodeOfHonorDefense, CouncilSeat, Curfew, EncirclementAttack, EncirclementDefense, FieldPromotionAttack, ForcedLabor, Garrison, HuntingParty, Keep, KnightsErrant, LongbowsAttack, LongbowsDefense, MartialCultureAttack, MartialCultureDefense, Messenger, MilitaryParadeAttack, MilitaryParadeDefense, Outriders, Palanquin, PeaceEnvoyAttack, PeaceEnvoyDefense, Pressgangs, RelicHunter, RoyalTax, Scouts, SecretPolice, ShieldWall, SiegeEngines, Specialist, SprawlingRampart, TollRoads, TomeGuardians, TomeGuardiansAttack, Tyrant, VowOfObedience, VowOfObedienceRest, Wrestlers } from "../powers/denizens/order";
 import { ArmedMob, ARoundOfAle, AwaitedReturn, BallotBox, BookBinders, CharmingFriend, CropRotation, ExtraProvisions, FabledFeast, FamilyHeirloom, HallOfDebate, HallOfMockery, HeartsAndMinds, Herald, Homesteaders, HospitalAttack, HospitalDefense, LandWarden, Levelers, MarriageAction, MarriageEffect, MemoryOfHome, NewsFromAfar, RelicBreaker, RowdyPub, SaddleMakers, SaladDays, Storyteller, TavernSongs, TheGreatLevyAttack, TheGreatLevyDefense, TravelingDoctorAttack, TravelingDoctorDefense, VillageConstableAttack, VillageConstableDefense, VowOfPeace, VowOfPeaceDefense, WaysideInn, WelcomingParty } from "../powers/denizens/hearth";
-import { AnimalHost, AnimalPlaymates, Birdsong, Bracken, ErrandBoy, FaeMerchant, ForestCouncilMuster, ForestCouncilTrade, ForestPaths, GiantPython, GraspingVines, InsectSwarmAttack, InsectSwarmDefense, LongLostHeir, MarshSpirit, MemoryOfNature, Mushrooms, NatureWorshipAttack, NatureWorshipDefense, NewGrowth, PiedPiper, Rangers, RovingTerror, SecondChance, SmallFriends, TheOldOak, ThreateningRoar, TrueNamesAttack, TrueNamesDefense, VowOfBeastkin, VowOfPoverty, VowOfPovertyRest, VowOfUnionAttack, VowOfUnionTravel, WalledGarden, WildAllies, WildCry, Wolves } from "../powers/denizens/beast";
-import { AncientBinding, AncientForge, AncientPact, BrokenForge, Convoys, Elders, FaithfulFriend, FamilyWagon, GreatCrusadeAttack, GreatCrusadeDefense, GreatHerd, HorseArchersAttack, HorseArchersDefense, LostTongue, LostTongueCampaign, MountainGiantAttack, MountainGiantDefense, MountedPatrol, Oracle, Pilgrimage, RivalKhanAttack, RivalKhanDefense, SpellBreaker, StormCaller, TwinBrother, WayStation } from "../powers/denizens/nomad";
+import { AnimalHost, AnimalPlaymates, Birdsong, Bracken, ErrandBoy, FaeMerchant, ForestCouncilMuster, ForestCouncilTrade, ForestPaths, ForestTemple, GiantPython, GraspingVines, InsectSwarmAttack, InsectSwarmDefense, LongLostHeir, MarshSpirit, MemoryOfNature, Mushrooms, NatureWorshipAttack, NatureWorshipDefense, NewGrowth, PiedPiper, Rangers, RovingTerror, RuinedTemple, SecondChance, SmallFriends, TheOldOak, ThreateningRoar, TrueNamesAttack, TrueNamesDefense, VowOfBeastkin, VowOfPoverty, VowOfPovertyRest, VowOfUnionAttack, VowOfUnionTravel, WalledGarden, WildAllies, WildCry, Wolves } from "../powers/denizens/beast";
+import { AFastSteed, AncientBinding, AncientBloodlineAction, AncientBloodlineEffect, AncientBloodlineRelics, AncientForge, AncientPact, BrokenForge, Convoys, Elders, FaithfulFriend, FamilyWagon, GreatCrusadeAttack, GreatCrusadeDefense, GreatHerd, HorseArchersAttack, HorseArchersDefense, Hospitality, LostTongue, LostTongueCampaign, MountainGiantAttack, MountainGiantDefense, MountedPatrol, Oracle, Pilgrimage, RelicWorship, Resettle, RivalKhanAttack, RivalKhanDefense, SacredGround, SpecialEnvoy, SpellBreaker, StormCaller, Tents, TwinBrother, WarningSignals, WayStation } from "../powers/denizens/nomad";
 import { Constructor } from "../utils";
 import { Denizen, Edifice } from "./cards";
 
@@ -185,8 +185,8 @@ export const denizenData: Record<string, DenizenData> = {
     
     LostTongue:         [OathSuit.Nomad,    [LostTongue, LostTongueCampaign],                       CardRestriction.Adviser],
     FamilyWagon:        [OathSuit.Nomad,    [FamilyWagon],                                          CardRestriction.Adviser],
-    AncientBloodline:   [OathSuit.Nomad,    [], CardRestriction.Adviser],
-    Hospitality:        [OathSuit.Nomad,    [], CardRestriction.Adviser],
+    AncientBloodline:   [OathSuit.Nomad,    [AncientBloodlineAction, AncientBloodlineEffect, AncientBloodlineRelics], CardRestriction.Adviser],
+    Hospitality:        [OathSuit.Nomad,    [Hospitality],                                          CardRestriction.Adviser],
     Pilgrimage:         [OathSuit.Nomad,    [Pilgrimage],                                           CardRestriction.Adviser],
     TwinBrother:        [OathSuit.Nomad,    [TwinBrother],                                          CardRestriction.Adviser],
     FaithfulFriend:     [OathSuit.Nomad,    [FaithfulFriend],                                       CardRestriction.Adviser, true],
@@ -194,13 +194,13 @@ export const denizenData: Record<string, DenizenData> = {
     VowOfKinship:       [OathSuit.Nomad,    [], CardRestriction.Adviser, true],
     WayStation:         [OathSuit.Nomad,    [WayStation],                                           CardRestriction.Site],
     SpellBreaker:       [OathSuit.Nomad,    [SpellBreaker],                                         CardRestriction.Site],
-    Resettle:           [OathSuit.Nomad,    [], CardRestriction.Site],
+    Resettle:           [OathSuit.Nomad,    [Resettle],                                             CardRestriction.Site],
     Oracle:             [OathSuit.Nomad,    [Oracle],                                               CardRestriction.Site],
     GreatHerd:          [OathSuit.Nomad,    [GreatHerd],                                            CardRestriction.Site],
-    SacredGround:       [OathSuit.Nomad,    [], CardRestriction.Site, true],
+    SacredGround:       [OathSuit.Nomad,    [SacredGround],                                         CardRestriction.Site, true],
     RainBoots:          [OathSuit.Nomad,    []],
     HorseArchers:       [OathSuit.Nomad,    [HorseArchersAttack, HorseArchersDefense]],
-    WarningSignals:     [OathSuit.Nomad,    []],
+    WarningSignals:     [OathSuit.Nomad,    [WarningSignals]],
     Lancers:            [OathSuit.Nomad,    []],
     MountainGiant:      [OathSuit.Nomad,    [MountainGiantAttack, MountainGiantDefense]],
     RivalKhan:          [OathSuit.Nomad,    [RivalKhanAttack, RivalKhanDefense]],
@@ -210,11 +210,11 @@ export const denizenData: Record<string, DenizenData> = {
     WildMounts:         [OathSuit.Nomad,    []],
     Elders:             [OathSuit.Nomad,    [Elders]],
     AncientBinding:     [OathSuit.Nomad,    [AncientBinding]],
-    Tents:              [OathSuit.Nomad,    []],
+    Tents:              [OathSuit.Nomad,    [Tents]],
     Convoys:            [OathSuit.Nomad,    [Convoys]],
-    SpecialEnvoy:       [OathSuit.Nomad,    []],
-    AFastSteed:         [OathSuit.Nomad,    []],
-    RelicWorship:       [OathSuit.Nomad,    []],
+    SpecialEnvoy:       [OathSuit.Nomad,    [SpecialEnvoy]],
+    AFastSteed:         [OathSuit.Nomad,    [AFastSteed]],
+    RelicWorship:       [OathSuit.Nomad,    [RelicWorship]],
     TheGathering:       [OathSuit.Nomad,    []],
 }
 
@@ -231,8 +231,8 @@ export const edificeData: Record<string, [string, OathSuit, Constructor<OathPowe
     HallOfDebate:       ["HallOfMockery",       OathSuit.Hearth,    [HallOfDebate]],
     HallOfMockery:      ["HallOfDebate",        OathSuit.None,      [HallOfMockery]],
 
-    ForestTemple:       ["RuinedTemple",        OathSuit.Beast,     []],
-    RuinedTemple:       ["ForestTemple",        OathSuit.None,      []],
+    ForestTemple:       ["RuinedTemple",        OathSuit.Beast,     [ForestTemple]],
+    RuinedTemple:       ["ForestTemple",        OathSuit.None,      [RuinedTemple]],
 
     AncientForge:       ["BrokenForge",         OathSuit.Nomad,     [AncientForge]],
     BrokenForge:        ["AncientForge",        OathSuit.None,      [BrokenForge]]

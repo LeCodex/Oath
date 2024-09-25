@@ -142,7 +142,7 @@ export class Tutor extends ActivePower<Denizen> {
     cost = new ResourceCost([[OathResource.Favor, 1], [OathResource.Secret, 1]]);
 
     usePower(): void {
-        new PutResourcesOnTargetEffect(this.action.game, this.action.player, OathResource.Secret, 1).do();
+        new PutResourcesOnTargetEffect(this.game, this.action.player, OathResource.Secret, 1).do();
     }
 }
 

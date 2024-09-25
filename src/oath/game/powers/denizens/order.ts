@@ -1,4 +1,4 @@
-import { TradeAction, InvalidActionResolution, TravelAction, SearchAction, SearchPlayOrDiscardAction, TakeFavorFromBankAction, CampaignKillWarbandsInForceAction, CampaignResult, MakeDecisionAction, CampaignAction, ActAsIfAtSiteAction, CampaignDefenseAction, ChooseSitesAction, ChoosePlayersAction, MoveWarbandsAction, KillWarbandsOnTargetAction, MusterAction } from "../../actions/actions";
+import { TradeAction, InvalidActionResolution, TravelAction, SearchAction, SearchPlayOrDiscardAction, TakeFavorFromBankAction, CampaignKillWarbandsInForceAction, CampaignResult, MakeDecisionAction, CampaignAction, ActAsIfAtSiteAction, CampaignDefenseAction, ChooseSitesAction, ChoosePlayersAction, MoveWarbandsAction, KillWarbandsOnTargetAction, MusterAction, MoveWarbandsBetweenBoardAndSitesAction } from "../../actions/actions";
 import { Denizen, Edifice, Relic, Site, Vision } from "../../cards/cards";
 import { PayCostToTargetEffect, MoveResourcesToTargetEffect, TakeWarbandsIntoBagEffect, GainSupplyEffect, TakeResourcesFromBankEffect, BecomeCitizenEffect, PutWarbandsFromBagEffect, ApplyModifiersEffect, PutPawnAtSiteEffect, MoveOwnWarbandsEffect, BecomeExileEffect, PlayVisionEffect, TakeOwnableObjectEffect } from "../../effects";
 import { BannerName, OathResource, OathSuit } from "../../enums";
@@ -529,18 +529,7 @@ export class Messenger extends ActivePower<Denizen> {
     cost = new ResourceCost([[OathResource.Favor, 1]]);
 
     usePower(): void {
-        new ChooseSitesAction(
-            this.action.player, "Exchange warbands with a site (choose none to finish)",
-            (sites: Site[]) => {
-                if (!sites[0]) return;
-                const action = new MoveWarbandsAction(this.action.player);
-                action.playerProxy.site = action.maskProxyManager.get(sites[0]);
-                action.doNext();
-                this.usePower();
-            },
-            [[...this.gameProxy.board.sites()].filter(e => e.ruler === this.action.playerProxy).map(e => e.original)],
-            [[0, 1]]
-        ).doNext();
+        new MoveWarbandsBetweenBoardAndSitesAction(this.action.playerProxy).doNext();
     }
 }
 

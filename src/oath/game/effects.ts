@@ -1073,7 +1073,7 @@ export class DiscardCardEffect<T extends OathCard> extends PlayerEffect<void> {
     discardOptions: DiscardOptions<OathCard>;
     flipped: boolean;
 
-    constructor(player: OathPlayer, card: T, discardOptions?: DiscardOptions<OathCard>) {
+    constructor(player: OathPlayer, card: T, discardOptions?: DiscardOptions<T>) {
         super(player);
         this.card = card;
         this.discardOptions = discardOptions || new DiscardOptions(card.discard || player.discard);
@@ -1798,38 +1798,35 @@ export class FlipEdificeEffect extends OathEffect<void> {
 
 export class FinishChronicle extends PlayerEffect<void> {
     oldRegions = new Map<Region, Site[]>();
-    discardedDenizens = new Map<Site, Set<Denizen>>();
 
     resolve(): void {
         const storedSites: Site[] = [];
         const pushedSites: Site[] = [];
 
         // Discard and put aside sites 
-        for (const region of Object.values(this.game.board.regions)) {
-            this.oldRegions.set(region, [...region.sites]);
+        for (const regionProxy of Object.values(this.gameProxy.board.regions)) {
+            this.oldRegions.set(regionProxy, [...regionProxy.sites]);
 
-            for (const site of region.sites) {
-                site.clear();
-                for (const denizen of site.denizens) denizen.clear();
-                
-                region.sites.splice(region.sites.indexOf(site), 1);
-                if (!site.ruler?.isImperial && site.ruler !== this.player) {
-                    this.game.siteDeck.putCard(site);
-                    this.discardedDenizens.set(site, new Set(site.denizens));
-                    for (const denizen of site.denizens) {
-                        if (denizen instanceof Edifice && denizen.suit !== OathSuit.None) {
-                            new FlipEdificeEffect(denizen).do();
-                            pushedSites.push(site);
+            for (const siteProxy of regionProxy.sites) {
+                regionProxy.sites.splice(regionProxy.sites.indexOf(siteProxy), 1);
+                if (!siteProxy.ruler?.isImperial && siteProxy.ruler !== this.player) {
+                    for (const denizenProxy of siteProxy.denizens) {
+                        if (denizenProxy instanceof Edifice && denizenProxy.suit !== OathSuit.None) {
+                            new FlipEdificeEffect(denizenProxy).do();
+                            pushedSites.push(siteProxy.original);
                         } else {
-                            new DiscardCardEffect(this.player, denizen, new DiscardOptions(region.discard, false, true));
+                            new DiscardCardEffect(this.player, denizenProxy.original, new DiscardOptions(regionProxy.discard.original, false, true)).do();
                         }
                     }
+                    new DiscardCardEffect(this.player, siteProxy.original, new DiscardOptions(this.game.siteDeck)).do();
                 } else {
-                    storedSites.push(site);
+                    storedSites.push(siteProxy.original);
                 }
+
+                siteProxy.original.clear();
             }
         }
-        this.game.siteDeck.shuffle();
+        this.game.siteDeck.shuffle();  // TODO: Shuffles in an effect to be reverted/replayed
         let total = Object.values(this.game.board.regions).reduce((a, e) => a + e.size, 0) - storedSites.length - pushedSites.length;
         for (var i = 0; i < total; i++) {
             const site = this.game.siteDeck.drawSingleCard();
@@ -1981,10 +1978,6 @@ export class FinishChronicle extends PlayerEffect<void> {
         // TODO: See if this is a good way of doing the revert
         for (const [region, sites] of this.oldRegions) {
             region.sites = sites;
-        }
-
-        for (const [site, denizens] of this.discardedDenizens) {
-            site.denizens = denizens;
         }
     }
 }

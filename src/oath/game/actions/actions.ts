@@ -1566,6 +1566,23 @@ export class ActAsIfAtSiteAction extends ChooseSitesAction {
     }
 }
 
+export class MoveWarbandsBetweenBoardAndSitesAction extends ChooseSitesAction {
+    constructor(playerProxy: OathPlayer) {
+        super(
+            playerProxy.original, "Exchange warbands with a site (choose none to finish)",
+            (sites: Site[]) => {
+                if (!sites[0]) return;
+                const action = new MoveWarbandsAction(playerProxy.original);
+                action.playerProxy.site = action.maskProxyManager.get(sites[0]);
+                action.doNext();
+                this.doNext();
+            },
+            [[...playerProxy.game.board.sites()].filter(e => e.ruler === playerProxy).map(e => e.original)],
+            [[0, 1]]
+        );
+    }
+}
+
 
 export class ChooseCardsAction<T extends OathCard> extends ChooseTsAction<T> {
     choices: Set<T>[];

@@ -1,10 +1,10 @@
 import { SearchAction, CampaignAttackAction, CampaignDefenseAction, TradeAction, TakeFavorFromBankAction, InvalidActionResolution, ActAsIfAtSiteAction, MakeDecisionAction, CampaignAction, ChoosePlayersAction, ChooseCardsAction, ChooseSuitsAction, KillWarbandsOnTargetAction, MusterAction, TravelAction, SearchPlayOrDiscardAction } from "../../actions/actions";
-import { Denizen, GrandScepter, Relic, Site } from "../../cards/cards";
-import { BecomeCitizenEffect, DiscardCardEffect, DrawFromDeckEffect, GainSupplyEffect, MoveBankResourcesEffect, MoveDenizenToSiteEffect, MoveResourcesToTargetEffect, MoveWorldCardToAdvisersEffect, PlayWorldCardEffect, PutWarbandsFromBagEffect, RegionDiscardEffect, TakeOwnableObjectEffect } from "../../effects";
+import { Denizen, Edifice, GrandScepter, Relic, Site } from "../../cards/cards";
+import { BecomeCitizenEffect, DiscardCardEffect, DrawFromDeckEffect, FinishChronicle, GainSupplyEffect, MoveBankResourcesEffect, MoveDenizenToSiteEffect, MoveResourcesToTargetEffect, MoveWorldCardToAdvisersEffect, PlayWorldCardEffect, PutWarbandsFromBagEffect, RegionDiscardEffect, TakeOwnableObjectEffect } from "../../effects";
 import { OathResource, OathSuit } from "../../enums";
 import { OathPlayer } from "../../player";
 import { ResourceCost } from "../../resources";
-import { AccessedActionModifier, ActionModifier, AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, RestPower, ActivePower, EnemyActionModifier, AttackerEnemyCampaignModifier, DefenderEnemyCampaignModifier, AccessedEffectModifier } from "../powers";
+import { AccessedActionModifier, ActionModifier, AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, RestPower, ActivePower, EnemyActionModifier, AttackerEnemyCampaignModifier, DefenderEnemyCampaignModifier, AccessedEffectModifier, EffectModifier, EnemyEffectModifier } from "../powers";
 
 
 export class NatureWorshipAttack extends AttackerBattlePlan<Denizen> {
@@ -535,5 +535,34 @@ export class RovingTerror extends ActivePower<Denizen> {
                 new MoveDenizenToSiteEffect(this.game, this.action.player, this.source, site).do();
             }
         ).doNext();
+    }
+}
+
+
+export class ForestTemple extends EffectModifier<Edifice> {
+    name = "Forest Temple";
+    modifiedEffect = FinishChronicle;
+    effect: FinishChronicle;
+
+    applyBefore(): void {
+        for (const siteProxy of this.gameProxy.board.sites()) {
+            for (const denizenProxy of siteProxy.denizens) {
+                if (denizenProxy.suit === OathSuit.Beast) {
+                    siteProxy.warbands = new Map([[this.effect.player, Infinity]]);
+                    break;
+                }
+            }
+        }
+    }
+}
+
+export class RuinedTemple extends EnemyEffectModifier<Edifice> {
+    name = "Ruined Temple";
+    modifiedEffect = PlayWorldCardEffect;
+    effect: PlayWorldCardEffect;
+
+    applyBefore(): void {
+        if (!this.effect.facedown && this.effect.card instanceof Denizen && this.effect.card.suit === OathSuit.Beast)
+            throw new InvalidActionResolution("Cannot play Beast cards faceup unless you rule the Ruined Temple");
     }
 }

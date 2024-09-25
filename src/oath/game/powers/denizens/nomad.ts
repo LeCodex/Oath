@@ -1,13 +1,13 @@
-import { TravelAction, InvalidActionResolution, MakeDecisionAction, ChooseRegionAction, SearchPlayOrDiscardAction, ChooseCardsAction } from "../../actions/actions";
+import { TravelAction, InvalidActionResolution, MakeDecisionAction, ChooseRegionAction, SearchPlayOrDiscardAction, ChooseCardsAction, ModifiableAction, ChooseSuitsAction, TakeFavorFromBankAction, ChooseSitesAction, MoveWarbandsBetweenBoardAndSitesAction, RestAction, RecoverAction } from "../../actions/actions";
 import { Region } from "../../board";
-import { Denizen, Edifice, Site, VisionBack, WorldCard } from "../../cards/cards";
+import { Denizen, Edifice, Relic, Site, VisionBack, WorldCard } from "../../cards/cards";
 import { DiscardOptions } from "../../cards/decks";
-import { PayCostToTargetEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PayPowerCost, BecomeCitizenEffect, GiveOwnableObjectEffect, DrawFromDeckEffect, FlipEdificeEffect, MoveResourcesToTargetEffect, DiscardCardEffect, GainSupplyEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, PeekAtCardEffect, MoveWorldCardToAdvisersEffect, MoveDenizenToSiteEffect } from "../../effects";
+import { PayCostToTargetEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PayPowerCost, BecomeCitizenEffect, GiveOwnableObjectEffect, DrawFromDeckEffect, FlipEdificeEffect, MoveResourcesToTargetEffect, DiscardCardEffect, GainSupplyEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, PeekAtCardEffect, MoveWorldCardToAdvisersEffect, MoveDenizenToSiteEffect, OathEffect, TakeResourcesFromBankEffect, DiscardCardGroupEffect, PlayVisionEffect } from "../../effects";
 import { BannerName, OathResource, OathSuit } from "../../enums";
 import { OwnableObject, isOwnable } from "../../interfaces";
 import { OathPlayer } from "../../player";
 import { ResourceCost } from "../../resources";
-import { ActionModifier, EnemyEffectModifier, ActivePower, CapacityModifier, AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, AttackerEnemyCampaignModifier } from "../powers";
+import { ActionModifier, EnemyEffectModifier, ActivePower, CapacityModifier, AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, AttackerEnemyCampaignModifier, EnemyActionModifier, EffectModifier } from "../powers";
 
 
 export class HorseArchersAttack extends AttackerBattlePlan<Denizen> {
@@ -111,6 +111,14 @@ export class MountedPatrol extends DefenderBattlePlan<Denizen> {
     }
 }
 
+export class WarningSignals extends DefenderBattlePlan<Denizen> {
+    name = "Warning Signals";
+
+    applyBefore(): void {
+        new MoveWarbandsBetweenBoardAndSitesAction(this.action.playerProxy).doNext();
+    }
+}
+
 export class WayStation extends ActionModifier<Denizen> {
     name = "Way Station";
     modifiedAction = TravelAction;
@@ -120,11 +128,73 @@ export class WayStation extends ActionModifier<Denizen> {
         if (!this.sourceProxy.site) return;
         if (this.action.siteProxy === this.sourceProxy.site) {
             if (!this.activatorProxy.rules(this.sourceProxy))
-                if (!new PayCostToTargetEffect(this.action.game, this.activator, new ResourceCost([[OathResource.Favor, 1]]), this.sourceProxy.ruler?.original).do())
+                if (!new PayCostToTargetEffect(this.game, this.activator, new ResourceCost([[OathResource.Favor, 1]]), this.sourceProxy.ruler?.original).do())
                     return;
             
             this.action.noSupplyCost = true;
         }
+    }
+}
+
+export class Hospitality extends ActionModifier<Denizen> {
+    name = "Hospitality";
+    modifiedAction = TravelAction;
+    action: TravelAction;
+
+    applyAfter(): void {
+        const adviserSuits = [...this.activatorProxy.advisers].filter(e => e instanceof Denizen).map(e => e.suit);
+        const suits = [...this.action.siteProxy.denizens].map(e => e.suit).filter(e => adviserSuits.includes(e));
+        if (suits.length) new TakeFavorFromBankAction(this.activator, 1, suits);
+    }
+}
+
+export class Tents extends ActionModifier<Denizen> {
+    name = "Tents";
+    modifiedAction = TravelAction;
+    action: TravelAction;
+    cost = new ResourceCost([[OathResource.Favor, 1]]);
+
+    applyBefore(): void {
+        if (this.action.travelling.site.region === this.action.siteProxy.region.original)
+            this.action.noSupplyCost = true;
+    }
+}
+
+export class SpecialEnvoy extends ActionModifier<Denizen> {
+    name = "Special Envoy";
+    modifiedAction = TravelAction;
+    action: TravelAction;
+
+    applyBefore(): void {
+        this.action.noSupplyCost = true;
+    }
+
+    applyAfter(): void {
+        new RestAction(this.action.player).doNext();
+    }
+}
+
+export class AFastSteed extends ActionModifier<Denizen> {
+    name = "A Fast Steed";
+    modifiedAction = TravelAction;
+    action: TravelAction;
+    cost = new ResourceCost([[OathResource.Favor, 1]]);
+
+    applyBefore(): void {
+        if (this.activatorProxy.totalWarbands <= 3)
+            this.action.noSupplyCost = true;
+    }
+}
+
+export class RelicWorship extends ActionModifier<Denizen> {
+    name = "Relic Worship";
+    modifiedAction = RecoverAction;
+    action: RecoverAction;
+    cost = new ResourceCost([[OathResource.Favor, 1]]);
+
+    applyAtEnd(): void {
+        if (this.action.targetProxy instanceof Relic)
+            new GainSupplyEffect(this.activator, 2).do();
     }
 }
 
@@ -159,12 +229,61 @@ export class LostTongueCampaign extends AttackerEnemyCampaignModifier<Denizen> {
     }
 }
 
+export class AncientBloodlineAction extends EnemyActionModifier<Denizen> {
+    name = "Ancient Bloodline";
+    modifiedAction = ModifiableAction;
+    action: ModifiableAction;
+
+    applyBefore(): void {
+        for (const siteProxy of this.gameProxy.board.sites()) {
+            if (siteProxy.ruler !== this.activatorProxy) continue;
+            for (const denizenProxy of siteProxy.denizens)
+                denizenProxy.locked = true;
+        }
+    }
+}
+export class AncientBloodlineEffect extends EnemyEffectModifier<Denizen> {
+    name = "Ancient Bloodline";
+    modifiedEffect = OathEffect;
+    effect: OathEffect<any>;
+
+    applyBefore(): void {
+        for (const siteProxy of this.gameProxy.board.sites()) {
+            if (siteProxy.ruler !== this.effect.playerProxy) continue;
+            for (const denizenProxy of siteProxy.denizens)
+                denizenProxy.locked = true;
+        }
+    }
+}
+export class AncientBloodlineRelics extends EnemyEffectModifier<Denizen> {
+    name = "Ancient Bloodline";
+    modifiedEffect = TakeOwnableObjectEffect;
+    effect: TakeOwnableObjectEffect;
+
+    applyBefore(): void {
+        const targetProxy = this.effect.maskProxyManager.get(this.effect.target);
+        if (targetProxy instanceof Relic && targetProxy.site?.ruler === this.effect.playerProxy)
+            throw new InvalidActionResolution("Cannot take locked relics from the Ancient Bloodline");
+    }
+}
+
+export class SacredGround extends EffectModifier<Denizen> {
+    name = "Sacred Ground";
+    modifiedEffect = PlayVisionEffect;
+    effect: PlayVisionEffect;
+
+    applyBefore(): void {
+        if (this.effect.playerProxy.site !== this.sourceProxy.site)
+            throw new InvalidActionResolution("Must play Visions at the Sacred Ground");
+    }
+}
+
 export class Elders extends ActivePower<Denizen> {
     name = "Elders";
     cost = new ResourceCost([[OathResource.Favor, 2]]);
 
     usePower(): void {
-        new PutResourcesOnTargetEffect(this.action.game, this.action.player, OathResource.Secret, 1).do();
+        new PutResourcesOnTargetEffect(this.game, this.action.player, OathResource.Secret, 1).do();
     }
 }
 
@@ -199,10 +318,32 @@ export class Convoys extends ActivePower<Denizen> {
             this.action.player, "Move a discard on top of your region's discard",
             (region: Region | undefined) => {
                 if (!region) return;
-                for (const card of new DrawFromDeckEffect(this.action.player, region.discard, Infinity, true).do())
-                    new DiscardCardEffect(this.action.player, card, new DiscardOptions(this.action.playerProxy.site.region.discard.original)).do();
+                const cards = new DrawFromDeckEffect(this.action.player, region.discard, Infinity, true).do()
+                const discardOptions = new DiscardOptions(this.action.playerProxy.site.region.discard.original);
+                new DiscardCardGroupEffect(this.action.player, cards, discardOptions).do();
             }
         )
+    }
+}
+
+export class Resettle extends ActivePower<Denizen> {
+    name = "Resettle";
+
+    usePower(): void {
+        new ChooseCardsAction(
+            this.action.player, "Choose a Nomad adviser",
+            [Object.values(this.gameProxy.players).reduce((a, e) => [...a, ...[...e.advisers].filter(e => e instanceof Denizen && e.suit == OathSuit.Nomad)], [] as Denizen[])],
+            (cards: Denizen[]) => {
+                if (!cards[0]) return;
+                new ChooseSitesAction(
+                    this.action.player, "Move it to a site",
+                    (sites: Site[]) => {
+                        if (!sites[0]) return;
+                        new MoveDenizenToSiteEffect(this.game, this.action.player, cards[0], sites[0]).do();
+                    }
+                )
+            }
+        ).doNext();
     }
 }
 

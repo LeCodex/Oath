@@ -209,7 +209,7 @@ export class Insomnia extends RestPower<Denizen> {
     name = "Insomnia";
 
     applyAfter(): void {
-        new PutResourcesOnTargetEffect(this.action.game, this.activator, OathResource.Secret, 1).do();
+        new PutResourcesOnTargetEffect(this.game, this.activator, OathResource.Secret, 1).do();
     }
 }
 
@@ -237,8 +237,8 @@ export class Naysayers extends RestPower<Denizen> {
     name = "Naysayers";
 
     applyAfter(): void {
-        if (!this.action.game.oathkeeper.isImperial)
-            new MoveResourcesToTargetEffect(this.action.game, this.activator, OathResource.Favor, 1, this.activator, this.action.game.chancellor).do();
+        if (!this.game.oathkeeper.isImperial)
+            new MoveResourcesToTargetEffect(this.game, this.activator, OathResource.Favor, 1, this.activator, this.game.chancellor).do();
     }
 }
 
@@ -257,7 +257,7 @@ export class GamblingHall extends ActivePower<Denizen> {
     cost = new ResourceCost([[OathResource.Favor, 2]]);
 
     usePower(): void {
-        const faces = new RollDiceEffect(this.action.game, this.action.player, DefenseDie, 4).do();
+        const faces = new RollDiceEffect(this.game, this.action.player, DefenseDie, 4).do();
         new ResolveCallbackAction(this.action.player, () => new TakeFavorFromBankAction(this.action.player, DefenseDie.getResult(faces))).doNext();
     }
 }

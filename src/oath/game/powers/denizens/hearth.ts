@@ -95,7 +95,7 @@ export class HeartsAndMinds extends DefenderBattlePlan<Denizen> {
         this.action.campaignResult.successful = false;
         this.action.next.doNext();
 
-        if (this.action.gameProxy.banners.get(BannerName.PeoplesFavor)?.owner !== this.activatorProxy)
+        if (this.gameProxy.banners.get(BannerName.PeoplesFavor)?.owner !== this.activatorProxy)
             this.action.campaignResult.discardAtEnd(this.source);
 
         return false;
