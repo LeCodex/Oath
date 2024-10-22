@@ -10,10 +10,9 @@ import { DiscardOptions } from "../cards/decks";
 import { isExtended } from "../utils";
 
 
-export class GrandScepterSeize extends EffectModifier<GrandScepter> {
+export class GrandScepterSeize extends EffectModifier<GrandScepter, TakeOwnableObjectEffect> {
     name = "Lock the Grand Scepter";
     modifiedEffect = TakeOwnableObjectEffect;
-    effect: TakeOwnableObjectEffect;
 
     canUse(): boolean {
         return this.effect.target === this.source;
@@ -190,10 +189,9 @@ function circletOfCommandCheckOwnable(sourceProxy: Relic, targetProxy: OwnableOb
     if (targetProxy !== sourceProxy)
         throw new InvalidActionResolution(`Cannot target or take objects from ${sourceProxy.ruler.name} while protected by the Circlet of Command.`);
 }
-export class CircletOfCommand extends EnemyEffectModifier<Relic> {
+export class CircletOfCommand extends EnemyEffectModifier<Relic, TakeOwnableObjectEffect> {
     name = "Circlet of Command";
     modifiedEffect = TakeOwnableObjectEffect;
-    effect: TakeOwnableObjectEffect;
 
     applyBefore(): void {
         const targetProxy = this.effect.maskProxyManager.get(this.effect.target);
@@ -225,10 +223,9 @@ export class DragonskinDrum extends AccessedActionModifier<Relic> {
     }
 }
 
-export class BookOfRecords extends AccessedEffectModifier<Relic> {
+export class BookOfRecords extends AccessedEffectModifier<Relic, PlayDenizenAtSiteEffect> {
     name = "Book of Records";
     modifiedEffect = PlayDenizenAtSiteEffect;
-    effect: PlayDenizenAtSiteEffect;
 
     applyBefore(): void {
         this.effect.getting.set(OathResource.Secret, this.effect.getting.get(OathResource.Favor) || 0);
@@ -245,10 +242,9 @@ export class RingOfDevotionMuster extends ActionModifier<Relic> {
         this.action.amount += 2;
     }
 }
-export class RingOfDevotionRestriction extends EffectModifier<Relic> {
+export class RingOfDevotionRestriction extends EffectModifier<Relic, MoveOwnWarbandsEffect> {
     name = "Ring of Devotion";
     modifiedEffect = MoveOwnWarbandsEffect;
-    effect: MoveOwnWarbandsEffect;
 
     applyBefore(): void {
         if (this.effect.to instanceof Site)
@@ -430,10 +426,9 @@ export class BanditCrownAction extends ActionModifier<Relic> {
         return true;
     }
 }
-export class BanditCrownEffect extends EffectModifier<Relic> {
+export class BanditCrownEffect extends EffectModifier<Relic, OathEffect<any>> {
     name = "Bandit Crown";
     modifiedEffect = OathEffect;
-    effect: OathEffect<any>;
     mustUse = true;
 
     applyWhenApplied(): void {
@@ -479,10 +474,9 @@ export class GrandMaskAction extends ActionModifier<Relic> {
         return true;
     }
 }
-export class GrandMaskEffect extends EffectModifier<Relic> {
+export class GrandMaskEffect extends EffectModifier<Relic, OathEffect<any>> {
     name = "Grand Mask";
     modifiedEffect = OathEffect;
-    effect: OathEffect<any>;
     mustUse = true;
 
     applyWhenApplied(): void {

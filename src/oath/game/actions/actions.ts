@@ -1,6 +1,6 @@
 import { Denizen, Edifice, OathCard, OwnableCard, Relic, Site, WorldCard } from "../cards/cards";
 import { DiscardOptions, SearchableDeck } from "../cards/decks";
-import { AttackDie, DefenseDie } from "../dice";
+import { AttackDie, DefenseDie, RollResult } from "../dice";
 import { MoveBankResourcesEffect, MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutResourcesIntoBankEffect, PutWarbandsFromBagEffect, RollDiceEffect, DrawFromDeckEffect, TakeResourcesFromBankEffect, TakeWarbandsIntoBagEffect, PutPawnAtSiteEffect, DiscardCardEffect, MoveOwnWarbandsEffect, MoveAdviserEffect, SetPeoplesFavorMobState, OathEffect, PaySupplyEffect, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, FlipEdificeEffect, CampaignResolveSuccessfulAndSkullsEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect, CheckCapacityEffect, ApplyModifiersEffect, CampaignJoinDefenderAlliesEffect, MoveWorldCardToAdvisersEffect, DiscardCardGroupEffect } from "../effects";
 import { ALL_OATH_SUITS, OathPhase, OathResource, OathResourceName, OathSuit, OathSuitName, OathType, OathTypeName } from "../enums";
 import { OathGame } from "../game";
@@ -693,7 +693,7 @@ export class CampaignAttackAction extends ModifiableAction {
         this.campaignResult.attacker = player;
         this.campaignResult.defender = defender;
         this.defender = defender;
-        this.defenderProxy = defender && this.maskProxyManager.get(defender);
+        this.defenderProxy = this.maskProxyManager.get(defender);
         this.campaignResult.checkForImperialInfighting(this.maskProxyManager);
     }
 
@@ -847,7 +847,9 @@ export class CampaignResultParameters extends DataObject {
     defForce: Set<ResourcesAndWarbands>;
     endCallbacks: (() => void)[] = [];
     
-    ignoreSkulls: boolean = false;
+    atkRoll = new RollResult();
+    defRoll = new RollResult();
+
     ignoreKilling: boolean = false;
     attackerKillsNoWarbands: boolean = false;
     defenderKillsNoWarbands: boolean = false;
@@ -861,9 +863,6 @@ export class CampaignResult extends OathGameObject {
     defenderAllies = new Set<OathPlayer>();
     
     params = new CampaignResultParameters();
-    
-    atkRoll: number[] = [];
-    defRoll: number[] = [];
     successful: boolean;
     attackerLoss: number = 0;
     defenderLoss: number = 0;
@@ -879,8 +878,8 @@ export class CampaignResult extends OathGameObject {
     get totalAtkForce() { return [...this.params.atkForce].reduce((a, e) => a + e.getWarbands(this.attacker.leader.original), 0); }
     get totalDefForce() { return [...this.params.defForce].reduce((a, e) => a + e.getWarbands(this.defender?.leader.original), 0); }
 
-    get atk() { return AttackDie.getResult(this.atkRoll); }
-    get def() { return DefenseDie.getResult(this.defRoll) + this.totalDefForce; }
+    get atk() { return this.params.atkRoll.value; }
+    get def() { return this.params.defRoll.value + this.totalDefForce; }
 
     get requiredSacrifice() {
         const diff = this.def - this.atk + 1;
@@ -910,11 +909,12 @@ export class CampaignResult extends OathGameObject {
     }
 
     rollAttack() {
-        this.atkRoll = new RollDiceEffect(this.game, this.attacker, AttackDie, this.params.atkPool).do();
+        this.params.atkRoll = new RollDiceEffect(this.game, this.attacker, AttackDie, this.params.atkPool, this.params.atkRoll).do();
     }
 
     rollDefense() {
-        this.defRoll = new RollDiceEffect(this.game, this.defender, DefenseDie, this.params.defPool + (this.params.atkPool < 0 ? -this.params.atkPool : 0)).do();
+        const pool = this.params.defPool + (this.params.atkPool < 0 ? -this.params.atkPool : 0);
+        this.params.defRoll = new RollDiceEffect(this.game, this.defender, DefenseDie, pool, this.params.defRoll).do();
     }
     
     attackerKills(amount: number) {

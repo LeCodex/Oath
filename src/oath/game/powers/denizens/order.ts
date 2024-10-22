@@ -1,5 +1,6 @@
 import { TradeAction, InvalidActionResolution, TravelAction, SearchAction, SearchPlayOrDiscardAction, TakeFavorFromBankAction, CampaignKillWarbandsInForceAction, CampaignResult, MakeDecisionAction, CampaignAction, ActAsIfAtSiteAction, CampaignDefenseAction, ChooseSitesAction, ChoosePlayersAction, MoveWarbandsAction, KillWarbandsOnTargetAction, MusterAction, MoveWarbandsBetweenBoardAndSitesAction } from "../../actions/actions";
 import { Denizen, Edifice, Relic, Site, Vision } from "../../cards/cards";
+import { DieSymbol } from "../../dice";
 import { PayCostToTargetEffect, MoveResourcesToTargetEffect, TakeWarbandsIntoBagEffect, GainSupplyEffect, TakeResourcesFromBankEffect, BecomeCitizenEffect, PutWarbandsFromBagEffect, ApplyModifiersEffect, PutPawnAtSiteEffect, MoveOwnWarbandsEffect, BecomeExileEffect, PlayVisionEffect, TakeOwnableObjectEffect } from "../../effects";
 import { BannerName, OathResource, OathSuit } from "../../enums";
 import { OathGameObject } from "../../gameObject";
@@ -226,7 +227,7 @@ export class Outriders extends AttackerBattlePlan<Denizen> {
     name = "Outriders";
 
     applyBefore(): void {
-        this.action.campaignResult.params.ignoreSkulls = true;
+        this.action.campaignResult.params.atkRoll.ignore.add(DieSymbol.Skull);
     }
 }
 
@@ -337,10 +338,9 @@ export class ForcedLabor extends EnemyActionModifier<Denizen> {
     }
 }
 
-export class SecretPolice extends EnemyEffectModifier<Denizen> {
+export class SecretPolice extends EnemyEffectModifier<Denizen, PlayVisionEffect> {
     name = "Secret Police";
     modifiedEffect = PlayVisionEffect;
-    effect: PlayVisionEffect;
     mustUse = true;
 
     canUse(): boolean {
@@ -352,10 +352,9 @@ export class SecretPolice extends EnemyEffectModifier<Denizen> {
     }
 }
 
-export class TomeGuardians extends EnemyEffectModifier<Denizen> {
+export class TomeGuardians extends EnemyEffectModifier<Denizen, TakeOwnableObjectEffect> {
     name = "Tome Guardians";
     modifiedEffect = TakeOwnableObjectEffect;
-    effect: TakeOwnableObjectEffect;
 
     applyBefore(): void {
         if (this.effect.maskProxyManager.get(this.effect.target) === this.gameProxy.banners.get(BannerName.DarkestSecret))
@@ -383,10 +382,9 @@ export class Tyrant extends AccessedActionModifier<Denizen> {
     }
 }
 
-export class CouncilSeat extends AccessedEffectModifier<Denizen> {
+export class CouncilSeat extends AccessedEffectModifier<Denizen, BecomeExileEffect> {
     name = "Council Seat";
     modifiedEffect = BecomeExileEffect;
-    effect: BecomeExileEffect;
     museUse = true;
 
     applyBefore(): void {

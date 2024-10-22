@@ -186,11 +186,11 @@ export abstract class DefenderEnemyCampaignModifier<T extends OwnableCard> exten
     }
 }
 
-export abstract class EffectModifier<T extends WithPowers> extends PowerWithProxy<T> {
-    abstract modifiedEffect: AbstractConstructor<OathEffect<any>>;
-    effect: OathEffect<any>;
+export abstract class EffectModifier<T extends WithPowers, U extends OathEffect<any>> extends PowerWithProxy<T> {
+    abstract modifiedEffect: AbstractConstructor<U>;
+    effect: U;
 
-    constructor(source: T, effect: OathEffect<any>) {
+    constructor(source: T, effect: U) {
         super(source, effect.maskProxyManager);
         this.effect = effect;
     }
@@ -199,11 +199,11 @@ export abstract class EffectModifier<T extends WithPowers> extends PowerWithProx
         return true;
     }
 
-    applyBefore(): void { }             // Applied right before the resolution of the effect
-    applyAfter(result: any): void { }   // Applied after the resolution of the effect
+    applyBefore(): void { }                                                 // Applied right before the resolution of the effect
+    applyAfter(result: U extends OathEffect<infer V> ? V : never): void { } // Applied after the resolution of the effect
 }
 
-export abstract class EnemyEffectModifier<T extends OwnableCard> extends EffectModifier<T> {
+export abstract class EnemyEffectModifier<T extends OwnableCard, U extends OathEffect<any>> extends EffectModifier<T, U> {
     mustUse = true;
 
     canUse(): boolean {
@@ -211,7 +211,7 @@ export abstract class EnemyEffectModifier<T extends OwnableCard> extends EffectM
     }
 }
 
-export abstract class AccessedEffectModifier<T extends OwnableCard> extends EffectModifier<T> {
+export abstract class AccessedEffectModifier<T extends OwnableCard, U extends OathEffect<any>> extends EffectModifier<T, U> {
     canUse(): boolean {
         return !!this.effect.playerProxy && this.sourceProxy.accessibleBy(this.effect.playerProxy);
     }

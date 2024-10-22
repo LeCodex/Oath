@@ -7,9 +7,8 @@ import { OathPlayer } from "../player";
 import { EffectModifier, ActionModifier, ActivePower } from "./powers";
 
 
-export abstract class HomelandSitePower extends EffectModifier<Site> {
+export abstract class HomelandSitePower extends EffectModifier<Site, PlayWorldCardEffect> {
     modifiedEffect = PlayWorldCardEffect;
-    effect: PlayWorldCardEffect;
     abstract suit: OathSuit;
 
     applyAfter(result: void): void {

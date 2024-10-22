@@ -1,5 +1,6 @@
 import { TradeAction, TakeResourceFromPlayerAction, TakeFavorFromBankAction, CampaignEndAction, ModifiableAction, MakeDecisionAction, CampaignAttackAction, InvalidActionResolution, RecoverAction, ChooseSuitsAction, ChooseCardsAction, MusterAction, SearchPlayOrDiscardAction, MayDiscardACardAction, SearchAction, CampaignDefenseAction, SearchChooseAction, ResolveCallbackAction, KillWarbandsOnTargetAction } from "../../actions/actions";
 import { Denizen, Edifice, Relic, WorldCard } from "../../cards/cards";
+import { DieSymbol } from "../../dice";
 import { TakeResourcesFromBankEffect, PlayVisionEffect, PlayWorldCardEffect, OathEffect, PeekAtCardEffect, DiscardCardEffect, PutWarbandsFromBagEffect, BecomeCitizenEffect, SetPeoplesFavorMobState, PutResourcesIntoBankEffect, GainSupplyEffect, MoveBankResourcesEffect, DrawFromDeckEffect, TakeOwnableObjectEffect, ApplyModifiersEffect, MoveDenizenToSiteEffect } from "../../effects";
 import { OathResource, BannerName, OathSuit, ALL_OATH_SUITS } from "../../enums";
 import { ResourceCost } from "../../resources";
@@ -51,7 +52,7 @@ export class TheGreatLevyAttack extends AttackerBattlePlan<Denizen> {
         const peoplesFavorProxy = this.gameProxy.banners.get(BannerName.PeoplesFavor);
         if (peoplesFavorProxy?.owner?.original === this.action.campaignResult.defender) return;
         this.action.campaignResult.params.atkPool += 3;
-        this.action.campaignResult.params.ignoreSkulls = true;
+        this.action.campaignResult.params.atkRoll.ignore.add(DieSymbol.Skull);
     }
 }
 export class TheGreatLevyDefense extends DefenderBattlePlan<Denizen> {
@@ -226,10 +227,9 @@ export class VowOfPeaceDefense extends AccessedActionModifier<Denizen> {
     }
 }
 
-export class BookBinders extends EnemyEffectModifier<Denizen> {
+export class BookBinders extends EnemyEffectModifier<Denizen, PlayVisionEffect> {
     name = "Book Binders";
     modifiedEffect = PlayVisionEffect;
-    effect: PlayVisionEffect;
 
     applyAfter(result: void): void {
         if (!this.sourceProxy.ruler?.original) return;
@@ -237,10 +237,9 @@ export class BookBinders extends EnemyEffectModifier<Denizen> {
     }
 }
 
-export class SaddleMakers extends EnemyEffectModifier<Denizen> {
+export class SaddleMakers extends EnemyEffectModifier<Denizen, PlayWorldCardEffect> {
     name = "Saddle Makers";
     modifiedEffect = PlayWorldCardEffect;
-    effect: PlayWorldCardEffect;
 
     applyAfter(result: void): void {
         if (!this.sourceProxy.ruler?.original) return;
@@ -282,10 +281,9 @@ export class MarriageAction extends ActionModifier<Denizen> {
         return true;
     }
 }
-export class MarriageEffect extends EffectModifier<Denizen> {
+export class MarriageEffect extends EffectModifier<Denizen, OathEffect<any>> {
     name = "Marriage";
     modifiedEffect = OathEffect;
-    effect: OathEffect<any>;
     mustUse = true;
 
     applyWhenApplied(): void {

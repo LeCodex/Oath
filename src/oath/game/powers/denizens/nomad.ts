@@ -206,10 +206,9 @@ function lostTongueCheckOwnable(sourceProxy: Denizen, targetProxy: OwnableObject
     if (playerProxy.suitRuledCount(OathSuit.Nomad) < 1)
         throw new InvalidActionResolution(`Cannot target or take objects from ${sourceProxy.ruler.name} without understanding the Lost Tongue.`);
 }
-export class LostTongue extends EnemyEffectModifier<Denizen> {
+export class LostTongue extends EnemyEffectModifier<Denizen, TakeOwnableObjectEffect> {
     name = "Lost Tongue";
     modifiedEffect = TakeOwnableObjectEffect;
-    effect: TakeOwnableObjectEffect;
 
     applyBefore(): void {
         const targetProxy = this.effect.maskProxyManager.get(this.effect.target);
@@ -242,10 +241,9 @@ export class AncientBloodlineAction extends EnemyActionModifier<Denizen> {
         }
     }
 }
-export class AncientBloodlineEffect extends EnemyEffectModifier<Denizen> {
+export class AncientBloodlineEffect extends EnemyEffectModifier<Denizen, OathEffect<any>> {
     name = "Ancient Bloodline";
     modifiedEffect = OathEffect;
-    effect: OathEffect<any>;
 
     applyBefore(): void {
         for (const siteProxy of this.gameProxy.board.sites()) {
@@ -255,10 +253,10 @@ export class AncientBloodlineEffect extends EnemyEffectModifier<Denizen> {
         }
     }
 }
-export class AncientBloodlineRelics extends EnemyEffectModifier<Denizen> {
+// TODO: Allow relics to be locked too
+export class AncientBloodlineRelics extends EnemyEffectModifier<Denizen, TakeOwnableObjectEffect> {
     name = "Ancient Bloodline";
     modifiedEffect = TakeOwnableObjectEffect;
-    effect: TakeOwnableObjectEffect;
 
     applyBefore(): void {
         const targetProxy = this.effect.maskProxyManager.get(this.effect.target);
@@ -267,10 +265,9 @@ export class AncientBloodlineRelics extends EnemyEffectModifier<Denizen> {
     }
 }
 
-export class SacredGround extends EffectModifier<Denizen> {
+export class SacredGround extends EffectModifier<Denizen, PlayVisionEffect> {
     name = "Sacred Ground";
     modifiedEffect = PlayVisionEffect;
-    effect: PlayVisionEffect;
 
     applyBefore(): void {
         if (this.effect.playerProxy.site !== this.sourceProxy.site)
@@ -361,10 +358,9 @@ export class Oracle extends ActivePower<Denizen> {
     }
 }
 
-export class SpellBreaker extends EnemyEffectModifier<Denizen> {
+export class SpellBreaker extends EnemyEffectModifier<Denizen, PayPowerCost> {
     name = "Spell Breaker";
     modifiedEffect = PayPowerCost;
-    effect: PayPowerCost;
 
     applyBefore(): void {
         if (this.effect.power.cost.totalResources.get(OathResource.Secret))

@@ -1,7 +1,7 @@
 import { CampaignAttackAction, CampaignDefenseAction, TakeFavorFromBankAction, TradeAction, TravelAction, InvalidActionResolution, MakeDecisionAction, RestAction, ChooseCardsAction, SearchPlayOrDiscardAction, ChoosePlayersAction, ChooseSitesAction, ChooseNumberAction, SearchAction, KillWarbandsOnTargetAction, MusterAction, RecoverAction, RecoverBannerPitchAction } from "../../actions/actions";
 import { Conspiracy, Denizen, Edifice, Relic, Site, WorldCard } from "../../cards/cards";
 import { DiscardOptions } from "../../cards/decks";
-import { AttackDie, DefenseDie } from "../../dice";
+import { AttackDie, DefenseDie, DieSymbol, RollResult } from "../../dice";
 import { RegionDiscardEffect, PutResourcesOnTargetEffect, RollDiceEffect, BecomeCitizenEffect, DiscardCardEffect, TakeResourcesFromBankEffect, PeekAtCardEffect, MoveAdviserEffect, MoveResourcesToTargetEffect, TakeWarbandsIntoBagEffect, PutResourcesIntoBankEffect, DrawFromDeckEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, MoveWorldCardToAdvisersEffect } from "../../effects";
 import { BannerName, OathResource, OathSuit } from "../../enums";
 import { OathPlayer } from "../../player";
@@ -53,7 +53,7 @@ export class KindredWarriorsAttack extends AttackerBattlePlan<Denizen> {
     cost = new ResourceCost([[OathResource.Secret, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.params.ignoreSkulls = true;
+        this.action.campaignResult.params.atkRoll.ignore.add(DieSymbol.Skull);
         this.action.campaignResult.params.atkPool += (this.activator.ruledSuits - 1);
     }
 }
@@ -289,24 +289,26 @@ export class ActingTroupe extends AccessedActionModifier<Denizen> {
     }
 }
 
-export class Jinx extends EffectModifier<Denizen> {
+export class Jinx extends EffectModifier<Denizen, RollDiceEffect> {
     name = "Jinx";
     modifiedEffect = RollDiceEffect;
-    effect: RollDiceEffect;
     cost = new ResourceCost([[OathResource.Secret, 1]]);
 
     canUse(): boolean {
         return !!this.effect.playerProxy && this.effect.playerProxy.rules(this.sourceProxy) && !(!this.sourceProxy.empty && this.gameProxy.currentPlayer === this.effect.playerProxy);
     }
 
-    applyAfter(result: number[]): void {
+    applyAfter(result: RollResult): void {
         const player = this.effect.player;
         if (!player) return;
         if (this.effect.die !== AttackDie || this.effect.die !== DefenseDie) return;
 
-        new MakeDecisionAction(player, "Reroll " + result.join(",") + "?", () => {
+        const dieResult = result.dice.get(this.effect.die)
+        if (!dieResult) return;
+
+        new MakeDecisionAction(player, "Reroll " + [...dieResult.values()].join(", ") + "?", () => {
             if (!this.payCost(player)) return;
-            for (const [i, face] of this.effect.die.roll(result.length).entries()) result[i] = face;
+            result.dice.set(this.effect.die, new RollResult().roll(this.effect.die, this.effect.amount).dice.get(this.effect.die)!)
         }).doNext();
     }
 }
@@ -480,10 +482,9 @@ export class Revelation extends WhenPlayed<Denizen> {
     }
 }
 
-export class VowOfSilence extends AccessedEffectModifier<Denizen> {
+export class VowOfSilence extends AccessedEffectModifier<Denizen, MoveResourcesToTargetEffect> {
     name = "Vow of Silence";
     modifiedEffect = MoveResourcesToTargetEffect;
-    effect: MoveResourcesToTargetEffect;
 
     applyAfter(): void {
         if (this.effect.resource === OathResource.Secret && this.effect.source === this.sourceProxy.ruler?.original)

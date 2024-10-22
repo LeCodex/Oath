@@ -1,6 +1,7 @@
 import { SearchAction, CampaignAttackAction, CampaignDefenseAction, TradeAction, TakeFavorFromBankAction, InvalidActionResolution, ActAsIfAtSiteAction, MakeDecisionAction, CampaignAction, ChoosePlayersAction, ChooseCardsAction, ChooseSuitsAction, KillWarbandsOnTargetAction, MusterAction, TravelAction, SearchPlayOrDiscardAction } from "../../actions/actions";
 import { Denizen, Edifice, GrandScepter, Relic, Site } from "../../cards/cards";
-import { BecomeCitizenEffect, DiscardCardEffect, DrawFromDeckEffect, FinishChronicle, GainSupplyEffect, MoveBankResourcesEffect, MoveDenizenToSiteEffect, MoveResourcesToTargetEffect, MoveWorldCardToAdvisersEffect, PlayWorldCardEffect, PutWarbandsFromBagEffect, RegionDiscardEffect, TakeOwnableObjectEffect } from "../../effects";
+import { DieSymbol } from "../../dice";
+import { BecomeCitizenEffect, DiscardCardEffect, DrawFromDeckEffect, FinishChronicleEffect, GainSupplyEffect, MoveBankResourcesEffect, MoveDenizenToSiteEffect, MoveResourcesToTargetEffect, MoveWorldCardToAdvisersEffect, PlayWorldCardEffect, PutWarbandsFromBagEffect, RegionDiscardEffect, TakeOwnableObjectEffect } from "../../effects";
 import { OathResource, OathSuit } from "../../enums";
 import { OathPlayer } from "../../player";
 import { ResourceCost } from "../../resources";
@@ -29,7 +30,7 @@ export class Rangers extends AttackerBattlePlan<Denizen> {
     cost = new ResourceCost([[OathResource.Favor, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.params.ignoreSkulls = true;
+        this.action.campaignResult.params.atkRoll.ignore.add(DieSymbol.Skull);
         if (this.action.campaignResult.params.defPool >= 4) this.action.campaignResult.params.atkPool += 2;
     }
 }
@@ -103,10 +104,9 @@ export class NewGrowth extends AccessedActionModifier<Denizen> {
     }
 }
 
-export class WildCry extends AccessedEffectModifier<Denizen> {
+export class WildCry extends AccessedEffectModifier<Denizen, PlayWorldCardEffect> {
     name = "Wild Cry";
     modifiedEffect = PlayWorldCardEffect;
-    effect: PlayWorldCardEffect;
 
     applyBefore(): void {
         if (!this.effect.facedown && this.effect.card instanceof Denizen && this.effect.card.suit === OathSuit.Beast) {
@@ -539,10 +539,9 @@ export class RovingTerror extends ActivePower<Denizen> {
 }
 
 
-export class ForestTemple extends EffectModifier<Edifice> {
+export class ForestTemple extends EffectModifier<Edifice, FinishChronicleEffect> {
     name = "Forest Temple";
-    modifiedEffect = FinishChronicle;
-    effect: FinishChronicle;
+    modifiedEffect = FinishChronicleEffect;
 
     applyBefore(): void {
         for (const siteProxy of this.gameProxy.board.sites()) {
@@ -556,10 +555,9 @@ export class ForestTemple extends EffectModifier<Edifice> {
     }
 }
 
-export class RuinedTemple extends EnemyEffectModifier<Edifice> {
+export class RuinedTemple extends EnemyEffectModifier<Edifice, PlayWorldCardEffect> {
     name = "Ruined Temple";
     modifiedEffect = PlayWorldCardEffect;
-    effect: PlayWorldCardEffect;
 
     applyBefore(): void {
         if (!this.effect.facedown && this.effect.card instanceof Denizen && this.effect.card.suit === OathSuit.Beast)

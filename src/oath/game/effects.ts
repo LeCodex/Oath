@@ -11,7 +11,7 @@ import { InvalidActionResolution, ModifiableAction, OathAction, BuildOrRepairEdi
 import { DiscardOptions } from "./cards/decks";
 import { CardDeck } from "./cards/decks";
 import { Constructor, isExtended, MaskProxyManager, shuffleArray } from "./utils";
-import { AttackDie, D6, Die } from "./dice";
+import { AttackDie, D6, RollResult, Die, DieSymbol } from "./dice";
 import { Oath } from "./oaths";
 import { Region } from "./board";
 import { edificeData } from "./cards/denizens";
@@ -23,7 +23,7 @@ import { edificeData } from "./cards/denizens";
 //////////////////////////////////////////////////
 export abstract class OathEffect<T> extends OathGameObject {
     player: OathPlayer | undefined;
-    modifiers: EffectModifier<any>[] = [];
+    modifiers: EffectModifier<any, OathEffect<T>>[] = [];
     maskProxyManager: MaskProxyManager;
     gameProxy: OathGame;
     playerProxy: OathPlayer | undefined;
@@ -52,7 +52,7 @@ export abstract class OathEffect<T> extends OathGameObject {
     }
 
     applyModifiers() {
-        for (const [sourceProxy, modifier] of this.gameProxy.getPowers(EffectModifier<any>)) {
+        for (const [sourceProxy, modifier] of this.gameProxy.getPowers(EffectModifier<any, OathEffect<T>>)) {
             const instance = new modifier(sourceProxy.original, this);
             if (this instanceof instance.modifiedEffect && instance.canUse()) {  // All Effect modifiers are must-use
                 this.modifiers.push(instance);
@@ -158,29 +158,6 @@ export class ApplyModifiersEffect extends OathEffect<boolean> {
             this.action.modifiers.pop();
             modifier.sourceProxy.powers.add(modifier.constructor as Constructor<ActionModifier<WithPowers>>);
         }
-    }
-}
-
-export class UpdateObjectEffect<T extends object> extends OathEffect<void> {
-    obj: T;
-    key: keyof T;
-    value: T[keyof T];
-    oldValue: T[keyof T];
-
-    constructor(game: OathGame, obj: T, key: keyof T, value: T[keyof T]) {
-        super(game, undefined);
-        this.obj = obj;
-        this.key = key;
-        this.value = value;
-    }
-
-    resolve(): void {
-        this.oldValue = this.obj[this.key];
-        this.obj[this.key] = this.value;
-    }
-
-    revert(): void {
-        this.obj[this.key] = this.oldValue;
     }
 }
 
@@ -1160,21 +1137,22 @@ export class GiveOwnableObjectEffect extends OathEffect<void> {
     }
 }
 
-export class RollDiceEffect extends OathEffect<number[]> {
+export class RollDiceEffect extends OathEffect<RollResult> {
     die: typeof Die;
     amount: number;
-    result: number[];
+    result: RollResult;
 
-    constructor(game: OathGame, player: OathPlayer | undefined, die: typeof Die, amount: number) {
+    constructor(game: OathGame, player: OathPlayer | undefined, die: typeof Die, amount: number, result: RollResult = new RollResult()) {
         super(game, player);
         this.die = die;
         this.amount = Math.max(0, amount);
+        this.result = result;
     }
 
-    resolve(): number[] {
-        // Side note: Because of powers like Jinx and Squalid District, the result of this should NOT be processed in its current action,
+    resolve(): RollResult {
+        // NOTE: Because of powers like Jinx and Squalid District, the result of this should NOT be processed in its current action,
         // but in a consecutive one, so a new action can be slotted in-between
-        this.result = this.die.roll(this.amount);
+        this.result.roll(this.die, this.amount);
         return this.result;
     }
 
@@ -1186,7 +1164,7 @@ export class RollDiceEffect extends OathEffect<number[]> {
     serialize(): Record<string, any> | undefined {
         return {
             die: this.die.name,
-            result: this.result
+            result: Object.fromEntries(this.result.symbols.entries())
         };
     }
 }
@@ -1226,8 +1204,8 @@ export class CampaignResolveSuccessfulAndSkullsEffect extends PlayerEffect<void>
         const campaignResult = this.action.campaignResult;
         campaignResult.successful = campaignResult.atk > campaignResult.def;
 
-        if (!campaignResult.params.ignoreKilling && !campaignResult.params.ignoreSkulls)
-            campaignResult.attackerKills(AttackDie.getSkulls(campaignResult.atkRoll));
+        if (!campaignResult.params.ignoreKilling)
+            campaignResult.attackerKills(campaignResult.params.atkRoll.get(DieSymbol.Skull));
     }
 
     revert(): void {
@@ -1405,16 +1383,16 @@ export class NextTurnEffect extends OathEffect<void> {
 }
 
 export class HandleD6ResultEffect extends OathEffect<void> {
-    result: number[];
+    result: RollResult;
 
-    constructor(game: OathGame, result: number[]) {
+    constructor(game: OathGame, result: RollResult) {
         super(game, undefined);
         this.result = result;
     }
 
     resolve(): void {
         const threshold = [6, 5, 3][this.game.round - 6];
-        if (this.result[0] >= threshold)
+        if (this.result.value >= threshold)
             return this.game.empireWins();
 
         new ChangePhaseEffect(this.game, OathPhase.Wake).doNext();
@@ -1698,7 +1676,7 @@ export class WinGameEffect extends PlayerEffect<void> {
         else
             new BuildOrRepairEdificeAction(this.player).doNext();
         
-        new FinishChronicle(this.player).doNext();
+        new FinishChronicleEffect(this.player).doNext();
     }
 
     revert(): void {
@@ -1796,7 +1774,7 @@ export class FlipEdificeEffect extends OathEffect<void> {
     }
 }
 
-export class FinishChronicle extends PlayerEffect<void> {
+export class FinishChronicleEffect extends PlayerEffect<void> {
     oldRegions = new Map<Region, Site[]>();
 
     resolve(): void {

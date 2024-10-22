@@ -2,7 +2,7 @@ import { MakeDecisionAction, ChooseCardsAction, ChooseRegionAction, InvalidActio
 import { PeoplesFavor } from "../../banks";
 import { Region } from "../../board";
 import { Denizen, Edifice, OathCard, Relic, Site, Vision, WorldCard } from "../../cards/cards";
-import { D6, DefenseDie } from "../../dice";
+import { D6, DefenseDie, RollResult } from "../../dice";
 import { TakeOwnableObjectEffect, TakeWarbandsIntoBagEffect, PutWarbandsFromBagEffect, PutResourcesOnTargetEffect, MoveResourcesToTargetEffect, SetNewOathkeeperEffect, RollDiceEffect, TakeResourcesFromBankEffect, DiscardCardEffect, BecomeCitizenEffect, PayCostToTargetEffect, PeekAtCardEffect, OathEffect, WinGameEffect, DrawFromDeckEffect, MoveWorldCardToAdvisersEffect } from "../../effects";
 import { BannerName, OathResource, OathSuit } from "../../enums";
 import { Exile, OathPlayer } from "../../player";
@@ -135,12 +135,11 @@ export class Zealots extends AttackerBattlePlan<Denizen> {
     }
 }
 
-export class RelicThief extends EnemyEffectModifier<Denizen> {
+export class RelicThief extends EnemyEffectModifier<Denizen, TakeOwnableObjectEffect> {
     name = "Relic Thief";
     modifiedEffect = TakeOwnableObjectEffect;
-    effect: TakeOwnableObjectEffect;
 
-    applyAfter(result: void): void {
+    applyAfter(): void {
         // TODO: Trigger when multiple things are taken
         const rulerProxy = this.sourceProxy.ruler;
         if (!rulerProxy) return;
@@ -242,12 +241,11 @@ export class Naysayers extends RestPower<Denizen> {
     }
 }
 
-export class ChaosCult extends EnemyEffectModifier<Denizen> {
+export class ChaosCult extends EnemyEffectModifier<Denizen, SetNewOathkeeperEffect> {
     name = "Chaos Cult";
     modifiedEffect = SetNewOathkeeperEffect;
-    effect: SetNewOathkeeperEffect;
 
-    applyAfter(result: void): void {
+    applyAfter(): void {
         new MoveResourcesToTargetEffect(this.effect.game, this.source.ruler, OathResource.Favor, 1, this.source.ruler, this.effect.player).do();
     }
 }
@@ -257,8 +255,8 @@ export class GamblingHall extends ActivePower<Denizen> {
     cost = new ResourceCost([[OathResource.Favor, 2]]);
 
     usePower(): void {
-        const faces = new RollDiceEffect(this.game, this.action.player, DefenseDie, 4).do();
-        new ResolveCallbackAction(this.action.player, () => new TakeFavorFromBankAction(this.action.player, DefenseDie.getResult(faces))).doNext();
+        const result = new RollDiceEffect(this.game, this.action.player, DefenseDie, 4).do();
+        new ResolveCallbackAction(this.action.player, () => new TakeFavorFromBankAction(this.action.player, result.value)).doNext();
     }
 }
 
@@ -388,10 +386,9 @@ export class BanditChiefAction extends ActionModifier<Denizen> {
         return true;
     }
 }
-export class BanditChiefEffect extends EffectModifier<Denizen> {
+export class BanditChiefEffect extends EffectModifier<Denizen, OathEffect<any>> {
     name = "Bandit Chief";
     modifiedEffect = OathEffect;
-    effect: OathEffect<any>;
 
     applyWhenApplied(): boolean {
         for (const siteProxy of this.gameProxy.board.sites())
@@ -437,12 +434,11 @@ export class FalseProphetWake extends WakePower<Denizen> {
         return true;
     }
 }
-export class FalseProphetDiscard extends EffectModifier<Denizen> {
+export class FalseProphetDiscard extends EffectModifier<Denizen, DiscardCardEffect<Vision>> {
     name = "False Prophet";
     modifiedEffect = DiscardCardEffect;
-    effect: DiscardCardEffect<Vision>;
 
-    applyAfter(result: void): void {
+    applyAfter(): void {
         const card = new DrawFromDeckEffect(this.effect.player, this.effect.discardOptions.discard, 1, this.effect.discardOptions.onBottom).do()[0];
         if (!(card instanceof Vision)) return;
         new SearchPlayOrDiscardAction(this.effect.player, card).doNext();
@@ -573,10 +569,9 @@ export class SneakAttack extends ActionModifier<Denizen> {
     }
 }
 
-export class VowOfRenewal extends EffectModifier<Denizen> {
+export class VowOfRenewal extends EffectModifier<Denizen, MoveResourcesToTargetEffect> {
     name = "Vow of Renewal";
     modifiedEffect = MoveResourcesToTargetEffect;
-    effect: MoveResourcesToTargetEffect;
 
     applyAfter(): void {
         if (this.effect.resource === OathResource.Favor && !this.effect.target && this.sourceProxy.ruler)
@@ -595,20 +590,24 @@ export class VowOfRenewalRecover extends AccessedActionModifier<Denizen> {
 }
 
 
-export class SqualidDistrict extends EffectModifier<Edifice> {
+export class SqualidDistrict extends EffectModifier<Edifice, RollDiceEffect> {
     name = "Squalid District";
     modifiedEffect = RollDiceEffect;
-    effect: RollDiceEffect;
 
     canUse(): boolean {
         return !!this.effect.playerProxy && this.effect.playerProxy === this.sourceProxy.ruler;
     }
 
-    applyAfter(result: number[]): void {
+    applyAfter(result: RollResult): void {
         const player = this.effect.player;
         if (!player) return;
         if (this.effect.die !== D6) return;
 
-        new MakeDecisionAction(player, "Add +1 or -1 to " + result[0] + "?", () => result[0]++, () => result[0]--, ["+1", "-1"]).doNext();
+        new MakeDecisionAction(
+            player, "Add +1 or -1 to " + result.value + "?",
+            () => result.dice.set(D6, new Map([[result.value + 1, 1]])),
+            () => result.dice.set(D6, new Map([[result.value - 1, 1]])),
+            ["+1", "-1"]
+        ).doNext();
     }
 }
