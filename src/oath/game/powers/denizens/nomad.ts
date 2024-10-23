@@ -8,7 +8,7 @@ import { BannerName, OathResource, OathSuit } from "../../enums";
 import { OwnableObject, isOwnable } from "../../interfaces";
 import { OathPlayer } from "../../player";
 import { ResourceCost } from "../../resources";
-import { ActionModifier, EnemyEffectModifier, ActivePower, CapacityModifier, AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, AttackerEnemyCampaignModifier, EnemyActionModifier, EffectModifier } from "../powers";
+import { ActionModifier, EnemyEffectModifier, ActivePower, CapacityModifier, AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, EnemyAttackerCampaignModifier, EnemyActionModifier, EffectModifier } from "../powers";
 
 
 export class HorseArchersAttack extends AttackerBattlePlan<Denizen> {
@@ -128,10 +128,9 @@ export class WarningSignals extends DefenderBattlePlan<Denizen> {
     }
 }
 
-export class WayStation extends ActionModifier<Denizen> {
+export class WayStation extends ActionModifier<Denizen, TravelAction> {
     name = "Way Station";
     modifiedAction = TravelAction;
-    action: TravelAction;
 
     applyBefore(): void {
         if (!this.sourceProxy.site) return;
@@ -145,10 +144,9 @@ export class WayStation extends ActionModifier<Denizen> {
     }
 }
 
-export class Hospitality extends ActionModifier<Denizen> {
+export class Hospitality extends ActionModifier<Denizen, TravelAction> {
     name = "Hospitality";
     modifiedAction = TravelAction;
-    action: TravelAction;
 
     applyAfter(): void {
         const adviserSuits = [...this.activatorProxy.advisers].filter(e => e instanceof Denizen).map(e => e.suit);
@@ -157,10 +155,9 @@ export class Hospitality extends ActionModifier<Denizen> {
     }
 }
 
-export class Tents extends ActionModifier<Denizen> {
+export class Tents extends ActionModifier<Denizen, TravelAction> {
     name = "Tents";
     modifiedAction = TravelAction;
-    action: TravelAction;
     cost = new ResourceCost([[OathResource.Favor, 1]]);
 
     applyBefore(): void {
@@ -169,10 +166,9 @@ export class Tents extends ActionModifier<Denizen> {
     }
 }
 
-export class SpecialEnvoy extends ActionModifier<Denizen> {
+export class SpecialEnvoy extends ActionModifier<Denizen, TravelAction> {
     name = "Special Envoy";
     modifiedAction = TravelAction;
-    action: TravelAction;
 
     applyBefore(): void {
         this.action.noSupplyCost = true;
@@ -183,10 +179,9 @@ export class SpecialEnvoy extends ActionModifier<Denizen> {
     }
 }
 
-export class AFastSteed extends ActionModifier<Denizen> {
+export class AFastSteed extends ActionModifier<Denizen, TravelAction> {
     name = "A Fast Steed";
     modifiedAction = TravelAction;
-    action: TravelAction;
     cost = new ResourceCost([[OathResource.Favor, 1]]);
 
     applyBefore(): void {
@@ -195,10 +190,9 @@ export class AFastSteed extends ActionModifier<Denizen> {
     }
 }
 
-export class RelicWorship extends ActionModifier<Denizen> {
+export class RelicWorship extends ActionModifier<Denizen, RecoverAction> {
     name = "Relic Worship";
     modifiedAction = RecoverAction;
-    action: RecoverAction;
     cost = new ResourceCost([[OathResource.Favor, 1]]);
 
     applyAtEnd(): void {
@@ -224,7 +218,7 @@ export class LostTongue extends EnemyEffectModifier<Denizen, TakeOwnableObjectEf
         lostTongueCheckOwnable(this.sourceProxy, targetProxy, this.effect.playerProxy);
     }
 }
-export class LostTongueCampaign extends AttackerEnemyCampaignModifier<Denizen> {
+export class LostTongueCampaign extends EnemyAttackerCampaignModifier<Denizen> {
     name = "Lost Tongue";
 
     applyBefore(): void {
@@ -237,10 +231,9 @@ export class LostTongueCampaign extends AttackerEnemyCampaignModifier<Denizen> {
     }
 }
 
-export class AncientBloodlineAction extends EnemyActionModifier<Denizen> {
+export class AncientBloodlineAction extends EnemyActionModifier<Denizen, ModifiableAction> {
     name = "Ancient Bloodline";
     modifiedAction = ModifiableAction;
-    action: ModifiableAction;
 
     applyBefore(): void {
         for (const siteProxy of this.gameProxy.board.sites()) {

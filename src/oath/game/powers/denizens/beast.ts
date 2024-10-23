@@ -3,9 +3,10 @@ import { Denizen, Edifice, GrandScepter, Relic, Site } from "../../cards/cards";
 import { DieSymbol } from "../../dice";
 import { BecomeCitizenEffect, DiscardCardEffect, DrawFromDeckEffect, FinishChronicleEffect, GainSupplyEffect, MoveBankResourcesEffect, MoveDenizenToSiteEffect, MoveResourcesToTargetEffect, MoveWorldCardToAdvisersEffect, PlayWorldCardEffect, PutWarbandsFromBagEffect, RegionDiscardEffect, TakeOwnableObjectEffect } from "../../effects";
 import { OathResource, OathSuit } from "../../enums";
+import { WithPowers } from "../../interfaces";
 import { OathPlayer } from "../../player";
 import { ResourceCost } from "../../resources";
-import { AccessedActionModifier, ActionModifier, AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, RestPower, ActivePower, EnemyActionModifier, AttackerEnemyCampaignModifier, DefenderEnemyCampaignModifier, AccessedEffectModifier, EffectModifier, EnemyEffectModifier } from "../powers";
+import { AccessedActionModifier, ActionModifier, AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, RestPower, ActivePower, EnemyActionModifier, EnemyAttackerCampaignModifier, EnemyDefenderCampaignModifier, AccessedEffectModifier, EffectModifier, EnemyEffectModifier } from "../powers";
 
 
 export class NatureWorshipAttack extends AttackerBattlePlan<Denizen> {
@@ -66,20 +67,18 @@ export class WalledGarden extends DefenderBattlePlan<Denizen> {
     }
 }
 
-export class Bracken extends AccessedActionModifier<Denizen> {
+export class Bracken extends AccessedActionModifier<Denizen, SearchAction> {
     name = "Bracken";
     modifiedAction = SearchAction;
-    action: SearchAction;
 
     applyBefore(): void {
         // TODO: Action to change the discard options
     }
 }
 
-export class ErrandBoy extends AccessedActionModifier<Denizen> {
+export class ErrandBoy extends AccessedActionModifier<Denizen, SearchAction> {
     name = "Errand Boy";
     modifiedAction = SearchAction;
-    action: SearchAction;
     cost = new ResourceCost([[OathResource.Favor, 1]]);
 
     applyAtStart(): void {
@@ -88,13 +87,12 @@ export class ErrandBoy extends AccessedActionModifier<Denizen> {
     }
 }
 
-export class ForestPaths extends AccessedActionModifier<Denizen> {
+export class ForestPaths extends AccessedActionModifier<Denizen, TravelAction> {
     name = "Forest Paths";
     modifiedAction = TravelAction;
-    action: TravelAction;
     cost = new ResourceCost([[OathResource.Favor, 1]]);
 
-    applyImmediately(modifiers: Iterable<ActionModifier<any>>): Iterable<ActionModifier<any>> {
+    applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, TravelAction>>): Iterable<ActionModifier<WithPowers, TravelAction>> {
         return [...modifiers].filter(e => e.source instanceof Site);
     }
 
@@ -106,10 +104,9 @@ export class ForestPaths extends AccessedActionModifier<Denizen> {
     }
 }
 
-export class NewGrowth extends AccessedActionModifier<Denizen> {
+export class NewGrowth extends AccessedActionModifier<Denizen, SearchPlayOrDiscardAction> {
     name = "New Growth";
     modifiedAction = SearchPlayOrDiscardAction;
-    action: SearchPlayOrDiscardAction;
 
     applyAtStart(): void {
         if (!(this.action.cardProxy instanceof Denizen)) return;
@@ -133,10 +130,9 @@ export class WildCry extends AccessedEffectModifier<Denizen, PlayWorldCardEffect
     }
 }
 
-export class AnimalPlaymates extends AccessedActionModifier<Denizen> {
+export class AnimalPlaymates extends AccessedActionModifier<Denizen, MusterAction> {
     name = "Animal Playmates";
     modifiedAction = MusterAction;
-    action: MusterAction;
 
     applyBefore(): void {
         if (this.action.cardProxy.suit === OathSuit.Beast)
@@ -144,10 +140,9 @@ export class AnimalPlaymates extends AccessedActionModifier<Denizen> {
     }
 }
 
-export class Birdsong extends AccessedActionModifier<Denizen> {
+export class Birdsong extends AccessedActionModifier<Denizen, TradeAction> {
     name = "Birdsong";
     modifiedAction = TradeAction;
-    action: TradeAction;
 
     applyBefore(): void {
         if (this.action.cardProxy.suit === OathSuit.Beast || this.action.cardProxy.suit === OathSuit.Nomad)
@@ -155,10 +150,9 @@ export class Birdsong extends AccessedActionModifier<Denizen> {
     }
 }
 
-export class TheOldOak extends AccessedActionModifier<Denizen> {
+export class TheOldOak extends AccessedActionModifier<Denizen, TradeAction> {
     name = "The Old Oak";
     modifiedAction = TradeAction;
-    action: TradeAction;
 
     applyBefore(): void {
         if (this.action.cardProxy === this.sourceProxy && !this.action.forFavor && [...this.action.playerProxy.advisers].some(e => e instanceof Denizen && e.suit === OathSuit.Beast))
@@ -166,10 +160,9 @@ export class TheOldOak extends AccessedActionModifier<Denizen> {
     }
 }
 
-export class Mushrooms extends AccessedActionModifier<Denizen> {
+export class Mushrooms extends AccessedActionModifier<Denizen, SearchAction> {
     name = "Mushrooms";
     modifiedAction = SearchAction;
-    action: SearchAction;
     cost = new ResourceCost([[OathResource.Secret, 1]]);
 
     applyBefore(): void {
@@ -180,10 +173,9 @@ export class Mushrooms extends AccessedActionModifier<Denizen> {
     }
 }
 
-export class MarshSpirit extends ActionModifier<Denizen> {
+export class MarshSpirit extends ActionModifier<Denizen, CampaignAttackAction> {
     name = "Marsh Spirit";
     modifiedAction = CampaignAttackAction;
-    action: CampaignAttackAction;
 
     applyBefore(): void {
         for (const targetProxy of this.action.campaignResult.params.targets)
@@ -192,20 +184,18 @@ export class MarshSpirit extends ActionModifier<Denizen> {
     }
 }
 
-export class ForestCouncilTrade extends EnemyActionModifier<Denizen> {
+export class ForestCouncilTrade extends EnemyActionModifier<Denizen, TradeAction> {
     name = "Forest Council";
     modifiedAction = TradeAction;
-    action: TradeAction;
 
     applyBefore(): void {
         if (this.action.cardProxy.suit === OathSuit.Beast)
             throw new InvalidActionResolution("Cannot trade with Beast cards under the Forest Council");
     }
 }
-export class ForestCouncilMuster extends EnemyActionModifier<Denizen> {
+export class ForestCouncilMuster extends EnemyActionModifier<Denizen, MusterAction> {
     name = "Forest Council";
     modifiedAction = MusterAction;
-    action: MusterAction;
 
     applyBefore(): void {
         if (this.action.cardProxy.suit === OathSuit.Beast)
@@ -213,10 +203,9 @@ export class ForestCouncilMuster extends EnemyActionModifier<Denizen> {
     }
 }
 
-export class GraspingVines extends EnemyActionModifier<Denizen> {
+export class GraspingVines extends EnemyActionModifier<Denizen, TravelAction> {
     name = "Grasping Vines";
     modifiedAction = TravelAction;
-    action: TravelAction;
 
     applyBefore(): void {
         if (this.action.maskProxyManager.get(this.action.travelling).site == this.sourceProxy.site)
@@ -224,17 +213,14 @@ export class GraspingVines extends EnemyActionModifier<Denizen> {
     }
 }
 
-export class InsectSwarmAttack extends ActionModifier<Denizen> {
+export class InsectSwarmAttack extends EnemyAttackerCampaignModifier<Denizen> {
     name = "Insect Swarm";
-    modifiedAction = CampaignAttackAction;
-    action: CampaignAttackAction;
-    mustUse = true;
 
     canUse(): boolean {
         return this.action.campaignResult.defender === this.sourceProxy.ruler?.original;
     }
 
-    applyImmediately(modifiers: Iterable<ActionModifier<any>>): Iterable<ActionModifier<any>> {
+    applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, CampaignAttackAction>>): Iterable<ActionModifier<WithPowers, CampaignAttackAction>> {
         for (const modifier of modifiers)
             if (modifier instanceof AttackerBattlePlan)
                 modifier.cost.add(new ResourceCost([], [[OathResource.Favor, 1]]));
@@ -242,17 +228,14 @@ export class InsectSwarmAttack extends ActionModifier<Denizen> {
         return [];
     }
 }
-export class InsectSwarmDefense extends ActionModifier<Denizen> {
+export class InsectSwarmDefense extends EnemyDefenderCampaignModifier<Denizen> {
     name = "Insect Swarm";
-    modifiedAction = CampaignDefenseAction;
-    action: CampaignDefenseAction;
-    mustUse = true;
 
     canUse(): boolean {
         return this.action.campaignResult.attacker === this.sourceProxy.ruler?.original;
     }
 
-    applyImmediately(modifiers: Iterable<ActionModifier<any>>): Iterable<ActionModifier<any>> {
+    applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, CampaignDefenseAction>>): Iterable<ActionModifier<WithPowers, CampaignDefenseAction>> {
         for (const modifier of modifiers)
             if (modifier instanceof DefenderBattlePlan)
                 modifier.cost.add(new ResourceCost([], [[OathResource.Favor, 1]]));
@@ -283,10 +266,9 @@ export class AnimalHost extends WhenPlayed<Denizen> {
     }
 }
 
-export class VowOfPoverty extends AccessedActionModifier<Denizen> {
+export class VowOfPoverty extends AccessedActionModifier<Denizen, TradeAction> {
     name = "Vow of Poverty";
     modifiedAction = TradeAction;
-    action: TradeAction;
     mustUse = true;
 
     applyBefore(): void {
@@ -302,10 +284,9 @@ export class VowOfPovertyRest extends RestPower<Denizen> {
     }
 }
 
-export class VowOfUnionAttack extends AccessedActionModifier<Denizen> {
+export class VowOfUnionAttack extends AccessedActionModifier<Denizen, CampaignAttackAction> {
     name = "Vow of Union";
     modifiedAction = CampaignAttackAction;
-    action: CampaignAttackAction;
     mustUse = true;
 
     applyBefore(): void {
@@ -314,10 +295,9 @@ export class VowOfUnionAttack extends AccessedActionModifier<Denizen> {
                 this.action.campaignResult.params.atkForce.add(siteProxy.original);
     }
 }
-export class VowOfUnionTravel extends AccessedActionModifier<Denizen> {
+export class VowOfUnionTravel extends AccessedActionModifier<Denizen, TravelAction> {
     name = "Vow of Union";
     modifiedAction = TravelAction;
-    action: TravelAction;
     mustUse = true;
 
     applyWhenApplied(): boolean {
@@ -326,10 +306,9 @@ export class VowOfUnionTravel extends AccessedActionModifier<Denizen> {
     }
 }
 
-export class VowOfBeastkin extends AccessedActionModifier<Denizen> {
+export class VowOfBeastkin extends AccessedActionModifier<Denizen, MusterAction> {
     name = "Vow of Beastkin";
     modifiedAction = MusterAction;
-    action: MusterAction;
     mustUse = true;
 
     applyBefore(): void {
@@ -340,12 +319,11 @@ export class VowOfBeastkin extends AccessedActionModifier<Denizen> {
     }
 }
 
-export class SmallFriends extends AccessedActionModifier<Denizen> {
+export class SmallFriends extends AccessedActionModifier<Denizen, TradeAction> {
     name = "Small Friends";
     modifiedAction = TradeAction;
-    action: TradeAction;
 
-    applyImmediately(modifiers: Iterable<ActionModifier<any>>): Iterable<ActionModifier<any>> {
+    applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, TradeAction>>): Iterable<ActionModifier<WithPowers, TradeAction>> {
         // Ignore all other modifiers, since we are going to select them again anyways
         return [...modifiers].filter(e => e !== this);
     }
@@ -366,7 +344,7 @@ export class SmallFriends extends AccessedActionModifier<Denizen> {
     }
 }
 
-export class GiantPython extends AttackerEnemyCampaignModifier<Denizen> {
+export class GiantPython extends EnemyAttackerCampaignModifier<Denizen> {
     name = "Giant Python";
 
     applyBefore(): void {
@@ -375,7 +353,7 @@ export class GiantPython extends AttackerEnemyCampaignModifier<Denizen> {
     }
 }
 
-export class TrueNamesAttack extends AttackerEnemyCampaignModifier<Denizen> {
+export class TrueNamesAttack extends EnemyAttackerCampaignModifier<Denizen> {
     name = "True Names";
 
     applyBefore(): void {
@@ -390,7 +368,7 @@ export class TrueNamesAttack extends AttackerEnemyCampaignModifier<Denizen> {
                 throw new InvalidActionResolution("Cannot use battle plans of suits matching the advisers of the ruler of True Names");
     }
 }
-export class TrueNamesDefense extends DefenderEnemyCampaignModifier<Denizen> {
+export class TrueNamesDefense extends EnemyDefenderCampaignModifier<Denizen> {
     name = "True Names";
 
     applyBefore(): void {

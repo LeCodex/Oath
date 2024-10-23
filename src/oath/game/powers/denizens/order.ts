@@ -7,7 +7,7 @@ import { OathGameObject } from "../../gameObject";
 import { CampaignActionTarget } from "../../interfaces";
 import { OathPlayer } from "../../player";
 import { ResourceCost } from "../../resources";
-import { AttackerBattlePlan, DefenderBattlePlan, EnemyActionModifier, WhenPlayed, AccessedActionModifier, RestPower, ActivePower, ActionModifier, AccessedEffectModifier, EnemyEffectModifier, AttackerEnemyCampaignModifier } from "../powers";
+import { AttackerBattlePlan, DefenderBattlePlan, EnemyActionModifier, WhenPlayed, AccessedActionModifier, RestPower, ActivePower, ActionModifier, AccessedEffectModifier, EnemyEffectModifier, EnemyAttackerCampaignModifier } from "../powers";
 
 
 export class LongbowsAttack extends AttackerBattlePlan<Denizen> {
@@ -239,10 +239,9 @@ export class Specialist extends AttackerBattlePlan<Denizen> {
         new ApplyModifiersEffect(this.action.next, [new SpecialistRestriction(this.source, this.action.next, this.action.player)]).do();
     }
 }
-export class SpecialistRestriction extends ActionModifier<Denizen> {
+export class SpecialistRestriction extends ActionModifier<Denizen, CampaignDefenseAction> {
     name = "Specialist";
     modifiedAction = CampaignDefenseAction;
-    action: CampaignDefenseAction;
     mustUse = true;
 
     applyBefore(): void {
@@ -294,10 +293,9 @@ export class RelicWrapper extends OathGameObject implements CampaignActionTarget
     }
 }
 
-export class Curfew extends EnemyActionModifier<Denizen> {
+export class Curfew extends EnemyActionModifier<Denizen, TradeAction> {
     name = "Curfew";
     modifiedAction = TradeAction;
-    action: TradeAction;
     mustUse = true;
 
     canUse(): boolean {
@@ -310,10 +308,9 @@ export class Curfew extends EnemyActionModifier<Denizen> {
     }
 }
 
-export class TollRoads extends EnemyActionModifier<Denizen> {
+export class TollRoads extends EnemyActionModifier<Denizen, TravelAction> {
     name = "Toll Roads";
     modifiedAction = TravelAction;
-    action: TravelAction;
 
     applyBefore(): void {
         if (this.action.siteProxy.ruler === this.sourceProxy.ruler)
@@ -322,10 +319,9 @@ export class TollRoads extends EnemyActionModifier<Denizen> {
     }
 }
 
-export class ForcedLabor extends EnemyActionModifier<Denizen> {
+export class ForcedLabor extends EnemyActionModifier<Denizen, SearchAction> {
     name = "Forced Labor";
     modifiedAction = SearchAction;
-    action: SearchAction;
     mustUse = true;
 
     canUse(): boolean {
@@ -361,7 +357,7 @@ export class TomeGuardians extends EnemyEffectModifier<Denizen, TakeOwnableObjec
             throw new InvalidActionResolution("Cannot take the Darkest Secret from the Tome Guardians.");
     }
 }
-export class TomeGuardiansAttack extends AttackerEnemyCampaignModifier<Denizen> {
+export class TomeGuardiansAttack extends EnemyAttackerCampaignModifier<Denizen> {
     name = "Tome Guardians";
 
     applyBefore(): void {
@@ -371,10 +367,9 @@ export class TomeGuardiansAttack extends AttackerEnemyCampaignModifier<Denizen> 
     }
 }
 
-export class Tyrant extends AccessedActionModifier<Denizen> {
+export class Tyrant extends AccessedActionModifier<Denizen, TravelAction> {
     name = "Tyrant";
     modifiedAction = TravelAction;
-    action: TravelAction;
     museUse = true;
 
     applyAfter(): void {
@@ -392,10 +387,9 @@ export class CouncilSeat extends AccessedEffectModifier<Denizen, BecomeExileEffe
     }
 }
 
-export class Pressgangs extends AccessedActionModifier<Denizen> {
+export class Pressgangs extends AccessedActionModifier<Denizen, MusterAction> {
     name = "Pressgangs";
     modifiedAction = MusterAction;
-    action: MusterAction;
 
     applyAtStart(): void {
         // TODO: This doesn't take other modifiers into account. There is none like that, but if you had something similar to Map Library for mustering, this wouldn't work with it
@@ -404,10 +398,9 @@ export class Pressgangs extends AccessedActionModifier<Denizen> {
     }
 }
 
-export class KnightsErrant extends AccessedActionModifier<Denizen> {
+export class KnightsErrant extends AccessedActionModifier<Denizen, MusterAction> {
     name = "Knights Errant";
     modifiedAction = MusterAction;
-    action: MusterAction;
     mustUse = true;  // Involves a choice, so better to include it by default
 
     applyAfter(): void {
@@ -421,10 +414,9 @@ export class KnightsErrant extends AccessedActionModifier<Denizen> {
     }
 }
 
-export class HuntingParty extends AccessedActionModifier<Denizen> {
+export class HuntingParty extends AccessedActionModifier<Denizen, SearchAction> {
     name = "Hunting Party";
     modifiedAction = SearchAction;
-    action: SearchAction;
     mustUse = true;  // Involves a choice, so better to include it by default
 
     applyAfter(): void {
@@ -473,10 +465,9 @@ export class Garrison extends WhenPlayed<Denizen> {
     }
 }
 
-export class VowOfObedience extends AccessedActionModifier<Denizen> {
+export class VowOfObedience extends AccessedActionModifier<Denizen, SearchPlayOrDiscardAction> {
     name = "Vow of Obedience";
     modifiedAction = SearchPlayOrDiscardAction;
-    action: SearchPlayOrDiscardAction;
     mustUse = true;
 
     applyBefore(): void {

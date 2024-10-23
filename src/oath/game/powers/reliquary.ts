@@ -1,10 +1,10 @@
 import { ActionModifier } from "./powers";
-import { InvalidActionResolution, CampaignAttackAction, SearchAction, TradeAction, TravelAction } from "../actions/actions";
+import { InvalidActionResolution, CampaignAttackAction, SearchAction, TradeAction, TravelAction, ModifiableAction } from "../actions/actions";
 import { OathResource, RegionName } from "../enums";
 import { ReliquarySlot } from "../reliquary";
 
 
-export abstract class ReliquaryModifier extends ActionModifier<ReliquarySlot> {
+export abstract class ReliquaryModifier<T extends ModifiableAction> extends ActionModifier<ReliquarySlot, T> {
     mustUse = true;
 
     canUse(): boolean {
@@ -12,10 +12,9 @@ export abstract class ReliquaryModifier extends ActionModifier<ReliquarySlot> {
     }
 }
 
-export class Brutal extends ReliquaryModifier {
+export class Brutal extends ReliquaryModifier<CampaignAttackAction> {
     name = "Brutal";
     modifiedAction = CampaignAttackAction;
-    action: CampaignAttackAction;
 
     applyBefore() {
         this.action.campaignResult.params.attackerKillsEntireForce = true;
@@ -23,10 +22,9 @@ export class Brutal extends ReliquaryModifier {
     }
 }
 
-export class Greedy extends ReliquaryModifier {
+export class Greedy extends ReliquaryModifier<SearchAction> {
     name = "Greedy";
     modifiedAction = SearchAction;
-    action: SearchAction;
 
     applyBefore(): void {
         this.action.amount += 2;
@@ -37,10 +35,9 @@ export class Greedy extends ReliquaryModifier {
     }
 }
 
-export class Careless extends ReliquaryModifier {
+export class Careless extends ReliquaryModifier<TradeAction> {
     name = "Careless";
     modifiedAction = TradeAction;
-    action: TradeAction;
 
     applyBefore(): void {
         this.action.getting.set(OathResource.Secret, (this.action.getting.get(OathResource.Secret) || 0) - 1);
@@ -48,10 +45,9 @@ export class Careless extends ReliquaryModifier {
     }
 }
 
-export class Decadent extends ReliquaryModifier {
+export class Decadent extends ReliquaryModifier<TravelAction> {
     name = "Decadent";
     modifiedAction = TravelAction;
-    action: TravelAction;
 
     applyBefore(): void {
         if (this.action.siteProxy.inRegion(RegionName.Cradle) && !this.activatorProxy.site.inRegion(RegionName.Cradle))

@@ -6,8 +6,9 @@ import { RegionDiscardEffect, PutResourcesOnTargetEffect, RollDiceEffect, Become
 import { BannerName, OathResource, OathSuit } from "../../enums";
 import { OathPlayer } from "../../player";
 import { ResourceCost } from "../../resources";
-import { ActionModifier, AttackerBattlePlan, DefenderBattlePlan, ActivePower, WhenPlayed, AccessedActionModifier, EffectModifier, AccessedEffectModifier } from "../powers";
+import { ActionModifier, AttackerBattlePlan, DefenderBattlePlan, ActivePower, WhenPlayed, AccessedActionModifier, EffectModifier, AccessedEffectModifier, EnemyAttackerCampaignModifier, EnemyDefenderCampaignModifier } from "../powers";
 import { inclusiveRange } from "../../utils";
+import { WithPowers } from "../../interfaces";
 
 
 export class FireTalkersAttack extends AttackerBattlePlan<Denizen> {
@@ -94,17 +95,10 @@ export class RustingRay extends DefenderBattlePlan<Denizen> {
     }
 }
 
-export class GleamingArmorAttack extends ActionModifier<Denizen> {
+export class GleamingArmorAttack extends EnemyAttackerCampaignModifier<Denizen> {
     name = "Gleaming Armor";
-    modifiedAction = CampaignAttackAction;
-    action: CampaignAttackAction;
-    mustUse = true;
 
-    canUse(): boolean {
-        return this.action.campaignResult.defender === this.sourceProxy.ruler?.original;
-    }
-
-    applyImmediately(modifiers: Iterable<ActionModifier<any>>): Iterable<ActionModifier<any>> {
+    applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, CampaignAttackAction>>): Iterable<ActionModifier<WithPowers, CampaignAttackAction>> {
         for (const modifier of modifiers)
             if (modifier instanceof AttackerBattlePlan)
                 modifier.cost.add(new ResourceCost([[OathResource.Secret, 1]]));
@@ -112,17 +106,10 @@ export class GleamingArmorAttack extends ActionModifier<Denizen> {
         return [];
     }
 }
-export class GleamingArmorDefense extends ActionModifier<Denizen> {
+export class GleamingArmorDefense extends EnemyDefenderCampaignModifier<Denizen> {
     name = "Gleaming Armor";
-    modifiedAction = CampaignDefenseAction;
-    action: CampaignDefenseAction;
-    mustUse = true;
-
-    canUse(): boolean {
-        return this.action.campaignResult.attacker === this.sourceProxy.ruler?.original;
-    }
-
-    applyImmediately(modifiers: Iterable<ActionModifier<any>>): Iterable<ActionModifier<any>> {
+    
+    applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, CampaignDefenseAction>>): Iterable<ActionModifier<WithPowers, CampaignDefenseAction>> {
         for (const modifier of modifiers)
             if (modifier instanceof DefenderBattlePlan)
                 modifier.cost.add(new ResourceCost([[OathResource.Secret, 1]]));
@@ -289,10 +276,9 @@ export class BloodPact extends ActivePower<Denizen> {
     }
 }
 
-export class ActingTroupe extends AccessedActionModifier<Denizen> {
+export class ActingTroupe extends AccessedActionModifier<Denizen, TradeAction> {
     name = "Acting Troupe";
     modifiedAction = TradeAction;
-    action: TradeAction;
 
     applyBefore(): void {
         if (this.action.cardProxy.suit === OathSuit.Order || this.action.cardProxy.suit === OathSuit.Beast)
@@ -324,13 +310,12 @@ export class Jinx extends EffectModifier<Denizen, RollDiceEffect> {
     }
 }
 
-export class Portal extends AccessedActionModifier<Denizen> {
+export class Portal extends AccessedActionModifier<Denizen, TravelAction> {
     name = "Portal";
     modifiedAction = TravelAction;
-    action: TravelAction;
     cost = new ResourceCost([[OathResource.Secret, 1]]);
 
-    applyImmediately(modifiers: Iterable<ActionModifier<any>>): Iterable<ActionModifier<any>> {
+    applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, TravelAction>>): Iterable<ActionModifier<WithPowers, TravelAction>> {
         return [...modifiers].filter(e => e.source instanceof Site);
     }
 
@@ -342,10 +327,9 @@ export class Portal extends AccessedActionModifier<Denizen> {
     }
 }
 
-export class SecretSignal extends AccessedActionModifier<Denizen> {
+export class SecretSignal extends AccessedActionModifier<Denizen, TradeAction> {
     name = "Secret Signal";
     modifiedAction = TradeAction;
-    action: TradeAction;
     
     applyAfter(): void {
         if (this.action.getting.get(OathResource.Favor) === 1)
@@ -353,20 +337,17 @@ export class SecretSignal extends AccessedActionModifier<Denizen> {
     }
 }
 
-export class InitiationRite extends AccessedActionModifier<Denizen> {
+export class InitiationRite extends AccessedActionModifier<Denizen, MusterAction> {
     name = "Initiation Rite";
     modifiedAction = MusterAction;
-    action: MusterAction;
     
     applyBefore(): void {
         this.action.using = OathResource.Secret;
     }
 }
 
-export class SealingWard extends AccessedActionModifier<Denizen> {
+export class SealingWard extends EnemyAttackerCampaignModifier<Denizen> {
     name = "Sealing Ward";
-    modifiedAction = CampaignAttackAction;
-    action: CampaignAttackAction;
     
     applyAfter(): void {
         for (const target of this.action.campaignResult.params.targets)
@@ -375,20 +356,18 @@ export class SealingWard extends AccessedActionModifier<Denizen> {
     }
 }
 
-export class Augury extends AccessedActionModifier<Denizen> {
+export class Augury extends AccessedActionModifier<Denizen, SearchAction> {
     name = "Augury";
     modifiedAction = SearchAction;
-    action: SearchAction;
     
     applyBefore(): void {
         this.action.amount++;
     }
 }
 
-export class Observatory extends AccessedActionModifier<Denizen> {
+export class Observatory extends AccessedActionModifier<Denizen, SearchAction> {
     name = "Observatory";
     modifiedAction = SearchAction;
-    action: SearchAction;
     
     applyAtStart(): void {
         if (this.action.playerProxy.site === this.sourceProxy.site)
@@ -397,10 +376,9 @@ export class Observatory extends AccessedActionModifier<Denizen> {
     }
 }
 
-export class MapLibrary extends AccessedActionModifier<Denizen> {
+export class MapLibrary extends AccessedActionModifier<Denizen, TradeAction> {
     name = "Map Library";
     modifiedAction = TradeAction;
-    action: TradeAction;
     
     applyAtStart(): void {
         if (this.action.playerProxy.site === this.sourceProxy.site)
@@ -410,12 +388,11 @@ export class MapLibrary extends AccessedActionModifier<Denizen> {
     }
 }
 
-export class MasterOfDisguise extends AccessedActionModifier<Denizen> {
+export class MasterOfDisguise extends AccessedActionModifier<Denizen,TradeAction> {
     name = "Master of Disguise";
     modifiedAction = TradeAction;
-    action: TradeAction;
 
-    applyImmediately(modifiers: Iterable<ActionModifier<any>>): Iterable<ActionModifier<any>> {
+    applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, TradeAction>>): Iterable<ActionModifier<WithPowers, TradeAction>> {
         // Ignore all other modifiers, since we are going to select them again anyways
         // TODO: Have a flag for all the "act as if" powers? Currently, if you choose two of them, they cancel each other out
         return [...modifiers].filter(e => e !== this);
@@ -502,20 +479,18 @@ export class VowOfSilence extends AccessedEffectModifier<Denizen, MoveResourcesT
             this.effect.amount = 0;
     }
 }
-export class VowOfSilenceRecover extends AccessedActionModifier<Denizen> {
+export class VowOfSilenceRecover extends AccessedActionModifier<Denizen, RecoverAction> {
     name = "Vow of Silence";
     modifiedAction = RecoverAction;
-    action: RecoverAction;
 
     applyBefore(): void {
         if (this.action.targetProxy === this.gameProxy.banners.get(BannerName.DarkestSecret))
             throw new InvalidActionResolution("Cannot recover the Darkest Secret with the Vow of Silence");
     }
 }
-export class VowOfSilencePitch extends ActionModifier<Denizen> {
+export class VowOfSilencePitch extends ActionModifier<Denizen, RecoverBannerPitchAction> {
     name = "Vow of Silence";
     modifiedAction = RecoverBannerPitchAction;
-    action: RecoverBannerPitchAction;
 
     applyAfter(): void {
         new PutResourcesOnTargetEffect(this.game, this.sourceProxy.ruler?.original, OathResource.Secret, this.action.amount).do();
@@ -550,10 +525,9 @@ export class DreamThief extends ActivePower<Denizen> {
 }
 
 
-export class GreatSpire extends AccessedActionModifier<Edifice> {
+export class GreatSpire extends AccessedActionModifier<Edifice, SearchAction> {
     name = "Great Spire";
     modifiedAction = SearchAction;
-    action: SearchAction;
     cost = new ResourceCost([[OathResource.Secret, 1]]);
 
     applyAtEnd(): void {

@@ -5,7 +5,7 @@ import { TakeResourcesFromBankEffect, PlayVisionEffect, PlayWorldCardEffect, Oat
 import { OathResource, BannerName, OathSuit, ALL_OATH_SUITS } from "../../enums";
 import { ResourceCost } from "../../resources";
 import { maxInGroup, minInGroup } from "../../utils";
-import { DefenderBattlePlan, AccessedActionModifier, ActivePower, WhenPlayed, EnemyEffectModifier, EnemyActionModifier, AttackerBattlePlan, ActionModifier, EffectModifier } from "../powers";
+import { DefenderBattlePlan, AccessedActionModifier, ActivePower, WhenPlayed, EnemyEffectModifier, EnemyActionModifier, AttackerBattlePlan, ActionModifier, EffectModifier, EnemyDefenderCampaignModifier } from "../powers";
 
 
 export class TravelingDoctorAttack extends AttackerBattlePlan<Denizen> {
@@ -112,10 +112,9 @@ export class ExtraProvisions extends DefenderBattlePlan<Denizen> {
     }
 }
 
-export class AwaitedReturn extends AccessedActionModifier<Denizen> {
+export class AwaitedReturn extends AccessedActionModifier<Denizen, TradeAction> {
     name = "Awaited Return";
     modifiedAction = TradeAction;
-    action: TradeAction;
 
     applyBefore(): void {
         if (this.activator.totalWarbands) {
@@ -125,10 +124,9 @@ export class AwaitedReturn extends AccessedActionModifier<Denizen> {
     }
 }
 
-export class RowdyPub extends AccessedActionModifier<Denizen> {
+export class RowdyPub extends AccessedActionModifier<Denizen, MusterAction> {
     name = "Rowdy Pub";
     modifiedAction = MusterAction;
-    action: MusterAction;
     mustUse = true;  // Nicer to have it automatically apply
 
     applyBefore(): void {
@@ -137,10 +135,9 @@ export class RowdyPub extends AccessedActionModifier<Denizen> {
     }
 }
 
-export class CropRotation extends AccessedActionModifier<Denizen> {
+export class CropRotation extends AccessedActionModifier<Denizen, SearchPlayOrDiscardAction> {
     name = "Crop Rotation";
     modifiedAction = SearchPlayOrDiscardAction;
-    action: SearchPlayOrDiscardAction;
     mustUse = true;  // Nicer to have it automatically apply
 
     applyBefore(): void {
@@ -149,10 +146,9 @@ export class CropRotation extends AccessedActionModifier<Denizen> {
     }
 }
 
-export class NewsFromAfar extends AccessedActionModifier<Denizen> {
+export class NewsFromAfar extends AccessedActionModifier<Denizen, SearchAction> {
     name = "News From Afar";
     modifiedAction = SearchAction;
-    action: SearchAction;
     cost = new ResourceCost([[OathResource.Favor, 2]]);
 
     applyBefore(): void {
@@ -206,21 +202,17 @@ export class FamilyHeirloom extends WhenPlayed<Denizen> {
     }
 }
 
-export class VowOfPeace extends AccessedActionModifier<Denizen> {
+export class VowOfPeace extends AccessedActionModifier<Denizen, CampaignAttackAction> {
     name = "Vow of Peace";
     modifiedAction = CampaignAttackAction;
-    action: CampaignAttackAction;
     mustUse = true;
 
-    applyImmediately(modifiers: Iterable<ActionModifier<any>>): Iterable<ActionModifier<any>> {
+    applyImmediately(modifiers: Iterable<ActionModifier<any, CampaignAttackAction>>): Iterable<ActionModifier<any, CampaignAttackAction>> {
         throw new InvalidActionResolution("Cannot campaign under the Vow of Peace");
     }
 }
-export class VowOfPeaceDefense extends AccessedActionModifier<Denizen> {
+export class VowOfPeaceDefense extends EnemyDefenderCampaignModifier<Denizen> {
     name = "Vow of Peace";
-    modifiedAction = CampaignDefenseAction;
-    action: CampaignDefenseAction;
-    mustUse = true;
 
     applyBefore(): void {
         this.action.campaignResult.params.sacrificeValue = 0;
@@ -251,10 +243,9 @@ export class SaddleMakers extends EnemyEffectModifier<Denizen, PlayWorldCardEffe
     }
 }
 
-export class Herald extends EnemyActionModifier<Denizen> {
+export class Herald extends EnemyActionModifier<Denizen, CampaignEndAction> {
     name = "Herald";
     modifiedAction = CampaignEndAction;
-    action: CampaignEndAction;
     mustUse = true;
 
     applyAfter(): void {
@@ -264,10 +255,9 @@ export class Herald extends EnemyActionModifier<Denizen> {
     }
 }
 
-export class MarriageAction extends ActionModifier<Denizen> {
+export class MarriageAction extends ActionModifier<Denizen, ModifiableAction> {
     name = "Marriage";
     modifiedAction = ModifiableAction;
-    action: ModifiableAction;
     mustUse = true;
 
     applyWhenApplied(): boolean {
@@ -296,10 +286,9 @@ export class MarriageEffect extends EffectModifier<Denizen, OathEffect<any>> {
     }
 }
 
-export class LandWarden extends AccessedActionModifier<Denizen> {
+export class LandWarden extends AccessedActionModifier<Denizen, SearchChooseAction> {
     name = "Land Warden";
     modifiedAction = SearchChooseAction;
-    action: SearchChooseAction;
     cost = new ResourceCost([[OathResource.Favor, 1]]);
 
     applyWhenApplied(): boolean {
@@ -316,20 +305,18 @@ export class LandWarden extends AccessedActionModifier<Denizen> {
     }
 }
 
-export class WelcomingParty extends AccessedActionModifier<Denizen> {
+export class WelcomingParty extends AccessedActionModifier<Denizen, SearchChooseAction> {
     name = "Welcoming Party";
     modifiedAction = SearchChooseAction;
-    action: SearchChooseAction;
 
     applyAfter(): void {
         for (const playAction of this.action.playActions)
             new ApplyModifiersEffect(playAction, [new WelcomingPartyPlay(this.source, playAction, this.activator)]).do();
     }
 }
-export class WelcomingPartyPlay extends ActionModifier<Denizen> {
+export class WelcomingPartyPlay extends ActionModifier<Denizen, SearchPlayOrDiscardAction> {
     name = "Welcoming Party";
     modifiedAction = SearchPlayOrDiscardAction;
-    action: SearchPlayOrDiscardAction;
 
     applyAfter(): void {
         new TakeResourcesFromBankEffect(this.game, this.activator, this.game.favorBanks.get(OathSuit.Hearth), 1).do();
@@ -478,10 +465,9 @@ export class RelicBreaker extends ActivePower<Denizen> {
 }
 
 
-export class HallOfDebate extends ActionModifier<Edifice> {
+export class HallOfDebate extends ActionModifier<Edifice, CampaignAttackAction> {
     name = "Hall of Debate";
     modifiedAction = CampaignAttackAction;
-    action: CampaignAttackAction;
 
     applyBefore(): void {
         const peoplesFavor = this.game.banners.get(BannerName.PeoplesFavor);
@@ -490,10 +476,9 @@ export class HallOfDebate extends ActionModifier<Edifice> {
     }
 }
 
-export class HallOfMockery extends ActionModifier<Edifice> {
+export class HallOfMockery extends ActionModifier<Edifice, RecoverAction> {
     name = "Hall of Mockery";
     modifiedAction = RecoverAction;
-    action: RecoverAction;
 
     applyAfter(): void {
         if (this.action.targetProxy === this.gameProxy.banners.get(BannerName.PeoplesFavor))

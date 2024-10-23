@@ -7,7 +7,7 @@ import { TakeOwnableObjectEffect, TakeWarbandsIntoBagEffect, PutWarbandsFromBagE
 import { BannerName, OathResource, OathSuit } from "../../enums";
 import { Exile, OathPlayer } from "../../player";
 import { ResourceCost } from "../../resources";
-import { EnemyEffectModifier, WhenPlayed, CapacityModifier, ActivePower, RestPower, AttackerBattlePlan, DefenderBattlePlan, EffectModifier, ActionModifier, AccessedActionModifier, WakePower, EnemyActionModifier, AttackerEnemyCampaignModifier, DefenderEnemyCampaignModifier } from "../powers";
+import { EnemyEffectModifier, WhenPlayed, CapacityModifier, ActivePower, RestPower, AttackerBattlePlan, DefenderBattlePlan, EffectModifier, ActionModifier, AccessedActionModifier, WakePower, EnemyActionModifier, EnemyAttackerCampaignModifier, EnemyDefenderCampaignModifier } from "../powers";
 import { minInGroup } from "../../utils";
 import { ResolveCallbackAction } from "../../actions/actions";
 
@@ -373,10 +373,9 @@ export class BanditChief extends WhenPlayed<Denizen> {
             new KillWarbandsOnTargetAction(this.effect.player, site, 1).doNext();
     }
 }
-export class BanditChiefAction extends ActionModifier<Denizen> {
+export class BanditChiefAction extends ActionModifier<Denizen, ModifiableAction> {
     name = "Bandit Chief";
     modifiedAction = ModifiableAction;
-    action: ModifiableAction;
     mustUse = true;
 
     applyWhenApplied(): boolean {
@@ -469,10 +468,9 @@ export class SaltTheEarth extends CapacityModifier<Denizen> {
     }
 }
 
-export class Downtrodden extends AccessedActionModifier<Denizen> {
+export class Downtrodden extends AccessedActionModifier<Denizen, MusterAction> {
     name = "Downtrodden";
     modifiedAction = MusterAction;
-    action: MusterAction;
 
     applyBefore(): void {
         let minSuits = minInGroup(this.game.favorBanks, ([_, v]) => v.amount).map(([k, _]) => k);
@@ -481,10 +479,9 @@ export class Downtrodden extends AccessedActionModifier<Denizen> {
     }
 }
 
-export class BoilingLake extends EnemyActionModifier<Denizen> {
+export class BoilingLake extends EnemyActionModifier<Denizen, TravelAction> {
     name = "Boiling Lake";
     modifiedAction = TravelAction;
-    action: TravelAction;
 
     applyBefore(): void {
         if (this.action.siteProxy == this.sourceProxy.site)
@@ -492,10 +489,9 @@ export class BoilingLake extends EnemyActionModifier<Denizen> {
     }
 }
 
-export class Gossip extends EnemyActionModifier<Denizen> {
+export class Gossip extends EnemyActionModifier<Denizen, SearchPlayOrDiscardAction> {
     name = "Gossip";
     modifiedAction = SearchPlayOrDiscardAction;
-    action: SearchPlayOrDiscardAction;
 
     applyBefore(): void {
         if (this.action.facedown)
@@ -503,7 +499,7 @@ export class Gossip extends EnemyActionModifier<Denizen> {
     }
 }
 
-export class BeastTamerAttack extends AttackerEnemyCampaignModifier<Denizen> {
+export class BeastTamerAttack extends EnemyAttackerCampaignModifier<Denizen> {
     name = "Beast Tamer";
 
     applyBefore(): void {
@@ -515,7 +511,7 @@ export class BeastTamerAttack extends AttackerEnemyCampaignModifier<Denizen> {
                 throw new InvalidActionResolution("Cannot use Beast or Nomad battle plans against Beast Tamer");
     }
 }
-export class BeastTamerDefense extends DefenderEnemyCampaignModifier<Denizen> {
+export class BeastTamerDefense extends EnemyDefenderCampaignModifier<Denizen> {
     name = "Beast Tamer";
 
     applyBefore(): void {
@@ -553,10 +549,9 @@ export class Enchantress extends ActivePower<Denizen> {
     }
 }
 
-export class SneakAttack extends ActionModifier<Denizen> {
+export class SneakAttack extends ActionModifier<Denizen, CampaignEndAction> {
     name = "Sneak Attack";
     modifiedAction = CampaignEndAction;
-    action: CampaignEndAction;
 
     applyBefore(): void {
         const ruler = this.sourceProxy.ruler?.original;
@@ -578,10 +573,9 @@ export class VowOfRenewal extends EffectModifier<Denizen, MoveResourcesToTargetE
             new PutResourcesOnTargetEffect(this.game, this.sourceProxy.ruler.original, OathResource.Favor, this.effect.amount).do();
     }
 }
-export class VowOfRenewalRecover extends AccessedActionModifier<Denizen> {
+export class VowOfRenewalRecover extends AccessedActionModifier<Denizen, RecoverAction> {
     name = "Vow of Renewal";
     modifiedAction = RecoverAction;
-    action: RecoverAction;
 
     applyBefore(): void {
         if (this.action.targetProxy === this.gameProxy.banners.get(BannerName.PeoplesFavor))

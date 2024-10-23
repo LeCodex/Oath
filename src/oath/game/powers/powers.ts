@@ -62,10 +62,10 @@ export abstract class WhenPlayed<T extends WorldCard> extends PowerWithProxy<T> 
     abstract whenPlayed(): void;
 }
 
-export abstract class ActionPower<T extends WithPowers> extends PowerWithProxy<T> {
-    action: ModifiableAction;
+export abstract class ActionPower<T extends WithPowers, U extends ModifiableAction> extends PowerWithProxy<T> {
+    action: U;
 
-    constructor(source: T, action: ModifiableAction) {
+    constructor(source: T, action: U) {
         super(source, action.maskProxyManager);
         this.action = action;
     }
@@ -73,9 +73,7 @@ export abstract class ActionPower<T extends WithPowers> extends PowerWithProxy<T
     abstract canUse(): boolean;
 }
 
-export abstract class ActivePower<T extends OathCard> extends ActionPower<T> {
-    action: UsePowerAction;
-
+export abstract class ActivePower<T extends OathCard> extends ActionPower<T, UsePowerAction> {
     canUse(): boolean {
         return this.sourceProxy.accessibleBy(this.action.playerProxy) && this.sourceProxy.empty;
     }
@@ -83,14 +81,14 @@ export abstract class ActivePower<T extends OathCard> extends ActionPower<T> {
     abstract usePower(): void;
 }
 
-export abstract class ActionModifier<T extends WithPowers> extends ActionPower<T> {
-    abstract modifiedAction: AbstractConstructor<ModifiableAction>;
+export abstract class ActionModifier<T extends WithPowers, U extends ModifiableAction> extends ActionPower<T, U> {
+    abstract modifiedAction: AbstractConstructor<U>;
     mustUse: boolean = false;
 
     activator: OathPlayer;
     activatorProxy: OathPlayer;
 
-    constructor(source: T, action: ModifiableAction, activator: OathPlayer) {
+    constructor(source: T, action: U, activator: OathPlayer) {
         super(source, action);
         this.activator = activator;
         this.activatorProxy = action.maskProxyManager.get(activator);
@@ -101,7 +99,7 @@ export abstract class ActionModifier<T extends WithPowers> extends ActionPower<T
     }
 
     /** Applied right after all the possible modifiers are collected */
-    applyImmediately(modifiers: Iterable<ActionModifier<any>>): Iterable<ActionModifier<any>> { return []; }
+    applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, U>>): Iterable<ActionModifier<WithPowers, U>> { return []; }
     /** Applied before the action is added to the stack. If returns false, it will not be added */
     applyWhenApplied(): boolean { return true; }
     /** Applied when the action starts and selects are set up (before choices are made) */
@@ -118,7 +116,7 @@ export abstract class ActionModifier<T extends WithPowers> extends ActionPower<T
     }
 }
 
-export abstract class EnemyActionModifier<T extends OwnableCard> extends ActionModifier<T> {
+export abstract class EnemyActionModifier<T extends OwnableCard, U extends ModifiableAction> extends ActionModifier<T, U> {
     mustUse = true;
 
     canUse(): boolean {
@@ -126,62 +124,58 @@ export abstract class EnemyActionModifier<T extends OwnableCard> extends ActionM
     }
 }
 
-export abstract class AccessedActionModifier<T extends OwnableCard> extends ActionModifier<T> {
+export abstract class AccessedActionModifier<T extends OwnableCard, U extends ModifiableAction> extends ActionModifier<T, U> {
     canUse(): boolean {
         return this.sourceProxy.accessibleBy(this.activatorProxy) && this.sourceProxy.empty;
     }
 }
 
-export abstract class WakePower<T extends OwnableCard> extends AccessedActionModifier<T> {
+export abstract class WakePower<T extends OwnableCard> extends AccessedActionModifier<T, WakeAction> {
     modifiedAction = WakeAction;
-    action: WakeAction;
     mustUse = true;
 }
 
-export abstract class RestPower<T extends OwnableCard> extends AccessedActionModifier<T> {
+export abstract class RestPower<T extends OwnableCard> extends AccessedActionModifier<T, RestAction> {
     modifiedAction = RestAction;
-    action: RestAction;
     mustUse = true;
 }
 
-export abstract class BattlePlan<T extends OwnableCard> extends ActionModifier<T> {
+export abstract class BattlePlan<T extends OwnableCard, U extends ModifiableAction> extends ActionModifier<T, U> {
     canUse(): boolean {
         return this.activatorProxy.rules(this.sourceProxy);
     }
 }
 
-export abstract class AttackerBattlePlan<T extends OwnableCard> extends BattlePlan<T> {
+export abstract class AttackerBattlePlan<T extends OwnableCard> extends BattlePlan<T, CampaignAttackAction> {
     modifiedAction = CampaignAttackAction;
-    action: CampaignAttackAction;
 }
 
-export abstract class DefenderBattlePlan<T extends OwnableCard> extends BattlePlan<T> {
+export abstract class DefenderBattlePlan<T extends OwnableCard> extends BattlePlan<T, CampaignDefenseAction> {
     modifiedAction = CampaignDefenseAction;
-    action: CampaignDefenseAction;
 }
 
-export abstract class AttackerEnemyCampaignModifier<T extends OwnableCard> extends ActionModifier<T> {
+export abstract class EnemyAttackerCampaignModifier<T extends OwnableCard> extends ActionModifier<T, CampaignAttackAction> {
     modifiedAction = CampaignAttackAction;
-    action: CampaignAttackAction;
     mustUse = true;
 
     canUse(): boolean {
+        const ruler = this.sourceProxy.ruler?.original;
         return (
-            (this.source.ruler === this.action.campaignResult.defender || !!this.source.ruler && this.action.campaignResult.defenderAllies.has(this.source.ruler))
+            (ruler === this.action.campaignResult.defender || !!ruler && this.action.campaignResult.defenderAllies.has(ruler))
             && this.activator === this.action.campaignResult.attacker
         );
     }
 }
 
-export abstract class DefenderEnemyCampaignModifier<T extends OwnableCard> extends ActionModifier<T> {
+export abstract class EnemyDefenderCampaignModifier<T extends OwnableCard> extends ActionModifier<T, CampaignDefenseAction> {
     modifiedAction = CampaignDefenseAction;
-    action: CampaignDefenseAction;
     mustUse = true;
 
     canUse(): boolean {
+        const ruler = this.sourceProxy.ruler?.original;
         return (
             (this.activator === this.action.campaignResult.defender || this.action.campaignResult.defenderAllies.has(this.activator))
-            && this.source.ruler === this.action.campaignResult.attacker
+            && ruler === this.action.campaignResult.attacker
         );
     }
 }

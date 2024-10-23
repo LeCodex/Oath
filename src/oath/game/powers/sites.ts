@@ -1,4 +1,4 @@
-import { InvalidActionResolution, ChooseResourceToTakeAction, WakeAction, TravelAction, CampaignAttackAction, MusterAction, SearchAction, StartBindingExchangeAction, MakeBindingExchangeOfferAction, SearchPlayOrDiscardAction, MayDiscardACardAction } from "../actions/actions";
+import { InvalidActionResolution, ChooseResourceToTakeAction, WakeAction, TravelAction, CampaignAttackAction, MusterAction, SearchAction, StartBindingExchangeAction, MakeBindingExchangeOfferAction, SearchPlayOrDiscardAction, MayDiscardACardAction, ModifiableAction } from "../actions/actions";
 import { Site, Denizen } from "../cards/cards";
 import { PlayWorldCardEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PutWarbandsFromBagEffect, TakeResourcesFromBankEffect, FlipSecretsEffect } from "../effects";
 import { OathSuit, OathResource } from "../enums";
@@ -78,16 +78,15 @@ export class DeepWoods extends HomelandSitePower {
 }
 
 
-export abstract class SiteActionModifier extends ActionModifier<Site> {
+export abstract class SiteActionModifier<T extends ModifiableAction> extends ActionModifier<Site, T> {
     canUse(): boolean {
         return this.activatorProxy.site === this.sourceProxy;
     }
 }
 
-export class CoastalSite extends SiteActionModifier {
+export class CoastalSite extends SiteActionModifier<TravelAction> {
     name = "Coastal Site";
     modifiedAction = TravelAction;
-    action: TravelAction;
 
     canUse(): boolean {
         for (const siteProxy of this.gameProxy.board.sites())
@@ -99,7 +98,7 @@ export class CoastalSite extends SiteActionModifier {
         return false;
     }
 
-    applyImmediately(modifiers: Iterable<ActionModifier<any>>): Iterable<ActionModifier<any>> {
+    applyImmediately(modifiers: Iterable<ActionModifier<any, TravelAction>>): Iterable<ActionModifier<any, TravelAction>> {
         return [...modifiers].filter(e => e instanceof NarrowPass);
     }
 
@@ -117,10 +116,9 @@ export class CoastalSite extends SiteActionModifier {
     }
 }
 
-export class CharmingValley extends SiteActionModifier {
+export class CharmingValley extends SiteActionModifier<TravelAction> {
     name = "Charming Valley";
     modifiedAction = TravelAction;
-    action: TravelAction;
     mustUse = true;
 
     applyBefore(): void {
@@ -128,12 +126,11 @@ export class CharmingValley extends SiteActionModifier {
     }
 }
 
-export class BuriedGiant extends SiteActionModifier {
+export class BuriedGiant extends SiteActionModifier<TravelAction> {
     name = "Buried Giant";
     modifiedAction = TravelAction;
-    action: TravelAction;
 
-    applyImmediately(modifiers: Iterable<ActionModifier<any>>): Iterable<ActionModifier<any>> {
+    applyImmediately(modifiers: Iterable<ActionModifier<any,TravelAction>>): Iterable<ActionModifier<any, TravelAction>> {
         return [...modifiers].filter(e => e instanceof NarrowPass);
     }
 
@@ -149,13 +146,12 @@ export class BuriedGiant extends SiteActionModifier {
     }
 }
 
-export class ShroudedWood extends SiteActionModifier {
+export class ShroudedWood extends SiteActionModifier<TravelAction> {
     name = "Shrouded Wood";
     modifiedAction = TravelAction;
-    action: TravelAction;
     mustUse = true;
 
-    applyImmediately(modifiers: Iterable<ActionModifier<any>>): Iterable<ActionModifier<any>> {
+    applyImmediately(modifiers: Iterable<ActionModifier<any, TravelAction>>): Iterable<ActionModifier<any, TravelAction>> {
         return [...modifiers].filter(e => e instanceof NarrowPass || e instanceof TheHiddenPlaceTravel);
     }
 
@@ -169,10 +165,9 @@ export class ShroudedWood extends SiteActionModifier {
     }
 }
 
-export class NarrowPass extends ActionModifier<Site> {
+export class NarrowPass extends ActionModifier<Site, TravelAction> {
     name = "Narrow Pass";
     modifiedAction = TravelAction;
-    action: TravelAction;
     mustUse = true;
 
     applyBefore(): void {
@@ -181,10 +176,9 @@ export class NarrowPass extends ActionModifier<Site> {
     }
 }
 
-export class TheHiddenPlaceTravel extends ActionModifier<Site> {
+export class TheHiddenPlaceTravel extends ActionModifier<Site, TravelAction> {
     name = "The Hidden Place";
     modifiedAction = TravelAction;
-    action: TravelAction;
     mustUse = true;
 
     applyBefore(): void {
@@ -194,10 +188,9 @@ export class TheHiddenPlaceTravel extends ActionModifier<Site> {
     }
 }
 
-export class TheHiddenPlaceCampaign extends ActionModifier<Site> {
+export class TheHiddenPlaceCampaign extends ActionModifier<Site, CampaignAttackAction> {
     name = "The Hidden Place";
     modifiedAction = CampaignAttackAction;
-    action: CampaignAttackAction;
     mustUse = true;
 
     applyBefore(): void {
@@ -211,10 +204,9 @@ export class TheHiddenPlaceCampaign extends ActionModifier<Site> {
     }
 }
 
-export class OpportunitySite extends SiteActionModifier {
+export class OpportunitySite extends SiteActionModifier<WakeAction> {
     name = "Opportunity Site";
     modifiedAction = WakeAction;
-    action: WakeAction;
 
     canUse(): boolean {
         return super.canUse() && !this.source.empty;
@@ -225,10 +217,9 @@ export class OpportunitySite extends SiteActionModifier {
     }
 }
 
-export class Plains extends SiteActionModifier {
+export class Plains extends SiteActionModifier<CampaignAttackAction> {
     name = "Plains";
     modifiedAction = CampaignAttackAction;
-    action: CampaignAttackAction;
     mustUse = true;
 
     applyBefore(): void {
@@ -241,10 +232,9 @@ export class Plains extends SiteActionModifier {
     }
 }
 
-export class Mountain extends SiteActionModifier {
+export class Mountain extends SiteActionModifier<CampaignAttackAction> {
     name = "Mountain";
     modifiedAction = CampaignAttackAction;
-    action: CampaignAttackAction;
     mustUse = true;
 
     applyBefore(): void {
@@ -257,10 +247,9 @@ export class Mountain extends SiteActionModifier {
     }
 }
 
-export class River extends SiteActionModifier {
+export class River extends SiteActionModifier<MusterAction> {
     name = "River";
     modifiedAction = MusterAction;
-    action: MusterAction;
     mustUse = true;
 
     applyBefore(): void {
@@ -268,10 +257,9 @@ export class River extends SiteActionModifier {
     }
 }
 
-export class Marshes extends SiteActionModifier {
+export class Marshes extends SiteActionModifier<SearchAction> {
     name = "Marshes";
     modifiedAction = SearchAction;
-    action: SearchAction;
     mustUse = true;
 
     applyBefore(): void {
@@ -279,10 +267,9 @@ export class Marshes extends SiteActionModifier {
     }
 }
 
-export class GreatSlum extends SiteActionModifier {
+export class GreatSlum extends SiteActionModifier<SearchPlayOrDiscardAction> {
     name = "Great Slum";
     modifiedAction = SearchPlayOrDiscardAction;
-    action: SearchPlayOrDiscardAction;
     mustUse = true;
 
     applyBefore(): void {

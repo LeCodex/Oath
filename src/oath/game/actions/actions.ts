@@ -79,16 +79,16 @@ export abstract class OathAction extends OathGameObject {
     }
 }
 
-export class ChooseModifiers extends OathAction {
-    readonly selects: { modifiers: SelectNOf<ActionModifier<WithPowers>> };
-    readonly parameters: { modifiers: ActionModifier<WithPowers>[] };
-    readonly action: ModifiableAction;
-    readonly next: ModifiableAction | ChooseModifiers;
+export class ChooseModifiers<T extends ModifiableAction> extends OathAction {
+    readonly selects: { modifiers: SelectNOf<ActionModifier<WithPowers, T>> };
+    readonly parameters: { modifiers: ActionModifier<WithPowers, T>[] };
+    readonly action: T;
+    readonly next: T | ChooseModifiers<T>;
     readonly message = "Choose modifiers";
 
-    persistentModifiers: Set<ActionModifier<WithPowers>>;
+    persistentModifiers: Set<ActionModifier<WithPowers, T>>;
 
-    constructor(next: ModifiableAction | ChooseModifiers, chooser: OathPlayer = next.player) {
+    constructor(next: T | ChooseModifiers<T>, chooser: OathPlayer = next.player) {
         super(chooser);
         this.next = next;
         this.action = next instanceof ChooseModifiers ? next.action : next;
@@ -96,7 +96,7 @@ export class ChooseModifiers extends OathAction {
 
     start() {
         this.persistentModifiers = new Set();
-        const choices = new Map<string, ActionModifier<WithPowers>>();
+        const choices = new Map<string, ActionModifier<WithPowers, T>>();
         for (const modifier of ChooseModifiers.gatherModifiers(this.action, this.player)) {
             if (modifier.mustUse)
                 this.persistentModifiers.add(modifier);
@@ -108,9 +108,9 @@ export class ChooseModifiers extends OathAction {
         return super.start();
     }
 
-    static gatherModifiers(action: ModifiableAction, activator: OathPlayer): Set<ActionModifier<WithPowers>> {
-        const instances = new Set<ActionModifier<WithPowers>>();
-        for (const [sourceProxy, modifier] of action.gameProxy.getPowers(ActionModifier<WithPowers>)) {
+    static gatherModifiers<T extends ModifiableAction>(action: T, activator: OathPlayer): Set<ActionModifier<WithPowers, T>> {
+        const instances = new Set<ActionModifier<WithPowers, T>>();
+        for (const [sourceProxy, modifier] of action.gameProxy.getPowers(ActionModifier<WithPowers, T>)) {
             const instance = new modifier(sourceProxy.original, action, activator);
             if (action instanceof instance.modifiedAction && instance.canUse()) instances.add(instance);
         }
@@ -122,7 +122,7 @@ export class ChooseModifiers extends OathAction {
         const modifiers = new Set([...this.persistentModifiers, ...this.parameters.modifiers]);
         
         // NOTE: For ignore loops, all powers in the loop are ignored.
-        const ignore = new Set<ActionModifier<WithPowers>>();
+        const ignore = new Set<ActionModifier<WithPowers, T>>();
         for (const modifier of modifiers) for (const toIgnore of modifier.applyImmediately(modifiers)) ignore.add(toIgnore);
         for (const modifier of ignore) modifiers.delete(modifier);
 
@@ -136,7 +136,7 @@ export class ChooseModifiers extends OathAction {
 }
 
 export abstract class ModifiableAction extends OathAction {
-    modifiers: ActionModifier<WithPowers>[] = [];
+    modifiers: ActionModifier<WithPowers, ModifiableAction>[] = [];
     maskProxyManager: MaskProxyManager;
     gameProxy: OathGame;            // Effects and powers are allowed to modify the proxies to "lie" to the action
     playerProxy: OathPlayer;        // This is a simple reference for simplicity
@@ -449,11 +449,11 @@ export class SearchChooseAction extends ModifiableAction {
     cards: Set<WorldCard>;
     playing: WorldCard[];  // For this action, order is important
     playingAmount: number;
-    discardOptions: DiscardOptions<any>;
+    discardOptions: DiscardOptions<OathCard>;
 
     playActions: SearchPlayOrDiscardAction[] = [];
 
-    constructor(player: OathPlayer, cards: Iterable<WorldCard>, discardOptions?: DiscardOptions<any>, amount: number = 1) {
+    constructor(player: OathPlayer, cards: Iterable<WorldCard>, discardOptions?: DiscardOptions<OathCard>, amount: number = 1) {
         super(player);
         this.discardOptions = discardOptions || new DiscardOptions(player.discard);
         this.cards = new Set(cards);
@@ -495,9 +495,9 @@ export class SearchDiscardAction extends ModifiableAction {
     cards: Set<WorldCard>;
     discarding: WorldCard[];  // For this action, order is important
     amount: number;
-    discardOptions: DiscardOptions<any>;
+    discardOptions: DiscardOptions<OathCard>;
 
-    constructor(player: OathPlayer, cards: Iterable<WorldCard>, amount?: number, discardOptions?: DiscardOptions<any>) {
+    constructor(player: OathPlayer, cards: Iterable<WorldCard>, amount?: number, discardOptions?: DiscardOptions<OathCard>) {
         super(player);
         this.cards = new Set(cards);
         this.amount = Math.min(this.cards.size, amount || this.cards.size);
@@ -530,10 +530,10 @@ export class SearchPlayOrDiscardAction extends ModifiableAction {
     cardProxy: WorldCard;
     siteProxy: Site | undefined;
     facedown: boolean;
-    discardOptions: DiscardOptions<any>;
+    discardOptions: DiscardOptions<OathCard>;
     canReplace: boolean;
 
-    constructor(player: OathPlayer, card: WorldCard, discardOptions?: DiscardOptions<any>) {
+    constructor(player: OathPlayer, card: WorldCard, discardOptions?: DiscardOptions<OathCard>) {
         super(player);
         this.cardProxy = this.maskProxyManager.get(card);
         this.message = "Play or discard " + this.cardProxy.name;
@@ -619,9 +619,9 @@ export class MayDiscardACardAction extends OathAction {
     readonly message = "You may discard a card";
 
     cards: Set<Denizen>;
-    discardOptions: DiscardOptions<any>;
+    discardOptions: DiscardOptions<OathCard>;
 
-    constructor(player: OathPlayer, discardOptions?: DiscardOptions<any>, cards?: Iterable<Denizen>) {
+    constructor(player: OathPlayer, discardOptions?: DiscardOptions<OathCard>, cards?: Iterable<Denizen>) {
         super(player);
         this.discardOptions = discardOptions || new DiscardOptions(player.discard);
         if (cards) {
@@ -789,7 +789,7 @@ export class CampaignAttackAction extends ModifiableAction {
         }
 
         // Bandits use all battle plans that are free
-        const modifiers: ActionModifier<WithPowers>[] = [];
+        const modifiers: ActionModifier<WithPowers, CampaignAttackAction | CampaignDefenseAction>[] = [];
         for (const modifier of ChooseModifiers.gatherModifiers(this, this.player)) {
             if (modifier.mustUse || modifier.cost.free)
                 modifiers.push(modifier);

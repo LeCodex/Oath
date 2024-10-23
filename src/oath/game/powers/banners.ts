@@ -1,18 +1,17 @@
-import { WakeAction, SearchPlayOrDiscardAction, MayDiscardACardAction, SearchAction, PeoplesFavorWakeAction } from "../actions/actions";
+import { WakeAction, SearchPlayOrDiscardAction, MayDiscardACardAction, SearchAction, PeoplesFavorWakeAction, ModifiableAction } from "../actions/actions";
 import { Banner, PeoplesFavor, DarkestSecret } from "../banks";
 import { ActionModifier } from "./powers";
 
 
-export abstract class BannerActionModifier<T extends Banner> extends ActionModifier<T> {
+export abstract class BannerActionModifier<T extends Banner, U extends ModifiableAction> extends ActionModifier<T, U> {
     canUse(): boolean {
         return super.canUse() && this.activatorProxy === this.sourceProxy.owner;
     }
 }
 
-export class PeoplesFavorSearch extends BannerActionModifier<PeoplesFavor> {
+export class PeoplesFavorSearch extends BannerActionModifier<PeoplesFavor, SearchPlayOrDiscardAction> {
     name = "People's Favor";
     modifiedAction = SearchPlayOrDiscardAction;
-    action: SearchPlayOrDiscardAction;
     mustUse = true; // Not strictly true, but it involves a choice either way, so it's better to always include it
 
     applyAtStart(): void {
@@ -26,10 +25,9 @@ export class PeoplesFavorSearch extends BannerActionModifier<PeoplesFavor> {
     }
 }
 
-export class PeoplesFavorWake extends BannerActionModifier<PeoplesFavor> {
+export class PeoplesFavorWake extends BannerActionModifier<PeoplesFavor, WakeAction> {
     name = "People's Favor";
     modifiedAction = WakeAction;
-    action: WakeAction;
     mustUse = true;
 
     applyBefore(): void {
@@ -41,10 +39,9 @@ export class PeoplesFavorWake extends BannerActionModifier<PeoplesFavor> {
 }
 
 
-export class DarkestSecretPower extends BannerActionModifier<DarkestSecret> {
+export class DarkestSecretPower extends BannerActionModifier<DarkestSecret, SearchAction> {
     name = "Darkest Secret";
     modifiedAction = SearchAction;
-    action: SearchAction;
     mustUse = true;
 
     applyBefore(): void {

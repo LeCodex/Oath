@@ -5,7 +5,7 @@ import { BannerName, OathResource } from "../enums";
 import { OathPlayer, Exile } from "../player";
 import { OwnableObject, isOwnable } from "../interfaces";
 import { ResourceCost } from "../resources";
-import { AccessedActionModifier, EnemyEffectModifier, AccessedEffectModifier, AttackerBattlePlan, DefenderBattlePlan, ActionModifier, EffectModifier, ActivePower, RestPower, BattlePlan, AttackerEnemyCampaignModifier } from "./powers";
+import { AccessedActionModifier, EnemyEffectModifier, AccessedEffectModifier, AttackerBattlePlan, DefenderBattlePlan, ActionModifier, EffectModifier, ActivePower, RestPower, BattlePlan, EnemyAttackerCampaignModifier } from "./powers";
 import { DiscardOptions } from "../cards/decks";
 import { isExtended } from "../utils";
 
@@ -171,10 +171,9 @@ export class ObsidianCageActive extends ActivePower<Relic> {
     }
 }
 
-export class CupOfPlenty extends AccessedActionModifier<Relic> {
+export class CupOfPlenty extends AccessedActionModifier<Relic, TradeAction> {
     name = "Cup of Plenty";
     modifiedAction = TradeAction;
-    action: TradeAction;
 
     applyBefore(): void {
         if (this.activatorProxy.suitAdviserCount(this.action.cardProxy.suit) > 0) this.action.noSupplyCost = true;
@@ -198,7 +197,7 @@ export class CircletOfCommand extends EnemyEffectModifier<Relic, TakeOwnableObje
         circletOfCommandCheckOwnable(this.sourceProxy, targetProxy, this.effect.playerProxy);
     }
 }
-export class CircletOfCommandCampaign extends AttackerEnemyCampaignModifier<Relic> {
+export class CircletOfCommandCampaign extends EnemyAttackerCampaignModifier<Relic> {
     name = "Circlet of Command";
 
     applyBefore(): void {
@@ -213,10 +212,9 @@ export class CircletOfCommandCampaign extends AttackerEnemyCampaignModifier<Reli
     }
 }
 
-export class DragonskinDrum extends AccessedActionModifier<Relic> {
+export class DragonskinDrum extends AccessedActionModifier<Relic, TravelAction> {
     name = "Dragonskin Drum";
     modifiedAction = TravelAction;
-    action: TravelAction;
 
     applyAfter(): void {
         new PutWarbandsFromBagEffect(this.activator.leader, 1).do();
@@ -233,10 +231,9 @@ export class BookOfRecords extends AccessedEffectModifier<Relic, PlayDenizenAtSi
     }
 }
 
-export class RingOfDevotionMuster extends ActionModifier<Relic> {
+export class RingOfDevotionMuster extends ActionModifier<Relic, MusterAction> {
     name = "Ring of Devotion";
     modifiedAction = MusterAction;
-    action: MusterAction;
 
     applyBefore(): void {
         this.action.amount += 2;
@@ -382,10 +379,9 @@ export class Whistle extends ActivePower<Relic> {
     }
 }
 
-export class TruthfulHarp extends ActionModifier<Relic> {
+export class TruthfulHarp extends ActionModifier<Relic, SearchAction> {
     name = "Truthful Harp";
     modifiedAction = SearchAction;
-    action: SearchAction;
 
     applyBefore(): void {
         this.action.amount += 2;
@@ -396,20 +392,18 @@ export class TruthfulHarp extends ActionModifier<Relic> {
     }
 }
 
-export class CrackedHorn extends ActionModifier<Relic> {
+export class CrackedHorn extends ActionModifier<Relic, SearchAction> {
     name = "Cracked Horn";
     modifiedAction = SearchAction;
-    action: SearchAction;
 
     applyBefore(): void {
         this.action.discardOptions = new DiscardOptions(this.game.worldDeck, true);
     }
 }
 
-export class BanditCrownAction extends ActionModifier<Relic> {
+export class BanditCrownAction extends ActionModifier<Relic, ModifiableAction> {
     name = "Bandit Crown";
     modifiedAction = ModifiableAction;
-    action: ModifiableAction;
     mustUse = true;
 
     applyWhenApplied(): boolean {
@@ -445,10 +439,9 @@ export class BanditCrownEffect extends EffectModifier<Relic, OathEffect<any>> {
     }
 }
 
-export class GrandMaskAction extends ActionModifier<Relic> {
+export class GrandMaskAction extends ActionModifier<Relic, ModifiableAction> {
     name = "Grand Mask";
     modifiedAction = ModifiableAction;
-    action: ModifiableAction;
     mustUse = true;
 
     applyWhenApplied(): boolean {
