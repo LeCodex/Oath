@@ -83,6 +83,17 @@ export class CrackingGroundDefense extends DefenderBattlePlan<Denizen> {
     }
 }
 
+export class RustingRay extends DefenderBattlePlan<Denizen> {
+    name = "Rusting Ray";
+    cost = new ResourceCost([[OathResource.Secret, 1]]);
+
+    applyBefore(): void {
+        const darkestSecretProxy = this.gameProxy.banners.get(BannerName.DarkestSecret);
+        if (darkestSecretProxy?.owner !== this.activatorProxy) return;
+        this.action.campaignResult.params.atkRoll.ignore.add(DieSymbol.HollowSword);
+    }
+}
+
 export class GleamingArmorAttack extends ActionModifier<Denizen> {
     name = "Gleaming Armor";
     modifiedAction = CampaignAttackAction;

@@ -1,8 +1,10 @@
 export enum DieSymbol {
     Sword = 1,
+    TwoSword = 2,
     HollowSword = 0.5,
     Skull = 0,
     Shield = 1,
+    TwoShield = 2,
     DoubleShield = -1
 };
 
@@ -26,7 +28,7 @@ export class AttackDie extends Die {
         [DieSymbol.HollowSword], 
         [DieSymbol.Sword], 
         [DieSymbol.Sword], 
-        [DieSymbol.Sword, DieSymbol.Sword, DieSymbol.Skull]
+        [DieSymbol.TwoSword, DieSymbol.Skull]
     ];
 }
 
@@ -36,7 +38,7 @@ export class DefenseDie extends Die {
         [],
         [DieSymbol.Shield],
         [DieSymbol.Shield],
-        [DieSymbol.Shield, DieSymbol.Shield],
+        [DieSymbol.TwoShield],
         [DieSymbol.DoubleShield],
     ]
 

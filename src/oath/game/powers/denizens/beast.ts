@@ -25,6 +25,23 @@ export class NatureWorshipDefense extends DefenderBattlePlan<Denizen> {
     }
 }
 
+export class WarTortoiseAttack extends AttackerBattlePlan<Denizen> {
+    name = "War Tortoise";
+    cost = new ResourceCost([[OathResource.Favor, 1]]);
+
+    applyBefore(): void {
+        this.action.campaignResult.params.defRoll.ignore.add(DieSymbol.TwoShield);
+    }
+}
+export class WarTortoiseDefense extends DefenderBattlePlan<Denizen> {
+    name = "War Tortoise";
+    cost = new ResourceCost([[OathResource.Favor, 1]]);
+
+    applyBefore(): void {
+        this.action.campaignResult.params.atkRoll.ignore.add(DieSymbol.TwoSword);
+    }
+}
+
 export class Rangers extends AttackerBattlePlan<Denizen> {
     name = "Rangers";
     cost = new ResourceCost([[OathResource.Favor, 1]]);

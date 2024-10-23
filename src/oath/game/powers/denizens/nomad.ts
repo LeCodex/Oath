@@ -2,6 +2,7 @@ import { TravelAction, InvalidActionResolution, MakeDecisionAction, ChooseRegion
 import { Region } from "../../board";
 import { Denizen, Edifice, Relic, Site, VisionBack, WorldCard } from "../../cards/cards";
 import { DiscardOptions } from "../../cards/decks";
+import { DieSymbol } from "../../dice";
 import { PayCostToTargetEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PayPowerCost, BecomeCitizenEffect, GiveOwnableObjectEffect, DrawFromDeckEffect, FlipEdificeEffect, MoveResourcesToTargetEffect, DiscardCardEffect, GainSupplyEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, PeekAtCardEffect, MoveWorldCardToAdvisersEffect, MoveDenizenToSiteEffect, OathEffect, TakeResourcesFromBankEffect, DiscardCardGroupEffect, PlayVisionEffect } from "../../effects";
 import { BannerName, OathResource, OathSuit } from "../../enums";
 import { OwnableObject, isOwnable } from "../../interfaces";
@@ -90,6 +91,14 @@ export class MountainGiantDefense extends DefenderBattlePlan<Denizen> {
             },
             ["±1", "±3"]
         ).doNext();
+    }
+}
+
+export class RainBoots extends AttackerBattlePlan<Denizen> {
+    name = "Rain Boots";
+
+    applyBefore(): void {
+        this.action.campaignResult.params.defRoll.ignore.add(DieSymbol.Shield)
     }
 }
 
