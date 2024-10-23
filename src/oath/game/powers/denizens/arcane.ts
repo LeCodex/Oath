@@ -7,8 +7,9 @@ import { BannerName, OathResource, OathSuit } from "../../enums";
 import { OathPlayer } from "../../player";
 import { ResourceCost } from "../../resources";
 import { ActionModifier, AttackerBattlePlan, DefenderBattlePlan, ActivePower, WhenPlayed, AccessedActionModifier, EffectModifier, AccessedEffectModifier, EnemyAttackerCampaignModifier, EnemyDefenderCampaignModifier } from "../powers";
-import { inclusiveRange } from "../../utils";
+import { AbstractConstructor, inclusiveRange } from "../../utils";
 import { WithPowers } from "../../interfaces";
+import { DarkestSecret } from "../../banks";
 
 
 export class FireTalkersAttack extends AttackerBattlePlan<Denizen> {
@@ -373,6 +374,27 @@ export class Observatory extends AccessedActionModifier<Denizen, SearchAction> {
         if (this.action.playerProxy.site === this.sourceProxy.site)
             for (const region of Object.values(this.game.board.regions))
                 this.action.selects.deck.choices.set(region.name, region.discard);
+    }
+}
+
+export class MagiciansCode extends AccessedActionModifier<Denizen, RecoverBannerPitchAction> {
+    name = "Magician's Code";
+    modifiedAction = RecoverBannerPitchAction;  // Technically should be chosen at the time you recover, but this is way simpler
+    cost = new ResourceCost([[OathResource.Favor, 2]]);
+
+    canUse(): boolean {
+        return super.canUse() && this.action.banner instanceof DarkestSecret;
+    }
+
+    applyAtStart(): void {
+        const amounts = [this.action.banner.amount];
+        if (this.action.banner.amount > 0) amounts.unshift(this.action.banner.amount - 1);
+        for (const amount of amounts) this.action.selects.amount.choices.set(amount.toString(), amount);
+    }
+    
+    applyBefore(): void {
+        new PutResourcesOnTargetEffect(this.game, this.action.player, OathResource.Secret, 2).do();
+        this.action.amount += 2;
     }
 }
 

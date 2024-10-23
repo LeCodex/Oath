@@ -1,5 +1,5 @@
 import { MoveResourcesToTargetEffect, TakeWarbandsIntoBagEffect } from "./effects";
-import { OathResource } from "./enums"
+import { OathResource, OathResourceName } from "./enums"
 import { OathGameObject } from "./gameObject";
 import { OathPlayer } from "./player";
 import { ResourceBank } from "./banks";
@@ -130,10 +130,10 @@ export class ResourceCost {
     get cannotPayError(): InvalidActionResolution {
         let message = "Cannot pay resource cost: ";
         const printResources = function(resources: Map<OathResource, number>, suffix: string) {
-            if ([...resources].filter(([_, a]) => a > 0).length === 0) return "";
-            return [...resources].map(([resource, number]) => `${number} ${resource}`).join(", ") + suffix;
+            if ([...resources].filter(([_, a]) => a > 0).length === 0) return undefined;
+            return [...resources].map(([resource, number]) => `${number} ${OathResourceName[resource]}(s)`).join(", ") + suffix;
         }
-        message += [printResources(this.placedResources, " placed"), printResources(this.burntResources, " burnt")].join(", ");
+        message += [printResources(this.placedResources, " placed"), printResources(this.burntResources, " burnt")].filter(e => e !== undefined).join(", ");
         return new InvalidActionResolution(message);
     }
 
