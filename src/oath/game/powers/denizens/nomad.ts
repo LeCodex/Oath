@@ -1,4 +1,4 @@
-import { TravelAction, InvalidActionResolution, MakeDecisionAction, ChooseRegionAction, SearchPlayOrDiscardAction, ChooseCardsAction, ModifiableAction, ChooseSuitsAction, TakeFavorFromBankAction, ChooseSitesAction, MoveWarbandsBetweenBoardAndSitesAction, RestAction, RecoverAction } from "../../actions/actions";
+import { TravelAction, InvalidActionResolution, MakeDecisionAction, ChooseRegionAction, SearchPlayOrDiscardAction, ChooseCardsAction, ModifiableAction, ChooseSuitsAction, TakeFavorFromBankAction, ChooseSitesAction, MoveWarbandsBetweenBoardAndSitesAction, RestAction, RecoverAction, TakeReliquaryRelicAction } from "../../actions/actions";
 import { Region } from "../../board";
 import { Denizen, Edifice, Relic, Site, VisionBack, WorldCard } from "../../cards/cards";
 import { DiscardOptions } from "../../cards/decks";
@@ -398,7 +398,7 @@ export class AncientPact extends WhenPlayed<Denizen> {
         if (darkestSecretProxy?.owner !== this.effect.playerProxy) return;
 
         new MakeDecisionAction(this.effect.player, "Give Darkest Secret to become a Citizen?", () => {
-            // TODO: Take a Reliquary relic
+            new TakeReliquaryRelicAction(this.effect.player).doNext();
             new GiveOwnableObjectEffect(this.game, this.game.chancellor, darkestSecretProxy.original).do();
             new BecomeCitizenEffect(this.effect.player).do();
         });

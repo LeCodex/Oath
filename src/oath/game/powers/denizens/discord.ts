@@ -1,4 +1,4 @@
-import { MakeDecisionAction, ChooseCardsAction, ChooseRegionAction, InvalidActionResolution, TakeFavorFromBankAction, TakeResourceFromPlayerAction, ChooseSuitsAction, ModifiableAction, SearchPlayOrDiscardAction, MusterAction, TravelAction, CampaignAction, KillWarbandsOnTargetAction, CampaignAttackAction, CampaignEndAction, RecoverAction } from "../../actions/actions";
+import { MakeDecisionAction, ChooseCardsAction, ChooseRegionAction, InvalidActionResolution, TakeFavorFromBankAction, TakeResourceFromPlayerAction, ChooseSuitsAction, ModifiableAction, SearchPlayOrDiscardAction, MusterAction, TravelAction, CampaignAction, KillWarbandsOnTargetAction, CampaignAttackAction, CampaignEndAction, RecoverAction, TakeReliquaryRelicAction } from "../../actions/actions";
 import { PeoplesFavor } from "../../banks";
 import { Region } from "../../board";
 import { Denizen, Edifice, OathCard, Relic, Site, Vision, WorldCard } from "../../cards/cards";
@@ -147,11 +147,18 @@ export class RelicThief extends EnemyEffectModifier<Denizen, TakeOwnableObjectEf
             new MakeDecisionAction(
                 rulerProxy.original, "Try to steal " + this.effect.target.name + "?",
                 () => {
-                    if (!new PayCostToTargetEffect(this.game, rulerProxy.original, new ResourceCost([[OathResource.Favor, 1], [OathResource.Secret, 1]]), this.source).do())
-                        throw new InvalidActionResolution("Couldn't pay resource cost");
+                    const cost = new ResourceCost([[OathResource.Favor, 1], [OathResource.Secret, 1]]);
+                    if (!new PayCostToTargetEffect(this.game, rulerProxy.original, cost, this.source).do())
+                        throw cost.cannotPayError;
 
                     const result = new RollDiceEffect(this.game, rulerProxy.original, DefenseDie, 1).do();
-                    // TODO: Handle result
+                    new ResolveCallbackAction(
+                        rulerProxy.original,
+                        () => {
+                            if (result.value === 0)
+                                new TakeOwnableObjectEffect(this.game, rulerProxy.original, this.effect.target).do();
+                        }
+                    ).doNext();
                 }
             )
         }
@@ -450,8 +457,8 @@ export class RoyalAmbitions extends WhenPlayed<Denizen> {
     whenPlayed(): void {
         if (this.effect.playerProxy.ruledSites > this.gameProxy.chancellor.ruledSites)
             new MakeDecisionAction(this.effect.player, "Become a Citizen?", () => {
-                // TODO: Take a reliquary relic
                 new BecomeCitizenEffect(this.effect.player).do(); 
+                new TakeReliquaryRelicAction(this.effect.player).doNext();
             }).doNext();
     }
 }

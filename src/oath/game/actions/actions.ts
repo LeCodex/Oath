@@ -1353,6 +1353,18 @@ export class ChooseNumberAction extends OathAction {
     }
 }
 
+export class TakeReliquaryRelicAction extends ChooseNumberAction {
+    constructor(player: OathPlayer) {
+        super(
+            player, "Take a Reliquary relic",
+            player.game.chancellor.reliquary.slots.filter(e => e.relic).map((_, i) => i),
+            (index: number) => {
+                new TakeReliquaryRelicEffect(player, index).do();
+            }
+        )
+    }
+}
+
 
 export class ChooseResourceToTakeAction extends OathAction {
     readonly selects: { resource: SelectNOf<OathResource> };
@@ -1728,6 +1740,34 @@ export class SkeletonKeyAction extends OathAction {
     }
 }
 
+
+export class BrackenAction extends OathAction {
+    readonly selects: { region: SelectNOf<Region>, onTop: SelectBoolean };
+    readonly parameters: { region: Region[], onTop: boolean[] };
+    readonly message = "Choose where you'll discard";
+
+    action: SearchAction;
+
+    constructor(action: SearchAction) {
+        super(action.player);
+        this.action = action;
+    }
+
+    start(): boolean {
+        const regions = new Set(Object.values(this.game.board.regions));
+        const choices = new Map<string, Region>();
+        for (const region of regions) choices.set(region.name, region);
+        this.selects.region = new SelectNOf("Region", choices, 1);
+        this.selects.onTop = new SelectBoolean("Position", ["Top", "Bottom"])
+        return super.start();
+    }
+
+    execute(): void {
+        const region = this.parameters.region[0];
+        const onTop = this.parameters.onTop[0];
+        this.action.discardOptions = new DiscardOptions(region.discard, !onTop);
+    }
+}
 
 
 ////////////////////////////////////////////
