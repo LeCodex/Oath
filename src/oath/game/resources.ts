@@ -3,7 +3,7 @@ import { OathResource } from "./enums"
 import { OathGameObject } from "./gameObject";
 import { OathPlayer } from "./player";
 import { ResourceBank } from "./banks";
-import { ChoosePlayersAction } from "./actions/actions";
+import { InvalidActionResolution } from "./actions/actions";
 
 
 export abstract class ResourcesAndWarbands extends OathGameObject {
@@ -125,6 +125,16 @@ export class ResourceCost {
         for (const amount of this.placedResources.values()) if (amount) return false;
         for (const amount of this.burntResources.values()) if (amount) return false;
         return true;
+    }
+
+    get cannotPayError(): InvalidActionResolution {
+        let message = "Cannot pay resource cost: ";
+        const printResources = function(resources: Map<OathResource, number>, suffix: string) {
+            if ([...resources].filter(([_, a]) => a > 0).length === 0) return "";
+            return [...resources].map(([resource, number]) => `${number} ${resource}`).join(", ") + suffix;
+        }
+        message += [printResources(this.placedResources, " placed"), printResources(this.burntResources, " burnt")].join(", ");
+        return new InvalidActionResolution(message);
     }
 
     add(other: ResourceCost) {

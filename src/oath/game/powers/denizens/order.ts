@@ -303,8 +303,9 @@ export class Curfew extends EnemyActionModifier<Denizen, TradeAction> {
     }
 
     applyBefore(): void {
-        if (!new PayCostToTargetEffect(this.game, this.activator, new ResourceCost([[OathResource.Favor, 1]]), this.sourceProxy.ruler?.original).do())
-            throw new InvalidActionResolution("Cannot pay the Curfew.");
+        const cost = new ResourceCost([[OathResource.Favor, 1]]);
+        if (!new PayCostToTargetEffect(this.game, this.activator, cost, this.sourceProxy.ruler?.original).do())
+            throw cost.cannotPayError;
     }
 }
 
@@ -313,9 +314,11 @@ export class TollRoads extends EnemyActionModifier<Denizen, TravelAction> {
     modifiedAction = TravelAction;
 
     applyBefore(): void {
-        if (this.action.siteProxy.ruler === this.sourceProxy.ruler)
-            if (!new PayCostToTargetEffect(this.game, this.activator, new ResourceCost([[OathResource.Favor, 1]]), this.sourceProxy.ruler?.original).do())
-                throw new InvalidActionResolution("Cannot pay the Toll Roads.");
+        if (this.action.siteProxy.ruler === this.sourceProxy.ruler) {
+            const cost = new ResourceCost([[OathResource.Favor, 1]]);
+            if (!new PayCostToTargetEffect(this.game, this.activator, cost, this.sourceProxy.ruler?.original).do())
+                throw cost.cannotPayError;
+        }
     }
 }
 
@@ -329,8 +332,9 @@ export class ForcedLabor extends EnemyActionModifier<Denizen, SearchAction> {
     }
 
     applyBefore(): void {
-        if (!new PayCostToTargetEffect(this.game, this.activator, new ResourceCost([[OathResource.Favor, 1]]), this.sourceProxy.ruler?.original).do())
-            throw new InvalidActionResolution("Cannot pay the Forced Labor.");
+        const cost = new ResourceCost([[OathResource.Favor, 1]]);
+        if (!new PayCostToTargetEffect(this.game, this.activator, cost, this.sourceProxy.ruler?.original).do())
+            throw cost.cannotPayError;
     }
 }
 

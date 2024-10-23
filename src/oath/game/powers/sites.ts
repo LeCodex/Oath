@@ -2,7 +2,7 @@ import { InvalidActionResolution, ChooseResourceToTakeAction, WakeAction, Travel
 import { Site, Denizen } from "../cards/cards";
 import { PlayWorldCardEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PutWarbandsFromBagEffect, TakeResourcesFromBankEffect, FlipSecretsEffect } from "../effects";
 import { OathSuit, OathResource } from "../enums";
-import { isAtSite } from "../interfaces";
+import { isAtSite, WithPowers } from "../interfaces";
 import { OathPlayer } from "../player";
 import { EffectModifier, ActionModifier, ActivePower } from "./powers";
 
@@ -78,13 +78,13 @@ export class DeepWoods extends HomelandSitePower {
 }
 
 
-export abstract class SiteActionModifier<T extends ModifiableAction> extends ActionModifier<Site, T> {
+export abstract class AtSiteActionModifier<T extends ModifiableAction> extends ActionModifier<Site, T> {
     canUse(): boolean {
         return this.activatorProxy.site === this.sourceProxy;
     }
 }
 
-export class CoastalSite extends SiteActionModifier<TravelAction> {
+export class CoastalSite extends AtSiteActionModifier<TravelAction> {
     name = "Coastal Site";
     modifiedAction = TravelAction;
 
@@ -98,7 +98,7 @@ export class CoastalSite extends SiteActionModifier<TravelAction> {
         return false;
     }
 
-    applyImmediately(modifiers: Iterable<ActionModifier<any, TravelAction>>): Iterable<ActionModifier<any, TravelAction>> {
+    applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, TravelAction>>): Iterable<ActionModifier<WithPowers, TravelAction>> {
         return [...modifiers].filter(e => e instanceof NarrowPass);
     }
 
@@ -116,7 +116,7 @@ export class CoastalSite extends SiteActionModifier<TravelAction> {
     }
 }
 
-export class CharmingValley extends SiteActionModifier<TravelAction> {
+export class CharmingValley extends AtSiteActionModifier<TravelAction> {
     name = "Charming Valley";
     modifiedAction = TravelAction;
     mustUse = true;
@@ -126,17 +126,17 @@ export class CharmingValley extends SiteActionModifier<TravelAction> {
     }
 }
 
-export class BuriedGiant extends SiteActionModifier<TravelAction> {
+export class BuriedGiant extends AtSiteActionModifier<TravelAction> {
     name = "Buried Giant";
     modifiedAction = TravelAction;
 
-    applyImmediately(modifiers: Iterable<ActionModifier<any,TravelAction>>): Iterable<ActionModifier<any, TravelAction>> {
+    applyImmediately(modifiers: Iterable<ActionModifier<WithPowers,TravelAction>>): Iterable<ActionModifier<WithPowers, TravelAction>> {
         return [...modifiers].filter(e => e instanceof NarrowPass);
     }
 
     applyWhenApplied(): boolean {
         if (new FlipSecretsEffect(this.game, this.action.player, 1, true).do() < 1)
-            throw new InvalidActionResolution("Cannot pay resource cost for Buried Giant");
+            throw new InvalidActionResolution("Cannot flip a secret for Buried Giant");
 
         return true;
     }
@@ -146,12 +146,12 @@ export class BuriedGiant extends SiteActionModifier<TravelAction> {
     }
 }
 
-export class ShroudedWood extends SiteActionModifier<TravelAction> {
+export class ShroudedWood extends AtSiteActionModifier<TravelAction> {
     name = "Shrouded Wood";
     modifiedAction = TravelAction;
     mustUse = true;
 
-    applyImmediately(modifiers: Iterable<ActionModifier<any, TravelAction>>): Iterable<ActionModifier<any, TravelAction>> {
+    applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, TravelAction>>): Iterable<ActionModifier<WithPowers, TravelAction>> {
         return [...modifiers].filter(e => e instanceof NarrowPass || e instanceof TheHiddenPlaceTravel);
     }
 
@@ -184,10 +184,9 @@ export class TheHiddenPlaceTravel extends ActionModifier<Site, TravelAction> {
     applyBefore(): void {
         if (this.action.siteProxy !== this.sourceProxy) return;
         if (new FlipSecretsEffect(this.game, this.activator, 1, true).do() < 1)
-            throw new InvalidActionResolution("Cannot pay resource cost for The Hidden Place");
+            throw new InvalidActionResolution("Cannot flip a secret for The Hidden Place");
     }
 }
-
 export class TheHiddenPlaceCampaign extends ActionModifier<Site, CampaignAttackAction> {
     name = "The Hidden Place";
     modifiedAction = CampaignAttackAction;
@@ -197,14 +196,14 @@ export class TheHiddenPlaceCampaign extends ActionModifier<Site, CampaignAttackA
         for (const target of this.action.campaignResult.params.targets) {
             if (target === this.source || isAtSite(target) && target.site === this.source) {
                 if (new FlipSecretsEffect(this.game, this.activator, 1, true).do() < 1)
-                    throw new InvalidActionResolution("Cannot pay resource cost for The Hidden Place");
+                    throw new InvalidActionResolution("Cannot flip a secret for The Hidden Place");
                 break;
             }
         }
     }
 }
 
-export class OpportunitySite extends SiteActionModifier<WakeAction> {
+export class OpportunitySite extends AtSiteActionModifier<WakeAction> {
     name = "Opportunity Site";
     modifiedAction = WakeAction;
 
@@ -217,7 +216,7 @@ export class OpportunitySite extends SiteActionModifier<WakeAction> {
     }
 }
 
-export class Plains extends SiteActionModifier<CampaignAttackAction> {
+export class Plains extends AtSiteActionModifier<CampaignAttackAction> {
     name = "Plains";
     modifiedAction = CampaignAttackAction;
     mustUse = true;
@@ -232,7 +231,7 @@ export class Plains extends SiteActionModifier<CampaignAttackAction> {
     }
 }
 
-export class Mountain extends SiteActionModifier<CampaignAttackAction> {
+export class Mountain extends AtSiteActionModifier<CampaignAttackAction> {
     name = "Mountain";
     modifiedAction = CampaignAttackAction;
     mustUse = true;
@@ -247,7 +246,7 @@ export class Mountain extends SiteActionModifier<CampaignAttackAction> {
     }
 }
 
-export class River extends SiteActionModifier<MusterAction> {
+export class River extends AtSiteActionModifier<MusterAction> {
     name = "River";
     modifiedAction = MusterAction;
     mustUse = true;
@@ -257,7 +256,7 @@ export class River extends SiteActionModifier<MusterAction> {
     }
 }
 
-export class Marshes extends SiteActionModifier<SearchAction> {
+export class Marshes extends AtSiteActionModifier<SearchAction> {
     name = "Marshes";
     modifiedAction = SearchAction;
     mustUse = true;
@@ -267,7 +266,7 @@ export class Marshes extends SiteActionModifier<SearchAction> {
     }
 }
 
-export class GreatSlum extends SiteActionModifier<SearchPlayOrDiscardAction> {
+export class GreatSlum extends AtSiteActionModifier<SearchPlayOrDiscardAction> {
     name = "Great Slum";
     modifiedAction = SearchPlayOrDiscardAction;
     mustUse = true;

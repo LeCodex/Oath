@@ -142,7 +142,7 @@ export class ApplyModifiersEffect<T extends ModifiableAction> extends OathEffect
         let interrupt = false;
         for (const modifier of this.actionModifiers) {
             if (!modifier.payCost(modifier.activator))
-                throw new InvalidActionResolution("Cannot pay the resource cost of all the modifiers.");
+                throw modifier.cost.cannotPayError;
 
             if (!modifier.applyWhenApplied()) interrupt = true;
 
@@ -833,7 +833,6 @@ export class PlayVisionEffect extends PlayerEffect<void> {
     }
 }
 
-// TODO: Make freeing the cards into a method
 export class MoveAdviserEffect<T extends WorldCard> extends OathEffect<T> {
     card: T;
     oldOwner: OathPlayer;

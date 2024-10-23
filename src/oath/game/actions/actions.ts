@@ -261,8 +261,9 @@ export class MusterAction extends MajorAction {
 
     modifiedExecution() {
         super.modifiedExecution();
-        if (new MoveResourcesToTargetEffect(this.game, this.player, this.using, this.amount, this.cardProxy.original).do() < 1)
-            throw new InvalidActionResolution("Cannot pay resource cost.");
+        const cost = new ResourceCost([[this.using, this.amount]]);
+        if (new PayCostToTargetEffect(this.game, this.player, cost, this.cardProxy.original).do())
+            throw cost.cannotPayError;
 
         new PutWarbandsFromBagEffect(this.playerProxy.leader.original, this.getting).do();
     }
@@ -301,9 +302,9 @@ export class TradeAction extends MajorAction {
     modifiedExecution() {
         super.modifiedExecution();
 
-        // TODO: Make costs easily printable. Potentially get the error from the ResourceCost class?
-        if (!new PayCostToTargetEffect(this.game, this.player, new ResourceCost(this.paying), this.cardProxy.original).do())
-            throw new InvalidActionResolution("Cannot pay resource cost.");
+        const cost = new ResourceCost(this.paying)
+        if (!new PayCostToTargetEffect(this.game, this.player, cost, this.cardProxy.original).do())
+            throw cost.cannotPayError;
 
         const resource = this.forFavor ? OathResource.Favor : OathResource.Secret;
         this.getting.set(resource, (this.getting.get(resource) || 0) + this.playerProxy.suitAdviserCount(this.cardProxy.suit));
@@ -1135,7 +1136,7 @@ export class UsePowerAction extends ModifiableAction {
 
     modifiedExecution(): void {
         if (!this.power.payCost(this.player))
-            throw new InvalidActionResolution("Cannot pay the resource cost.");
+            throw this.power.cost.cannotPayError;
 
         this.power.usePower();
     }

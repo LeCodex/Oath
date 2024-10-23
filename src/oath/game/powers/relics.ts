@@ -72,9 +72,10 @@ export class GrandScepterExileCitizen extends GrandScepterActive {
                 if (this.action.player === peoplesFavor?.owner) amount--;
                 if (target === this.game.oathkeeper) amount++;
                 if (target === peoplesFavor?.owner) amount++;
-
-                if (!new PayCostToTargetEffect(this.game, this.action.player, new ResourceCost([[OathResource.Favor, amount]]), target).do())
-                    throw new InvalidActionResolution("Cannot pay resource cost");
+                
+                const cost = new ResourceCost([[OathResource.Favor, amount]]);
+                if (!new PayCostToTargetEffect(this.game, this.action.player, cost, target).do())
+                    throw cost.cannotPayError;
 
                 new BecomeExileEffect(target).do();
             },

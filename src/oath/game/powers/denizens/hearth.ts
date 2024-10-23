@@ -3,6 +3,7 @@ import { Denizen, Edifice, Relic, WorldCard } from "../../cards/cards";
 import { DieSymbol } from "../../dice";
 import { TakeResourcesFromBankEffect, PlayVisionEffect, PlayWorldCardEffect, OathEffect, PeekAtCardEffect, DiscardCardEffect, PutWarbandsFromBagEffect, BecomeCitizenEffect, SetPeoplesFavorMobState, PutResourcesIntoBankEffect, GainSupplyEffect, MoveBankResourcesEffect, DrawFromDeckEffect, TakeOwnableObjectEffect, ApplyModifiersEffect, MoveDenizenToSiteEffect } from "../../effects";
 import { OathResource, BannerName, OathSuit, ALL_OATH_SUITS } from "../../enums";
+import { WithPowers } from "../../interfaces";
 import { ResourceCost } from "../../resources";
 import { maxInGroup, minInGroup } from "../../utils";
 import { DefenderBattlePlan, AccessedActionModifier, ActivePower, WhenPlayed, EnemyEffectModifier, EnemyActionModifier, AttackerBattlePlan, ActionModifier, EffectModifier, EnemyDefenderCampaignModifier } from "../powers";
@@ -207,7 +208,7 @@ export class VowOfPeace extends AccessedActionModifier<Denizen, CampaignAttackAc
     modifiedAction = CampaignAttackAction;
     mustUse = true;
 
-    applyImmediately(modifiers: Iterable<ActionModifier<any, CampaignAttackAction>>): Iterable<ActionModifier<any, CampaignAttackAction>> {
+    applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, CampaignAttackAction>>): Iterable<ActionModifier<WithPowers, CampaignAttackAction>> {
         throw new InvalidActionResolution("Cannot campaign under the Vow of Peace");
     }
 }

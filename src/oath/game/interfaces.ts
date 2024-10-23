@@ -11,7 +11,7 @@ export interface WithPowers extends OathGameObject {
     powers: Set<Constructor<OathPower<WithPowers>>>;
 }
 
-export function isWithPowers(obj: object): obj is WithPowers {
+export function hasPowers(obj: object): obj is WithPowers {
     return "powers" in obj;
 }
 
