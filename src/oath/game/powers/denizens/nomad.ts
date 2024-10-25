@@ -1,9 +1,9 @@
-import { TravelAction, InvalidActionResolution, MakeDecisionAction, ChooseRegionAction, SearchPlayOrDiscardAction, ChooseCardsAction, ModifiableAction, ChooseSuitsAction, TakeFavorFromBankAction, ChooseSitesAction, MoveWarbandsBetweenBoardAndSitesAction, RestAction, RecoverAction, TakeReliquaryRelicAction } from "../../actions/actions";
+import { TravelAction, InvalidActionResolution, MakeDecisionAction, ChooseRegionAction, SearchPlayOrDiscardAction, ChooseCardsAction, ModifiableAction, ChooseSuitsAction, TakeFavorFromBankAction, ChooseSitesAction, MoveWarbandsBetweenBoardAndSitesAction, RestAction, RecoverAction, TakeReliquaryRelicAction, CampaignEndAction } from "../../actions/actions";
 import { Region } from "../../board";
 import { Denizen, Edifice, Relic, Site, VisionBack, WorldCard } from "../../cards/cards";
 import { DiscardOptions } from "../../cards/decks";
-import { DieSymbol } from "../../dice";
-import { PayCostToTargetEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PayPowerCost, BecomeCitizenEffect, GiveOwnableObjectEffect, DrawFromDeckEffect, FlipEdificeEffect, MoveResourcesToTargetEffect, DiscardCardEffect, GainSupplyEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, PeekAtCardEffect, MoveWorldCardToAdvisersEffect, MoveDenizenToSiteEffect, OathEffect, TakeResourcesFromBankEffect, DiscardCardGroupEffect, PlayVisionEffect } from "../../effects";
+import { AttackDie, DieSymbol } from "../../dice";
+import { PayCostToTargetEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PayPowerCost, BecomeCitizenEffect, GiveOwnableObjectEffect, DrawFromDeckEffect, FlipEdificeEffect, MoveResourcesToTargetEffect, DiscardCardEffect, GainSupplyEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, PeekAtCardEffect, MoveWorldCardToAdvisersEffect, MoveDenizenToSiteEffect, OathEffect, TakeResourcesFromBankEffect, DiscardCardGroupEffect, PlayVisionEffect, ApplyModifiersEffect } from "../../effects";
 import { BannerName, OathResource, OathSuit } from "../../enums";
 import { OwnableObject, isOwnable } from "../../interfaces";
 import { OathPlayer } from "../../player";
@@ -99,6 +99,24 @@ export class RainBoots extends AttackerBattlePlan<Denizen> {
 
     applyBefore(): void {
         this.action.campaignResult.params.defRoll.ignore.add(DieSymbol.Shield)
+    }
+}
+
+export class Lancers extends AttackerBattlePlan<Denizen> {
+    name = "Lancers";
+
+    applyBefore(): void {
+        new ApplyModifiersEffect(this.action.next.next, [new LancersEnd(this.source, this.action.next.next, this.activator)]).do();
+    }
+}
+export class LancersEnd extends ActionModifier<Denizen, CampaignEndAction> {
+    name = "Lancers";
+    modifiedAction = CampaignEndAction;
+
+    applyBefore(): void {
+        const roll = this.action.campaignResult.params.atkRoll.dice.get(AttackDie);
+        if (!roll) return;
+        for (const [symbol, amount] of roll) roll.set(symbol, 2 * amount);
     }
 }
 
