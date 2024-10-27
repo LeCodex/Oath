@@ -1,14 +1,14 @@
 import { TravelAction, InvalidActionResolution, MakeDecisionAction, ChooseRegionAction, SearchPlayOrDiscardAction, ChooseCardsAction, ModifiableAction, ChooseSuitsAction, TakeFavorFromBankAction, ChooseSitesAction, MoveWarbandsBetweenBoardAndSitesAction, RestAction, RecoverAction, TakeReliquaryRelicAction, CampaignEndAction } from "../../actions/actions";
 import { Region } from "../../board";
-import { Denizen, Edifice, Relic, Site, VisionBack, WorldCard } from "../../cards/cards";
+import { Denizen, Edifice, OathCard, Relic, Site, VisionBack, WorldCard } from "../../cards/cards";
 import { DiscardOptions } from "../../cards/decks";
 import { AttackDie, DieSymbol } from "../../dice";
-import { PayCostToTargetEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PayPowerCost, BecomeCitizenEffect, GiveOwnableObjectEffect, DrawFromDeckEffect, FlipEdificeEffect, MoveResourcesToTargetEffect, DiscardCardEffect, GainSupplyEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, PeekAtCardEffect, MoveWorldCardToAdvisersEffect, MoveDenizenToSiteEffect, OathEffect, TakeResourcesFromBankEffect, DiscardCardGroupEffect, PlayVisionEffect, ApplyModifiersEffect } from "../../effects";
+import { PayCostToTargetEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PayPowerCost, BecomeCitizenEffect, GiveOwnableObjectEffect, DrawFromDeckEffect, FlipEdificeEffect, MoveResourcesToTargetEffect, DiscardCardEffect, GainSupplyEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, PeekAtCardEffect, MoveWorldCardToAdvisersEffect, MoveDenizenToSiteEffect, OathEffect, TakeResourcesFromBankEffect, DiscardCardGroupEffect, PlayVisionEffect, ApplyModifiersEffect, PutResourcesIntoBankEffect } from "../../effects";
 import { BannerName, OathResource, OathSuit } from "../../enums";
 import { OwnableObject, isOwnable } from "../../interfaces";
 import { OathPlayer } from "../../player";
 import { ResourceCost } from "../../resources";
-import { ActionModifier, EnemyEffectModifier, ActivePower, CapacityModifier, AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, EnemyAttackerCampaignModifier, EnemyActionModifier, EffectModifier } from "../powers";
+import { ActionModifier, EnemyEffectModifier, ActivePower, CapacityModifier, AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, EnemyAttackerCampaignModifier, EnemyActionModifier, EffectModifier, untilActionResolves } from "../powers";
 
 
 export class HorseArchersAttack extends AttackerBattlePlan<Denizen> {
@@ -91,6 +91,22 @@ export class MountainGiantDefense extends DefenderBattlePlan<Denizen> {
             },
             ["±1", "±3"]
         ).doNext();
+    }
+}
+
+export class WildMountsAttack extends AttackerBattlePlan<Denizen> {
+    name = "Wild Mounts";
+
+    applyBefore(): void {
+        untilActionResolves(this.source, WildMountsReplace, CampaignEndAction);
+    }
+}
+export class WildMountsReplace<T extends OathCard> extends EffectModifier<Denizen, DiscardCardEffect<T>> {
+    name = "Wild Mounts";
+    modifiedEffect = DiscardCardEffect;
+
+    applyBefore(): void {
+        
     }
 }
 
@@ -285,6 +301,41 @@ export class AncientBloodlineRelics extends EnemyEffectModifier<Denizen, TakeOwn
     }
 }
 
+export class VowOfKinshipWhenPlayed extends WhenPlayed<Denizen> {
+    name = "Vow of Kinship";
+
+    whenPlayed(): void {
+        new PutResourcesIntoBankEffect(this.game, this.effect.player, this.game.favorBanks.get(OathSuit.Nomad), Infinity).do();
+    }
+}
+export class VowOfKinship extends EffectModifier<Denizen, MoveResourcesToTargetEffect> {
+    name = "Vow of Kinship";
+    modifiedEffect = MoveResourcesToTargetEffect;
+
+    applyBefore(): void {
+        if (this.effect.resource != OathResource.Favor) return;
+        const ruler = this.sourceProxy.ruler?.original;
+        const nomadBank = this.game.favorBanks.get(OathSuit.Nomad);
+
+        // Only do the swap if the favor is given, not taken
+        // TODO: We can't have this be a choice right now, which means instances where the movement of favor is done
+        // without risk of "not being able to pay", this can result in unwated scenarios
+        if (this.effect.player === ruler && this.effect.source === ruler) {
+            new TakeResourcesFromBankEffect(this.game, this.effect.player, nomadBank, this.effect.amount).do();
+        }
+    }
+
+    applyAfter(result: number): void {
+        if (this.effect.resource != OathResource.Favor) return;
+        const ruler = this.sourceProxy.ruler?.original;
+        const nomadBank = this.game.favorBanks.get(OathSuit.Nomad);
+
+        if (this.effect.target === ruler) {
+            new PutResourcesIntoBankEffect(this.game, this.effect.player, nomadBank, result).do();
+        }        
+    }
+}
+
 export class SacredGround extends EffectModifier<Denizen, PlayVisionEffect> {
     name = "Sacred Ground";
     modifiedEffect = PlayVisionEffect;
@@ -416,9 +467,9 @@ export class AncientPact extends WhenPlayed<Denizen> {
         if (darkestSecretProxy?.owner !== this.effect.playerProxy) return;
 
         new MakeDecisionAction(this.effect.player, "Give Darkest Secret to become a Citizen?", () => {
-            new TakeReliquaryRelicAction(this.effect.player).doNext();
             new GiveOwnableObjectEffect(this.game, this.game.chancellor, darkestSecretProxy.original).do();
             new BecomeCitizenEffect(this.effect.player).do();
+            new TakeReliquaryRelicAction(this.effect.player).doNext();
         });
     }
 }

@@ -1,9 +1,9 @@
 import { ModifiableAction, RestAction, UsePowerAction, WakeAction, CampaignAttackAction, CampaignDefenseAction } from "../actions/actions";
-import { ApplyWhenPlayedEffect, OathEffect, PayPowerCost } from "../effects";
+import { ApplyWhenPlayedEffect, GainPowerEffect, LosePowerEffect, OathEffect, PayPowerCost } from "../effects";
 import { OathCard, OwnableCard, Site, WorldCard } from "../cards/cards";
 import { ResourceCost } from "../resources";
 import { OathPlayer } from "../player";
-import { AbstractConstructor, MaskProxyManager } from "../utils";
+import { AbstractConstructor, Constructor, MaskProxyManager } from "../utils";
 import { OathGame } from "../game";
 import { WithPowers } from "../interfaces";
 
@@ -140,7 +140,21 @@ export abstract class RestPower<T extends OwnableCard> extends AccessedActionMod
     mustUse = true;
 }
 
-export abstract class BattlePlan<T extends OwnableCard, U extends ModifiableAction> extends ActionModifier<T, U> {
+export function untilActionResolves<T extends WithPowers, U extends ModifiableAction>(source: T, power: Constructor<OathPower<T>>, action: Constructor<U>) {
+    new GainPowerEffect(source.game, source, power).do();
+    new GainPowerEffect(source.game, source, class LosePowerWhenActionResolves extends ActionModifier<T, U> {
+        name = "Lose " + power.name;
+        modifiedAction = action;
+        mustUse = true;
+    
+        applyBefore(): void {
+            new LosePowerEffect(source.game, source, power).do();
+            new LosePowerEffect(source.game, source, LosePowerWhenActionResolves).do();
+        }
+    }).do();
+}
+
+export abstract class BattlePlan<T extends OwnableCard, U extends CampaignAttackAction | CampaignDefenseAction> extends ActionModifier<T, U> {
     canUse(): boolean {
         return this.activatorProxy.rules(this.sourceProxy);
     }

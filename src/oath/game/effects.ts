@@ -21,7 +21,7 @@ import { edificeData } from "./cards/denizens";
 //////////////////////////////////////////////////
 //                BASE CLASSES                  //
 //////////////////////////////////////////////////
-export abstract class OathEffect<T> extends OathGameObject {
+export abstract class OathEffect<T = void> extends OathGameObject {
     player: OathPlayer | undefined;
     modifiers: EffectModifier<any, OathEffect<T>>[] = [];
     maskProxyManager: MaskProxyManager;
@@ -74,7 +74,7 @@ export abstract class OathEffect<T> extends OathGameObject {
     }
 }
 
-export abstract class PlayerEffect<T> extends OathEffect<T> {
+export abstract class PlayerEffect<T = void> extends OathEffect<T> {
     player: OathPlayer;
     playerProxy: OathPlayer;
 
@@ -87,7 +87,7 @@ export abstract class PlayerEffect<T> extends OathEffect<T> {
 //////////////////////////////////////////////////
 //                   EFFECTS                    //
 //////////////////////////////////////////////////
-export class AddActionToStackEffect extends OathEffect<void> {
+export class AddActionToStackEffect extends OathEffect {
     action: OathAction;
 
     constructor(action: OathAction) {
@@ -158,6 +158,47 @@ export class ApplyModifiersEffect<T extends ModifiableAction> extends OathEffect
             this.action.modifiers.pop();
             modifier.sourceProxy.powers.add(modifier.constructor as Constructor<ActionModifier<WithPowers, T>>);
         }
+    }
+}
+
+export class GainPowerEffect<T extends WithPowers> extends OathEffect {
+    target: T;
+    power: Constructor<OathPower<T>>;
+    resolved: boolean;
+
+    constructor(game: OathGame, target: T, power: Constructor<OathPower<T>>) {
+        super(game, undefined);
+        this.target = target;
+        this.power = power;
+    }
+
+    resolve(): void {
+        this.resolved = !this.target.powers.has(this.power);
+        this.target.powers.add(this.power);
+    }
+
+    revert(): void {
+        if (this.resolved) this.target.powers.delete(this.power);
+    }
+}
+
+export class LosePowerEffect<T extends WithPowers> extends OathEffect {
+    target: T;
+    power: Constructor<OathPower<T>>;
+    resolved: boolean;
+
+    constructor(game: OathGame, target: T, power: Constructor<OathPower<T>>) {
+        super(game, undefined);
+        this.target = target;
+        this.power = power;
+    }
+
+    resolve(): void {
+        this.resolved = this.target.powers.delete(this.power);
+    }
+
+    revert(): void {
+        if (this.resolved) this.target.powers.add(this.power);
     }
 }
 
@@ -571,7 +612,7 @@ export class TakeWarbandsIntoBagEffect extends PlayerEffect<number> {
     }
 }
 
-export class PutPawnAtSiteEffect extends PlayerEffect<void> {
+export class PutPawnAtSiteEffect extends PlayerEffect {
     site: Site;
     oldSite: Site;
     revealedSite: boolean;
@@ -606,7 +647,7 @@ export class PutPawnAtSiteEffect extends PlayerEffect<void> {
     }
 }
 
-export class PeekAtCardEffect extends PlayerEffect<void> {
+export class PeekAtCardEffect extends PlayerEffect {
     card: OathCard;
     peeked: boolean;
 
@@ -626,7 +667,7 @@ export class PeekAtCardEffect extends PlayerEffect<void> {
     }
 }
 
-export class RevealCardEffect extends OathEffect<void> {
+export class RevealCardEffect extends OathEffect {
     card: OathCard;
 
     constructor(game: OathGame, player: OathPlayer | undefined, card: OathCard) {
@@ -644,7 +685,7 @@ export class RevealCardEffect extends OathEffect<void> {
     }
 }
 
-export class ClearCardPeekEffect extends PlayerEffect<void> {
+export class ClearCardPeekEffect extends PlayerEffect {
     card: OathCard;
     oldPeeks: Set<OathPlayer>;
 
@@ -693,7 +734,7 @@ export class DrawFromDeckEffect<T extends OathCard> extends PlayerEffect<T[]> {
     }
 }
 
-export class PlayWorldCardEffect extends PlayerEffect<void> {
+export class PlayWorldCardEffect extends PlayerEffect {
     card: WorldCard;
     facedown: boolean;
     site?: Site;
@@ -733,7 +774,7 @@ export class PlayWorldCardEffect extends PlayerEffect<void> {
     }
 }
 
-export class ApplyWhenPlayedEffect extends PlayerEffect<void> {
+export class ApplyWhenPlayedEffect extends PlayerEffect {
     card: WorldCard;
 
     constructor(player: OathPlayer, card: WorldCard) {
@@ -751,7 +792,7 @@ export class ApplyWhenPlayedEffect extends PlayerEffect<void> {
     }
 }
 
-export class PlayDenizenAtSiteEffect extends PlayerEffect<void> {
+export class PlayDenizenAtSiteEffect extends PlayerEffect {
     card: Denizen;
     site: Site;
 
@@ -786,7 +827,7 @@ export class PlayDenizenAtSiteEffect extends PlayerEffect<void> {
     }
 }
 
-export class PlayWorldCardToAdviserEffect extends PlayerEffect<void> {
+export class PlayWorldCardToAdviserEffect extends PlayerEffect {
     card: WorldCard;
     facedown: boolean;
     revealedCard: boolean;
@@ -810,7 +851,7 @@ export class PlayWorldCardToAdviserEffect extends PlayerEffect<void> {
     }
 }
 
-export class PlayVisionEffect extends PlayerEffect<void> {
+export class PlayVisionEffect extends PlayerEffect {
     card: Vision;
     oldVision: Vision | undefined;
 
@@ -917,7 +958,7 @@ export class MoveSiteRelicEffect extends OathEffect<Relic> {
     }
 }
 
-export class MoveWorldCardToAdvisersEffect extends OathEffect<void> {
+export class MoveWorldCardToAdvisersEffect extends OathEffect {
     card: WorldCard;
     target: OathPlayer | undefined;
 
@@ -950,7 +991,7 @@ export class MoveWorldCardToAdvisersEffect extends OathEffect<void> {
     }
 }
 
-export class MoveDenizenToSiteEffect extends OathEffect<void> {
+export class MoveDenizenToSiteEffect extends OathEffect {
     card: Denizen;
     target: Site;
 
@@ -983,7 +1024,7 @@ export class MoveDenizenToSiteEffect extends OathEffect<void> {
     }
 }
 
-export class DiscardCardGroupEffect extends PlayerEffect<void> {
+export class DiscardCardGroupEffect extends PlayerEffect {
     cards: Set<WorldCard>;
     discardOptions?: DiscardOptions<any>;
 
@@ -1012,7 +1053,7 @@ export class DiscardCardGroupEffect extends PlayerEffect<void> {
     }
 }
 
-export class CheckCapacityEffect extends PlayerEffect<void> {
+export class CheckCapacityEffect extends PlayerEffect {
     origins: Set<OathPlayer | Site>;
     discardOptions?: DiscardOptions<any>;
 
@@ -1044,7 +1085,7 @@ export class CheckCapacityEffect extends PlayerEffect<void> {
     }
 }
 
-export class DiscardCardEffect<T extends OathCard> extends PlayerEffect<void> {
+export class DiscardCardEffect<T extends OathCard> extends PlayerEffect {
     card: T;
     discardOptions: DiscardOptions<OathCard>;
     flipped: boolean;
@@ -1071,7 +1112,7 @@ export class DiscardCardEffect<T extends OathCard> extends PlayerEffect<void> {
     }
 }
 
-export class TakeOwnableObjectEffect extends OathEffect<void> {
+export class TakeOwnableObjectEffect extends OathEffect {
     target: OwnableObject;
     flipFaceup: boolean;
     oldOwner: OathPlayer | undefined;
@@ -1108,7 +1149,7 @@ export class TakeOwnableObjectEffect extends OathEffect<void> {
     }
 }
 
-export class GiveOwnableObjectEffect extends OathEffect<void> {
+export class GiveOwnableObjectEffect extends OathEffect {
     target: OwnableObject;
     to: OathPlayer | undefined;
     oldOwner: OathPlayer | undefined;
@@ -1168,7 +1209,7 @@ export class RollDiceEffect extends OathEffect<RollResult> {
     }
 }
 
-export class CampaignJoinDefenderAlliesEffect extends PlayerEffect<void> {
+export class CampaignJoinDefenderAlliesEffect extends PlayerEffect {
     campaignResult: CampaignResult;
 
     constructor(campaignResult: CampaignResult, player: OathPlayer) {
@@ -1191,7 +1232,7 @@ export class CampaignJoinDefenderAlliesEffect extends PlayerEffect<void> {
     }
 }
 
-export class CampaignResolveSuccessfulAndSkullsEffect extends PlayerEffect<void> {
+export class CampaignResolveSuccessfulAndSkullsEffect extends PlayerEffect {
     action: CampaignDefenseAction;
 
     constructor(action: CampaignDefenseAction) {
@@ -1212,7 +1253,7 @@ export class CampaignResolveSuccessfulAndSkullsEffect extends PlayerEffect<void>
     }
 }
 
-export class SetNewOathkeeperEffect extends PlayerEffect<void> {
+export class SetNewOathkeeperEffect extends PlayerEffect {
     oldOathkeeper: OathPlayer;
 
     resolve(): void {
@@ -1231,7 +1272,7 @@ export class SetNewOathkeeperEffect extends PlayerEffect<void> {
     }
 }
 
-export class SetUsurperEffect extends OathEffect<void> {
+export class SetUsurperEffect extends OathEffect {
     usurper: boolean;
     oldUsurper: boolean;
 
@@ -1285,7 +1326,7 @@ export class PaySupplyEffect extends PlayerEffect<boolean> {
     }
 }
 
-export class GainSupplyEffect extends PlayerEffect<void> {
+export class GainSupplyEffect extends PlayerEffect {
     amount: number;
 
     constructor(player: OathPlayer, amount: number) {
@@ -1311,7 +1352,7 @@ export class GainSupplyEffect extends PlayerEffect<void> {
     }
 }
 
-export class ChangePhaseEffect extends OathEffect<void> {
+export class ChangePhaseEffect extends OathEffect {
     phase: OathPhase;
     oldPhase: OathPhase;
 
@@ -1337,7 +1378,7 @@ export class ChangePhaseEffect extends OathEffect<void> {
     }
 }
 
-export class NextTurnEffect extends OathEffect<void> {
+export class NextTurnEffect extends OathEffect {
     constructor(game: OathGame) {
         super(game, undefined);
     }
@@ -1381,7 +1422,7 @@ export class NextTurnEffect extends OathEffect<void> {
     }
 }
 
-export class HandleD6ResultEffect extends OathEffect<void> {
+export class HandleD6ResultEffect extends OathEffect {
     result: RollResult;
 
     constructor(game: OathGame, result: RollResult) {
@@ -1403,7 +1444,7 @@ export class HandleD6ResultEffect extends OathEffect<void> {
     }
 }
 
-export class BecomeCitizenEffect extends PlayerEffect<void> {
+export class BecomeCitizenEffect extends PlayerEffect {
     oldVision: Vision | undefined;
     resolved = false;
 
@@ -1439,7 +1480,7 @@ export class BecomeCitizenEffect extends PlayerEffect<void> {
     }
 }
 
-export class BecomeExileEffect extends PlayerEffect<void> {
+export class BecomeExileEffect extends PlayerEffect {
     resolved = false;
 
     resolve(): void {
@@ -1463,7 +1504,7 @@ export class BecomeExileEffect extends PlayerEffect<void> {
     }
 }
 
-export class PutDenizenIntoDispossessedEffect extends OathEffect<void> {
+export class PutDenizenIntoDispossessedEffect extends OathEffect {
     denizen: Denizen;
 
     constructor(game: OathGame, player: OathPlayer | undefined, denizen: Denizen) {
@@ -1514,7 +1555,7 @@ export class GetRandomCardFromDispossessed extends OathEffect<Denizen> {
 //////////////////////////////////////////////////
 //              SPECIFIC EFFECTS                //
 //////////////////////////////////////////////////
-export class SetPeoplesFavorMobState extends OathEffect<void> {
+export class SetPeoplesFavorMobState extends OathEffect {
     banner: PeoplesFavor;
     state: boolean;
     oldState: boolean;
@@ -1543,7 +1584,7 @@ export class SetPeoplesFavorMobState extends OathEffect<void> {
     }
 }
 
-export class SetGrandScepterLockEffect extends OathEffect<void> {
+export class SetGrandScepterLockEffect extends OathEffect {
     state: boolean;
     oldState: boolean;
 
@@ -1562,7 +1603,7 @@ export class SetGrandScepterLockEffect extends OathEffect<void> {
     }
 }
 
-export class RegionDiscardEffect extends PlayerEffect<void> {
+export class RegionDiscardEffect extends PlayerEffect {
     suits: OathSuit[];
     source?: Denizen;
 
@@ -1587,7 +1628,7 @@ export class RegionDiscardEffect extends PlayerEffect<void> {
     }
 }
 
-export class BindingExchangeEffect extends PlayerEffect<void> {
+export class BindingExchangeEffect extends PlayerEffect {
     other: OathPlayer;
     resourcesGiven = new Map<OathResource, number>();
     resourcesTaken = new Map<OathResource, number>();
@@ -1629,7 +1670,7 @@ export class CitizenshipOfferEffect extends BindingExchangeEffect {
     }
 }
 
-export class TakeReliquaryRelicEffect extends PlayerEffect<void> {
+export class TakeReliquaryRelicEffect extends PlayerEffect {
     index: number;
     relic: Relic | undefined;
 
@@ -1663,7 +1704,7 @@ export class TakeReliquaryRelicEffect extends PlayerEffect<void> {
 //               END OF THE GAME                //
 //////////////////////////////////////////////////
 // NOTE: In theory, none of those should get rolled back, but you never know
-export class WinGameEffect extends PlayerEffect<void> {
+export class WinGameEffect extends PlayerEffect {
     oldOath: Oath;
 
     resolve(): void {
@@ -1689,7 +1730,7 @@ export class WinGameEffect extends PlayerEffect<void> {
     }
 }
 
-export class BuildEdificeFromDenizenEffect extends OathEffect<void> {
+export class BuildEdificeFromDenizenEffect extends OathEffect {
     denizen: Denizen;
     site: Site;
     edifice: Edifice;
@@ -1729,7 +1770,7 @@ export class BuildEdificeFromDenizenEffect extends OathEffect<void> {
     }
 }
 
-export class FlipEdificeEffect extends OathEffect<void> {
+export class FlipEdificeEffect extends OathEffect {
     edifice: Edifice;
     newEdifice: Edifice;
 
@@ -1773,7 +1814,7 @@ export class FlipEdificeEffect extends OathEffect<void> {
     }
 }
 
-export class FinishChronicleEffect extends PlayerEffect<void> {
+export class FinishChronicleEffect extends PlayerEffect {
     oldRegions = new Map<Region, Site[]>();
 
     resolve(): void {
