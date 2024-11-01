@@ -2,19 +2,19 @@ import { CampaignAttackAction, CampaignDefenseAction, TakeFavorFromBankAction, T
 import { Conspiracy, Denizen, Edifice, Relic, Site, WorldCard } from "../../cards/cards";
 import { DiscardOptions } from "../../cards/decks";
 import { AttackDie, DefenseDie, DieSymbol, RollResult } from "../../dice";
-import { RegionDiscardEffect, PutResourcesOnTargetEffect, RollDiceEffect, BecomeCitizenEffect, DiscardCardEffect, TakeResourcesFromBankEffect, PeekAtCardEffect, MoveAdviserEffect, MoveResourcesToTargetEffect, TakeWarbandsIntoBagEffect, PutResourcesIntoBankEffect, DrawFromDeckEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, MoveWorldCardToAdvisersEffect } from "../../effects";
-import { BannerName, OathResource, OathSuit } from "../../enums";
+import { RegionDiscardEffect, PutResourcesOnTargetEffect, RollDiceEffect, BecomeCitizenEffect, DiscardCardEffect, PeekAtCardEffect, MoveResourcesToTargetEffect, DrawFromDeckEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, MoveWorldCardToAdvisersEffect, ParentToTargetEffect, BurnResourcesEffect } from "../../effects";
+import { BannerName, OathSuit } from "../../enums";
 import { OathPlayer } from "../../player";
-import { ResourceCost } from "../../resources";
+import { Favor, OathResourceType, OathWarband, ResourceCost, Secret } from "../../resources";
 import { ActionModifier, AttackerBattlePlan, DefenderBattlePlan, ActivePower, WhenPlayed, AccessedActionModifier, EffectModifier, AccessedEffectModifier, EnemyAttackerCampaignModifier, EnemyDefenderCampaignModifier } from "../powers";
-import { AbstractConstructor, inclusiveRange } from "../../utils";
+import { inclusiveRange } from "../../utils";
 import { WithPowers } from "../../interfaces";
 import { DarkestSecret } from "../../banks";
 
 
 export class FireTalkersAttack extends AttackerBattlePlan<Denizen> {
     name = "Fire Talkers";
-    cost = new ResourceCost([[OathResource.Secret, 1]]);
+    cost = new ResourceCost([[Secret, 1]]);
 
     applyBefore(): void {
         const darkestSecretProxy = this.gameProxy.banners.get(BannerName.DarkestSecret);
@@ -24,7 +24,7 @@ export class FireTalkersAttack extends AttackerBattlePlan<Denizen> {
 }
 export class FireTalkersDefense extends DefenderBattlePlan<Denizen> {
     name = "Fire Talkers";
-    cost = new ResourceCost([[OathResource.Secret, 1]]);
+    cost = new ResourceCost([[Secret, 1]]);
 
     applyBefore(): void {
         const darkestSecretProxy = this.gameProxy.banners.get(BannerName.DarkestSecret);
@@ -35,7 +35,7 @@ export class FireTalkersDefense extends DefenderBattlePlan<Denizen> {
 
 export class BillowingFogAttack extends AttackerBattlePlan<Denizen> {
     name = "Billowing Fog";
-    cost = new ResourceCost([[OathResource.Secret, 1]]);
+    cost = new ResourceCost([[Secret, 1]]);
 
     applyBefore(): void {
         this.action.campaignResult.params.attackerKillsNoWarbands = true;
@@ -43,7 +43,7 @@ export class BillowingFogAttack extends AttackerBattlePlan<Denizen> {
 }
 export class BillowingFogDefense extends DefenderBattlePlan<Denizen> {
     name = "Billowing Fog";
-    cost = new ResourceCost([[OathResource.Secret, 1]]);
+    cost = new ResourceCost([[Secret, 1]]);
 
     applyBefore(): void {
         this.action.campaignResult.params.defenderKillsNoWarbands = true;
@@ -52,7 +52,7 @@ export class BillowingFogDefense extends DefenderBattlePlan<Denizen> {
 
 export class KindredWarriorsAttack extends AttackerBattlePlan<Denizen> {
     name = "Kindred Warriors";
-    cost = new ResourceCost([[OathResource.Secret, 1]]);
+    cost = new ResourceCost([[Secret, 1]]);
 
     applyBefore(): void {
         this.action.campaignResult.params.atkRoll.ignore.add(DieSymbol.Skull);
@@ -61,7 +61,7 @@ export class KindredWarriorsAttack extends AttackerBattlePlan<Denizen> {
 }
 export class KindredWarriorsDefense extends DefenderBattlePlan<Denizen> {
     name = "Kindred Warriors";
-    cost = new ResourceCost([[OathResource.Secret, 1]]);
+    cost = new ResourceCost([[Secret, 1]]);
 
     applyBefore(): void {
         this.action.campaignResult.params.atkPool -= (this.activator.ruledSuits - 1);
@@ -70,7 +70,7 @@ export class KindredWarriorsDefense extends DefenderBattlePlan<Denizen> {
 
 export class CrackingGroundAttack extends AttackerBattlePlan<Denizen> {
     name = "Cracking Ground";
-    cost = new ResourceCost([], [[OathResource.Secret, 1]]);
+    cost = new ResourceCost([], [[Secret, 1]]);
 
     applyBefore(): void {
         this.action.campaignResult.params.atkPool += [...this.action.campaignResult.params.targets].filter(e => e instanceof Site).length;
@@ -78,7 +78,7 @@ export class CrackingGroundAttack extends AttackerBattlePlan<Denizen> {
 }
 export class CrackingGroundDefense extends DefenderBattlePlan<Denizen> {
     name = "Cracking Ground";
-    cost = new ResourceCost([], [[OathResource.Secret, 1]]);
+    cost = new ResourceCost([], [[Secret, 1]]);
 
     applyBefore(): void {
         this.action.campaignResult.params.atkPool -= [...this.action.campaignResult.params.targets].filter(e => e instanceof Site).length;
@@ -87,7 +87,7 @@ export class CrackingGroundDefense extends DefenderBattlePlan<Denizen> {
 
 export class RustingRay extends DefenderBattlePlan<Denizen> {
     name = "Rusting Ray";
-    cost = new ResourceCost([[OathResource.Secret, 1]]);
+    cost = new ResourceCost([[Secret, 1]]);
 
     applyBefore(): void {
         const darkestSecretProxy = this.gameProxy.banners.get(BannerName.DarkestSecret);
@@ -102,7 +102,7 @@ export class GleamingArmorAttack extends EnemyAttackerCampaignModifier<Denizen> 
     applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, CampaignAttackAction>>): Iterable<ActionModifier<WithPowers, CampaignAttackAction>> {
         for (const modifier of modifiers)
             if (modifier instanceof AttackerBattlePlan)
-                modifier.cost.add(new ResourceCost([[OathResource.Secret, 1]]));
+                modifier.cost.add(new ResourceCost([[Secret, 1]]));
 
         return [];
     }
@@ -113,7 +113,7 @@ export class GleamingArmorDefense extends EnemyDefenderCampaignModifier<Denizen>
     applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, CampaignDefenseAction>>): Iterable<ActionModifier<WithPowers, CampaignDefenseAction>> {
         for (const modifier of modifiers)
             if (modifier instanceof DefenderBattlePlan)
-                modifier.cost.add(new ResourceCost([[OathResource.Secret, 1]]));
+                modifier.cost.add(new ResourceCost([[Secret, 1]]));
 
         return [];
     }
@@ -121,7 +121,7 @@ export class GleamingArmorDefense extends EnemyDefenderCampaignModifier<Denizen>
 
 export class SpiritSnare extends ActivePower<Denizen> {
     name = "Spirit Snare";
-    cost = new ResourceCost([[OathResource.Secret, 1]]);
+    cost = new ResourceCost([[Secret, 1]]);
 
     usePower(): void {
         new TakeFavorFromBankAction(this.action.player, 1).doNext();
@@ -138,16 +138,16 @@ export class Dazzle extends WhenPlayed<Denizen> {
 
 export class Tutor extends ActivePower<Denizen> {
     name = "Tutor";
-    cost = new ResourceCost([[OathResource.Favor, 1], [OathResource.Secret, 1]]);
+    cost = new ResourceCost([[Favor, 1], [Secret, 1]]);
 
     usePower(): void {
-        new PutResourcesOnTargetEffect(this.game, this.action.player, OathResource.Secret, 1).do();
+        new PutResourcesOnTargetEffect(this.game, this.action.player, Secret, 1).do();
     }
 }
 
 export class Alchemist extends ActivePower<Denizen> {
     name = "Alchemist";
-    cost = new ResourceCost([[OathResource.Secret, 1]], [[OathResource.Secret, 1]]);
+    cost = new ResourceCost([[Secret, 1]], [[Secret, 1]]);
 
     usePower(): void {
         for (let i = 0; i < 4; i++) new TakeFavorFromBankAction(this.action.player, 1).doNext();
@@ -156,24 +156,25 @@ export class Alchemist extends ActivePower<Denizen> {
 
 export class WizardSchool extends ActivePower<Denizen> {
     name = "Wizard School";
-    cost = new ResourceCost([[OathResource.Favor, 1]]);
+    cost = new ResourceCost([[Favor, 1]]);
 
     usePower(): void {
-        new PutResourcesOnTargetEffect(this.game, this.action.player, OathResource.Secret, 1).do();
+        new PutResourcesOnTargetEffect(this.game, this.action.player, Secret, 1).do();
         new RestAction(this.action.player).doNext();
     }
 }
 
 export class TamingCharm extends ActivePower<Denizen> {
     name = "Taming Charm";
-    cost = new ResourceCost([[OathResource.Secret, 1]]);
+    cost = new ResourceCost([[Secret, 1]]);
 
     usePower(): void {
         new ChooseCardsAction(
             this.action.player, "Discard to gain 2 favor", [[...this.action.player.site.denizens].filter(e => e.suit === OathSuit.Beast || e.suit === OathSuit.Nomad && !e.activelyLocked)],
             (cards: Denizen[]) => {
-                if (!cards.length) return;
-                new TakeResourcesFromBankEffect(this.game, this.action.player, this.game.favorBanks.get(cards[0].suit), 2).do();
+                if (!cards[0]) return;
+                const bank = this.game.favorBank(cards[0].suit);
+                if (bank) new ParentToTargetEffect(this.game, this.action.player, bank.get(2)).do();
                 new DiscardCardEffect(this.action.player, cards[0]).do();
             }
         ).doNext();
@@ -182,7 +183,7 @@ export class TamingCharm extends ActivePower<Denizen> {
 
 export class Inquisitor extends ActivePower<Denizen> {
     name = "Inquisitor";
-    cost = new ResourceCost([[OathResource.Favor, 1]]);
+    cost = new ResourceCost([[Favor, 1]]);
 
     usePower(): void {
         const cards = new Set<WorldCard>();
@@ -200,9 +201,9 @@ export class Inquisitor extends ActivePower<Denizen> {
                 new PeekAtCardEffect(this.action.player, card).do();
 
                 if (card instanceof Conspiracy)
-                    new SearchPlayOrDiscardAction(this.action.player, new MoveAdviserEffect(this.game, this.action.player, card).do()).doNext();
+                    new SearchPlayOrDiscardAction(this.action.player, card).doNext();
                 else
-                    new MoveResourcesToTargetEffect(this.game, this.action.player, OathResource.Favor, 1, card.owner, this.source).do();
+                    new MoveResourcesToTargetEffect(this.game, this.action.player, Favor, 1, card.owner, this.source).do();
             }
         ).doNext();
     }
@@ -210,7 +211,7 @@ export class Inquisitor extends ActivePower<Denizen> {
 
 export class TerrorSpells extends ActivePower<Denizen> {
     name = "Terror Spells";
-    cost = new ResourceCost([[OathResource.Secret, 1]]);
+    cost = new ResourceCost([[Secret, 1]]);
 
     usePower(amount: number = 2): void {
         if (this.gameProxy.banners.get(BannerName.DarkestSecret)?.owner !== this.action.playerProxy) return;
@@ -223,7 +224,7 @@ export class TerrorSpells extends ActivePower<Denizen> {
                     if (sites[0]) new KillWarbandsOnTargetAction(this.action.player, sites[0], 1).doNext();
                     if (--amount) this.usePower(amount);
                 },
-                [this.action.playerProxy.site.region.original.sites.filter(e => e.totalWarbands)]
+                [this.action.playerProxy.site.region.original.sites.filter(e => e.warbands.length)]
             ).doNext(),
             () => new ChoosePlayersAction(
                 this.action.player, "Kill a warband (" + amount + " left)",
@@ -231,7 +232,7 @@ export class TerrorSpells extends ActivePower<Denizen> {
                     if (targets[0]) new KillWarbandsOnTargetAction(this.action.player, targets[0], 1).doNext();
                     if (--amount) this.usePower(amount);
                 },
-                [Object.values(this.gameProxy.players).filter(e => e.site.region === this.action.playerProxy.site.region && e.original.totalWarbands > 0).map(e => e.original)]
+                [Object.values(this.gameProxy.players).filter(e => e.site.region === this.action.playerProxy.site.region && e.original.warbands.length > 0).map(e => e.original)]
             ).doNext(),
             ["At sites", "On boards"]
         ).doNext();
@@ -240,23 +241,26 @@ export class TerrorSpells extends ActivePower<Denizen> {
 
 export class PlagueEngines extends ActivePower<Denizen> {
     name = "Plague Engines";
-    cost = new ResourceCost([[OathResource.Secret, 1]], [[OathResource.Secret, 1]]);
+    cost = new ResourceCost([[Secret, 1]], [[Secret, 1]]);
 
     usePower(): void {
         for (const playerProxy of Object.values(this.gameProxy.players))
-            new PutResourcesIntoBankEffect(this.game, playerProxy.original, this.game.favorBanks.get(OathSuit.Arcane), playerProxy.ruledSites).do();
+            new ParentToTargetEffect(this.game, playerProxy.original, playerProxy.original.getResources(Favor, playerProxy.ruledSites), this.game.favorBank(OathSuit.Arcane)).do();
     }
 }
 
 export class ForgottenVault extends ActivePower<Denizen> {
     name = "Forgotten Vault";
-    cost = new ResourceCost([[OathResource.Favor, 1]]);
+    cost = new ResourceCost([[Favor, 1]]);
 
     usePower(): void {
+        const banner = this.game.banners.get(BannerName.DarkestSecret);
+        if (!banner) return;
+
         new MakeDecisionAction(
             this.action.player, "Put or remove a secret from the Darkest Secret?",
-            () => new PutResourcesIntoBankEffect(this.game, undefined, this.game.banners.get(BannerName.DarkestSecret), 1).do(),
-            () => new TakeResourcesFromBankEffect(this.game, undefined, this.game.banners.get(BannerName.DarkestSecret), 1).do(),
+            () => new PutResourcesOnTargetEffect(this.game, this.action.player, Secret, 1, banner).do(),
+            () => new BurnResourcesEffect(this.game, this.action.player, banner.get(1)).do(),
             ["Put", "Remove"]
         ).doNext();
     }
@@ -264,14 +268,15 @@ export class ForgottenVault extends ActivePower<Denizen> {
 
 export class BloodPact extends ActivePower<Denizen> {
     name = "Blood Pact"
-    cost = new ResourceCost([[OathResource.Secret, 1]]);
+    cost = new ResourceCost([[Secret, 1]]);
 
     usePower(): void {
+        const leader = this.action.playerProxy.leader.original;
         new ChooseNumberAction(
-            this.action.player, "Sacrifice pairs of warbands to get secrets", inclusiveRange(1, Math.floor(this.action.player.getWarbands(this.action.playerProxy.leader.original) / 2)),
+            this.action.player, "Sacrifice pairs of warbands to get secrets", inclusiveRange(1, Math.floor(this.action.player.getWarbandsAmount(leader.id) / 2)),
             (value: number) => {
-                new TakeWarbandsIntoBagEffect(this.action.playerProxy.leader.original, 2 * value, this.action.player).do();
-                new PutResourcesOnTargetEffect(this.game, this.action.player, OathResource.Secret, value).do();
+                new ParentToTargetEffect(this.game, this.action.player, this.action.player.getWarbands(leader.id, 2 * value), leader.bag).do();
+                new PutResourcesOnTargetEffect(this.game, this.action.player, Secret, value).do();
             }
         ).doNext();
     }
@@ -290,7 +295,7 @@ export class ActingTroupe extends AccessedActionModifier<Denizen, TradeAction> {
 export class Jinx extends EffectModifier<Denizen, RollDiceEffect> {
     name = "Jinx";
     modifiedEffect = RollDiceEffect;
-    cost = new ResourceCost([[OathResource.Secret, 1]]);
+    cost = new ResourceCost([[Secret, 1]]);
 
     canUse(): boolean {
         return !!this.effect.playerProxy && this.effect.playerProxy.rules(this.sourceProxy) && !(!this.sourceProxy.empty && this.gameProxy.currentPlayer === this.effect.playerProxy);
@@ -314,7 +319,7 @@ export class Jinx extends EffectModifier<Denizen, RollDiceEffect> {
 export class Portal extends AccessedActionModifier<Denizen, TravelAction> {
     name = "Portal";
     modifiedAction = TravelAction;
-    cost = new ResourceCost([[OathResource.Secret, 1]]);
+    cost = new ResourceCost([[Secret, 1]]);
 
     applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, TravelAction>>): Iterable<ActionModifier<WithPowers, TravelAction>> {
         return [...modifiers].filter(e => e.source instanceof Site);
@@ -333,8 +338,9 @@ export class SecretSignal extends AccessedActionModifier<Denizen, TradeAction> {
     modifiedAction = TradeAction;
     
     applyAfter(): void {
-        if (this.action.getting.get(OathResource.Favor) === 1)
-            new TakeResourcesFromBankEffect(this.game, this.action.player, this.game.favorBanks.get(this.action.cardProxy.suit), 1).do();
+        const bank = this.game.favorBank(this.action.cardProxy.suit);
+        if (bank && this.action.getting.get(Favor) === 1)
+            new ParentToTargetEffect(this.game, this.action.player, bank.get(1)).do();
     }
 }
 
@@ -343,7 +349,7 @@ export class InitiationRite extends AccessedActionModifier<Denizen, MusterAction
     modifiedAction = MusterAction;
     
     applyBefore(): void {
-        this.action.using = OathResource.Secret;
+        this.action.using = Secret;
     }
 }
 
@@ -372,7 +378,7 @@ export class Observatory extends AccessedActionModifier<Denizen, SearchAction> {
     
     applyAtStart(): void {
         if (this.action.playerProxy.site === this.sourceProxy.site)
-            for (const region of Object.values(this.game.board.regions))
+            for (const region of Object.values(this.game.board.children))
                 this.action.selects.deck.choices.set(region.name, region.discard);
     }
 }
@@ -380,7 +386,7 @@ export class Observatory extends AccessedActionModifier<Denizen, SearchAction> {
 export class MagiciansCode extends AccessedActionModifier<Denizen, RecoverBannerPitchAction> {
     name = "Magician's Code";
     modifiedAction = RecoverBannerPitchAction;  // Technically should be chosen at the time you recover, but this is way simpler
-    cost = new ResourceCost([[OathResource.Favor, 2]]);
+    cost = new ResourceCost([[Favor, 2]]);
 
     canUse(): boolean {
         return super.canUse() && this.action.banner instanceof DarkestSecret;
@@ -393,7 +399,7 @@ export class MagiciansCode extends AccessedActionModifier<Denizen, RecoverBanner
     }
     
     applyBefore(): void {
-        new PutResourcesOnTargetEffect(this.game, this.action.player, OathResource.Secret, 2).do();
+        new PutResourcesOnTargetEffect(this.game, this.action.player, Secret, 2).do();
         this.action.amount += 2;
     }
 }
@@ -422,10 +428,11 @@ export class MasterOfDisguise extends AccessedActionModifier<Denizen,TradeAction
 
     applyWhenApplied(): boolean {
         new ChoosePlayersAction(
-            this.activator, "Act as if you have another player's advisers",
+            this.activator, "Act as if you have another player's advisers instead",
             (players: OathPlayer[]) => {
                 if (!players[0]) return;
-                this.action.playerProxy.advisers = new Set(players[0].advisers);
+                for (const cardProxy of this.action.playerProxy.advisers) cardProxy.prune();
+                for (const cardProxy of players[0].advisers) this.action.playerProxy.addChild(cardProxy);
                 this.action.doNext();  // Allow the player to choose other new modifiers
             }
         ).doNext();
@@ -435,23 +442,23 @@ export class MasterOfDisguise extends AccessedActionModifier<Denizen,TradeAction
 
 export class WitchsBargain extends ActivePower<Denizen> {
     name = "Witch's Bargain";
-    cost = new ResourceCost([[OathResource.Secret, 1]]);
+    cost = new ResourceCost([[Secret, 1]]);
 
     usePower(): void {
         new ChoosePlayersAction(
             this.action.player, "Bargain with players at your site",
             (players: OathPlayer[]) => {
                 for (const player of players) {
-                    const maxSecrets = this.action.player.getResources(OathResource.Secret);
-                    const maxFavors = Math.floor(this.action.player.getResources(OathResource.Favor) / 2);
+                    const maxSecrets = this.action.player.getResources(Secret);
+                    const maxFavors = Math.floor(this.action.player.getResources(Favor).length / 2);
                     
                     new ChooseNumberAction(
                         this.action.player, "Give favors to take secrets (positive), or vice versa (negative)", inclusiveRange(-maxSecrets, maxFavors),
                         (value: number) => {
-                            let giftedResource = OathResource.Favor, takenResource = OathResource.Secret;
+                            let giftedResource: OathResourceType = Favor, takenResource: OathResourceType = Secret;
                             let giving = value * 2, taking = value;
                             if (value < 0) {
-                                giftedResource = OathResource.Secret, takenResource = OathResource.Favor;
+                                giftedResource = Secret, takenResource = Favor;
                                 giving = -value, taking = -value * 2;
                             }
                             
@@ -471,7 +478,7 @@ export class Bewitch extends WhenPlayed<Denizen> {
     name = "Bewitch";
 
     whenPlayed(): void {
-        if (this.effect.playerProxy.getAllResources(OathResource.Secret) > this.gameProxy.chancellor.getResources(OathResource.Secret))
+        if (this.effect.playerProxy.getAllResources(Secret) > this.gameProxy.chancellor.byClass(Secret).length)
             new MakeDecisionAction(this.effect.player, "Become a Citizen?", () => new BecomeCitizenEffect(this.effect.player).do());
     }
 }
@@ -480,25 +487,26 @@ export class Revelation extends WhenPlayed<Denizen> {
     name = "Revelation";
 
     whenPlayed(): void {
-        for (const player of Object.values(this.game.players)) {
+        for (const player of this.game.players) {
             new ChooseNumberAction(
-                player, "Burn favor to gain secrets", inclusiveRange(player.getResources(OathResource.Favor)),
+                player, "Burn favor to gain secrets", inclusiveRange(player.byClass(Favor).length),
                 (value: number) => {
-                    new MoveResourcesToTargetEffect(this.game, player, OathResource.Favor, value, undefined).do();
-                    new PutResourcesOnTargetEffect(this.game, player, OathResource.Secret, value).do();
+                    new BurnResourcesEffect(this.game, player, player.byClass(Favor).max(value)).do();
+                    new PutResourcesOnTargetEffect(this.game, player, Secret, value).do();
                 }
             ).doNext();
         }
     }
 }
 
-export class VowOfSilence extends AccessedEffectModifier<Denizen, MoveResourcesToTargetEffect> {
+export class VowOfSilence extends AccessedEffectModifier<Denizen, ParentToTargetEffect> {
     name = "Vow of Silence";
-    modifiedEffect = MoveResourcesToTargetEffect;
+    modifiedEffect = ParentToTargetEffect;
 
     applyAfter(): void {
-        if (this.effect.resource === OathResource.Secret && this.effect.source === this.sourceProxy.ruler?.original)
-            this.effect.amount = 0;
+        for (const object of this.effect.objects)
+            if (object instanceof Secret && object.parent === this.sourceProxy.ruler?.original)
+                this.effect.objects.delete(object);
     }
 }
 export class VowOfSilenceRecover extends AccessedActionModifier<Denizen, RecoverAction> {
@@ -515,13 +523,13 @@ export class VowOfSilencePitch extends ActionModifier<Denizen, RecoverBannerPitc
     modifiedAction = RecoverBannerPitchAction;
 
     applyAfter(): void {
-        new PutResourcesOnTargetEffect(this.game, this.sourceProxy.ruler?.original, OathResource.Secret, this.action.amount).do();
+        new PutResourcesOnTargetEffect(this.game, this.sourceProxy.ruler?.original, Secret, this.action.amount).do();
     }
 }
 
 export class DreamThief extends ActivePower<Denizen> {
     name = "Dream Thief";
-    cost = new ResourceCost([[OathResource.Favor, 2]]);
+    cost = new ResourceCost([[Favor, 2]]);
 
     usePower(): void {
         const cards = new Set<WorldCard>();
@@ -535,7 +543,7 @@ export class DreamThief extends ActivePower<Denizen> {
         new ChooseCardsAction(
             this.action.player, "Swap two facedown advisers", [cards], 
             (cards: WorldCard[]) => {
-                if (cards.length < 2) return;
+                if (!cards[0] || !cards[1]) return;  // Done this way so Typescript is happy
                 const player1 = cards[0].owner as OathPlayer;
                 const player2 = cards[1].owner as OathPlayer;
                 new MoveWorldCardToAdvisersEffect(this.game, player2, cards[0]).do();
@@ -550,7 +558,7 @@ export class DreamThief extends ActivePower<Denizen> {
 export class GreatSpire extends AccessedActionModifier<Edifice, SearchAction> {
     name = "Great Spire";
     modifiedAction = SearchAction;
-    cost = new ResourceCost([[OathResource.Secret, 1]]);
+    cost = new ResourceCost([[Secret, 1]]);
 
     applyAtEnd(): void {
         const denizens = [...this.action.cards].filter(e => e instanceof Denizen);
@@ -574,12 +582,12 @@ export class GreatSpire extends AccessedActionModifier<Edifice, SearchAction> {
 
 export class FallenSpire extends ActivePower<Edifice> {
     name = "Fallen Spire";
-    cost = new ResourceCost([[OathResource.Secret, 1]], [[OathResource.Secret, 1]]);
+    cost = new ResourceCost([[Secret, 1]], [[Secret, 1]]);
 
     usePower(): void {
         const discard = this.action.playerProxy.site.region.discard.original;
         new ChooseNumberAction(
-            this.action.player, "Swap cards from your region's discard with the Dispossessed", inclusiveRange(1, Math.min(discard.cards.length, 5)),
+            this.action.player, "Swap cards from your region's discard with the Dispossessed", inclusiveRange(1, Math.min(discard.children.length, 5)),
             (value: number) => {
                 const discardOptions = new DiscardOptions(discard);
                 let skip = 0;

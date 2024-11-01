@@ -1,74 +1,49 @@
 import { ChooseSuitsAction, RecoverAction, RecoverBannerPitchAction } from "./actions/actions";
 import { RecoverActionTarget, CampaignActionTarget, WithPowers, OwnableObject } from "./interfaces";
-import { PutResourcesIntoBankEffect, TakeOwnableObjectEffect, SetPeoplesFavorMobState, TakeResourcesFromBankEffect, MoveBankResourcesEffect } from "./effects";
-import { OathResource, OathSuit } from "./enums";
-import { OathGame } from "./game";
-import { OathGameObject } from "./gameObject";
+import { TakeOwnableObjectEffect, SetPeoplesFavorMobState, ParentToTargetEffect, UnparentEffect, BurnResourcesEffect, MoveResourcesToTargetEffect } from "./effects";
+import { OathSuit, OathSuitName } from "./enums";
 import { OathPlayer } from "./player";
 import { PeoplesFavorSearch, PeoplesFavorWake, DarkestSecretPower } from "./powers/banners";
 import { OathPower } from "./powers/powers";
 import { Constructor } from "./utils";
+import { Favor, OathResourceType, ResourcesAndWarbands, Secret } from "./resources";
 
+export abstract class ResourceBank<U = any> extends ResourcesAndWarbands<U> {
+    type: OathResourceType;
 
-export abstract class ResourceBank extends OathGameObject {
-    type: OathResource;
-    amount: number;
-    min = 0;
+    get amount() { return this.byClass(this.type).length; }
 
-    constructor(game: OathGame, amount: number = 0) {
-        super(game);
-        this.amount = Math.max(this.min, amount);
-    }
-
-    put(amount: number): number {
-        this.amount += amount;
-        return this.amount;
-    }
-
-    take(amount: number = Infinity): number {
-        const oldAmount = this.amount;
-        const newAmount = Math.max(this.amount - amount, this.min);
-        const diff = oldAmount - newAmount;
-
-        this.amount -= diff;
-        return diff;
-    }
-
-    moveTo(other: ResourceBank, amount: number = Infinity): number {
-        const amountMoved = this.take(amount);
-        other.put(amountMoved);
-        return amountMoved;
-    }
-
-    serialize(): Record<string, any> {
-        return {
-            amount: this.amount,
-            type: this.type
-        };
+    get(amount: number) {
+        return this.byClass(this.type).max(amount);
     }
 }
 
-export class FavorBank extends ResourceBank {
-    type = OathResource.Favor;
-}
-
-export abstract class Banner extends ResourceBank implements OwnableObject, RecoverActionTarget, CampaignActionTarget, WithPowers {
+export class FavorBank extends ResourceBank<OathSuit> {
     name: string;
-    owner?: OathPlayer;
+    type = Favor;
+
+    constructor(id: OathSuit, startingAmount: number) {
+        super(id);
+        this.name = OathSuitName[id] + " Bank";
+        this.putResources(Favor, startingAmount);
+    }
+}
+
+export abstract class Banner extends ResourceBank<string> implements RecoverActionTarget, CampaignActionTarget, WithPowers, OwnableObject {
+    name: string;
     powers: Set<Constructor<OathPower<Banner>>>;
     min = 1;
 
+    get owner() { return this.typedParent(OathPlayer); }
     get defense() { return this.amount; }
     get force() { return this.owner; }
 
-    setOwner(newOwner?: OathPlayer) {
-        if (this.owner) this.owner.removeBanner(this);
-        this.owner = newOwner;
-        if (newOwner) newOwner.addBanner(this);
+    setOwner(player?: OathPlayer): void {
+        player?.addChild(this);
     }
 
     canRecover(action: RecoverAction): boolean {
-        return action.player.getResources(this.type) > this.amount;
+        return action.player.getResources(this.type).length > this.amount;
     }
 
     recover(player: OathPlayer): void {
@@ -77,31 +52,29 @@ export abstract class Banner extends ResourceBank implements OwnableObject, Reco
 
     finishRecovery(player: OathPlayer, amount: number): void {
         // Banner-specific logic
-        new PutResourcesIntoBankEffect(this.game, player, this, amount).doNext();
+        new ParentToTargetEffect(this.game, player, this.getResources(this.type, amount)).doNext();
         this.handleRecovery(player);
         new TakeOwnableObjectEffect(this.game, player, this).do();
     }
 
     seize(player: OathPlayer) {
         new TakeOwnableObjectEffect(this.game, player, this).doNext();
-        new TakeResourcesFromBankEffect(this.game, undefined, this, 2).doNext();
+        new BurnResourcesEffect(this.game, player, this.getResources(this.type, 2)).doNext();
     }
 
     abstract handleRecovery(player: OathPlayer): void;
-
-    serialize(): Record<string, any> {
-        const obj: Record<string, any> = super.serialize();
-        obj.name = this.name;
-        obj.owner = this.owner?.color;
-        return obj;
-    }
 }
 
 export class PeoplesFavor extends Banner {
     name = "PeoplesFavor";
-    type = OathResource.Favor;
+    type = Favor;
     powers = new Set([PeoplesFavorSearch, PeoplesFavorWake]);
     isMob: boolean;
+
+    constructor() {
+        super("peoplesFavor");
+        this.putResources(Favor, 1);
+    }
 
     handleRecovery(player: OathPlayer) {
         new SetPeoplesFavorMobState(this.game, player, false).do();
@@ -113,9 +86,9 @@ export class PeoplesFavor extends Banner {
 
                 let amount = this.amount;
                 while (amount > 0) {
-                    const bank = this.game.favorBanks.get(suit);
+                    const bank = this.game.byClass(FavorBank).byId(suit)[0];
                     if (bank) {
-                        new MoveBankResourcesEffect(this.game, player, this, bank.original, 1).do();
+                        new MoveResourcesToTargetEffect(this.game, player, bank.original.type, 1, bank.original).do();
                         amount--;
                     }
                     if (++suit > OathSuit.Nomad) suit = OathSuit.Discord;
@@ -125,16 +98,23 @@ export class PeoplesFavor extends Banner {
     }
 
     serialize(): Record<string, any> {
-        const obj: Record<string, any> = super.serialize();
-        obj.isMob = this.isMob;
-        return obj;
+        const obj = super.serialize();
+        return {
+            isMob: this.isMob,
+            ...obj
+        };
     }
 }
 
 export class DarkestSecret extends Banner {
     name = "DarkestSecret";
-    type = OathResource.Secret;
+    type = Secret;
     powers = new Set([DarkestSecretPower]);
+
+    constructor() {
+        super("darkestSecret");
+        this.putResources(Secret, 1);
+    }
 
     canRecover(action: RecoverAction): boolean {
         if (!super.canRecover(action)) return false;
@@ -150,7 +130,7 @@ export class DarkestSecret extends Banner {
     }
 
     handleRecovery(player: OathPlayer) {
-        new TakeResourcesFromBankEffect(this.game, player, this, 1).doNext();
-        if (this.owner) new TakeResourcesFromBankEffect(this.game, this.owner, this, this.amount - 1).doNext();
+        new MoveResourcesToTargetEffect(this.game, player, this.type, 1, this).doNext();
+        if (this.owner) new MoveResourcesToTargetEffect(this.game, this.owner, this.type, this.amount - 1, this).doNext();
     }
 }

@@ -30,19 +30,6 @@ export const OathSuitName = {
 }
 
 
-export enum OathResource {
-    Favor,
-    Secret,
-    FlippedSecret
-}
-
-export const OathResourceName = {
-    [OathResource.Favor]: "Favor",
-    [OathResource.Secret]: "Secret",
-    [OathResource.FlippedSecret]: "Flipped Secret",
-}
-
-
 export enum OathType {
     Supremacy,
     ThePeople,

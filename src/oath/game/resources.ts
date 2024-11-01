@@ -1,121 +1,106 @@
-import { MoveResourcesToTargetEffect, TakeWarbandsIntoBagEffect } from "./effects";
-import { OathResource, OathResourceName } from "./enums"
-import { OathGameObject } from "./gameObject";
-import { OathPlayer } from "./player";
-import { ResourceBank } from "./banks";
+import { BurnResourcesEffect, MoveResourcesToTargetEffect, ParentToTargetEffect } from "./effects";
+import { OathGameObject, OathGameObjectLeaf } from "./gameObject";
 import { InvalidActionResolution } from "./actions/actions";
+import { PlayerColor } from "./enums";
+import { Constructor } from "./utils";
 
 
-export abstract class ResourcesAndWarbands extends OathGameObject {
+let resourceId = 0;  // TOOD: Find better solution for unique ids
+export abstract class OathResource extends OathGameObjectLeaf<number> {
+    id = resourceId++;
+
+    abstract burn(): void;
+}
+
+export class Favor extends OathResource {
+    burn(): void {
+        this.unparent();
+    }
+}
+
+export class Secret extends OathResource {
+    flipped: boolean = false;
+
+    burn(): void {
+        this.prune();
+    }
+}
+
+export type OathResourceType<T extends OathResource = OathResource> = Constructor<T>;
+
+
+export class OathWarband extends OathGameObjectLeaf<PlayerColor> { }
+
+
+export abstract class ResourcesAndWarbands<T = any> extends OathGameObject<T> {
     abstract name: string;
-    resources = new Map<OathResource, number>();
-    warbands = new Map<OathPlayer, number>();
-    
-    get empty(): boolean {
-        return this.totalResources === 0;
-    }
 
-    get totalWarbands(): number {
-        let total = 0;
-        for (const number of this.warbands.values()) total += number;
-        return total;
-    }
+    get empty() { return this.resources.length === 0; }
+    get warbands() { return this.byClass(OathWarband); }
+    get resources() { return this.byClass(OathResource); }
 
-    get totalResources(): number {
-        let total = 0;
-        for (const number of this.resources.values()) total += number;
-        return total;
-    }
-
-    getResources(resource: OathResource): number {
-        return this.resources.get(resource) || 0;
-    }
-
-    putResources(resource: OathResource, amount: number): number {
-        const newAmount = this.getResources(resource) + amount;
-        this.resources.set(resource, newAmount);
-        return newAmount;
-    }
-    
-    putResourcesIntoBank(bank: ResourceBank | undefined, amount: number = Infinity): number {
-        if (!bank) return 0;
-        const numberMoved = this.takeResources(bank.type, amount);
-        bank.put(numberMoved);
-        return numberMoved;
-    }
-
-    takeResources(resource: OathResource, amount: number = Infinity): number {
-        const oldAmount = this.getResources(resource);
-        const newAmount = Math.max(oldAmount - amount, 0);
-        this.resources.set(resource, newAmount);
-        return oldAmount - newAmount;
-    }
-
-    takeResourcesFromBank(bank: ResourceBank | undefined, amount: number = Infinity): number {
-        if (!bank) return 0;
-        const numberMoved = bank.take(amount);
-        this.putResources(bank.type, numberMoved);
-        return numberMoved;
-    }
-
-    moveResourcesTo(resource: OathResource, target: ResourcesAndWarbands | undefined, amount: number = Infinity, exact: boolean = false): number {
-        if (exact && this.getResources(resource) < amount) return 0;
-        const numberMoved = this.takeResources(resource, amount);
-        if (target) target.putResources(resource, numberMoved);
-        return numberMoved;
-    }
-
-    getWarbands(player: OathPlayer | undefined): number {
-        if (!player) return 0;
-        return this.warbands.get(player) || 0;
-    }
-
-    putWarbands(player: OathPlayer, amount: number): number {
-        const newAmount = this.getWarbands(player) + amount;
-        this.warbands.set(player, newAmount);
+    putResources(type: OathResourceType, amount: number): number {
+        const newAmount = this.getResources(type).length + amount;
+        for (let i = 0; i < amount; i ++) this.addChild(new type());
         return newAmount;
     }
 
-    takeWarbands(player: OathPlayer, amount: number = Infinity): number {
-        const oldAmount = this.getWarbands(player);
-        const newAmount = Math.max(oldAmount - amount, 0);
-        this.warbands.set(player, newAmount);
-        return oldAmount - newAmount;
+    getResources<T extends OathResource>(type: OathResourceType<T>, amount: number = Infinity): T[] {
+        const resources = this.byClass(type);
+        amount = Math.min(resources.length, amount);
+        return resources.max(amount);
     }
 
-    moveWarbandsTo(player: OathPlayer, target: ResourcesAndWarbands, amount: number = Infinity): number {
-        const numberMoved = this.takeWarbands(player, amount);
-        target.putWarbands(player, numberMoved);
-        return numberMoved;
+    getWarbandsAmount(color?: PlayerColor): number {
+        if (!color) return 0;
+        return this.warbands.byId(color).length;
+    }
+
+    putWarbands(color: PlayerColor, amount: number): number {
+        const newAmount = this.getWarbandsAmount(color) + amount;
+        for (let i = 0; i < amount; i ++) this.addChild(new OathWarband(color));
+        return newAmount;
+    }
+
+    getWarbands(color: PlayerColor, amount: number = Infinity) {
+        const warbands = this.warbands.byId(color);
+        amount = Math.min(warbands.length, amount);
+        return warbands.max(amount);
+    }
+
+    moveWarbandsTo(color: PlayerColor, target: ResourcesAndWarbands<any>, amount: number = Infinity): number {
+        const warbands = this.getWarbands(color, amount);
+        for (const warband of warbands) target?.addChild(warband);
+        return warbands.length;
     }
 
     clear() {
-        for (const [resource, amount] of this.resources)
-            new MoveResourcesToTargetEffect(this.game, undefined, resource, amount, undefined, this).do();
+        new BurnResourcesEffect(this.game, undefined, this.resources).do();
 
-        for (const [player, amount] of this.warbands)
-            new TakeWarbandsIntoBagEffect(player, amount, this);
+        for (const player of this.game.players)
+            new ParentToTargetEffect(this.game, player, this.getWarbands(player.id), player.bag).do();
     }
 
-    serialize(): Record<string, any> {
+    serialize(): Record<string, any> | undefined {
+        const obj = super.serialize();
         return {
-            resources: Object.fromEntries([...this.resources.entries()]),
-            warbands: Object.fromEntries([...this.warbands.entries()].map(([k, v]) => [k.color, v])),
-        };
+            name: this.name,
+            ...obj
+        }
     }
 }
 
 export class ResourceCost {
-    placedResources: Map<OathResource, number>;
-    burntResources: Map<OathResource, number>;
+    placedResources: Map<OathResourceType, number>;
+    burntResources: Map<OathResourceType, number>;
 
-    constructor(placedResources: Iterable<[OathResource, number]> = [], burntResources: Iterable<[OathResource, number]> = []) {
+    constructor(placedResources: Iterable<[OathResourceType, number]> = [], burntResources: Iterable<[OathResourceType, number]> = []) {
         this.placedResources = new Map(placedResources);
         this.burntResources = new Map(burntResources);
     }
 
-    get totalResources(): Map<OathResource, number> {
-        const total = new Map<OathResource, number>();
+    get totalResources() {
+        const total = new Map<OathResourceType, number>();
         for (const [resource, amount] of this.placedResources) total.set(resource, amount);
         for (const [resource, amount] of this.burntResources) total.set(resource, (total.get(resource) || 0) + amount);
         return total;
@@ -129,9 +114,9 @@ export class ResourceCost {
 
     get cannotPayError(): InvalidActionResolution {
         let message = "Cannot pay resource cost: ";
-        const printResources = function(resources: Map<OathResource, number>, suffix: string) {
+        const printResources = function(resources: Map<OathResourceType, number>, suffix: string) {
             if ([...resources].filter(([_, a]) => a > 0).length === 0) return undefined;
-            return [...resources].map(([resource, number]) => `${number} ${OathResourceName[resource]}(s)`).join(", ") + suffix;
+            return [...resources].map(([resource, number]) => `${number} ${resource.name}(s)`).join(", ") + suffix;
         }
         message += [printResources(this.placedResources, " placed"), printResources(this.burntResources, " burnt")].filter(e => e !== undefined).join(", ");
         return new InvalidActionResolution(message);

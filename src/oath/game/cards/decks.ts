@@ -1,21 +1,13 @@
-import { OathGameObject } from "../gameObject";
+import { RegionName } from "../enums";
+import { Container } from "../gameObject";
 import { shuffleArray } from "../utils";
-import { WorldCard, VisionBack, OathCard } from "./cards";
+import { WorldCard, VisionBack, OathCard, Relic, Site } from "./cards";
 
 
-export class CardDeck<T extends OathCard> extends OathGameObject {
-    cards: T[] = [];
-
-    putCard(card: T, onBottom: boolean = false) {
-        if (!card.facedown) card.hide();
-
-        if (!this.cards.includes(card))
-            if (onBottom) this.cards.push(card); else this.cards.unshift(card);
-    }
-
+export abstract class CardDeck<T extends OathCard, U = any> extends Container<T, U> {
     draw(amount: number, fromBottom: boolean = false, skip: number = 0): T[] {
         // Why such an involved process instead of just using splice? To make sure the draws are in correct order for reverting
-        amount = Math.min(this.cards.length - skip, amount);
+        amount = Math.min(this.children.length - skip, amount);
         let cards: T[] = [];
         for (let i = 0; i < amount; i++) {
             const card = this.drawSingleCard(fromBottom, skip);
@@ -25,43 +17,52 @@ export class CardDeck<T extends OathCard> extends OathGameObject {
     }
 
     drawSingleCard(fromBottom: boolean = false, skip: number = 0): T | undefined {
-        return this.cards.splice(fromBottom ? this.cards.length - 1 - skip : skip, 1)[0];
+        return this.children.splice(fromBottom ? skip: this.children.length - 1 - skip, 1)[0];
     }
 
     shuffle() {
-        shuffleArray(this.cards);
-    }
-
-    serialize(): Record<string, any> {
-        return {
-            cards: this.cards.map(e => e.serialize())
-        }
+        shuffleArray(this.children);
     }
 }
 
-export abstract class SearchableDeck extends CardDeck<WorldCard> {
+export class RelicDeck extends CardDeck<Relic, "relicDeck"> {
+    constructor() {
+        super("relicDeck", Relic);
+    }
+}
+export class SiteDeck extends CardDeck<Site, "siteDeck"> {
+    constructor() {
+        super("siteDeck", Site);
+    }
+}
+
+export abstract class SearchableDeck<T = any> extends CardDeck<WorldCard, T> {
     get searchCost() { return 2; }
 
-    putCard(card: WorldCard, onBottom?: boolean): void {
-        card.setOwner(undefined);
-        if (!card.empty) card.returnResources();
-        super.putCard(card, onBottom);
+    constructor(id: T) {
+        super(id, WorldCard);
     }
 
     serialize(): Record<string, any> {
-        const obj: Record<string, any> = super.serialize();
-        obj.searchCost = this.searchCost;
-        return obj;
+        const obj = super.serialize();
+        return {
+            searchCost: this.searchCost,
+            ...obj
+        };
     }
 }
 
-export class WorldDeck extends SearchableDeck {
+export class WorldDeck extends SearchableDeck<"worldDeck"> {
     visionsDrawn: number = 0;
     get searchCost() { return this.visionsDrawn < 3 ? this.visionsDrawn < 1 ? 2 : 3 : 4; }
 
+    constructor() {
+        super("worldDeck");
+    }
+
     draw(amount: number, fromBottom: boolean = false, skip: number = 0): WorldCard[] {
         for (let i = 0; i < amount; i++) {
-            const card = this.cards[fromBottom ? this.cards.length - 1 - i - skip : i + skip];
+            const card = this.children[fromBottom ? i + skip : this.children.length - 1 - i - skip];
             if (!card) break;
             if (card instanceof VisionBack) {
                 amount = i+1;
@@ -85,7 +86,7 @@ export class WorldDeck extends SearchableDeck {
     }
 }
 
-export class Discard extends SearchableDeck { }
+export class Discard extends SearchableDeck<RegionName> { }
 
 export class DiscardOptions<T extends OathCard> {
     discard: CardDeck<T>;

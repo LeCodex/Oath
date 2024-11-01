@@ -24,7 +24,7 @@ export class ConspiracyPower extends WhenPlayed<Conspiracy> {
 
         new ChoosePlayersAction(
             this.effect.player, "Target a player (or no-one) with the Conspiracy", 
-            (targets: OathPlayer[]) => { if (targets.length) new ConspiracyStealAction(this.effect.player, targets[0]).doNext(); }, 
+            (targets: OathPlayer[]) => { if (targets[0]) new ConspiracyStealAction(this.effect.player, targets[0]).doNext(); }, 
             [targets],
             [[0, 1]]
         ).doNext();

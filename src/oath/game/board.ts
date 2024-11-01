@@ -1,11 +1,10 @@
-import { Denizen, Site, WorldCard } from "./cards/cards";
+import { Site } from "./cards/cards";
 import { Discard } from "./cards/decks";
-import { CardRestriction, RegionName } from "./enums";
-import { OathGame } from "./game";
-import { OathGameObject } from "./gameObject";
+import { RegionName } from "./enums";
+import { Container, OathGameObject } from "./gameObject";
 
 
-export class OathBoard extends OathGameObject {
+export class OathBoard extends Container<Region, "board"> {
     travelCosts = new Map<RegionName, Map<RegionName, number>>([
         [RegionName.Cradle, new Map([[RegionName.Cradle, 1], [RegionName.Provinces, 2], [RegionName.Hinterland, 4]])],
         [RegionName.Provinces, new Map([[RegionName.Cradle, 2], [RegionName.Provinces, 2], [RegionName.Hinterland, 2]])],
@@ -16,52 +15,46 @@ export class OathBoard extends OathGameObject {
         [RegionName.Provinces, RegionName.Hinterland],
         [RegionName.Hinterland, RegionName.Cradle],
     ]);
-    regions: Record<RegionName, Region> = {
-        [RegionName.Cradle]: new Region(this.game, "Cradle", 2, RegionName.Cradle),
-        [RegionName.Provinces]: new Region(this.game, "Provinces", 3, RegionName.Provinces),
-        [RegionName.Hinterland]: new Region(this.game, "Hinterland", 3, RegionName.Hinterland),
-    };
 
-    nextRegion(region: Region): Region {
+    constructor() {
+        super("board", Region);
+    }
+
+    nextRegion(region: Region) {
         const name = this.nextRegionName.get(region.regionName);
-        if (name === undefined) throw new Error(`Couldn't find the next region of ${region.name}`);
-        return this.regions[name];
+        if (name === undefined) return undefined;
+        return this.byClass(Region).byId(name)[0];
     }
 
     *sites() {
-        for (const region of Object.values(this.regions))
-            for (const site of region.sites)
+        for (const region of this.children)
+            for (const site of region.byClass(Site))
                 yield site; 
     }
 
     serialize(): Record<string, any> {
+        const obj = super.serialize();
         return {
-            regions: Object.fromEntries(Object.entries(this.regions).map(([k, v]) => [k, v.serialize()])),
             travelCosts: Object.fromEntries([...this.travelCosts.entries()].map(([k, v]) => [k, Object.fromEntries([...v.entries()])])),
+            ...obj
         }
     }
 }
 
 
-export class Region extends OathGameObject {
+export class Region extends OathGameObject<RegionName> {
     name: string;
     size: number;
     regionName: RegionName;
-    sites: Site[] = [];
-    discard = new Discard(this.game);
+    discard: Discard;
 
-    constructor(game: OathGame, name: string, size: number, regionName: RegionName) {
-        super(game);
+    constructor(name: string, size: number, regionName: RegionName) {
+        super(regionName);
         this.name = name;
         this.size = size;
         this.regionName = regionName;
+        this.discard = this.addChild(new Discard(regionName));
     }
 
-    serialize(): Record<string, any> {
-        return {
-            name: this.name,
-            discard: this.discard.serialize(),
-            sites: this.sites.map(e => e.serialize())
-        };
-    }
+    get sites() { return this.byClass(Site); }
 }

@@ -3,49 +3,48 @@ import { CampaignActionTarget, AtSite } from "./interfaces";
 import { Denizen, OwnableCard, Relic, Site, Vision, WorldCard } from "./cards/cards";
 import { Discard } from "./cards/decks";
 import { FlipSecretsEffect, GainSupplyEffect, MoveResourcesToTargetEffect } from "./effects";
-import { OathResource, OathSuit, PlayerColor } from "./enums";
-import { OathGame } from "./game";
-import { ResourcesAndWarbands } from "./resources";
+import { OathSuit, PlayerColor } from "./enums";
+import { OathWarband, ResourcesAndWarbands, Favor, OathResourceType } from "./resources";
+import { Container } from "./gameObject";
 import { Banner } from "./banks";
 import { Reliquary } from "./reliquary";
 
-export abstract class OathPlayer extends ResourcesAndWarbands implements CampaignActionTarget, AtSite {
-    name: string;
-    color: PlayerColor;
-    warbandsInBag: number;
+export abstract class OathPlayer extends ResourcesAndWarbands<PlayerColor> implements CampaignActionTarget, AtSite {
     supply: number = 7;
-    
-    site: Site;
-    advisers = new Set<WorldCard>();
-    relics = new Set<Relic>();
-    banners = new Set<Banner>();
+    site: Site;  // Could be done through parenting, but causes too many issues
+    bag: Container<OathWarband, PlayerColor>;
     
     defense = 2;
     force = this;
 
-    constructor(game: OathGame, color: PlayerColor) {
-        super(game);
-        this.color = color;
+    constructor(id: PlayerColor) {
+        super(id);
+        this.bag = this.addChild(new Container(id, OathWarband));
     }
+
+    get advisers() { return this.byClass(WorldCard); }
+    get denizens() { return this.byClass(Denizen); }
+    get relics() { return this.byClass(Relic); }
+    get banners()  { return this.byClass(Banner); }
 
     get isImperial(): boolean { return false; }
     get leader(): OathPlayer { return this.isImperial ? this.game.chancellor : this; }
-    get discard(): Discard { return this.game.board.nextRegion(this.site.region).discard; }
+    get discard(): Discard { return this.game.board.nextRegion(this.site.region)?.discard || this.site.region.discard; }
     get ruledSuits(): number { return [0, 1, 2, 3, 4, 5].reduce((a, e) => a + (this.suitRuledCount(e) > 0 ? 1 : 0), 0); }
     get ruledSites(): number { return [...this.game.board.sites()].reduce((a, e) => a + (e.ruler === this ? 1 : 0), 0); }
 
-    getAllResources(resource: OathResource): number {
-        let amount = this.getResources(resource);
+    getAllResources(type: OathResourceType): number {
+        let amount = this.getResources(type).length;
         for (const site of this.game.board.sites())
             for (const denizen of site.denizens)
-                amount += denizen.getResources(resource);
+                amount += denizen.getResources(type).length;
 
-        for (const player of Object.values(this.game.players)) {
+        for (const player of this.game.players) {
             for (const adviser of player.advisers)
-                amount += adviser.getResources(resource);
+                amount += adviser.getResources(type).length;
 
             for (const relic of player.relics)
-                amount += relic.getResources(resource);
+                amount += relic.getResources(type).length;
         }
 
         return amount;
@@ -53,17 +52,15 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
 
     suitAdviserCount(suit: OathSuit): number {
         let total = 0;
-        for (const adviser of this.advisers) if (!adviser.facedown && adviser instanceof Denizen && adviser.suit === suit) total++;
+        for (const adviser of this.denizens) if (!adviser.facedown && adviser.suit === suit) total++;
         return total;
     }
 
     suitRuledCount(suit: OathSuit): number {
         let total = 0;
-        for (const site of this.game.board.sites()) {
-            for (const denizen of site.denizens) {
+        for (const site of this.game.board.sites())
+            for (const denizen of site.denizens)
                 if (this.rules(denizen)) total++;
-            }
-        }
 
         return this.suitAdviserCount(suit) + total;
     }
@@ -78,51 +75,8 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
         return !player || !player?.isImperial;
     }
 
-    moveWarbandsFromBagOnto(target: ResourcesAndWarbands, amount: number): number {
-        const oldBagAmount = this.warbandsInBag;
-        const newBagAmount = Math.max(oldBagAmount - amount);
-        const diff = oldBagAmount - newBagAmount;
-
-        this.warbandsInBag -= diff;
-        target.putWarbands(this, diff);
-        return diff;
-    }
-
-    moveWarbandsIntoBagFrom(source: ResourcesAndWarbands, amount: number = Infinity): number {
-        const warbandsAmount = source.takeWarbands(this, amount);
-        this.leader.warbandsInBag += warbandsAmount;
-        return warbandsAmount;
-    }
-
     moveOwnWarbands(from: ResourcesAndWarbands, to: ResourcesAndWarbands, amount: number): number {
-        return from.moveWarbandsTo(this, to, amount);
-    }
-
-    addAdviser(card: WorldCard) {
-        this.advisers.add(card);
-    }
-
-    removeAdviser(card: WorldCard): WorldCard {
-        this.advisers.delete(card);
-        return card;
-    }
-
-    addRelic(relic: Relic) {
-        this.relics.add(relic);
-    }
-
-    removeRelic(relic: Relic): Relic {
-        this.relics.delete(relic);
-        return relic;
-    }
-
-    addBanner(banner: Banner) {
-        this.banners.add(banner);
-    }
-
-    removeBanner(banner: Banner): Banner {
-        this.banners.delete(banner);
-        return banner;
+        return from.moveWarbandsTo(this.id, to, amount);
     }
 
     gainSupply(amount: number) {
@@ -137,7 +91,7 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
 
     seize(player: OathPlayer) {
         // TODO: Move burnt favor to supply
-        new MoveResourcesToTargetEffect(this.game, this, OathResource.Favor, Math.floor(this.getResources(OathResource.Favor) / 2), undefined).doNext();
+        new MoveResourcesToTargetEffect(this.game, this, Favor, Math.floor(this.getResources(Favor).length / 2), undefined).doNext();
         new CampaignBanishPlayerAction(player, this).doNext();
     }
 
@@ -150,7 +104,7 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
             for (const denizen of site.denizens)
                 denizen.returnResources();
 
-        for (const player of Object.values(this.game.players)) {
+        for (const player of this.game.players) {
             for (const adviser of player.advisers)
                 adviser.returnResources();
 
@@ -162,25 +116,22 @@ export abstract class OathPlayer extends ResourcesAndWarbands implements Campaig
     }
 
     serialize(): Record<string, any> {
-        const obj: Record<string, any> = super.serialize();
-        obj.name = this.name;
-        obj.warbandsInBag = this.warbandsInBag;
-        obj.supply = this.supply;
-        obj.site = this.site?.name;
-        obj.advisers = [...this.advisers].map(e => e.serialize())
-        obj.relics = [...this.relics].map(e => e.serialize())
-        obj.banners = [...this.banners].map(e => e.name)
-        return obj;
+        return {
+            name: this.name,
+            supply: this.supply,
+            ...super.serialize()
+        };
     }
 }
 
 export class Chancellor extends OathPlayer {
     name = "Chancellor";
-    warbandsInBag = 24;
-    reliquary = new Reliquary(this.game);
+    reliquary: Reliquary;
 
-    constructor(game: OathGame) {
-        super(game, PlayerColor.Purple);
+    constructor() {
+        super(PlayerColor.Purple);
+        this.reliquary = this.addChild(new Reliquary());
+        for (let i = 0; i < 24; i ++) this.bag.addChild(new OathWarband(this.id));
     }
 
     get isImperial(): boolean { return true; }
@@ -189,37 +140,33 @@ export class Chancellor extends OathPlayer {
         super.rest();
 
         let amount: number;
-        if (this.warbandsInBag >= 18) amount = 6;
-        else if (this.warbandsInBag >= 11) amount = 5;
-        else if (this.warbandsInBag >= 4) amount = 4;
+        if (this.bag.amount >= 18) amount = 6;
+        else if (this.bag.amount >= 11) amount = 5;
+        else if (this.bag.amount >= 4) amount = 4;
         else amount = 3;
 
         new GainSupplyEffect(this, amount).do();
     }
-
-    serialize(): Record<string, any> {
-        const obj: Record<string, any> = super.serialize();
-        obj.reliquary = this.reliquary.serialize();
-        return obj;
-    }
 }
 
 export class Exile extends OathPlayer {
-    warbandsInBag = 14;
-
+    name: string;
     isCitizen: boolean;
-    vision?: Vision;
+    visionSlot: Container<Vision, PlayerColor>;
 
-    constructor(game: OathGame, color: PlayerColor) {
-        super(game, color);
+    constructor(color: PlayerColor) {
+        super(color);
         this.name = "Exile " + color;
+        this.visionSlot = this.addChild(new Container(color, Vision));
+        for (let i = 0; i < 14; i ++) this.bag.addChild(new OathWarband(this.id));
     }
 
     get isImperial(): boolean { return this.isCitizen; }
+    get vision() { return this.visionSlot.children[0]; }
 
     setVision(newVision?: Vision) {
-        const oldVision = this.vision;
-        this.vision = newVision;
+        const oldVision = this.visionSlot.children[0]?.unparent();
+        if (newVision) this.visionSlot.addChild(newVision);
         return oldVision;
     }
 
@@ -232,17 +179,18 @@ export class Exile extends OathPlayer {
         }
 
         let amount: number;
-        if (this.warbandsInBag >= 9) amount = 6;
-        else if (this.warbandsInBag >= 4) amount = 5;
+        if (this.bag.amount >= 9) amount = 6;
+        else if (this.bag.amount >= 4) amount = 5;
         else amount = 4;
 
         new GainSupplyEffect(this, amount).do();
     }
 
     serialize(): Record<string, any> {
-        const obj: Record<string, any> = super.serialize();
-        obj.isCitizen = this.isCitizen;
-        obj.vision = this.vision?.serialize();
-        return obj;
+        const obj = super.serialize();
+        return {
+            isCitizen: this.isCitizen,
+            ...obj
+        };
     }
 }

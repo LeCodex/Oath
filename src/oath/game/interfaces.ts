@@ -27,7 +27,7 @@ export function isAtSite(obj: object): obj is AtSite {
 }
 
 
-export interface OwnableObject {
+export interface OwnableObject extends OathGameObject {
     owner?: OathPlayer;
     setOwner(player?: OathPlayer): void;
 }
@@ -39,7 +39,7 @@ export function isOwnable(obj: object): obj is OwnableObject {
 
 export interface CampaignActionTarget extends WithOriginal {
     defense: number;
-    force: ResourcesAndWarbands | undefined;
+    force: ResourcesAndWarbands<any> | undefined;
     seize(player: OathPlayer): void;
 }
 

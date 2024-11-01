@@ -1,7 +1,8 @@
 import { ActionModifier } from "./powers";
 import { InvalidActionResolution, CampaignAttackAction, SearchAction, TradeAction, TravelAction, ModifiableAction } from "../actions/actions";
-import { OathResource, RegionName } from "../enums";
+import { RegionName } from "../enums";
 import { ReliquarySlot } from "../reliquary";
+import { Favor, Secret } from "../resources";
 
 
 export abstract class ReliquaryModifier<T extends ModifiableAction> extends ActionModifier<ReliquarySlot, T> {
@@ -40,8 +41,8 @@ export class Careless extends ReliquaryModifier<TradeAction> {
     modifiedAction = TradeAction;
 
     applyBefore(): void {
-        this.action.getting.set(OathResource.Secret, (this.action.getting.get(OathResource.Secret) || 0) - 1);
-        this.action.getting.set(OathResource.Favor, (this.action.getting.get(OathResource.Favor) || 0) + 1);
+        this.action.getting.set(Secret, (this.action.getting.get(Secret) || 0) - 1);
+        this.action.getting.set(Favor, (this.action.getting.get(Favor) || 0) + 1);
     }
 }
 

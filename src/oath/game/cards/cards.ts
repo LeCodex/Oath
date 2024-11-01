@@ -1,28 +1,28 @@
-import { InvalidActionResolution, CampaignSeizeSiteAction, RecoverAction } from "../actions/actions";
-import { RecoverActionTarget, WithPowers, AtSite, OwnableObject, CampaignActionTarget } from "../interfaces";
+import { CampaignSeizeSiteAction, RecoverAction } from "../actions/actions";
+import { RecoverActionTarget, WithPowers, AtSite, CampaignActionTarget, OwnableObject } from "../interfaces";
 import { Region } from "../board";
-import { DiscardCardEffect, FlipSecretsEffect, MoveAdviserEffect, MoveOwnWarbandsEffect, MoveResourcesToTargetEffect, MoveSiteDenizenEffect, PayCostToBankEffect, PutResourcesIntoBankEffect, RevealCardEffect, TakeOwnableObjectEffect } from "../effects";
-import { CardRestriction, OathResource, OathSuit, OathTypeVisionName, RegionName } from "../enums";
-import { OathGame } from "../game";
+import { DiscardCardEffect, FlipSecretsEffect, MoveOwnWarbandsEffect, MoveResourcesToTargetEffect, ParentToTargetEffect, PayCostToBankEffect, RevealCardEffect, TakeOwnableObjectEffect } from "../effects";
+import { CardRestriction, OathSuit, OathTypeVisionName, PlayerColor, RegionName } from "../enums";
 import { Oath } from "../oaths";
 import { OathPlayer } from "../player";
 import { OathPower } from "../powers/powers";
 import { GrandScepterExileCitizen, GrandScepterGrantCitizenship, GrandScepterPeek, GrandScepterRest, GrandScepterSeize } from "../powers/relics";
 import { ConspiracyPower } from "../powers/visions";
-import { ResourceCost, ResourcesAndWarbands } from "../resources";
+import { Favor, OathResourceType, ResourceCost, ResourcesAndWarbands, Secret } from "../resources";
 import { Constructor } from "../utils";
 import { CardDeck, DiscardOptions } from "./decks";
 import { DenizenData } from "./denizens";
+import { FavorBank } from "../banks";
 
 
-export abstract class OathCard extends ResourcesAndWarbands implements WithPowers {
+export abstract class OathCard extends ResourcesAndWarbands<string> implements WithPowers {
     name: string;
     facedown: boolean = true;
     seenBy: Set<OathPlayer> = new Set();
     powers: Set<Constructor<OathPower<OathCard>>>;
 
-    constructor(game: OathGame, name: string, powers: Iterable<Constructor<OathPower<OathCard>>>) {
-        super(game);
+    constructor(name: string, powers: Iterable<Constructor<OathPower<OathCard>>>) {
+        super(name);
         this.name = name;
         this.powers = new Set<Constructor<OathPower<OathCard>>>();
         for (const power of powers) this.powers.add(power);
@@ -44,12 +44,10 @@ export abstract class OathCard extends ResourcesAndWarbands implements WithPower
         return this.facedown && (!player || !this.seenBy.has(player)) ? this.facedownName : this.name;
     }
 
-    free(): this { return this; }
-    
     returnResources() {
-        const amount = this.getResources(OathResource.Secret);
+        const amount = this.byClass(Secret).length;
         if (amount) {
-            new MoveResourcesToTargetEffect(this.game, this.game.currentPlayer, OathResource.Secret, amount, this.game.currentPlayer, this).do();
+            new MoveResourcesToTargetEffect(this.game, this.game.currentPlayer, Secret, amount, this.game.currentPlayer, this).do();
             new FlipSecretsEffect(this.game, this.game.currentPlayer, amount).do();
         }
     }
@@ -57,11 +55,12 @@ export abstract class OathCard extends ResourcesAndWarbands implements WithPower
     abstract accessibleBy(player: OathPlayer): boolean;
 
     serialize(): Record<string, any> {
-        const obj: Record<string, any> = super.serialize();
-        obj.name = this.name;
-        obj.facedown = this.facedown;
-        obj.seenBy = [...this.seenBy].map(e => e.color);
-        return obj;
+        const obj = super.serialize();
+        return {
+            facedown: this.facedown,
+            seenBy: [...this.seenBy].map(e => e.id),
+            ...obj
+        };
     }
 }
 
@@ -70,20 +69,16 @@ export class Site extends OathCard implements CampaignActionTarget {
     region: Region;
     capacity: number;
     startingRelics: number;
-    startingResources: Map<OathResource, number>;
+    startingResources: Map<OathResourceType, number>;
     bandits = 1;
 
     recoverCost: ResourceCost;
     recoverSuit: OathSuit;
 
-    denizens = new Set<Denizen>();
-    relics = new Set<Relic>();
-
     defense = 1;
     force = this;
 
     constructor(
-        game: OathGame,
         region: Region,
         name: string,
         capacity: number,
@@ -91,9 +86,9 @@ export class Site extends OathCard implements CampaignActionTarget {
         startingRelics: number = 0,
         recoverCost: ResourceCost = new ResourceCost(),
         recoverSuit: OathSuit = OathSuit.None,
-        startingResources: Iterable<[OathResource, number]> = []
+        startingResources: Iterable<[OathResourceType, number]> = []
     ) {
-        super(game, name, powers);
+        super(name, powers);
         this.region = region;
         this.capacity = capacity;
         this.startingRelics = startingRelics;
@@ -104,14 +99,17 @@ export class Site extends OathCard implements CampaignActionTarget {
 
     get facedownName(): string { return "Facedown site in " + this.region.name; }
     get discard(): CardDeck<Site> | undefined { return undefined; }
+    get denizens() { return this.byClass(Denizen); }
+    get relics() { return this.byClass(Relic); }
 
     get ruler(): OathPlayer | undefined {
         let max = 0, ruler = undefined;
-        for (const [player, number] of this.warbands) {
-            if (number > max) {
-                max = number;
+        for (const player of this.game.byClass(OathPlayer)) {
+            const amount = this.getWarbandsAmount(player.id);
+            if (amount > max) {
+                max = amount;
                 ruler = player;
-            } else if (number === max) {
+            } else if (amount === max) {
                 ruler = undefined;
             }
         }
@@ -123,14 +121,14 @@ export class Site extends OathCard implements CampaignActionTarget {
         return player.site === this || player === this.ruler;
     }
 
-    getWarbands(player: OathPlayer | undefined): number {
-        if (!player) return this.bandits;
-        return super.getWarbands(player);
+    getWarbandsAmount(color?: PlayerColor): number {
+        if (!color) return this.bandits;
+        return super.getWarbandsAmount(color);
     }
 
     reveal(): void {
         super.reveal();
-        for (const relic of this.game.relicDeck.draw(this.startingRelics)) relic.putAtSite(this);
+        for (const relic of this.game.relicDeck.draw(this.startingRelics)) this.addChild(relic);
     }
 
     setupResources(): void {
@@ -139,30 +137,12 @@ export class Site extends OathCard implements CampaignActionTarget {
 
     hide(): void {
         super.hide();
-        for (const relic of this.relics) { relic.setOwner(undefined); this.game.relicDeck.putCard(relic); }
-        for (const [resource, amount] of this.resources) this.takeResources(resource, amount);
+        for (const relic of this.relics) this.game.relicDeck.addChild(relic);
+        for (const resource of this.resources) resource.prune();
     }
 
     inRegion(regionName: RegionName) {
         return this.region.regionName === regionName;
-    }
-
-    addDenizen(card: Denizen) {
-        this.denizens.add(card);
-    }
-
-    removeDenizen(card: Denizen): Denizen {
-        if (this.denizens.delete(card)) card.site = undefined;
-        return card;
-    }
-
-    addRelic(relic: Relic) {
-        this.relics.add(relic);
-    }
-
-    removeRelic(relic: Relic): Relic {
-        if (this.relics.delete(relic)) relic.site = undefined;
-        return relic;
     }
 
     seize(player: OathPlayer) {
@@ -181,55 +161,34 @@ export class Site extends OathCard implements CampaignActionTarget {
     }
 }
 
-export abstract class OwnableCard extends OathCard implements OwnableObject {
-    owner?: OathPlayer;
-
+export abstract class OwnableCard extends OathCard implements OwnableObject  {
+    get owner() { return this.typedParent(OathPlayer); }
     protected _ruler() { return this.owner; }
     get ruler() { return this._ruler(); }
     set ruler(_ruler: OathPlayer | undefined) { this._ruler = () => _ruler; }
     get facedownName(): string { return (this.owner ? this.owner.name + "'s facedown" : "facedown") + " "; }
 
+    setOwner(player?: OathPlayer): void {
+        player?.addChild(this);
+    }
+
     accessibleBy(player: OathPlayer | undefined): boolean {
         return player === this.owner;
     }
-
-    abstract setOwner(newOwner?: OathPlayer): void;
-
-    // serialize(): Record<string, any> {
-    //     const obj: Record<string, any> = super.serialize();
-    //     obj.owner = this.owner?.color;
-    //     return obj;
-    // }
 }
 
 export class Relic extends OwnableCard implements RecoverActionTarget, CampaignActionTarget, AtSite {
-    site?: Site;
-
     defense: number;
     get force() { return this.owner; }
 
-    constructor(game: OathGame, name: string, defense: number, powers: Iterable<Constructor<OathPower<Relic>>>) {
-        super(game, name, powers);
+    constructor(name: string, defense: number, powers: Iterable<Constructor<OathPower<Relic>>>) {
+        super(name, powers);
         this.defense = defense;
     }
-
+    
+    get site() { return this.typedParent(Site); }
     get facedownName(): string { return super.facedownName + "relic" + (this.site ? " at " + this.site.name : ""); }
     get discard(): CardDeck<Relic> | undefined { return this.game.relicDeck; }
- 
-    setOwner(newOwner?: OathPlayer) {
-        if (this.owner) this.owner.removeRelic(this);
-        if (this.site) this.site.removeRelic(this);
-
-        this.owner = newOwner;
-        if (newOwner) newOwner.addRelic(this);
-    }
-
-    putAtSite(newSite: Site) {
-        this.setOwner(undefined);
-
-        this.site = newSite;
-        newSite.addRelic(this);
-    }
 
     canRecover(action: RecoverAction): boolean {
         return !!this.site;
@@ -250,37 +209,19 @@ export class Relic extends OwnableCard implements RecoverActionTarget, CampaignA
     putOnBottom(player: OathPlayer) {
         new DiscardCardEffect(player, this, new DiscardOptions(this.game.relicDeck, true));
     }
-
-    // serialize(): Record<string, any> {
-    //     const obj: Record<string, any> = super.serialize();
-    //     obj.site = this.site?.name;
-    //     return obj;
-    // }
 }
 
 export class GrandScepter extends Relic {
     seizedThisTurn = false;
 
-    constructor(game: OathGame) {
+    constructor() {
         // TODO: Add allowing peeking for other players
-        super(game, "GrandScepter", 5, [GrandScepterSeize, GrandScepterRest, GrandScepterPeek, GrandScepterGrantCitizenship, GrandScepterExileCitizen]);
+        super("GrandScepter", 5, [GrandScepterSeize, GrandScepterRest, GrandScepterPeek, GrandScepterGrantCitizenship, GrandScepterExileCitizen]);
     }
 }
 
 export abstract class WorldCard extends OwnableCard {
     get discard(): CardDeck<WorldCard> | undefined { return this.owner?.discard; }
-
-    setOwner(newOwner?: OathPlayer): void {
-        if (this.owner) this.owner.removeAdviser(this);
-
-        this.owner = newOwner;
-        if (newOwner) newOwner.addAdviser(this);
-    }
-
-    free(): this {
-        if (this.owner) return new MoveAdviserEffect(this.game, this.owner, this).do() as this;
-        return this;
-    }
 }
 
 export class Denizen extends WorldCard implements AtSite {
@@ -289,8 +230,8 @@ export class Denizen extends WorldCard implements AtSite {
     locked: boolean;
     powers: Set<Constructor<OathPower<Denizen>>>;
 
-    constructor(game: OathGame, name: string, suit: OathSuit, powers: Iterable<Constructor<OathPower<Denizen>>>, restriction: CardRestriction = CardRestriction.None, locked: boolean = false) {
-        super(game, name, powers);
+    constructor(name: string, suit: OathSuit, powers: Iterable<Constructor<OathPower<Denizen>>>, restriction: CardRestriction = CardRestriction.None, locked: boolean = false) {
+        super(name, powers);
         this._suit = suit;
         this.restriction = restriction;
         this.locked = locked;
@@ -303,43 +244,27 @@ export class Denizen extends WorldCard implements AtSite {
     get activelyLocked() { return this.locked && !this.facedown; }
     get facedownName(): string { return super.facedownName + "denizen" + (this.site ? " at " + this.site.name : ""); }
     get data(): DenizenData { return [this._suit, [...this.powers], this.restriction, this.locked]; }
-    get discard(): CardDeck<WorldCard> | undefined { return super.discard || this.site && this.game.board.nextRegion(this.site.region).discard; }
-
-    free(): this {
-        super.free();
-        if (this.site) return new MoveSiteDenizenEffect(this.game, this.owner, this).do() as this;
-        return this;
-    }
+    get discard(): CardDeck<WorldCard> | undefined { return super.discard || this.site && this.game.board.nextRegion(this.site.region)?.discard; }
 
     accessibleBy(player: OathPlayer): boolean {
         return super.accessibleBy(player) || player.leader === this.site?.ruler || this.site === player.site;
     }
 
-    setOwner(newOwner?: OathPlayer): void {
-        if (this.site) this.site.removeDenizen(this);
-        super.setOwner(newOwner);
-    }
-
-    putAtSite(newSite: Site): void {
-        this.setOwner(undefined);
-
-        this.site = newSite;
-        newSite.addDenizen(this);
-    }
-
     returnResources(): void {
         super.returnResources();
-        if (this.getResources(OathResource.Favor))
-            new PutResourcesIntoBankEffect(this.game, this.game.currentPlayer, this.game.favorBanks.get(this.suit), this.getResources(OathResource.Favor), this).do();
+        const favor = this.getResources(Favor);
+        if (favor.length)
+            new ParentToTargetEffect(this.game, this.game.currentPlayer, favor, this.game.byClass(FavorBank).byId(this.suit)[0]).do();
     }
 
     serialize(): Record<string, any> {
-        const obj: Record<string, any> = super.serialize();
-        obj.suit = this._suit;
-        // obj.site = this.site?.name;
-        obj.restriction = this.restriction;
-        obj.locked = this.activelyLocked;
-        return obj;
+        const obj = super.serialize();
+        return {
+            suit: this._suit,
+            restriction: this.restriction,
+            locked: this.activelyLocked,
+            ...obj
+        };
     }
 }
 
@@ -352,9 +277,11 @@ export abstract class VisionBack extends WorldCard {
     get facedownName(): string { return super.facedownName + "vision"; }
 
     serialize(): Record<string, any> {
-        const obj: Record<string, any> = super.serialize();
-        obj.visionBack = true;
-        return obj;
+        const obj = super.serialize();
+        return {
+            visionBack: true,
+            ...obj
+        };
     }
 }
 
@@ -362,19 +289,19 @@ export class Vision extends VisionBack {
     oath: Oath;
 
     constructor(oath: Oath) {
-        super(oath.game, `Vision of ${OathTypeVisionName[oath.type]}`, []);
+        super(`Vision of ${OathTypeVisionName[oath.id]}`, []);
         this.oath = oath;
     }
 
     serialize(): Record<string, any> {
         const obj: Record<string, any> = super.serialize();
-        obj.vision = this.oath.type;
+        obj.vision = this.oath.id;
         return obj;
     }
 }
 
 export class Conspiracy extends VisionBack {
-    constructor(game: OathGame) {
-        super(game, "Conspiracy", [ConspiracyPower]);
+    constructor() {
+        super("Conspiracy", [ConspiracyPower]);
     }
 }

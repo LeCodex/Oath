@@ -1,8 +1,9 @@
-import { clone, cloneWith, CloneWithCustomizer, isMap, isSet, random, range } from "lodash";
+import { clone, cloneWith, isMap, isSet, range } from "lodash";
 
 export type AbstractConstructor<T> = abstract new (...args: any) => T;
 export type Constructor<T> = new (...args: any) => T;
 export const isExtended = <T>(constructor: Constructor<any>, type: AbstractConstructor<T>): constructor is Constructor<T> => { return constructor.prototype instanceof type };
+export const instanceOf = <T>(obj: any, type: AbstractConstructor<T>): obj is T => { return obj instanceof type };
 
 export function shuffleArray(array: any[]) {
     let currentIndex = array.length;
@@ -56,7 +57,7 @@ export abstract class WithOriginal { original = this; }
 
 type ProxyInfo<T> = { proxy: T, revoke: () => void };
 export class MaskProxyManager {
-    originalToProxies = new WeakMap<object, object>();
+    originalToProxy = new WeakMap<object, object>();
     proxies = new WeakSet<object>();
 
     get<T>(value: T): T {
@@ -67,7 +68,7 @@ export class MaskProxyManager {
             return value;
         }
         
-        let proxy = this.originalToProxies.get(value);
+        let proxy = this.originalToProxy.get(value);
         if (!proxy) {
             if (isSet(value))
                 proxy = new MaskedSet(value, this);
@@ -77,7 +78,7 @@ export class MaskProxyManager {
                 proxy = new Proxy(value, new MaskProxyHandler(this));
             
             this.proxies.add(proxy);
-            this.originalToProxies.set(value, proxy);
+            this.originalToProxy.set(value, proxy);
         }
         return proxy as T;
     }
@@ -234,5 +235,150 @@ export class DataObject {
 
     restore() {
         Object.assign(this, this.copy);
+    }
+}
+
+
+export abstract class TreeNode<RootType extends TreeRoot, IdType = any> extends WithOriginal {
+    /** Different objects of the same class MUST have different ids. */
+    id: IdType;
+    children = new NodeGroup<TreeNode<RootType>>();
+    /** Use {@linkcode typedParent()} to get a strongly typed version of this. */
+    parent: TreeNode<any>;
+    /** All objects in the tree share the same root, and same root type. */
+    root: RootType;
+
+    constructor(id: IdType) {
+        super();
+        this.id = id;
+    }
+
+    unparent() {
+        return this.root.addChild(this);
+    }
+
+    prune() {
+        this.parent.children.delete(this);
+        (this.parent as any) = undefined;  // Pruned objects shouldn't be accessed anyways
+    }
+
+    addChild<T extends TreeNode<RootType>>(child: T, onBottom: boolean = false) {
+        if (child as TreeNode<RootType> === this)
+            throw new TypeError("Cannot parent an object to itself");
+
+        child.prune();
+        if (onBottom)
+            this.children.push(child);
+        else
+            this.children.unshift(child);
+
+        this.children.addToLookup(child);
+        
+        child.root = this.root;
+        child.parent = this;
+        return child;
+    }
+
+    addChildren<T extends TreeNode<RootType>>(children: T[], onBottom: boolean = false) {
+        for (const child of children.reverse())
+            this.addChild(child, onBottom);
+        return children;
+    }
+
+    typedParent<T extends TreeNode<RootType>>(cls: AbstractConstructor<T>) {
+        if (this.parent instanceof cls) return this.parent;
+        return undefined;
+    }
+
+    byClass<T extends TreeNode<RootType>>(cls: AbstractConstructor<T>): NodeGroup<T> {
+        return this.byClass(cls);
+    }
+
+    search<T extends TreeNode<RootType>>(cls: AbstractConstructor<T>): NodeGroup<T> | undefined {
+        if (this.children.hasOfClass(cls))
+            return this.byClass(cls);
+        
+        for (const child of this.children) {
+            const result = child.search(cls);
+            if (result) return result;
+        }
+        
+        return undefined;
+    }
+
+    serialize(): Record<string, any> | undefined {
+        return {
+            type: this.constructor.name,
+            id: this.id,
+            children: this.children.map(e => e.serialize()).filter(e => e !== undefined)
+        };
+    };
+}
+
+export abstract class TreeRoot extends TreeNode<TreeRoot, "root"> {
+    root: this;
+    parent: this;
+
+    constructor() {
+        super("root");
+        this.parent = this.root = this;
+    }
+
+    prune() {
+        throw new TypeError("Cannot prune a root node");
+    }
+}
+
+export abstract class TreeLeaf<RootType extends TreeRoot, IdType = any> extends TreeNode<RootType, IdType> {
+    children: NodeGroup<never>;
+
+    addChild<T extends TreeNode<RootType, any>>(child: T): T {
+        throw new TypeError("Cannot add children to leaf nodes");
+    }
+
+    serialize(): Record<string, any> | undefined {
+        const obj = super.serialize();
+        delete obj?.children;
+        return obj;
+    }
+}
+
+// TODO: Make a hash table to lookup by class faster
+export class NodeGroup<T extends TreeNode<any>> extends Array<T> {
+    lookupByClass = new Map<AbstractConstructor<T>, Set<T>>();
+
+    addToLookup(node: T) {
+        const cls = node.constructor as AbstractConstructor<T>;
+        const set = this.lookupByClass.get(cls) ?? new Set();
+        set.add(node);
+        this.lookupByClass.set(cls, set);
+    }
+
+    delete(node: T) {
+        const index = this.indexOf(node);
+        if (index < 0) return;
+        this.splice(index, 1);
+        this.lookupByClass.get(node.constructor as AbstractConstructor<T>)?.delete(node);
+    }
+
+    hasOfClass(cls: AbstractConstructor<T>) {
+        const set = this.lookupByClass.get(cls);
+        return !!set && set.size > 0;
+    }
+
+    byClass<U extends T>(cls: AbstractConstructor<U>) {
+        return new NodeGroup(...this.lookupByClass.get(cls) ?? []);
+    }
+
+    by<K extends keyof T>(key: K, value: T[K]) {
+        return new NodeGroup(...this.filter(e => e[key] === value));
+    }
+
+    byId(id: T["id"]) {
+        return this.by("id", id);
+    }
+
+    max(amount: number) {
+        return new NodeGroup(...this.slice(0, amount));
     }
 }

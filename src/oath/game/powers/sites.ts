@@ -1,9 +1,10 @@
 import { InvalidActionResolution, ChooseResourceToTakeAction, WakeAction, TravelAction, CampaignAttackAction, MusterAction, SearchAction, StartBindingExchangeAction, MakeBindingExchangeOfferAction, SearchPlayOrDiscardAction, MayDiscardACardAction, ModifiableAction, RecoverAction } from "../actions/actions";
 import { Site, Denizen } from "../cards/cards";
-import { PlayWorldCardEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PutWarbandsFromBagEffect, TakeResourcesFromBankEffect, FlipSecretsEffect } from "../effects";
-import { OathSuit, OathResource } from "../enums";
+import { PlayWorldCardEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, FlipSecretsEffect, ParentToTargetEffect } from "../effects";
+import { OathSuit } from "../enums";
 import { isAtSite, WithPowers } from "../interfaces";
 import { OathPlayer } from "../player";
+import { Secret } from "../resources";
 import { EffectModifier, ActionModifier, ActivePower } from "./powers";
 
 
@@ -11,7 +12,7 @@ export abstract class HomelandSitePower extends EffectModifier<Site, PlayWorldCa
     modifiedEffect = PlayWorldCardEffect;
     abstract suit: OathSuit;
 
-    applyAfter(result: void): void {
+    applyAfter(): void {
         // TODO: "and if you have not discarded a <suit> card here during this turn"
         if (this.effect.site === this.source && this.effect.card instanceof Denizen && this.effect.card.suit === this.suit)
             this.giveReward(this.effect.player);
@@ -36,7 +37,7 @@ export class StandingStones extends HomelandSitePower {
     suit = OathSuit.Arcane;
 
     giveReward(player: OathPlayer): void {
-        new PutResourcesOnTargetEffect(this.game, player, OathResource.Secret, 1).do();
+        new PutResourcesOnTargetEffect(this.game, player, Secret, 1).do();
     }
 }
 
@@ -45,7 +46,7 @@ export class AncientCity extends HomelandSitePower {
     suit = OathSuit.Order;
 
     giveReward(player: OathPlayer): void {
-        new PutWarbandsFromBagEffect(player.leader, 2).do();
+        new ParentToTargetEffect(this.game, player, player.leader.bag.get(2)).do();
     }
 }
 
@@ -54,7 +55,8 @@ export class FertileValley extends HomelandSitePower {
     suit = OathSuit.Hearth;
 
     giveReward(player: OathPlayer): void {
-        new TakeResourcesFromBankEffect(this.game, player, this.game.favorBanks.get(this.suit), 1).do();
+        const bank = this.game.favorBank(this.suit);
+        if (bank) new ParentToTargetEffect(this.game, player, bank?.get(1)).do();
     }
 }
 
@@ -63,7 +65,7 @@ export class Steppe extends HomelandSitePower {
     suit = OathSuit.Nomad;
 
     giveReward(player: OathPlayer): void {
-        new PutResourcesOnTargetEffect(this.game, player, OathResource.Secret, 1).do();
+        new PutResourcesOnTargetEffect(this.game, player, Secret, 1).do();
     }
 }
 

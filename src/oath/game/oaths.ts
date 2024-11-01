@@ -1,19 +1,25 @@
-import { OathType, BannerName } from "./enums";
+import { DarkestSecret, PeoplesFavor } from "./banks";
+import { OathType } from "./enums";
 import { OathGameObject } from "./gameObject";
+import { OwnableObject } from "./interfaces";
 import { OathPlayer } from "./player";
 
 
-export abstract class Oath extends OathGameObject {
-    type: OathType;
-
+export abstract class Oath extends OathGameObject<OathType> implements OwnableObject {
     abstract setup(): void;
     abstract scoreForOathkeeper(player: OathPlayer): number;
     abstract scoreForSuccessor(player: OathPlayer): number;
 
+    get owner() { return this.typedParent(OathPlayer); }
+
+    setOwner(player?: OathPlayer): void {
+        player?.addChild(this);
+    }
+
     getCandidates(evaluation: (player: OathPlayer) => number): Set<OathPlayer> {
         let max = 0;
         const candidates = new Set<OathPlayer>();
-        for (const player of Object.values(this.game.players)) {
+        for (const player of this.game.byClass(OathPlayer)) {
             const score = evaluation(player);
             if (score > max) {
                 candidates.clear();
@@ -37,7 +43,9 @@ export abstract class Oath extends OathGameObject {
 }
 
 export class OathOfSupremacy extends Oath {
-    type = OathType.Supremacy;
+    constructor() {
+        super(OathType.Supremacy);
+    }
 
     setup() {
         // Chancellor already rules most sites
@@ -52,55 +60,63 @@ export class OathOfSupremacy extends Oath {
     }
 
     scoreForSuccessor(player: OathPlayer): number {
-        return player.relics.size + player.banners.size;
+        return player.relics.length + player.banners.length;
     }
 }
 
 export class OathOfProtection extends Oath {
-    type = OathType.Protection;
+    constructor() {
+        super(OathType.Protection);
+    }
 
     setup() {
         // Chancellor already has the Scepter
     }
 
     scoreForOathkeeper(player: OathPlayer): number {
-        return player.relics.size + player.banners.size;
+        return player.relics.length + player.banners.length;
     }
 
     scoreForSuccessor(player: OathPlayer): number {
-        return this.game.banners.get(BannerName.PeoplesFavor)?.owner === player ? 1 : 0;
+        return this.game.byClass(PeoplesFavor)[0]?.parent === player ? 1 : 0;
     }
 }
 
 export class OathOfThePeople extends Oath {
-    type = OathType.ThePeople;
+    constructor() {
+        super(OathType.ThePeople);
+    }
 
     setup() {
-        this.game.banners.get(BannerName.PeoplesFavor)?.setOwner(this.game.chancellor);
+        const banner = this.game.byClass(PeoplesFavor)[0];
+        if (banner) this.game.chancellor.addChild(banner);
     }
 
     scoreForOathkeeper(player: OathPlayer): number {
-        return this.game.banners.get(BannerName.PeoplesFavor)?.owner === player ? 1 : 0;
+        return this.game.byClass(PeoplesFavor)[0]?.parent === player ? 1 : 0;
     }
 
     scoreForSuccessor(player: OathPlayer): number {
-        return this.game.banners.get(BannerName.DarkestSecret)?.owner === player ? 1 : 0;
+        return this.game.byClass(DarkestSecret)[0]?.parent === player ? 1 : 0;
     }
 }
 
 export class OathOfDevotion extends Oath {
-    type = OathType.Devotion;
+    constructor() {
+        super(OathType.Devotion);
+    }
 
     setup() {
-        this.game.banners.get(BannerName.DarkestSecret)?.setOwner(this.game.chancellor);
+        const banner = this.game.byClass(DarkestSecret)[0];
+        if (banner) this.game.chancellor.addChild(banner);
     }
 
     scoreForOathkeeper(player: OathPlayer): number {
-        return this.game.banners.get(BannerName.DarkestSecret)?.owner === player ? 1 : 0;
+        return this.game.byClass(DarkestSecret)[0]?.parent === player ? 1 : 0;
     }
 
     scoreForSuccessor(player: OathPlayer): number {
-        return this.game.grandScepter.owner === player ? 1 : 0;
+        return this.game.grandScepter.parent === player ? 1 : 0;
     }
 }
 

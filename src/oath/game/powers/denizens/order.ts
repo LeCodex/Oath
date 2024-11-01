@@ -1,12 +1,12 @@
 import { TradeAction, InvalidActionResolution, TravelAction, SearchAction, SearchPlayOrDiscardAction, TakeFavorFromBankAction, CampaignKillWarbandsInForceAction, CampaignResult, MakeDecisionAction, CampaignAction, ActAsIfAtSiteAction, CampaignDefenseAction, ChooseSitesAction, ChoosePlayersAction, MoveWarbandsAction, KillWarbandsOnTargetAction, MusterAction, MoveWarbandsBetweenBoardAndSitesAction } from "../../actions/actions";
 import { Denizen, Edifice, Relic, Site, Vision } from "../../cards/cards";
 import { DieSymbol } from "../../dice";
-import { PayCostToTargetEffect, MoveResourcesToTargetEffect, TakeWarbandsIntoBagEffect, GainSupplyEffect, TakeResourcesFromBankEffect, BecomeCitizenEffect, PutWarbandsFromBagEffect, ApplyModifiersEffect, PutPawnAtSiteEffect, MoveOwnWarbandsEffect, BecomeExileEffect, PlayVisionEffect, TakeOwnableObjectEffect } from "../../effects";
-import { BannerName, OathResource, OathSuit } from "../../enums";
+import { PayCostToTargetEffect, MoveResourcesToTargetEffect, GainSupplyEffect, BecomeCitizenEffect, ApplyModifiersEffect, PutPawnAtSiteEffect, MoveOwnWarbandsEffect, BecomeExileEffect, PlayVisionEffect, TakeOwnableObjectEffect, ParentToTargetEffect } from "../../effects";
+import { BannerName, OathSuit } from "../../enums";
 import { OathGameObject } from "../../gameObject";
 import { CampaignActionTarget } from "../../interfaces";
 import { OathPlayer } from "../../player";
-import { ResourceCost } from "../../resources";
+import { Favor, ResourceCost } from "../../resources";
 import { AttackerBattlePlan, DefenderBattlePlan, EnemyActionModifier, WhenPlayed, AccessedActionModifier, RestPower, ActivePower, ActionModifier, AccessedEffectModifier, EnemyEffectModifier, EnemyAttackerCampaignModifier } from "../powers";
 
 
@@ -27,7 +27,7 @@ export class LongbowsDefense extends DefenderBattlePlan<Denizen> {
 
 export class EncirclementAttack extends AttackerBattlePlan<Denizen> {
     name = "Encirclement";
-    cost = new ResourceCost([[OathResource.Favor, 1]]);
+    cost = new ResourceCost([[Favor, 1]]);
 
     applyBefore(): void {
         if (this.action.campaignResult.totalAtkForce > this.action.campaignResult.totalDefForce) this.action.campaignResult.params.atkPool += 2;
@@ -35,7 +35,7 @@ export class EncirclementAttack extends AttackerBattlePlan<Denizen> {
 }
 export class EncirclementDefense extends DefenderBattlePlan<Denizen> {
     name = "Encirclement";
-    cost = new ResourceCost([[OathResource.Favor, 1]]);
+    cost = new ResourceCost([[Favor, 1]]);
 
     applyBefore(): void {
         if (this.action.campaignResult.totalDefForce > this.action.campaignResult.totalAtkForce) this.action.campaignResult.params.atkPool -= 2;
@@ -69,21 +69,30 @@ export class BattleHonorsAttack extends AttackerBattlePlan<Denizen> {
     name = "Battle Honors";
 
     applyBefore(): void {
-        this.action.campaignResult.onSuccessful(true, () => new TakeResourcesFromBankEffect(this.game, this.activator, this.game.favorBanks.get(OathSuit.Order), 2).do());
+        this.action.campaignResult.onSuccessful(true, () => {
+            const bank = this.game.favorBank(OathSuit.Order);
+            if (bank) new ParentToTargetEffect(this.game, this.activator, bank.get(2)).do();
+        })
     }
 }
 export class BattleHonorsDefense extends DefenderBattlePlan<Denizen> {
     name = "Battle Honors";
 
     applyBefore(): void {
-        this.action.campaignResult.onSuccessful(false, () => new TakeResourcesFromBankEffect(this.game, this.activator, this.game.favorBanks.get(OathSuit.Order), 2).do());
+        this.action.campaignResult.onSuccessful(false, () => () => {
+            const bank = this.game.favorBank(OathSuit.Order);
+            if (bank) new ParentToTargetEffect(this.game, this.activator, bank.get(2)).do();
+        })
     }
 }
 
 function militaryParadeResolution(campaignResult: CampaignResult, activator: OathPlayer) {
-    if (campaignResult.loser)
-        for (let i = OathSuit.Discord; i <= OathSuit.Nomad; i++)
-            new TakeResourcesFromBankEffect(activator.game, activator, activator.game.favorBanks.get(i), campaignResult.loser.suitAdviserCount(i)).do();
+    if (campaignResult.loser) {
+        for (let i = OathSuit.Discord; i <= OathSuit.Nomad; i++) {
+            const bank = activator.game.favorBank(i);
+            if (bank) new ParentToTargetEffect(activator.game, activator, bank.get(campaignResult.loser.suitAdviserCount(i))).do();
+        }
+    }
 }
 export class MilitaryParadeAttack extends AttackerBattlePlan<Denizen> {
     name = "Military Parade";
@@ -119,24 +128,24 @@ export class MartialCultureDefense extends DefenderBattlePlan<Denizen> {
 
 export class FieldPromotionAttack extends AttackerBattlePlan<Denizen> {
     name = "Field Promotion";
-    cost = new ResourceCost([[OathResource.Favor, 1]]);
+    cost = new ResourceCost([[Favor, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.onSuccessful(true, () => new PutWarbandsFromBagEffect(this.activator.leader, 3).do());
+        this.action.campaignResult.onSuccessful(true, () => new ParentToTargetEffect(this.game, this.activator, this.activatorProxy.leader.original.bag.get(3)).do());
     }
 }
 export class FieldPromotionDefense extends DefenderBattlePlan<Denizen> {
     name = "Field Promotion";
-    cost = new ResourceCost([[OathResource.Favor, 1]]);
+    cost = new ResourceCost([[Favor, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.onSuccessful(false, () => new PutWarbandsFromBagEffect(this.activator.leader, 3).do());
+        this.action.campaignResult.onSuccessful(false, () => new ParentToTargetEffect(this.game, this.activator, this.activatorProxy.leader.original.bag.get(3)).do());
     }
 }
 
 export class PeaceEnvoyAttack extends AttackerBattlePlan<Denizen> {
     name = "Peace Envoy";
-    cost = new ResourceCost([[OathResource.Favor, 1]]);
+    cost = new ResourceCost([[Favor, 1]]);
 
     applyWhenApplied(): boolean {
         for (const modifier of this.action.modifiers)
@@ -145,7 +154,7 @@ export class PeaceEnvoyAttack extends AttackerBattlePlan<Denizen> {
 
         // TODO: This will mean no other modifiers get to do anything. Is this fine?
         if (this.action.campaignResultProxy.defender?.site === this.activatorProxy.site) {
-            if (new MoveResourcesToTargetEffect(this.game, this.activator, OathResource.Favor, this.action.campaignResult.params.defPool, this.action.campaignResult.defender).do()) {
+            if (new MoveResourcesToTargetEffect(this.game, this.activator, Favor, this.action.campaignResult.params.defPool, this.action.campaignResult.defender).do()) {
                 this.action.campaignResult.successful = true;
                 this.action.campaignResult.params.ignoreKilling = true;
                 this.action.next.next.doNext();
@@ -157,7 +166,7 @@ export class PeaceEnvoyAttack extends AttackerBattlePlan<Denizen> {
 }
 export class PeaceEnvoyDefense extends DefenderBattlePlan<Denizen> {
     name = "Peace Envoy";
-    cost = new ResourceCost([[OathResource.Favor, 1]]);
+    cost = new ResourceCost([[Favor, 1]]);
 
     applyWhenApplied(): boolean {
         for (const modifier of this.action.modifiers)
@@ -165,7 +174,7 @@ export class PeaceEnvoyDefense extends DefenderBattlePlan<Denizen> {
                 throw new InvalidActionResolution("Cannot use other battle plans with the Peace Envoy");
 
         if (this.action.campaignResultProxy.attacker.site === this.activatorProxy.site) {
-            if (new MoveResourcesToTargetEffect(this.game, this.activator, OathResource.Favor, this.action.campaignResult.params.defPool, this.action.campaignResult.attacker).do()) {
+            if (new MoveResourcesToTargetEffect(this.game, this.activator, Favor, this.action.campaignResult.params.defPool, this.action.campaignResult.attacker).do()) {
                 this.action.campaignResult.successful = false;
                 this.action.campaignResult.params.ignoreKilling = true;
                 this.action.next.doNext();
@@ -178,7 +187,7 @@ export class PeaceEnvoyDefense extends DefenderBattlePlan<Denizen> {
 
 export class ShieldWall extends DefenderBattlePlan<Denizen> {
     name = "Shield Wall";
-    cost = new ResourceCost([[OathResource.Favor, 1]]);
+    cost = new ResourceCost([[Favor, 1]]);
 
     applyBefore(): void {
         this.action.campaignResult.params.defPool += 2;
@@ -202,7 +211,7 @@ export class BearTraps extends DefenderBattlePlan<Denizen> {
 
     applyBefore(): void {
         this.action.campaignResult.params.atkPool--;
-        new TakeWarbandsIntoBagEffect(this.action.campaignResult.attacker.leader, 1).do();
+        new KillWarbandsOnTargetAction(this.action.player, this.action.campaignResult.attacker, 1).doNext();
     }
 }
 
@@ -233,7 +242,7 @@ export class Outriders extends AttackerBattlePlan<Denizen> {
 
 export class Specialist extends AttackerBattlePlan<Denizen> {
     name = "Specialist";
-    cost = new ResourceCost([[OathResource.Favor, 2]]);
+    cost = new ResourceCost([[Favor, 2]]);
 
     applyBefore(): void {
         new ApplyModifiersEffect(this.action.next, [new SpecialistRestriction(this.source, this.action.next, this.action.player)]).do();
@@ -303,7 +312,7 @@ export class Curfew extends EnemyActionModifier<Denizen, TradeAction> {
     }
 
     applyBefore(): void {
-        const cost = new ResourceCost([[OathResource.Favor, 1]]);
+        const cost = new ResourceCost([[Favor, 1]]);
         if (!new PayCostToTargetEffect(this.game, this.activator, cost, this.sourceProxy.ruler?.original).do())
             throw cost.cannotPayError;
     }
@@ -315,7 +324,7 @@ export class TollRoads extends EnemyActionModifier<Denizen, TravelAction> {
 
     applyBefore(): void {
         if (this.action.siteProxy.ruler === this.sourceProxy.ruler) {
-            const cost = new ResourceCost([[OathResource.Favor, 1]]);
+            const cost = new ResourceCost([[Favor, 1]]);
             if (!new PayCostToTargetEffect(this.game, this.activator, cost, this.sourceProxy.ruler?.original).do())
                 throw cost.cannotPayError;
         }
@@ -332,7 +341,7 @@ export class ForcedLabor extends EnemyActionModifier<Denizen, SearchAction> {
     }
 
     applyBefore(): void {
-        const cost = new ResourceCost([[OathResource.Favor, 1]]);
+        const cost = new ResourceCost([[Favor, 1]]);
         if (!new PayCostToTargetEffect(this.game, this.activator, cost, this.sourceProxy.ruler?.original).do())
             throw cost.cannotPayError;
     }
@@ -442,7 +451,7 @@ export class RoyalTax extends WhenPlayed<Denizen> {
     whenPlayed(): void {
         for (const playerProxy of Object.values(this.gameProxy.players)) {
             if (playerProxy.site.ruler === this.effect.playerProxy.leader)
-                new MoveResourcesToTargetEffect(this.game, this.effect.player, OathResource.Favor, 2, this.effect.player, playerProxy).do();
+                new MoveResourcesToTargetEffect(this.game, this.effect.player, Favor, 2, this.effect.player, playerProxy).do();
         }
     }
 }
@@ -455,7 +464,7 @@ export class Garrison extends WhenPlayed<Denizen> {
         const leader = this.effect.playerProxy.leader.original;
         for (const siteProxy of this.gameProxy.board.sites()) {
             if (siteProxy.ruler === this.effect.playerProxy.leader) {
-                new PutWarbandsFromBagEffect(leader, 1, this.effect.player).do();
+                new ParentToTargetEffect(this.game, this.effect.player, this.effect.playerProxy.leader.original.bag.get(1), siteProxy.original).do();
                 sites.add(siteProxy.original);
             }
         }
@@ -464,7 +473,7 @@ export class Garrison extends WhenPlayed<Denizen> {
             this.effect.player, "Place a warband on each site you rule",
             (sites: Site[]) => { for (const site of sites) new MoveOwnWarbandsEffect(leader, this.effect.player, site).do() },
             [sites],
-            [[Math.min(sites.size, this.effect.player.getWarbands(leader))]]
+            [[Math.min(sites.size, this.effect.player.getWarbandsAmount(leader.id))]]
         ).doNext();
     }
 }
@@ -489,7 +498,7 @@ export class VowOfObedienceRest extends RestPower<Denizen> {
 
 export class Captains extends ActivePower<Denizen> {
     name = "Captains";
-    cost = new ResourceCost([[OathResource.Favor, 1]]);
+    cost = new ResourceCost([[Favor, 1]]);
 
     usePower(): void {
         const campaignAction = new CampaignAction(this.action.player);
@@ -506,20 +515,20 @@ export class Captains extends ActivePower<Denizen> {
 
 export class SiegeEngines extends ActivePower<Denizen> {
     name = "Siege Engines";
-    cost = new ResourceCost([[OathResource.Favor, 1]]);
+    cost = new ResourceCost([[Favor, 1]]);
 
     usePower(): void {
         new ChooseSitesAction(
             this.action.player, "Kill two warbands",
-            (sites: Site[]) => { if (sites.length) new KillWarbandsOnTargetAction(this.action.player, sites[0], 2).doNext(); },
-            [this.action.playerProxy.site.region.original.sites.filter(e => e.totalWarbands)]
+            (sites: Site[]) => { if (sites[0]) new KillWarbandsOnTargetAction(this.action.player, sites[0], 2).doNext(); },
+            [this.action.playerProxy.site.region.original.sites.filter(e => e.warbands.length)]
         ).doNext();
     }
 }
 
 export class Messenger extends ActivePower<Denizen> {
     name = "Messenger";
-    cost = new ResourceCost([[OathResource.Favor, 1]]);
+    cost = new ResourceCost([[Favor, 1]]);
 
     usePower(): void {
         new MoveWarbandsBetweenBoardAndSitesAction(this.action.playerProxy).doNext();
@@ -528,19 +537,19 @@ export class Messenger extends ActivePower<Denizen> {
 
 export class Palanquin extends ActivePower<Denizen> {
     name = "Palanquin";
-    cost = new ResourceCost([[OathResource.Favor, 1]]);
+    cost = new ResourceCost([[Favor, 1]]);
 
     usePower(): void {
         new ChoosePlayersAction(
             this.action.player, "Choose a player to move",
             (targets: OathPlayer[]) => {
-                if (!targets.length) return;
+                if (!targets[0]) return;
                 new ChooseSitesAction(
                     this.action.player, "Force travel to a site",
                     (sites: Site[]) => {
                         if (!sites[0]) return;
                         new PutPawnAtSiteEffect(this.action.player, sites[0]).do();
-                        const travelAction = new TravelAction(targets[0], this.action.player, (s: Site) => s === sites[0]);
+                        const travelAction = new TravelAction(targets[0]!, this.action.player, (s: Site) => s === sites[0]);
                         travelAction._noSupplyCost = true;
                         travelAction.doNext();
                     }

@@ -2,6 +2,7 @@ import { OathAction, InvalidActionResolution,  UsePowerAction, PlayFacedownAdvis
 import { OathEffect, AddActionToStackEffect, PopActionFromStackEffect } from "../effects";
 import { OathGameObject } from "../gameObject";
 import { Constructor } from "../utils";
+import { PlayerColor } from "../enums";
 
 
 export class OathActionManager extends OathGameObject {
@@ -81,11 +82,12 @@ export class OathActionManager extends OathGameObject {
         }
     }
 
-    continueAction(by: number, values: Record<string, string[]>): object {
+    continueAction(by: PlayerColor, values: Record<string, string[]>): object {
         const action = this.actionsStack[this.actionsStack.length - 1];
         if (!action) throw new InvalidActionResolution("No action to continue");
 
-        const player = this.game.players[by];
+        const player = this.game.players.byId(by)[0];
+        if (!player) throw new InvalidActionResolution(`Invalid player id ${by}`);
         if (action.player !== player) throw new InvalidActionResolution(`Action must be resolved by ${action.player.name}, not ${player.name}`);
 
         this.storeEffects();

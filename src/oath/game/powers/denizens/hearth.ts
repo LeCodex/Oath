@@ -1,10 +1,10 @@
-import { TradeAction, TakeResourceFromPlayerAction, TakeFavorFromBankAction, CampaignEndAction, ModifiableAction, MakeDecisionAction, CampaignAttackAction, InvalidActionResolution, RecoverAction, ChooseSuitsAction, ChooseCardsAction, MusterAction, SearchPlayOrDiscardAction, MayDiscardACardAction, SearchAction, CampaignDefenseAction, SearchChooseAction, ResolveCallbackAction, KillWarbandsOnTargetAction } from "../../actions/actions";
+import { TradeAction, TakeResourceFromPlayerAction, TakeFavorFromBankAction, CampaignEndAction, ModifiableAction, MakeDecisionAction, CampaignAttackAction, InvalidActionResolution, RecoverAction, ChooseSuitsAction, ChooseCardsAction, MusterAction, SearchPlayOrDiscardAction, MayDiscardACardAction, SearchAction, SearchChooseAction, ResolveCallbackAction, KillWarbandsOnTargetAction } from "../../actions/actions";
 import { Denizen, Edifice, Relic, WorldCard } from "../../cards/cards";
 import { DieSymbol } from "../../dice";
-import { TakeResourcesFromBankEffect, PlayVisionEffect, PlayWorldCardEffect, OathEffect, PeekAtCardEffect, DiscardCardEffect, PutWarbandsFromBagEffect, BecomeCitizenEffect, SetPeoplesFavorMobState, PutResourcesIntoBankEffect, GainSupplyEffect, MoveBankResourcesEffect, DrawFromDeckEffect, TakeOwnableObjectEffect, ApplyModifiersEffect, MoveDenizenToSiteEffect } from "../../effects";
-import { OathResource, BannerName, OathSuit, ALL_OATH_SUITS } from "../../enums";
+import { PlayVisionEffect, PlayWorldCardEffect, OathEffect, PeekAtCardEffect, DiscardCardEffect, BecomeCitizenEffect, SetPeoplesFavorMobState, GainSupplyEffect, DrawFromDeckEffect, TakeOwnableObjectEffect, ApplyModifiersEffect, MoveDenizenToSiteEffect, MoveWarbandsToEffect, ParentToTargetEffect, PutResourcesOnTargetEffect } from "../../effects";
+import { BannerName, OathSuit, ALL_OATH_SUITS } from "../../enums";
 import { WithPowers } from "../../interfaces";
-import { ResourceCost } from "../../resources";
+import { Favor, ResourceCost, Secret } from "../../resources";
 import { maxInGroup, minInGroup } from "../../utils";
 import { DefenderBattlePlan, AccessedActionModifier, ActivePower, WhenPlayed, EnemyEffectModifier, EnemyActionModifier, AttackerBattlePlan, ActionModifier, EffectModifier, EnemyDefenderCampaignModifier } from "../powers";
 
@@ -47,7 +47,7 @@ export class VillageConstableDefense extends DefenderBattlePlan<Denizen> {
 
 export class TheGreatLevyAttack extends AttackerBattlePlan<Denizen> {
     name = "The Great Levy";
-    cost = new ResourceCost([[OathResource.Favor, 2]]);
+    cost = new ResourceCost([[Favor, 2]]);
 
     applyBefore(): void {
         const peoplesFavorProxy = this.gameProxy.banners.get(BannerName.PeoplesFavor);
@@ -58,7 +58,7 @@ export class TheGreatLevyAttack extends AttackerBattlePlan<Denizen> {
 }
 export class TheGreatLevyDefense extends DefenderBattlePlan<Denizen> {
     name = "The Great Levy";
-    cost = new ResourceCost([[OathResource.Favor, 2]]);
+    cost = new ResourceCost([[Favor, 2]]);
 
     applyBefore(): void {
         const peoplesFavorProxy = this.gameProxy.banners.get(BannerName.PeoplesFavor);
@@ -73,7 +73,7 @@ export class HospitalAttack extends AttackerBattlePlan<Denizen> {
     applyBefore(): void {
         this.action.campaignResult.atEnd(() => {
             if (this.sourceProxy.site?.ruler === this.activatorProxy.leader)
-                new PutWarbandsFromBagEffect(this.activator.leader, this.action.campaignResult.attackerLoss, this.source.site).do();
+                new ParentToTargetEffect(this.game, this.activator.leader, this.activatorProxy.leader.original.bag.get(this.action.campaignResult.attackerLoss), this.source.site).do();
         });
     }
 }
@@ -83,14 +83,14 @@ export class HospitalDefense extends DefenderBattlePlan<Denizen> {
     applyBefore(): void {
         this.action.campaignResult.atEnd(() => {
             if (this.sourceProxy.site?.ruler === this.activatorProxy.leader)
-                new PutWarbandsFromBagEffect(this.activator.leader, this.action.campaignResult.defenderLoss, this.source.site).do();
+                new ParentToTargetEffect(this.game, this.activator.leader, this.activatorProxy.leader.original.bag.get(this.action.campaignResult.defenderLoss), this.source.site).do();
         });
     }
 }
 
 export class HeartsAndMinds extends DefenderBattlePlan<Denizen> {
     name = "Hearts and Minds";
-    cost = new ResourceCost([[OathResource.Favor, 3]]);
+    cost = new ResourceCost([[Favor, 3]]);
 
     applyWhenApplied(): boolean {
         // TODO: Put this in an effect
@@ -106,7 +106,7 @@ export class HeartsAndMinds extends DefenderBattlePlan<Denizen> {
 
 export class ExtraProvisions extends DefenderBattlePlan<Denizen> {
     name = "Extra Provisions";
-    cost = new ResourceCost([[OathResource.Favor, 1]]);
+    cost = new ResourceCost([[Favor, 1]]);
 
     applyBefore(): void {
         this.action.campaignResult.params.defPool += 1;
@@ -118,7 +118,7 @@ export class AwaitedReturn extends AccessedActionModifier<Denizen, TradeAction> 
     modifiedAction = TradeAction;
 
     applyBefore(): void {
-        if (this.activator.totalWarbands) {
+        if (this.activator.warbands.length) {
             new KillWarbandsOnTargetAction(this.activator, this.activator, 1).doNext();
             this.action.noSupplyCost = true;
         }
@@ -150,7 +150,7 @@ export class CropRotation extends AccessedActionModifier<Denizen, SearchPlayOrDi
 export class NewsFromAfar extends AccessedActionModifier<Denizen, SearchAction> {
     name = "News From Afar";
     modifiedAction = SearchAction;
-    cost = new ResourceCost([[OathResource.Favor, 2]]);
+    cost = new ResourceCost([[Favor, 2]]);
 
     applyBefore(): void {
         this.action.noSupplyCost = true;
@@ -159,11 +159,11 @@ export class NewsFromAfar extends AccessedActionModifier<Denizen, SearchAction> 
 
 export class CharmingFriend extends ActivePower<Denizen> {
     name = "Charming Friend";
-    cost = new ResourceCost([[OathResource.Secret, 1]]);
+    cost = new ResourceCost([[Secret, 1]]);
 
     usePower(): void {
         const players = Object.values(this.gameProxy.players).filter(e => e.site === this.action.playerProxy.site).map(e => e.original);
-        new TakeResourceFromPlayerAction(this.action.player, OathResource.Favor, 1, players).doNext();
+        new TakeResourceFromPlayerAction(this.action.player, Favor, 1, players).doNext();
     }
 }
 
@@ -171,7 +171,8 @@ export class FabledFeast extends WhenPlayed<Denizen> {
     name = "Fabled Feast";
 
     whenPlayed(): void {
-        new TakeResourcesFromBankEffect(this.game, this.effect.player, this.game.favorBanks.get(OathSuit.Hearth), this.effect.playerProxy.suitRuledCount(OathSuit.Hearth)).do();
+        const bank = this.game.favorBank(OathSuit.Hearth);
+        if (bank) new ParentToTargetEffect(this.game, this.effect.player, bank.get(this.effect.playerProxy.suitRuledCount(OathSuit.Hearth))).do();
     }
 }
 
@@ -181,7 +182,12 @@ export class SaladDays extends WhenPlayed<Denizen> {
     whenPlayed(): void {
         new ChooseSuitsAction(
             this.effect.player, "Take 1 favor from three different banks",
-            (suits: OathSuit[]) => { for (const suit of suits) new TakeResourcesFromBankEffect(this.game, this.effect.player, this.game.favorBanks.get(suit), 1).do(); },
+            (suits: OathSuit[]) => { 
+                for (const suit of suits) {
+                    const bank = this.game.favorBank(OathSuit.Hearth);
+                    if (bank) new ParentToTargetEffect(this.game, this.effect.player, bank.get(1)).do(); 
+                }
+            },
             undefined,
             [[3]]
         ).doNext();
@@ -224,7 +230,7 @@ export class BookBinders extends EnemyEffectModifier<Denizen, PlayVisionEffect> 
     name = "Book Binders";
     modifiedEffect = PlayVisionEffect;
 
-    applyAfter(result: void): void {
+    applyAfter(): void {
         if (!this.sourceProxy.ruler?.original) return;
         new TakeFavorFromBankAction(this.sourceProxy.ruler?.original, 2).doNext();
     }
@@ -234,13 +240,15 @@ export class SaddleMakers extends EnemyEffectModifier<Denizen, PlayWorldCardEffe
     name = "Saddle Makers";
     modifiedEffect = PlayWorldCardEffect;
 
-    applyAfter(result: void): void {
+    applyAfter(): void {
         if (!this.sourceProxy.ruler?.original) return;
         if (this.effect.facedown || !(this.effect.card instanceof Denizen)) return;
 
         const cardProxy = this.effect.maskProxyManager.get(this.effect.card);
-        if (cardProxy.suit === OathSuit.Nomad || cardProxy.suit === OathSuit.Order)
-            new TakeResourcesFromBankEffect(this.effect.game, this.sourceProxy.ruler?.original, this.effect.game.favorBanks.get(cardProxy.suit), 2).do();
+        if (cardProxy.suit === OathSuit.Nomad || cardProxy.suit === OathSuit.Order) {
+            const bank = this.game.favorBank(cardProxy.suit);
+            if (bank) new ParentToTargetEffect(this.effect.game, this.sourceProxy.ruler?.original, bank.get(2)).do();
+        }
     }
 }
 
@@ -290,7 +298,7 @@ export class MarriageEffect extends EffectModifier<Denizen, OathEffect<any>> {
 export class LandWarden extends AccessedActionModifier<Denizen, SearchChooseAction> {
     name = "Land Warden";
     modifiedAction = SearchChooseAction;
-    cost = new ResourceCost([[OathResource.Favor, 1]]);
+    cost = new ResourceCost([[Favor, 1]]);
 
     applyWhenApplied(): boolean {
         this.action.playingAmount++;
@@ -320,7 +328,8 @@ export class WelcomingPartyPlay extends ActionModifier<Denizen, SearchPlayOrDisc
     modifiedAction = SearchPlayOrDiscardAction;
 
     applyAfter(): void {
-        new TakeResourcesFromBankEffect(this.game, this.activator, this.game.favorBanks.get(OathSuit.Hearth), 1).do();
+        const bank = this.game.favorBank(OathSuit.Hearth)
+        if (bank) new ParentToTargetEffect(this.game, this.activator, bank.get(1)).do();
     }
 }
 
@@ -344,7 +353,7 @@ export class TavernSongs extends ActivePower<Denizen> {
 
     usePower(): void {
         for (let i = 0; i < 3; i++) {
-            const card = this.action.player.site.region.discard.cards[i];
+            const card = this.action.player.site.region.discard.children[i];
             if (card) new PeekAtCardEffect(this.action.player, card).do();
         }
     }
@@ -362,16 +371,16 @@ export class BallotBox extends ActivePower<Denizen> {
 
 export class Storyteller extends ActivePower<Denizen> {
     name = "Storyteller";
-    cost = new ResourceCost([[OathResource.Favor, 1]]);
+    cost = new ResourceCost([[Favor, 1]]);
 
     usePower(): void {
-        new PutResourcesIntoBankEffect(this.game, undefined, this.game.banners.get(BannerName.DarkestSecret), 1).do();
+        new PutResourcesOnTargetEffect(this.game, this.action.player, Secret, 1, this.game.banners.get(BannerName.DarkestSecret)).do();
     }
 }
 
 export class WaysideInn extends ActivePower<Denizen> {
     name = "Wayside Inn";
-    cost = new ResourceCost([[OathResource.Favor, 1]]);
+    cost = new ResourceCost([[Favor, 1]]);
 
     usePower(): void {
         new GainSupplyEffect(this.action.player, 2).do();
@@ -380,17 +389,17 @@ export class WaysideInn extends ActivePower<Denizen> {
 
 export class MemoryOfHome extends ActivePower<Denizen> {
     name = "Memory of Home";
-    cost = new ResourceCost([], [[OathResource.Secret, 1]]);
+    cost = new ResourceCost([], [[Secret, 1]]);
 
     usePower(): void {
         new ChooseSuitsAction(
             this.action.player, "Move all favor from one bank to the Hearth bank",
             (suits: OathSuit[]) => {
-                if (!suits.length) return;
-                const from = this.game.favorBanks.get(suits[0]);
-                const to = this.game.favorBanks.get(OathSuit.Hearth);
+                if (!suits[0]) return;
+                const from = this.game.favorBank(suits[0]);
+                const to = this.game.favorBank(OathSuit.Hearth);
                 if (!from || !to) return;
-                new MoveBankResourcesEffect(this.game, this.action.player, from, to, Infinity).do();
+                new ParentToTargetEffect(this.game, this.action.player, from.get(Infinity), to).do();
             }
         ).doNext();
     }
@@ -398,7 +407,7 @@ export class MemoryOfHome extends ActivePower<Denizen> {
 
 export class ArmedMob extends ActivePower<Denizen> {
     name = "Armed Mob";
-    cost = new ResourceCost([[OathResource.Favor, 1]]);
+    cost = new ResourceCost([[Favor, 1]]);
 
     usePower(): void {
         const darkestSecretProxy = this.gameProxy.banners.get(BannerName.DarkestSecret);
@@ -412,37 +421,38 @@ export class ArmedMob extends ActivePower<Denizen> {
 
         new ChooseCardsAction(
             this.action.player, "Discard an adviser", [cards], 
-            (cards: WorldCard[]) => { if (cards.length) new DiscardCardEffect(this.action.player, cards[0]).do(); }
+            (cards: WorldCard[]) => { if (cards[0]) new DiscardCardEffect(this.action.player, cards[0]).do(); }
         ).doNext();
     }
 }
 
 export class ARoundOfAle extends ActivePower<Denizen> {
     name = "A Round of Ale";
-    cost = new ResourceCost([[OathResource.Favor, 1]]);
+    cost = new ResourceCost([[Favor, 1]]);
 
     usePower(): void {
         this.action.player.returnResources();
-        new TakeResourcesFromBankEffect(this.game, this.action.player, this.game.favorBanks.get(OathSuit.Hearth), 1, this.source).do();
+        const bank = this.game.favorBank(OathSuit.Hearth);
+        if (bank) new ParentToTargetEffect(this.game, this.action.player, bank.get(1), this.source).do();
     }
 }
 
 export class Levelers extends ActivePower<Denizen> {
     name = "Levelers";
-    cost = new ResourceCost([[OathResource.Secret, 1]]);
+    cost = new ResourceCost([[Secret, 1]]);
 
     usePower(): void {
-        const maxSuits = new Set(maxInGroup(ALL_OATH_SUITS, e => this.game.favorBanks.get(e)?.amount || 0));
-        const minSuits = new Set(minInGroup(ALL_OATH_SUITS, e => this.game.favorBanks.get(e)?.amount || Infinity));
+        const maxSuits = new Set(maxInGroup(ALL_OATH_SUITS, e => this.game.favorBank(e)?.amount || 0));
+        const minSuits = new Set(minInGroup(ALL_OATH_SUITS, e => this.game.favorBank(e)?.amount || Infinity));
 
         new ChooseSuitsAction(
             this.action.player, "Move 2 favor from a bank with the most favor to a bank with the least",
             (maxTargets: OathSuit[], minTargets: OathSuit[]) => {
-                if (!minTargets.length || !maxTargets.length) return;
-                const from = this.game.favorBanks.get(maxTargets[0]);
-                const to = this.game.favorBanks.get(minTargets[0]);
+                if (!minTargets[0] || !maxTargets[0]) return;
+                const from = this.game.favorBank(maxTargets[0]);
+                const to = this.game.favorBank(minTargets[0]);
                 if (!from || !to) return;
-                new MoveBankResourcesEffect(this.game, this.action.player, from, to, 2).do();
+                new ParentToTargetEffect(this.game, this.action.player, from.get(2), to).do();
             },
             [maxSuits, minSuits]
         ).doNext();
@@ -451,15 +461,15 @@ export class Levelers extends ActivePower<Denizen> {
 
 export class RelicBreaker extends ActivePower<Denizen> {
     name = "Relic Breaker";
-    cost = new ResourceCost([[OathResource.Favor, 1]]);
+    cost = new ResourceCost([[Favor, 1]]);
 
     usePower(): void {
         new ChooseCardsAction(
             this.action.player, "Discard a relic to gain 3 warbands", [[...this.action.playerProxy.site.relics].map(e => e.original)],
             (cards: Relic[]) => {
-                if (!cards.length) return;
+                if (!cards[0]) return;
                 cards[0].putOnBottom(this.action.player);
-                new PutWarbandsFromBagEffect(this.action.playerProxy.leader.original, 3, this.action.player).do();
+                new ParentToTargetEffect(this.game, this.action.player, this.action.playerProxy.leader.original.bag.get(3)).do();
             }
         ).doNext();
     }

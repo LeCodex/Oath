@@ -50,7 +50,7 @@ const render = () => {
 
     const boardNode = document.getElementById("board");
     boardNode.innerHTML = "";
-    for (const [i, region] of Object.entries(game.board.regions)) {
+    for (const [i, region] of Object.entries(game.board.children)) {
         const regionNode = boardNode.appendChild(renderText(region.name));
         regionNode.id = "region" + i;
 
