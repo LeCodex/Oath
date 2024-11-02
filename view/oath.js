@@ -167,12 +167,17 @@ const renderDeck = (deck, name, separateVisions = false) => {
     return deckNode;
 }
 
+const byType = (thing, type) => {
+    return thing.children.filter(e => e.type === type);
+}
+
 const warbandsColors = ["🟪", "🟥", "🟦", "🟨", "⬜", "⬛"];
 const getResourcesAndWarbandsText = (thing) => {
     let text = "";
-    text += Object.entries(thing.resources).filter(([_, v]) => v > 0).map(([k, v]) => resourceNames[k].repeat(v)).join("");
+    text += byType(thing, "Favor").map(e => "🟡").join("");
+    text += byType(thing, "Favor").map(e => e.flipped ? "📘" : "📖").join("");
     text += " ";
-    text += Object.entries(thing.warbands).filter(([_, v]) => v > 0).map(([k, v]) => warbandsColors[k].repeat(v)).join("");
+    text += byType(thing, "OathWarband").map(e => warbandsColors[e.id]).join("");
     return text;
 }
 

@@ -29,7 +29,7 @@ export const SiteName: Record<string, number> = {
 
 export const SiteNameIndexes = Object.keys(SiteName)
   .reduce((prev, cur) => {
-    prev[SiteName[cur]] = cur;
-    prev[SiteName[cur] + 24] = cur;
+    prev[SiteName[cur]!] = cur;
+    prev[SiteName[cur]! + 24] = cur;
     return prev;
   }, {} as Record<number, string>);

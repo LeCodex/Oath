@@ -239,7 +239,7 @@ export class DataObject {
 }
 
 
-export abstract class TreeNode<RootType extends TreeRoot, IdType = any> extends WithOriginal {
+export abstract class TreeNode<RootType extends TreeRoot<RootType>, IdType = any> extends WithOriginal {
     /** Different objects of the same class MUST have different ids. */
     id: IdType;
     children = new NodeGroup<TreeNode<RootType>>();
@@ -315,13 +315,11 @@ export abstract class TreeNode<RootType extends TreeRoot, IdType = any> extends 
     };
 }
 
-export abstract class TreeRoot extends TreeNode<TreeRoot, "root"> {
-    root: this;
-    parent: this;
+export abstract class TreeRoot<RootType extends TreeRoot<RootType>> extends TreeNode<RootType, "root"> {
+    parent = this;
 
     constructor() {
         super("root");
-        this.parent = this.root = this;
     }
 
     prune() {
@@ -329,7 +327,7 @@ export abstract class TreeRoot extends TreeNode<TreeRoot, "root"> {
     }
 }
 
-export abstract class TreeLeaf<RootType extends TreeRoot, IdType = any> extends TreeNode<RootType, IdType> {
+export abstract class TreeLeaf<RootType extends TreeRoot<RootType>, IdType = any> extends TreeNode<RootType, IdType> {
     children: NodeGroup<never>;
 
     addChild<T extends TreeNode<RootType, any>>(child: T): T {
@@ -343,7 +341,6 @@ export abstract class TreeLeaf<RootType extends TreeRoot, IdType = any> extends 
     }
 }
 
-// TODO: Make a hash table to lookup by class faster
 export class NodeGroup<T extends TreeNode<any>> extends Array<T> {
     lookupByClass = new Map<AbstractConstructor<T>, Set<T>>();
 

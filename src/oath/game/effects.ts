@@ -248,11 +248,11 @@ export class UnparentEffect extends OathEffect {
 }
 
 export class PutResourcesOnTargetEffect extends OathEffect<number> {
-    resource: OathResourceType;
+    resource: typeof OathResource;
     amount: number;
     target?: ResourcesAndWarbands;
 
-    constructor(game: OathGame, player: OathPlayer | undefined, resource: OathResourceType, amount: number, target?: ResourcesAndWarbands) {
+    constructor(game: OathGame, player: OathPlayer | undefined, resource: typeof OathResource, amount: number, target?: ResourcesAndWarbands) {
         super(game, player);
         this.resource = resource;
         this.amount = Math.max(0, amount);
@@ -260,13 +260,12 @@ export class PutResourcesOnTargetEffect extends OathEffect<number> {
     }
 
     resolve(): number {
-        // TODO: Take favor from supply
         return this.target?.putResources(this.resource, this.amount) || 0;
     }
 
     revert(): void {
         if (!this.target) return;
-        for (const resource of this.target.getResources(this.resource, this.amount)) resource.prune();
+        for (const resource of this.target.getResources(this.resource, this.amount)) resource.burn();
     }
 
     serialize(): Record<string, any> | undefined {
@@ -354,7 +353,7 @@ export class PayCostToTargetEffect extends OathEffect<boolean> {
             if (this.source.getResources(resource).length < amount) return false;
 
         for (const [resource, amount] of this.cost.burntResources)
-            new MoveResourcesToTargetEffect(this.game, this.player, resource, amount, undefined, this.source).do(); // TODO: Move burnt favor to supply
+            new BurnResourcesEffect(this.game, this.player, this.source.getResources(resource, amount)).do();
 
         for (const [resource, amount] of this.cost.placedResources)
             new MoveResourcesToTargetEffect(this.game, this.player, resource, amount, this.target, this.source).do();
@@ -386,7 +385,7 @@ export class PayCostToBankEffect extends OathEffect<boolean> {
             if (this.source.getResources(resource).length < amount) return false;
 
         for (const [resource, amount] of this.cost.burntResources)
-            new MoveResourcesToTargetEffect(this.game, this.player, resource, amount, undefined, this.source).do(); // TODO: Move burnt favor to supply
+            new BurnResourcesEffect(this.game, this.player, this.source.getResources(resource, amount)).do();
 
         if (this.suit)
             new ParentToTargetEffect(this.game, this.player, this.source?.getResources(Favor, this.cost.placedResources.get(Favor)), this.game.byClass(FavorBank).byId(this.suit)[0]).do();

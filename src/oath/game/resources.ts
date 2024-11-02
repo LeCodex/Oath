@@ -2,17 +2,24 @@ import { BurnResourcesEffect, MoveResourcesToTargetEffect, ParentToTargetEffect 
 import { OathGameObject, OathGameObjectLeaf } from "./gameObject";
 import { InvalidActionResolution } from "./actions/actions";
 import { PlayerColor } from "./enums";
-import { Constructor } from "./utils";
+import { AbstractConstructor, Constructor } from "./utils";
 
 
 let resourceId = 0;  // TOOD: Find better solution for unique ids
 export abstract class OathResource extends OathGameObjectLeaf<number> {
-    id = resourceId++;
+    constructor() {
+        super(resourceId++);
+    }
 
     abstract burn(): void;
+    static gain(target: OathGameObject, amount: number): void { };
 }
 
 export class Favor extends OathResource {
+    static gain(target: OathGameObject, amount: number): void {
+        target.addChildren(target.game.byClass(this).max(amount));
+    }
+    
     burn(): void {
         this.unparent();
     }
@@ -21,12 +28,25 @@ export class Favor extends OathResource {
 export class Secret extends OathResource {
     flipped: boolean = false;
 
+    static gain(target: OathGameObject, amount: number): void {
+        for (let i = 0; i < amount; i++)
+            target.addChild(new this());
+    }
+
     burn(): void {
         this.prune();
     }
+
+    serialize(): Record<string, any> | undefined {
+        const obj = super.serialize();
+        return {
+            flipped: this.flipped,
+            ...obj
+        };
+    }
 }
 
-export type OathResourceType<T extends OathResource = OathResource> = Constructor<T>;
+export type OathResourceType<T extends OathResource = OathResource> = AbstractConstructor<T>;
 
 
 export class OathWarband extends OathGameObjectLeaf<PlayerColor> { }
@@ -39,10 +59,9 @@ export abstract class ResourcesAndWarbands<T = any> extends OathGameObject<T> {
     get warbands() { return this.byClass(OathWarband); }
     get resources() { return this.byClass(OathResource); }
 
-    putResources(type: OathResourceType, amount: number): number {
-        const newAmount = this.getResources(type).length + amount;
-        for (let i = 0; i < amount; i ++) this.addChild(new type());
-        return newAmount;
+    putResources(type: typeof OathResource, amount: number): number {
+        type.gain(this, amount);
+        return this.getResources(type).length;
     }
 
     getResources<T extends OathResource>(type: OathResourceType<T>, amount: number = Infinity): T[] {

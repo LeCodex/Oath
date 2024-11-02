@@ -148,7 +148,7 @@ function hex(num: number, width: number): string {
 // The first byte is the size of the deck, and each subsequent byte is the id of
 // a card in the deck, in order.
 function serializeDeck(deck: CardData[]): string {
-  let bytes = [deck.length, ...deck.map((card) => CardName[card.name])];
+  let bytes = [deck.length, ...deck.map((card) => CardName[card.name]!)];
   return bytes.map((byte) => hex(byte, 2)).join('');
 }
 
@@ -186,13 +186,13 @@ export function serializeOathGame(game: OathGameData): string {
 
   // See `mapDataString` in lua mod for format.
   const mapData: string[] = game.sites.map((site) => {
-    const siteId = SiteName[site.name];
+    const siteId = SiteName[site.name]!;
     const bytes: number[] = [siteId];
     if (site.facedown && siteId !== SiteName.NONE) {
-      bytes[0] += 24;
+      bytes[0]! += 24;
     }
     site.cards.forEach((card) => {
-      bytes.push(CardName[card.name]);
+      bytes.push(CardName[card.name]!);
     });
     return bytes.map((byte) => hex(byte, 2)).join('');
   });
@@ -339,11 +339,11 @@ export function parseOathTTSSavefileString(saveDataString: string): OathGameData
       
       const cards = Array(3).fill(null).map((n, i) => {
         const cardData = getHexFromStringAsNumber(siteEnd + (2 * i), siteEnd + (2 * (i + 1)));
-        return { name: CardNameIndexes[cardData] };
+        return { name: CardNameIndexes[cardData]! };
       });
 
       return { 
-        name: SiteNameIndexes[siteData], 
+        name: SiteNameIndexes[siteData]!, 
         facedown: siteData >= 24,
         cards
       };
@@ -356,7 +356,7 @@ export function parseOathTTSSavefileString(saveDataString: string): OathGameData
     // load world deck
     game.world = Array(numWorldCards).fill(null).map((n, i) => {
       const cardData = getHexFromStringAsNumber(worldEnd + (2 * i), worldEnd + (2 * (i + 1)));
-      return { name: CardNameIndexes[cardData] };
+      return { name: CardNameIndexes[cardData]! };
     });
     
     updateOffset(worldEnd + (2 * numWorldCards));
@@ -367,7 +367,7 @@ export function parseOathTTSSavefileString(saveDataString: string): OathGameData
 
     game.dispossessed = Array(numDispossessed).fill(null).map((n, i) => {
       const cardData = getHexFromStringAsNumber(dispEnd + (2 * i), dispEnd + (2 * (i + 1)));
-      return { name: CardNameIndexes[cardData] };
+      return { name: CardNameIndexes[cardData]! };
     });
     
     updateOffset(dispEnd + (2 * numDispossessed));
@@ -382,7 +382,7 @@ export function parseOathTTSSavefileString(saveDataString: string): OathGameData
 
     game.relics = Array(numRelics).fill(null).map((n, i) => {
       const cardData = getHexFromStringAsNumber(relicEnd + (2 * i), relicEnd + (2 * (i + 1)));
-      return { name: CardNameIndexes[cardData] };
+      return { name: CardNameIndexes[cardData]! };
     });
     
     updateOffset(relicEnd + (2 * numRelics));

@@ -252,6 +252,6 @@ export const CardName: Record<string, number> = {
 
 export const CardNameIndexes = Object.keys(CardName)
   .reduce((prev, cur) => {
-    prev[CardName[cur]] = cur;
+    prev[CardName[cur]!] = cur;
     return prev;
   }, {} as Record<number, string>);

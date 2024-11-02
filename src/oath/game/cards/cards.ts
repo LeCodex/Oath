@@ -8,7 +8,7 @@ import { OathPlayer } from "../player";
 import { OathPower } from "../powers/powers";
 import { GrandScepterExileCitizen, GrandScepterGrantCitizenship, GrandScepterPeek, GrandScepterRest, GrandScepterSeize } from "../powers/relics";
 import { ConspiracyPower } from "../powers/visions";
-import { Favor, OathResourceType, ResourceCost, ResourcesAndWarbands, Secret } from "../resources";
+import { Favor, OathResource, OathResourceType, ResourceCost, ResourcesAndWarbands, Secret } from "../resources";
 import { Constructor } from "../utils";
 import { CardDeck, DiscardOptions } from "./decks";
 import { DenizenData } from "./denizens";
@@ -69,7 +69,7 @@ export class Site extends OathCard implements CampaignActionTarget {
     region: Region;
     capacity: number;
     startingRelics: number;
-    startingResources: Map<OathResourceType, number>;
+    startingResources: Map<typeof OathResource, number>;
     bandits = 1;
 
     recoverCost: ResourceCost;
@@ -86,7 +86,7 @@ export class Site extends OathCard implements CampaignActionTarget {
         startingRelics: number = 0,
         recoverCost: ResourceCost = new ResourceCost(),
         recoverSuit: OathSuit = OathSuit.None,
-        startingResources: Iterable<[OathResourceType, number]> = []
+        startingResources: Iterable<[typeof OathResource, number]> = []
     ) {
         super(name, powers);
         this.region = region;

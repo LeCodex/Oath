@@ -1,11 +1,11 @@
 import { OathSuit } from "../enums";
 import { OathPower } from "../powers/powers";
 import { AncientCity, BuriedGiant, CharmingValley, CoastalSite, DeepWoods, FertileValley, GreatSlum, Marshes, Mountain, NarrowPass, OpportunitySite, Plains, River, ShroudedWood, StandingStones, Steppe, TheHiddenPlaceCampaign, TheHiddenPlaceTravel, TheTribunal, Wastes } from "../powers/sites";
-import { Favor, OathResourceType, ResourceCost, Secret } from "../resources";
+import { Favor, OathResource, ResourceCost, Secret } from "../resources";
 import { Constructor } from "../utils";
 import { Site } from "./cards";
 
-export const sitesData: Record<string, [number, Constructor<OathPower<Site>>[], number?, ResourceCost?, OathSuit?, Iterable<[OathResourceType, number]>?]> = {
+export const sitesData: Record<string, [number, Constructor<OathPower<Site>>[], number?, ResourceCost?, OathSuit?, Iterable<[typeof OathResource, number]>?]> = {
     Plains:         [3, [Plains]],
     Mountain:       [2, [Mountain],         1, new ResourceCost([], [[Favor, 2]])],
     GreatSlum:      [3, [GreatSlum]],

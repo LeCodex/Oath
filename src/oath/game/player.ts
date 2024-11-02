@@ -2,7 +2,7 @@ import { CampaignBanishPlayerAction } from "./actions/actions";
 import { CampaignActionTarget, AtSite } from "./interfaces";
 import { Denizen, OwnableCard, Relic, Site, Vision, WorldCard } from "./cards/cards";
 import { Discard } from "./cards/decks";
-import { FlipSecretsEffect, GainSupplyEffect, MoveResourcesToTargetEffect } from "./effects";
+import { BurnResourcesEffect, FlipSecretsEffect, GainSupplyEffect, MoveResourcesToTargetEffect } from "./effects";
 import { OathSuit, PlayerColor } from "./enums";
 import { OathWarband, ResourcesAndWarbands, Favor, OathResourceType } from "./resources";
 import { Container } from "./gameObject";
@@ -90,8 +90,7 @@ export abstract class OathPlayer extends ResourcesAndWarbands<PlayerColor> imple
     }
 
     seize(player: OathPlayer) {
-        // TODO: Move burnt favor to supply
-        new MoveResourcesToTargetEffect(this.game, this, Favor, Math.floor(this.getResources(Favor).length / 2), undefined).doNext();
+        new BurnResourcesEffect(this.game, this, this.getResources(Favor, Math.floor(this.getResources(Favor).length / 2))).doNext();
         new CampaignBanishPlayerAction(player, this).doNext();
     }
 

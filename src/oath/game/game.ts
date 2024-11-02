@@ -19,7 +19,7 @@ import { hasPowers, SourceType, WithPowers } from "./interfaces";
 import { Favor, Secret } from "./resources";
 
 
-export class OathGame extends TreeRoot {
+export class OathGame extends TreeRoot<OathGame> {
     actionManager = new OathActionManager(this);
     
     seed: string;
@@ -54,6 +54,7 @@ export class OathGame extends TreeRoot {
         this.worldDeck = this.addChild(new WorldDeck());
         this.relicDeck = this.addChild(new RelicDeck());
         this.siteDeck = this.addChild(new SiteDeck());
+        for (let i = 0; i < 36; i++) this.addChild(new Favor());
 
         const gameData = parseOathTTSSavefileString(seed);
         this.name = gameData.chronicleName;
@@ -157,7 +158,7 @@ export class OathGame extends TreeRoot {
 
         const players = this.byClass(OathPlayer);
         for (const player of players) {
-            player.putResources(Favor, player === this.chancellor ? 2 : 1);  // TODO: Take favor from supply
+            player.putResources(Favor, player === this.chancellor ? 2 : 1);
             player.putResources(Secret, 1);
             player.leader.bag.moveChildrenTo(player, 3);
 
@@ -182,7 +183,6 @@ export class OathGame extends TreeRoot {
                 this.chancellor.bag.moveChildrenTo(site, 1);
         this.chancellor.bag.moveChildrenTo(topCradleSite, 3);
         
-        // TODO: Take favor from supply
         const startingAmount = playerCount < 5 ? 3 : 4;
         for (let i = OathSuit.Discord; i <= OathSuit.Nomad; i++)
             this.addChild(new FavorBank(i, startingAmount));
