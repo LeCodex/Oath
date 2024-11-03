@@ -9,27 +9,28 @@ import { Constructor } from "./utils";
 import { Favor, OathResourceType, ResourcesAndWarbands, Secret } from "./resources";
 
 export abstract class ResourceBank<U = any> extends ResourcesAndWarbands<U> {
-    type: OathResourceType;
+    resourceType: OathResourceType;
 
-    get amount() { return this.byClass(this.type).length; }
+    get amount() { return this.byClass(this.resourceType).length; }
 
     get(amount: number) {
-        return this.byClass(this.type).max(amount);
+        return this.byClass(this.resourceType).max(amount);
     }
 }
 
 export class FavorBank extends ResourceBank<OathSuit> {
+    type = "favorBank";
     name: string;
-    type = Favor;
+    resourceType = Favor;
 
-    constructor(id: OathSuit, startingAmount: number) {
+    constructor(id: OathSuit) {
         super(id);
         this.name = OathSuitName[id] + " Bank";
-        this.putResources(Favor, startingAmount);
     }
 }
 
 export abstract class Banner extends ResourceBank<string> implements RecoverActionTarget, CampaignActionTarget, WithPowers, OwnableObject {
+    type = "banner";
     name: string;
     powers: Set<Constructor<OathPower<Banner>>>;
     min = 1;
@@ -43,7 +44,7 @@ export abstract class Banner extends ResourceBank<string> implements RecoverActi
     }
 
     canRecover(action: RecoverAction): boolean {
-        return action.player.getResources(this.type).length > this.amount;
+        return action.player.getResources(this.resourceType).length > this.amount;
     }
 
     recover(player: OathPlayer): void {
@@ -52,14 +53,14 @@ export abstract class Banner extends ResourceBank<string> implements RecoverActi
 
     finishRecovery(player: OathPlayer, amount: number): void {
         // Banner-specific logic
-        new ParentToTargetEffect(this.game, player, this.getResources(this.type, amount)).doNext();
+        new ParentToTargetEffect(this.game, player, this.getResources(this.resourceType, amount)).doNext();
         this.handleRecovery(player);
         new TakeOwnableObjectEffect(this.game, player, this).do();
     }
 
     seize(player: OathPlayer) {
         new TakeOwnableObjectEffect(this.game, player, this).doNext();
-        new BurnResourcesEffect(this.game, player, this.getResources(this.type, 2)).doNext();
+        new BurnResourcesEffect(this.game, player, this.getResources(this.resourceType, 2)).doNext();
     }
 
     abstract handleRecovery(player: OathPlayer): void;
@@ -67,13 +68,12 @@ export abstract class Banner extends ResourceBank<string> implements RecoverActi
 
 export class PeoplesFavor extends Banner {
     name = "PeoplesFavor";
-    type = Favor;
+    resourceType = Favor;
     powers = new Set([PeoplesFavorSearch, PeoplesFavorWake]);
     isMob: boolean;
 
     constructor() {
         super("peoplesFavor");
-        this.putResources(Favor, 1);
     }
 
     handleRecovery(player: OathPlayer) {
@@ -88,7 +88,7 @@ export class PeoplesFavor extends Banner {
                 while (amount > 0) {
                     const bank = this.game.byClass(FavorBank).byId(suit)[0];
                     if (bank) {
-                        new MoveResourcesToTargetEffect(this.game, player, bank.original.type, 1, bank.original).do();
+                        new MoveResourcesToTargetEffect(this.game, player, bank.resourceType, 1, bank).do();
                         amount--;
                     }
                     if (++suit > OathSuit.Nomad) suit = OathSuit.Discord;
@@ -100,20 +100,19 @@ export class PeoplesFavor extends Banner {
     serialize(): Record<string, any> {
         const obj = super.serialize();
         return {
-            isMob: this.isMob,
-            ...obj
+            ...obj,
+            isMob: this.isMob
         };
     }
 }
 
 export class DarkestSecret extends Banner {
     name = "DarkestSecret";
-    type = Secret;
+    resourceType = Secret;
     powers = new Set([DarkestSecretPower]);
 
     constructor() {
         super("darkestSecret");
-        this.putResources(Secret, 1);
     }
 
     canRecover(action: RecoverAction): boolean {
@@ -130,7 +129,7 @@ export class DarkestSecret extends Banner {
     }
 
     handleRecovery(player: OathPlayer) {
-        new MoveResourcesToTargetEffect(this.game, player, this.type, 1, this).doNext();
-        if (this.owner) new MoveResourcesToTargetEffect(this.game, this.owner, this.type, this.amount - 1, this).doNext();
+        new MoveResourcesToTargetEffect(this.game, player, this.resourceType, 1, this).doNext();
+        if (this.owner) new MoveResourcesToTargetEffect(this.game, this.owner, this.resourceType, this.amount - 1, this).doNext();
     }
 }

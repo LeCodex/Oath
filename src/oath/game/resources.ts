@@ -7,6 +7,8 @@ import { AbstractConstructor, Constructor } from "./utils";
 
 let resourceId = 0;  // TOOD: Find better solution for unique ids
 export abstract class OathResource extends OathGameObjectLeaf<number> {
+    type = "resource";
+
     constructor() {
         super(resourceId++);
     }
@@ -40,8 +42,8 @@ export class Secret extends OathResource {
     serialize(): Record<string, any> | undefined {
         const obj = super.serialize();
         return {
-            flipped: this.flipped,
-            ...obj
+            ...obj,
+            flipped: this.flipped
         };
     }
 }
@@ -49,7 +51,23 @@ export class Secret extends OathResource {
 export type OathResourceType<T extends OathResource = OathResource> = AbstractConstructor<T>;
 
 
-export class OathWarband extends OathGameObjectLeaf<PlayerColor> { }
+export class OathWarband extends OathGameObjectLeaf<number> {
+    type = "warband";
+    color: PlayerColor;
+
+    constructor(color: PlayerColor) {
+        super(resourceId++);
+        this.color = color;
+    }
+
+    serialize(): Record<string, any> | undefined {
+        const obj = super.serialize();
+        return {
+            ...obj,
+            color: this.color
+        };
+    }
+}
 
 
 export abstract class ResourcesAndWarbands<T = any> extends OathGameObject<T> {
@@ -103,8 +121,8 @@ export abstract class ResourcesAndWarbands<T = any> extends OathGameObject<T> {
     serialize(): Record<string, any> | undefined {
         const obj = super.serialize();
         return {
-            name: this.name,
-            ...obj
+            ...obj,
+            name: this.name
         }
     }
 }

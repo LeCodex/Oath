@@ -21,7 +21,8 @@ import { edificeData } from "./cards/denizens";
 //////////////////////////////////////////////////
 //                BASE CLASSES                  //
 //////////////////////////////////////////////////
-export abstract class OathEffect<T = void> extends OathGameObject {
+export abstract class OathEffect<T = void> {
+    game: OathGame;
     player: OathPlayer | undefined;
     modifiers: EffectModifier<any, OathEffect<T>>[] = [];
     maskProxyManager: MaskProxyManager;
@@ -29,7 +30,7 @@ export abstract class OathEffect<T = void> extends OathGameObject {
     playerProxy: OathPlayer | undefined;
 
     constructor(game: OathGame, player: OathPlayer | undefined) {
-        super(game);
+        this.game = game;
         this.player = player;
         this.maskProxyManager = new MaskProxyManager();
         this.gameProxy = this.maskProxyManager.get(game);
@@ -205,21 +206,21 @@ export class LosePowerEffect<T extends WithPowers> extends OathEffect {
 export class ParentToTargetEffect extends OathEffect {
     objects: Set<OathGameObject>;
     target?: OathGameObject;
-    onBottom: boolean;
+    onTop: boolean;
     oldParents: TreeNode<any>[];
 
-    constructor(game: OathGame, player: OathPlayer | undefined, objects: Iterable<OathGameObject>, target?: OathGameObject, onBottom: boolean = false) {
+    constructor(game: OathGame, player: OathPlayer | undefined, objects: Iterable<OathGameObject>, target?: OathGameObject, onTop: boolean = false) {
         super(game, player);
         this.objects = new Set(objects);
         this.target = target ?? this.player;
-        this.onBottom = onBottom;
+        this.onTop = onTop;
     }
 
     resolve(): void {
         const objectsArray = [...this.objects];
         this.oldParents = objectsArray.map(e => e.parent);
         if (this.target)
-            this.target.addChildren(objectsArray, this.onBottom);
+            this.target.addChildren(objectsArray, this.onTop);
         else
             for (const object of this.objects) object.unparent();
     }
@@ -912,7 +913,7 @@ export class DiscardCardEffect<T extends OathCard> extends PlayerEffect {
 
     resolve(): void {
         this.flipped = !this.card.facedown;
-        new ParentToTargetEffect(this.game, this.player, [this.card], this.discardOptions.discard, this.discardOptions.onBottom);
+        new ParentToTargetEffect(this.game, this.player, [this.card], this.discardOptions.discard, !this.discardOptions.onBottom);
         this.card.returnResources();
         for (const player of this.game.players)
             new ParentToTargetEffect(this.game, player, this.card.getWarbands(player.id), player.bag);

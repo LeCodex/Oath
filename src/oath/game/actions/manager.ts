@@ -1,11 +1,12 @@
 import { OathAction, InvalidActionResolution,  UsePowerAction, PlayFacedownAdviserAction, MoveWarbandsAction, RestAction, MusterAction, TradeAction, TravelAction, RecoverAction, SearchAction, CampaignAction } from "./actions";
 import { OathEffect, AddActionToStackEffect, PopActionFromStackEffect } from "../effects";
-import { OathGameObject } from "../gameObject";
 import { Constructor } from "../utils";
 import { PlayerColor } from "../enums";
+import { OathGame } from "../game";
 
 
-export class OathActionManager extends OathGameObject {
+export class OathActionManager {
+    game: OathGame;
     actionsStack: OathAction[] = [];
     futureActionsList: OathAction[] = [];
     currentEffectsStack: OathEffect<any>[] = [];
@@ -14,6 +15,10 @@ export class OathActionManager extends OathGameObject {
     startOptions: Record<string, Constructor<OathAction>> = {};
     noReturn: boolean = false;
 
+    constructor(game: OathGame) {
+        this.game = game;
+    }
+ 
     checkForNextAction(): Record<string, any> {
         for (const action of this.futureActionsList) new AddActionToStackEffect(action).do();
         this.futureActionsList.length = 0;

@@ -454,7 +454,7 @@ export class FaeMerchant extends ActivePower<Denizen> {
         new TakeOwnableObjectEffect(this.game, this.action.player, relic).do();
         new ChooseCardsAction(
             this.action.player, "Discard a relic", [[...this.action.playerProxy.relics].filter(e => !(e instanceof GrandScepter)).map(e => e.original)],
-            (cards: Relic[]) => { if (cards[0]) cards[0].putOnBottom(this.action.player); }
+            (cards: Relic[]) => { if (cards[0]) cards[0].putonBottom(this.action.player); }
         ).doNext();
     }
 }

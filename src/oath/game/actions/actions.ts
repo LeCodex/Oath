@@ -8,9 +8,9 @@ import { OathGameObject } from "../gameObject";
 import { OathTypeToOath } from "../oaths";
 import { Exile, OathPlayer } from "../player";
 import { ActionModifier, ActivePower, CapacityModifier } from "../powers/powers";
-import { Favor, OathResource, OathResourceType, OathWarband, ResourceCost, ResourcesAndWarbands, Secret } from "../resources";
+import { Favor, OathResource, OathResourceType, ResourceCost, ResourcesAndWarbands, Secret } from "../resources";
 import { Banner, FavorBank, PeoplesFavor } from "../banks";
-import { Constructor, inclusiveRange, isExtended, MaskProxyManager, minInGroup, DataObject, NodeGroup} from "../utils";
+import { Constructor, inclusiveRange, isExtended, MaskProxyManager, minInGroup, DataObject} from "../utils";
 import { SelectNOf, SelectBoolean, SelectNumber } from "./selects";
 import { CampaignActionTarget, RecoverActionTarget, WithPowers } from "../interfaces";
 import { Region } from "../board";
@@ -22,7 +22,8 @@ import { Region } from "../board";
 //////////////////////////////////////////////////
 export class InvalidActionResolution extends Error { }
 
-export abstract class OathAction extends OathGameObject {
+export abstract class OathAction {
+    game: OathGame;
     readonly selects: Record<string, SelectNOf<any>> = {};
     readonly parameters: Record<string, any> = {};
     readonly autocompleteSelects: boolean = true;
@@ -31,7 +32,7 @@ export abstract class OathAction extends OathGameObject {
     player: OathPlayer;     // This is the original player. Modifying it modifies the game state
 
     constructor(player: OathPlayer) {
-        super(player.game);
+        this.game = player.game;
         this.player = player;
     }
 
@@ -349,7 +350,7 @@ export class TravelAction extends MajorAction {
     execute() {
         this.player = this.travelling;
         this.siteProxy = this.parameters.site[0]!;
-        this.supplyCost = this.gameProxy.board.travelCosts.get(this.player.site.region.regionName)?.get(this.siteProxy.region.regionName) || 2;
+        this.supplyCost = this.gameProxy.board.travelCosts.get(this.player.site.region.regionKey)?.get(this.siteProxy.region.regionKey) || 2;
         super.execute();
     }
 
@@ -401,7 +402,7 @@ export class RecoverBannerPitchAction extends ModifiableAction {
     }
 
     start() {
-        this.selects.amount = new SelectNumber("Amount", inclusiveRange(this.banner.amount + 1, this.player.getResources(this.banner.type).length));
+        this.selects.amount = new SelectNumber("Amount", inclusiveRange(this.banner.amount + 1, this.player.getResources(this.banner.resourceType).length));
         return super.start();
     }
 
@@ -860,7 +861,8 @@ export class CampaignResultParameters extends DataObject {
     defenderKillsEntireForce: boolean = false;
     sacrificeValue: number = 1;
 }
-export class CampaignResult extends OathGameObject {
+export class CampaignResult {
+    game: OathGame;
     attacker: OathPlayer;
     defender: OathPlayer | undefined;
     defenderAllies = new Set<OathPlayer>();
@@ -869,6 +871,10 @@ export class CampaignResult extends OathGameObject {
     successful: boolean;
     attackerLoss: number = 0;
     defenderLoss: number = 0;
+    
+    constructor(game: OathGame) {
+        this.game = game;
+    }
 
     get winner() { return this.successful ? this.attacker : this.defender; }
     get loser() { return this.successful ? this.defender : this.attacker; }
@@ -1769,7 +1775,7 @@ export class BrackenAction extends OathAction {
         const choices = new Map<string, Region>();
         for (const region of regions) choices.set(region.name, region);
         this.selects.region = new SelectNOf("Region", choices, 1);
-        this.selects.onTop = new SelectBoolean("Position", ["Top", "Bottom"])
+        this.selects.onTop = new SelectBoolean("Position", ["Bottom", "Top"])
         return super.start();
     }
 

@@ -1,6 +1,6 @@
 import { ActionModifier } from "./powers";
 import { InvalidActionResolution, CampaignAttackAction, SearchAction, TradeAction, TravelAction, ModifiableAction } from "../actions/actions";
-import { RegionName } from "../enums";
+import { RegionKey } from "../enums";
 import { ReliquarySlot } from "../reliquary";
 import { Favor, Secret } from "../resources";
 
@@ -51,10 +51,10 @@ export class Decadent extends ReliquaryModifier<TravelAction> {
     modifiedAction = TravelAction;
 
     applyBefore(): void {
-        if (this.action.siteProxy.inRegion(RegionName.Cradle) && !this.activatorProxy.site.inRegion(RegionName.Cradle))
+        if (this.action.siteProxy.inRegion(RegionKey.Cradle) && !this.activatorProxy.site.inRegion(RegionKey.Cradle))
             this.action.noSupplyCost = true;
 
-        if (this.action.siteProxy.inRegion(RegionName.Hinterland))
+        if (this.action.siteProxy.inRegion(RegionKey.Hinterland))
             this.action.supplyCostModifier += 1;
     }
 }

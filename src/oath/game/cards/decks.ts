@@ -1,10 +1,14 @@
-import { RegionName } from "../enums";
+import { Region } from "../board";
+import { RegionKey } from "../enums";
 import { Container } from "../gameObject";
 import { shuffleArray } from "../utils";
 import { WorldCard, VisionBack, OathCard, Relic, Site } from "./cards";
 
 
 export abstract class CardDeck<T extends OathCard, U = any> extends Container<T, U> {
+    type = "deck";
+    abstract name: string;
+
     draw(amount: number, fromBottom: boolean = false, skip: number = 0): T[] {
         // Why such an involved process instead of just using splice? To make sure the draws are in correct order for reverting
         amount = Math.min(this.children.length - skip, amount);
@@ -23,16 +27,32 @@ export abstract class CardDeck<T extends OathCard, U = any> extends Container<T,
     shuffle() {
         shuffleArray(this.children);
     }
+
+    serialize(): Record<string, any> | undefined {
+        const obj = super.serialize();
+        return {
+            ...obj,
+            name: this.name
+        };
+    }
 }
 
 export class RelicDeck extends CardDeck<Relic, "relicDeck"> {
+    name = "Relic Deck";
+
     constructor() {
         super("relicDeck", Relic);
     }
 }
 export class SiteDeck extends CardDeck<Site, "siteDeck"> {
+    name = "Site Deck";
+
     constructor() {
         super("siteDeck", Site);
+    }
+
+    serialize(): Record<string, any> | undefined {
+        return undefined;
     }
 }
 
@@ -43,16 +63,17 @@ export abstract class SearchableDeck<T = any> extends CardDeck<WorldCard, T> {
         super(id, WorldCard);
     }
 
-    serialize(): Record<string, any> {
+    serialize(): Record<string, any> | undefined {
         const obj = super.serialize();
         return {
+            ...obj,
             searchCost: this.searchCost,
-            ...obj
         };
     }
 }
 
 export class WorldDeck extends SearchableDeck<"worldDeck"> {
+    name = "World Deck";
     visionsDrawn: number = 0;
     get searchCost() { return this.visionsDrawn < 3 ? this.visionsDrawn < 1 ? 2 : 3 : 4; }
 
@@ -79,14 +100,23 @@ export class WorldDeck extends SearchableDeck<"worldDeck"> {
         return card;
     }
 
-    serialize(): Record<string, any> {
-        const obj: Record<string, any> = super.serialize();
-        obj.visionsDrawn = this.visionsDrawn;
-        return obj;
+    serialize(): Record<string, any> | undefined {
+        const obj = super.serialize();
+        return {
+            ...obj,
+            visionsDrawn: this.visionsDrawn
+        };
     }
 }
 
-export class Discard extends SearchableDeck<RegionName> { }
+export class Discard extends SearchableDeck<RegionKey> {
+    name: string;
+    
+    constructor(region: Region) {
+        super(region.id);
+        this.name = region.name + " Discard";
+    }
+}
 
 export class DiscardOptions<T extends OathCard> {
     discard: CardDeck<T>;

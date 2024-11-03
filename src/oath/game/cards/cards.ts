@@ -2,7 +2,7 @@ import { CampaignSeizeSiteAction, RecoverAction } from "../actions/actions";
 import { RecoverActionTarget, WithPowers, AtSite, CampaignActionTarget, OwnableObject } from "../interfaces";
 import { Region } from "../board";
 import { DiscardCardEffect, FlipSecretsEffect, MoveOwnWarbandsEffect, MoveResourcesToTargetEffect, ParentToTargetEffect, PayCostToBankEffect, RevealCardEffect, TakeOwnableObjectEffect } from "../effects";
-import { CardRestriction, OathSuit, OathTypeVisionName, PlayerColor, RegionName } from "../enums";
+import { CardRestriction, OathSuit, OathTypeVisionName, PlayerColor, RegionKey } from "../enums";
 import { Oath } from "../oaths";
 import { OathPlayer } from "../player";
 import { OathPower } from "../powers/powers";
@@ -54,18 +54,19 @@ export abstract class OathCard extends ResourcesAndWarbands<string> implements W
 
     abstract accessibleBy(player: OathPlayer): boolean;
 
-    serialize(): Record<string, any> {
+    serialize(): Record<string, any> | undefined {
         const obj = super.serialize();
         return {
+            ...obj,
             facedown: this.facedown,
-            seenBy: [...this.seenBy].map(e => e.id),
-            ...obj
+            seenBy: [...this.seenBy].map(e => e.id)
         };
     }
 }
 
 
 export class Site extends OathCard implements CampaignActionTarget {
+    type = "site";
     region: Region;
     capacity: number;
     startingRelics: number;
@@ -141,8 +142,8 @@ export class Site extends OathCard implements CampaignActionTarget {
         for (const resource of this.resources) resource.prune();
     }
 
-    inRegion(regionName: RegionName) {
-        return this.region.regionName === regionName;
+    inRegion(regionName: RegionKey) {
+        return this.region.regionKey === regionName;
     }
 
     seize(player: OathPlayer) {
@@ -150,14 +151,14 @@ export class Site extends OathCard implements CampaignActionTarget {
         new CampaignSeizeSiteAction(player, this).doNext();
     }
 
-    serialize(): Record<string, any> {
-        const obj: Record<string, any> = super.serialize();
-        obj.capacity = this.capacity;
-        obj.recoverCost = this.recoverCost.serialize();
-        obj.recoverSuit = this.recoverSuit;
-        obj.denizens = [...this.denizens].map(e => e.serialize());
-        obj.relics = [...this.relics].map(e => e.serialize());
-        return obj;
+    serialize(): Record<string, any> | undefined {
+        const obj = super.serialize();
+        return {
+            ...obj,
+            capacity: this.capacity,
+            recoverCost: this.recoverCost.serialize(),
+            recoverSuit: this.recoverSuit
+        };
     }
 }
 
@@ -178,6 +179,7 @@ export abstract class OwnableCard extends OathCard implements OwnableObject  {
 }
 
 export class Relic extends OwnableCard implements RecoverActionTarget, CampaignActionTarget, AtSite {
+    type = "relic";
     defense: number;
     get force() { return this.owner; }
 
@@ -206,7 +208,7 @@ export class Relic extends OwnableCard implements RecoverActionTarget, CampaignA
         new TakeOwnableObjectEffect(this.game, player, this).doNext();
     }
 
-    putOnBottom(player: OathPlayer) {
+    putonBottom(player: OathPlayer) {
         new DiscardCardEffect(player, this, new DiscardOptions(this.game.relicDeck, true));
     }
 }
@@ -221,6 +223,8 @@ export class GrandScepter extends Relic {
 }
 
 export abstract class WorldCard extends OwnableCard {
+    type = "worldCard";
+
     get discard(): CardDeck<WorldCard> | undefined { return this.owner?.discard; }
 }
 
@@ -260,10 +264,10 @@ export class Denizen extends WorldCard implements AtSite {
     serialize(): Record<string, any> {
         const obj = super.serialize();
         return {
+            ...obj,
             suit: this._suit,
             restriction: this.restriction,
-            locked: this.activelyLocked,
-            ...obj
+            locked: this.activelyLocked
         };
     }
 }
@@ -274,15 +278,9 @@ export class Edifice extends Denizen {
 }
 
 export abstract class VisionBack extends WorldCard {
-    get facedownName(): string { return super.facedownName + "vision"; }
+    type = "vision";
 
-    serialize(): Record<string, any> {
-        const obj = super.serialize();
-        return {
-            visionBack: true,
-            ...obj
-        };
-    }
+    get facedownName(): string { return super.facedownName + "vision"; }
 }
 
 export class Vision extends VisionBack {
@@ -294,9 +292,11 @@ export class Vision extends VisionBack {
     }
 
     serialize(): Record<string, any> {
-        const obj: Record<string, any> = super.serialize();
-        obj.vision = this.oath.id;
-        return obj;
+        const obj = super.serialize();
+        return {
+            ...obj,
+            vision: this.oath.id
+        }
     }
 }
 

@@ -57,10 +57,17 @@ export enum BannerName {
     DarkestSecret
 }
 
-export enum RegionName {
+
+export enum RegionKey {
     Cradle,
     Provinces,
     Hinterland
+}
+
+export const RegionSize = {
+    [RegionKey.Cradle]: 2,
+    [RegionKey.Provinces]: 3,
+    [RegionKey.Hinterland]: 3,
 }
 
 export enum CardRestriction {

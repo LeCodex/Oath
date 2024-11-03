@@ -204,7 +204,7 @@ export class FamilyHeirloom extends WhenPlayed<Denizen> {
         new MakeDecisionAction(
             this.effect.player, "Keep the relic?",
             () => new TakeOwnableObjectEffect(this.game, this.effect.player, relic).do(),
-            () => relic.putOnBottom(this.effect.player)
+            () => relic.putonBottom(this.effect.player)
         ).doNext();
     }
 }
@@ -468,7 +468,7 @@ export class RelicBreaker extends ActivePower<Denizen> {
             this.action.player, "Discard a relic to gain 3 warbands", [[...this.action.playerProxy.site.relics].map(e => e.original)],
             (cards: Relic[]) => {
                 if (!cards[0]) return;
-                cards[0].putOnBottom(this.action.player);
+                cards[0].putonBottom(this.action.player);
                 new ParentToTargetEffect(this.game, this.action.player, this.action.playerProxy.leader.original.bag.get(3)).do();
             }
         ).doNext();

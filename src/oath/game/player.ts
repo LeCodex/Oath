@@ -9,17 +9,30 @@ import { Container } from "./gameObject";
 import { Banner } from "./banks";
 import { Reliquary } from "./reliquary";
 
+export class WarbandsSupply extends Container<OathWarband, PlayerColor> {
+    type = "bag";
+
+    constructor(color: PlayerColor) {
+        super(color, OathWarband);
+    }
+
+    serialize(): Record<string, any> | undefined {
+        return undefined;
+    }
+}
+
 export abstract class OathPlayer extends ResourcesAndWarbands<PlayerColor> implements CampaignActionTarget, AtSite {
+    type = "player";
     supply: number = 7;
     site: Site;  // Could be done through parenting, but causes too many issues
-    bag: Container<OathWarband, PlayerColor>;
+    bag: WarbandsSupply;
     
     defense = 2;
     force = this;
 
     constructor(id: PlayerColor) {
         super(id);
-        this.bag = this.addChild(new Container(id, OathWarband));
+        this.bag = this.addChild(new WarbandsSupply(id));
     }
 
     get advisers() { return this.byClass(WorldCard); }
@@ -118,6 +131,7 @@ export abstract class OathPlayer extends ResourcesAndWarbands<PlayerColor> imple
         return {
             name: this.name,
             supply: this.supply,
+            site: this.site?.id,
             ...super.serialize()
         };
     }
@@ -148,15 +162,23 @@ export class Chancellor extends OathPlayer {
     }
 }
 
+export class VisionSlot extends Container<Vision, PlayerColor> {
+    type = "visionSlot";
+
+    constructor(color: PlayerColor) {
+        super(color, Vision);
+    }
+}
+
 export class Exile extends OathPlayer {
     name: string;
     isCitizen: boolean;
-    visionSlot: Container<Vision, PlayerColor>;
+    visionSlot: VisionSlot;
 
     constructor(color: PlayerColor) {
         super(color);
         this.name = "Exile " + color;
-        this.visionSlot = this.addChild(new Container(color, Vision));
+        this.visionSlot = this.addChild(new VisionSlot(color));
         for (let i = 0; i < 14; i ++) this.bag.addChild(new OathWarband(this.id));
     }
 
@@ -188,8 +210,8 @@ export class Exile extends OathPlayer {
     serialize(): Record<string, any> {
         const obj = super.serialize();
         return {
-            isCitizen: this.isCitizen,
-            ...obj
+            ...obj,
+            isCitizen: this.isCitizen
         };
     }
 }

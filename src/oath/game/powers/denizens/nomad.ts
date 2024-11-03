@@ -571,7 +571,7 @@ export class AncientForge extends ActivePower<Edifice> {
         new MakeDecisionAction(
             this.action.player, "Keep the relic?",
             () => new TakeOwnableObjectEffect(this.game, this.action.player, relic).do(),
-            () => relic.putOnBottom(this.action.player)
+            () => relic.putonBottom(this.action.player)
         ).doNext();
     }
 }

@@ -264,9 +264,9 @@ export class RelicHunter extends AttackerBattlePlan<Denizen> {
     name = "Relic Hunter";
 
     applyAtStart(): void {
-        for (const siteProxy of this.gameProxy.board.sites()) {
-            for (const relicProxy of siteProxy.relics) {
-                this.action.selects.targets.choices.set(relicProxy.visualName(this.activator), new RelicWrapper(relicProxy.original));
+        for (const [name, choice] of this.action.selects.targets.choices) {
+            if (choice instanceof Relic && choice.site) {
+                this.action.selects.targets.choices.set(name, new RelicWrapper(choice));
             }
         }
     }
@@ -288,6 +288,7 @@ export class RelicHunter extends AttackerBattlePlan<Denizen> {
     }
 }
 export class RelicWrapper extends OathGameObject implements CampaignActionTarget {
+    type = "relic";
     defense = 1;
     force = undefined;
     relic: Relic;
@@ -299,6 +300,10 @@ export class RelicWrapper extends OathGameObject implements CampaignActionTarget
 
     seize(player: OathPlayer): void {
         this.relic.seize(player);
+    }
+
+    serialize(): Record<string, any> | undefined {
+        return this.relic.serialize();
     }
 }
 

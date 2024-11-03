@@ -6,6 +6,7 @@ import { OathPlayer } from "./player";
 
 
 export abstract class Oath extends OathGameObject<OathType> implements OwnableObject {
+    type = "oath";
     abstract setup(): void;
     abstract scoreForOathkeeper(player: OathPlayer): number;
     abstract scoreForSuccessor(player: OathPlayer): number;

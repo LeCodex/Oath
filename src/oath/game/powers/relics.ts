@@ -274,7 +274,7 @@ export class DowsingSticks extends ActivePower<Relic> {
         new MakeDecisionAction(
             this.action.player, "Keep the relic?",
             () => new TakeOwnableObjectEffect(this.game, this.action.player, relic).do(),
-            () => relic.putOnBottom(this.action.player)
+            () => relic.putonBottom(this.action.player)
         );
     }
 }
@@ -283,7 +283,7 @@ export class MapRelic extends ActivePower<Relic> {
     name = "Map";
 
     usePower(): void {
-        this.source.putOnBottom(this.action.player);
+        this.source.putonBottom(this.action.player);
         new GainSupplyEffect(this.action.player, 4).do();
     }
 }

@@ -20,83 +20,36 @@ const setup = async () => {
 const oathNames = ["Supremacy", "the People", "Devotion", "Protection"];
 const visionNames = ["Conquest", "Revolution", "Faith", "Sanctuary"];
 const pawnColors = ["💜", "❤️", "💙", "💛", "🤍", "🖤"];
+const warbandsColors = ["🟪", "🟥", "🟦", "🟨", "⬜", "⬛"];
 const suitColors = ["🚫", "🔴", "🟣", "🔵", "🟠", "🟤", "🟢"];
-const resourceNames = ["🟡", "📘", "📖"];
 const render = () => {
     const titleNode = document.getElementById("title");
-    titleNode.innerHTML = game.name + " (Tale #" + game.chronicleNumber + "), an Oath of " + oathNames[game.oath] + ", Round " + game.round;
+    titleNode.innerHTML = game.name + " (Tale #" + game.chronicleNumber + "), Round " + game.round;
 
     const seedNode = document.getElementById("seed");
     seedNode.innerHTML = game.seed;
 
-    const infoNode = document.getElementById("info");
-    infoNode.innerHTML = "";
-    infoNode.appendChild(renderText("[BANNERS]"));
-    for (const [i, banner] of Object.entries(game.banners)) {
-        const bannerNode = infoNode.appendChild(renderText(banner.name + ": " + resourceNames[banner.type].repeat(banner.amount)));
-        bannerNode.id = "bank" + i;
-    }
-
-    const banksNode = infoNode.appendChild(renderText("[BANKS]"));
-    const banksList = banksNode.appendChild(document.createElement("ul"));
-    for (const [i, bank] of Object.entries(game.favorBanks)) {
-        const bankNode = banksList.appendChild(renderText(suitColors[Number(i)+1] + ": " + "🟡".repeat(bank.amount)));
-        bankNode.id = "bank" + i;
-    }
-
-    infoNode.appendChild(renderText("[DECKS]"));
-    infoNode.appendChild(renderDeck(game.relicDeck, "Relic Deck"));
-    infoNode.appendChild(renderDeck(game.worldDeck, "World Deck"));
 
     const boardNode = document.getElementById("board");
     boardNode.innerHTML = "";
-    for (const [i, region] of Object.entries(game.board.children)) {
-        const regionNode = boardNode.appendChild(renderText(region.name));
-        regionNode.id = "region" + i;
-
-        const regionList = regionNode.appendChild(document.createElement("ul"));
-        for (const site of region.sites) {
-            const siteNode = regionList.appendChild(renderCard(site));
-            siteNode.innerText +=  " " + Object.entries(game.players).filter(([_, v]) => v.site == site.name).map(([k, _]) => pawnColors[k]).join("");
-
-            const siteList = siteNode.appendChild(document.createElement("ul"));
-            for (const denizen of site.denizens) siteList.appendChild(renderCard(denizen));
-            for (const relic of site.relics) siteList.appendChild(renderCard(relic));
-        }
-
-        infoNode.appendChild(renderDeck(region.discard, region.name + " Discard", true));
+    for (const board of byType(game, "board")) {
+        renderObject(boardNode, board);
     }
 
 
     const playersNode = document.getElementById("players");
     playersNode.innerHTML = "";
-    for (const [i, player] of Object.entries(game.players)) {
-        const playerNode = playersNode.appendChild(renderText(player.name + (player.isCitizen ? " 💜" : "") + (game.turn == i ? " 🔄" : "") + (game.oathkeeper == i ? game.isUsurper ? " 🥇" : " 🏅": "")));
-        playerNode.id = "player" + i;
-
-        const playerList = playerNode.appendChild(document.createElement("ul"));
-        // playerList.appendChild(renderText("At " + player.site));
-        playerList.appendChild(renderText("Supply: " + player.supply + " / Bag: " + player.warbandsInBag));
-        playerList.appendChild(renderText("Resources: " + getResourcesAndWarbandsText(player)));
-        if (player.vision) playerList.appendChild(renderText(player.vision.name));
-
-        const thingsNode = playerList.appendChild(renderText("Things:"));
-        thingsNode.id = "playerThings" + i;
-        
-        const thingsList = thingsNode.appendChild(document.createElement("ul"));
-        for (const adviser of player.advisers) thingsList.appendChild(renderCard(adviser));
-        for (const relic of player.relics) thingsList.appendChild(renderCard(relic));
-        for (const banner of player.banners) thingsList.appendChild(renderText(banner));
-
-        if (player.reliquary) {
-            const reliquaryNode = playerList.appendChild(renderText("Reliquary:"));
-            reliquaryNode.id = "reliquary";
-            
-            const reliquaryList = reliquaryNode.appendChild(document.createElement("ul"));
-            for (const relic of player.reliquary.relics) reliquaryList.appendChild(relic ? renderCard(relic) : renderText("Empty"));
-        }
+    for (const player of byType(game, "player")) {
+        renderObject(playersNode, player);
     }
 
+
+    const infoNode = document.getElementById("info");
+    infoNode.innerText = "[SUPPLY]";
+    for (const obj of game.children) {
+        if (obj.type === "player" || obj.type === "board") continue;
+        renderObject(infoNode, obj);
+    }
 
     const effectsNode = document.getElementById("effects");
     effectsNode.innerHTML = "";
@@ -116,7 +69,7 @@ const render = () => {
     const actionNode = document.getElementById("action");
     actionNode.innerHTML = "";
     if (action) {
-        actionNode.innerText = "[" + action.message + "] (" + game.players[action.player].name + ")";
+        actionNode.innerText = "[" + action.message + "] (" + byType(game, "player")[action.player].name + ")";
         if (action.modifiers?.length) actionNode.appendChild(renderText("Modifiers: " + action.modifiers.join(", ")));
         for (const [k, select] of Object.entries(action.selects)) {
             const selectNode = actionNode.appendChild(renderText(select.name + ` (${select.min}-${select.max})`));
@@ -135,31 +88,110 @@ const render = () => {
     actionNode.appendChild(renderButton("Cancel", () => cancelAction()));
 }
 
+const renderObject = (parent, obj) => {
+    if (obj.hidden) return;
+
+    let node, autoAppendChildren = true;
+    switch (obj.type) {
+        case "player":
+            node = renderText(obj.name + " (Supply: " + obj.supply + ")" + (obj.isCitizen ? " 💜" : "") + (game.currentPlayer == obj.id ? " 🔄" : ""));
+            break;
+        
+        case "board":
+            node = renderText("[BOARD]");
+            break;
+        case "region":
+            node = renderText(obj.name);
+            break;
+        
+        case "relic":
+        case "worldCard":
+        case "vision":
+            node = renderCard(obj);
+            break;
+        
+        case "site":
+            node = renderCard(obj);
+            node.innerText += " " + byType(game, "player").filter(e => e.site == obj.id).map(e => pawnColors[e.id]).join("");
+            break;
+        
+        case "favorBank":
+            node = renderText(suitColors[obj.id + 1] + ":");
+            break;
+        
+        case "banner":
+            node = renderText(obj.name + ":");
+            break;
+                
+        case "deck":
+            node = renderDeck(obj, obj.name, obj.class === "Discard");
+            autoAppendChildren = false;
+            break;
+        
+        case "bag":
+            if (obj.children.length) node = renderText("Bag:")
+            break;
+        case "reliquary":
+            node = renderText("Reliquary:");
+            break;
+        case "reliquarySlot":
+            node = renderText(obj.name);
+            break;
+        case "visionSlot":
+            if (obj.children.length) node = renderText("Vision:")
+            break;
+
+        case "oath":
+            node = renderText("Oath of " + oathNames[obj.id] + (game.isUsurper ? " 🥇" : " 🏅"));
+            break;
+        
+        case "resource":
+        case "warband":
+            break;
+        
+        default:
+            node = renderText(`UNHANDLED ${obj.type} (${obj.id})`);
+    }
+
+    if (!node) return;
+
+    if (autoAppendChildren) {
+        node.innerText += " " + byType(obj, "resource").map(e => e.class === "Favor" ? "🟡" : e.flipped ? "📖" : "📘").join("");
+        node.innerText += " " + byType(obj, "warband").map(e => warbandsColors[e.color]).join("");
+        const list = node.appendChild(document.createElement("ul"));
+        for (const child of sortedChildren(obj)) {
+            renderObject(list, child);
+        }
+    }
+
+    parent.appendChild(node);
+}
+
 const renderCard = (card) => {
     const cardNode = document.createElement("li");
-    cardNode.id = "card" + card.name;
-    cardNode.innerText = (card.facedown ? card.visionBack ? "👁️ " : "❔ " : "")
-    cardNode.innerText += (!card.facedown || card.seenBy.includes(game.order[game.turn]) ? (card.suit !== undefined ? suitColors[card.suit+1] + " " : "") + card.name : "") + " " + getResourcesAndWarbandsText(card);
+    cardNode.id = "card" + card.id;
+    cardNode.innerText = (card.facedown ? card.type === "vision" ? "👁️ " : "❔ " : "")
+    cardNode.innerText += (!card.facedown || card.seenBy.includes(game.order[game.turn]) ? (card.suit !== undefined ? suitColors[card.suit+1] + " " : "") + card.name : "");
     return cardNode;
 }
 
 const renderDeck = (deck, name, separateVisions = false) => {
     const deckNode = document.createElement("li");
     deckNode.id = name;
-    deckNode.innerText = name + " (" + deck.cards.length + ")";
+    deckNode.innerText = name + " (" + deck.children.length + ")";
     if (deck.searchCost) deckNode.innerText += " : " + deck.searchCost + " Supply";
 
-    let topCardVision = deck.cards[0]?.visionBack;
+    let topCardVision = deck.children[0]?.type === "vision";
     const deckList = deckNode.appendChild(document.createElement("ul"));
     let facedownTotal = 0;
-    for (const card of deck.cards) {
-        if (card.facedown && !card.seenBy.includes(game.order[game.turn]) && !(separateVisions && card.visionBack)) {
+    for (const card of deck.children) {
+        if (card.facedown && !card.seenBy.includes(game.order[game.turn]) && !(separateVisions && card.type === "vision")) {
             facedownTotal++;
         } else {
             if (facedownTotal) deckList.appendChild(renderText(facedownTotal + (topCardVision ? " 👁️" : " ❔")));
             facedownTotal = 0;
             topCardVision = false;
-            deckList.appendChild(renderCard(card));
+            renderObject(deckList, card);
         }
     }
     if (facedownTotal) deckList.appendChild(renderText(facedownTotal + (topCardVision ? " 👁️" : " ❔")));
@@ -167,18 +199,12 @@ const renderDeck = (deck, name, separateVisions = false) => {
     return deckNode;
 }
 
-const byType = (thing, type) => {
-    return thing.children.filter(e => e.type === type);
+const byType = (obj, type) => {
+    return obj.children.filter(e => e.type === type);
 }
 
-const warbandsColors = ["🟪", "🟥", "🟦", "🟨", "⬜", "⬛"];
-const getResourcesAndWarbandsText = (thing) => {
-    let text = "";
-    text += byType(thing, "Favor").map(e => "🟡").join("");
-    text += byType(thing, "Favor").map(e => e.flipped ? "📘" : "📖").join("");
-    text += " ";
-    text += byType(thing, "OathWarband").map(e => warbandsColors[e.id]).join("");
-    return text;
+const sortedChildren = (obj) => {
+    return obj.children.sort((a, b) => b.type.localeCompare(a.type));
 }
 
 const renderText = (text) => {

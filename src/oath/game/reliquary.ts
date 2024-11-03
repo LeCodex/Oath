@@ -1,17 +1,15 @@
 import { Relic } from "./cards/cards";
-import { OathGameObject } from "./gameObject";
 import { WithPowers } from "./interfaces";
 import { OathPower } from "./powers/powers";
-import { Brutal, Decadent, Careless, Greedy } from "./powers/reliquary";
 import { Container } from "./gameObject";
 import { Constructor } from "./utils";
 
 
 export class Reliquary extends Container<ReliquarySlot, "reliquary"> {
+    type = "reliquary";
+
     constructor() {
         super("reliquary", ReliquarySlot);
-        for (const [i, power] of [Brutal, Decadent, Careless, Greedy].entries())
-            this.addChild(new ReliquarySlot(i, [power], this.game.relicDeck.drawSingleCard()));
     }
 
     putRelic(relic: Relic | undefined, index: number): Relic | undefined {
@@ -26,11 +24,22 @@ export class Reliquary extends Container<ReliquarySlot, "reliquary"> {
 }
 
 export class ReliquarySlot extends Container<Relic, number> implements WithPowers {
+    name: string;
+    type = "reliquarySlot";
     powers: Set<Constructor<OathPower<ReliquarySlot>>>;
 
-    constructor(id: number, powers: Iterable<Constructor<OathPower<ReliquarySlot>>>, relic?: Relic) {
+    constructor(id: number, name: string, powers: Iterable<Constructor<OathPower<ReliquarySlot>>>, relic?: Relic) {
         super(id, Relic);
+        this.name = name;
         if (relic) this.addChild(relic);
         this.powers = new Set(powers);
+    }
+
+    serialize(): Record<string, any> | undefined {
+        const obj = super.serialize();
+        return {
+            ...obj,
+            name: this.name
+        };
     }
 }

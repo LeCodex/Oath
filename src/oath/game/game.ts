@@ -7,7 +7,7 @@ import { RelicDeck, SiteDeck, WorldDeck } from "./cards/decks";
 import { DenizenData, denizenData, edificeData } from "./cards/denizens";
 import { relicsData } from "./cards/relics";
 import { sitesData } from "./cards/sites";
-import { OathPhase, OathSuit, RegionName, PlayerColor, ALL_OATH_SUITS, BannerName } from "./enums";
+import { OathPhase, OathSuit, RegionKey, PlayerColor, ALL_OATH_SUITS, BannerName, RegionSize } from "./enums";
 import { Oath, OathOfDevotion, OathOfProtection, OathOfSupremacy, OathOfThePeople, OathTypeToOath } from "./oaths";
 import { Conspiracy, Denizen, Edifice, GrandScepter, Relic, Site, Vision, WorldCard } from "./cards/cards";
 import { Chancellor, Exile, OathPlayer } from "./player";
@@ -17,9 +17,12 @@ import { parseOathTTSSavefileString, serializeOathGame } from "./parser";
 import { Citizenship } from "./parser/interfaces";
 import { hasPowers, SourceType, WithPowers } from "./interfaces";
 import { Favor, Secret } from "./resources";
+import { Brutal, Careless, Decadent, Greedy } from "./powers/reliquary";
+import { ReliquarySlot } from "./reliquary";
 
 
 export class OathGame extends TreeRoot<OathGame> {
+    type = "root";
     actionManager = new OathActionManager(this);
     
     seed: string;
@@ -48,13 +51,18 @@ export class OathGame extends TreeRoot<OathGame> {
     constructor(seed: string, playerCount: number) {
         super();
         this.seed = seed;
-
-        this.banners.set(BannerName.PeoplesFavor, this.addChild(new PeoplesFavor()));
-        this.banners.set(BannerName.DarkestSecret, this.addChild(new DarkestSecret()));
+        
         this.worldDeck = this.addChild(new WorldDeck());
         this.relicDeck = this.addChild(new RelicDeck());
         this.siteDeck = this.addChild(new SiteDeck());
         for (let i = 0; i < 36; i++) this.addChild(new Favor());
+        
+        const peoplesFavor = new PeoplesFavor();
+        const darkestSecret = new DarkestSecret();
+        this.banners.set(BannerName.PeoplesFavor, this.addChild(peoplesFavor));
+        this.banners.set(BannerName.DarkestSecret, this.addChild(darkestSecret));
+        peoplesFavor.putResources(Favor, 1);
+        darkestSecret.putResources(Secret, 1);
 
         const gameData = parseOathTTSSavefileString(seed);
         this.name = gameData.chronicleName;
@@ -99,13 +107,20 @@ export class OathGame extends TreeRoot<OathGame> {
         }
 
         this.chancellor = this.addChild(new Chancellor());
+        for (const [i, power] of [Brutal, Decadent, Careless, Greedy].entries())
+            this.chancellor.reliquary.addChild(new ReliquarySlot(i, power.name, [power], this.relicDeck.drawSingleCard()));
+
         for (let i = 1; i < playerCount; i++) {
             this.addChild(new Exile(i));
             this.order.push(i);
         }
 
         this.board = this.addChild(new OathBoard());
-        let regionName: RegionName = RegionName.Cradle;
+        for (let i = RegionKey.Cradle; i <= RegionKey.Hinterland; i++) {
+            this.board.addChild(new Region(RegionKey[i], RegionSize[i], i));
+        }
+
+        let regionKey: RegionKey = RegionKey.Cradle;
         const siteKeys: string[] = [];
         for (const siteData of gameData.sites) {
             let key = siteData.name;
@@ -115,8 +130,8 @@ export class OathGame extends TreeRoot<OathGame> {
                 console.warn("Couldn't load " + siteData.name + ", defaulting to a random site: " + key);
             }
             siteKeys.push(key);
-            const region = this.board.byClass(Region).byId(regionName)[0]!;
-            const site = new Site(region, key, ...sitesData[key]!);
+            const region = this.board.byClass(Region).byId(regionKey)[0]!;
+            const site = region.addChild(new Site(region, key, ...sitesData[key]!));
             site.facedown = siteData.facedown;
             if (!site.facedown) site.setupResources();
 
@@ -145,8 +160,7 @@ export class OathGame extends TreeRoot<OathGame> {
                 console.warn("Couldn't load " + denizenOrRelicData.name + " for " + key);
             }
 
-            region.addChild(site);
-            if (region.byClass(Site).length >= region.size) regionName++;
+            if (region.byClass(Site).length >= region.size) regionKey++;
         }
         
         const regions = this.board.byClass(Region);
@@ -154,7 +168,7 @@ export class OathGame extends TreeRoot<OathGame> {
             const fromBottom = this.worldDeck.drawSingleCard(true);
             if (fromBottom) region.discard.addChild(fromBottom);
         }
-        const topCradleSite = regions.byId(RegionName.Cradle)[0]?.byClass(Site)[0]!;
+        const topCradleSite = regions.byId(RegionKey.Cradle)[0]?.byClass(Site)[0]!;
 
         const players = this.byClass(OathPlayer);
         for (const player of players) {
@@ -184,11 +198,13 @@ export class OathGame extends TreeRoot<OathGame> {
         this.chancellor.bag.moveChildrenTo(topCradleSite, 3);
         
         const startingAmount = playerCount < 5 ? 3 : 4;
-        for (let i = OathSuit.Discord; i <= OathSuit.Nomad; i++)
-            this.addChild(new FavorBank(i, startingAmount));
+        for (let i = OathSuit.Discord; i <= OathSuit.Nomad; i++) {
+            const bank = this.addChild(new FavorBank(i));
+            bank.putResources(Favor, startingAmount);
+        }
 
-        this.oath = this.chancellor.addChild(new OathTypeToOath[gameData.oath]());
-        this.addChild(this.oath).setup();
+        this.oath = new OathTypeToOath[gameData.oath]();
+        this.chancellor.addChild(this.oath).setup();
 
         new WakeAction(this.currentPlayer).doNext();
     }
@@ -260,16 +276,17 @@ export class OathGame extends TreeRoot<OathGame> {
     serialize(): Record<string, any> {
         const obj = super.serialize();
         return {
+            ...obj,
             name: this.name,
             chronicleNumber: this.chronicleNumber,
             oathkeeper: this.oathkeeper.id,
             isUsurper: this.isUsurper,
+            currentPlayer: this.currentPlayer.id,
             turn: this.turn,
             phase: this.phase,
             round: this.round,
             order: this.order,
-            seed: this.seed,
-            ...obj
+            seed: this.seed
         }
     }
 
