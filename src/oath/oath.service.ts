@@ -1,6 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { OathGame } from './game/game';
-import { OathType } from './game/enums';
 import { InvalidActionResolution } from './game/actions/actions';
 
 

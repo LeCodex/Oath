@@ -1023,7 +1023,7 @@ export class CampaignJoinDefenderAlliesEffect extends PlayerEffect {
 
     serialize(): Record<string, any> | undefined {
         return {
-            player: this.player
+            player: this.player.name
         };
     }
 }
@@ -1269,7 +1269,7 @@ export class BecomeCitizenEffect extends PlayerEffect {
 
     serialize(): Record<string, any> | undefined {
         return {
-            player: this.player
+            player: this.player.name
         };
     }
 }
@@ -1296,7 +1296,7 @@ export class BecomeExileEffect extends PlayerEffect {
 
     serialize(): Record<string, any> | undefined {
         return {
-            player: this.player
+            player: this.player.name
         };
     }
 }

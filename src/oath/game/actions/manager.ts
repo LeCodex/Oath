@@ -40,8 +40,8 @@ export class OathActionManager {
         const returnData = {
             activeAction: action?.serialize(),
             startOptions: !action ? Object.keys(this.startOptions) : undefined,
-            appliedEffects: this.currentEffectsStack.map(e => e.serialize() && {effect: e.constructor.name, ...e.serialize()}).filter(e => e),
-            cancelledEffects: this.cancelledEffects.map(e => e.serialize() && {effect: e.constructor.name, ...e.serialize()}).filter(e => e),
+            appliedEffects: this.currentEffectsStack.map(e => e.serialize()).filter(e => e !== undefined).map(e => ({effect: e.constructor.name, ...e})),
+            cancelledEffects: this.cancelledEffects.map(e => e.serialize()).filter(e => e !== undefined).map(e => ({effect: e.constructor.name, ...e})),
             game: this.game.serialize()
         };
         this.cancelledEffects.length = 0;
