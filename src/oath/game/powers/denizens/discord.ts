@@ -80,7 +80,7 @@ export class BookBurning extends AttackerBattlePlan<Denizen> {
         this.action.campaignResult.onSuccessful(true, () => {
             const defender = this.action.campaignResult.defender;
             if (!defender) return;
-            new MoveResourcesToTargetEffect(this.game, defender, Secret, defender.getResources(Secret).length - 1, undefined).do()
+            new MoveResourcesToTargetEffect(this.game, defender, Secret, defender.byClass(Secret).length - 1, undefined).do()
         });
     }
 }
@@ -284,7 +284,7 @@ export class Charlatan extends WhenPlayed<Denizen> {
 
     whenPlayed(): void {
         const banner = this.game.banners.get(BannerName.DarkestSecret);
-        if (banner) new BurnResourcesEffect(this.game, this.effect.player, banner.get(banner.amount - 1));
+        if (banner) new BurnResourcesEffect(this.game, this.effect.player, Secret, banner.amount - 1, banner).do();
     }
 }
 
@@ -295,7 +295,7 @@ export class Dissent extends WhenPlayed<Denizen> {
         const peoplesFavorProxy = this.gameProxy.banners.get(BannerName.PeoplesFavor);
         for (const playerProxy of Object.values(this.gameProxy.players))
             if (peoplesFavorProxy?.owner !== playerProxy)
-                new MoveResourcesToTargetEffect(this.game, playerProxy.original, Favor, playerProxy.ruledSuits, this.source);
+                new MoveResourcesToTargetEffect(this.game, playerProxy.original, Favor, playerProxy.ruledSuits, this.source).do();
     }
 }
 
@@ -576,15 +576,10 @@ export class VowOfRenewal extends EffectModifier<Denizen, BurnResourcesEffect> {
     name = "Vow of Renewal";
     modifiedEffect = BurnResourcesEffect;
 
-    applyAfter(): void {
+    applyAfter(result: number): void {
         if (!this.sourceProxy.ruler) return;
-
-        const favors: Favor[] = [];
-        for (const resource of this.effect.resources)
-            if (resource instanceof Favor)
-                favors.push(resource);
-            
-        new ParentToTargetEffect(this.game, this.sourceProxy.ruler.original, favors).do();
+        if (this.effect.resource !== Favor) return;
+        new PutResourcesOnTargetEffect(this.game, this.sourceProxy.ruler.original, Favor, result).do();
     }
 }
 export class VowOfRenewalRecover extends AccessedActionModifier<Denizen, RecoverAction> {

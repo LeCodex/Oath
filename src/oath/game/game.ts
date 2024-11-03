@@ -232,7 +232,7 @@ export class OathGame extends TreeRoot<OathGame> {
             for (const child of node.children)
                 stack.push(child);
             
-            if (hasPowers(node))
+            if (hasPowers(node) && node.active)
                 for (const power of node.powers)
                     if (isExtended(power, type)) powers.push([node, power]);
         }

@@ -266,7 +266,7 @@ export class PutResourcesOnTargetEffect extends OathEffect<number> {
 
     revert(): void {
         if (!this.target) return;
-        for (const resource of this.target.getResources(this.resource, this.amount)) resource.burn();
+        for (const resource of this.target.byClass(this.resource).max(this.amount)) resource.burn();
     }
 
     serialize(): Record<string, any> | undefined {
@@ -294,8 +294,8 @@ export class MoveResourcesToTargetEffect extends OathEffect<number> {
 
     resolve(): number {
         if (!this.source) return 0;
-        if (this.source.getResources(this.resource).length < this.amount) return 0;
-        const resources = this.source.getResources(this.resource, this.amount)
+        const resources = this.source.byClass(this.resource).max(this.amount);
+        if (resources.length < this.amount) return 0;
         new ParentToTargetEffect(this.game, this.player, resources, this.target).do();
         return resources.length;
     }
@@ -314,17 +314,24 @@ export class MoveResourcesToTargetEffect extends OathEffect<number> {
     }
 }
 
-export class BurnResourcesEffect extends OathEffect<void> {
-    resources: OathResource[];
+export class BurnResourcesEffect extends OathEffect<number> {
+    resource: OathResourceType;
+    amount: number;
+    source?: ResourcesAndWarbands;
 
-    constructor(game: OathGame, player: OathPlayer | undefined, resources: Iterable<OathResource>) {
+    constructor(game: OathGame, player: OathPlayer | undefined, resource: OathResourceType, amount: number, source?: ResourcesAndWarbands) {
         super(game, player);
-        this.resources = [...resources];
+        this.resource = resource;
+        this.amount = Math.max(0, amount);
+        this.source = source || this.player;
     }
 
-    resolve(): void {
-        for (const resource of this.resources)
-            resource.burn();
+    resolve(): number {
+        if (!this.source) return 0;
+        const resources = this.source.byClass(this.resource).max(this.amount);
+        if (resources.length < this.amount) return 0;
+        for (const resource of resources) resource.burn();
+        return resources.length;
     }
 
     revert(): void {
@@ -350,14 +357,15 @@ export class PayCostToTargetEffect extends OathEffect<boolean> {
         if (this.target instanceof Denizen && this.game.currentPlayer !== this.player)
             return new PayCostToBankEffect(this.game, this.player, this.cost, this.target.suit, this.source).do();
 
-        for (const [resource, amount] of this.cost.totalResources)
-            if (this.source.getResources(resource).length < amount) return false;
+        for (const [resource, amount] of this.cost.burntResources) {
+            const result = new BurnResourcesEffect(this.game, this.player, resource, amount, this.source).do();
+            if (result < amount) return false;
+        }
 
-        for (const [resource, amount] of this.cost.burntResources)
-            new BurnResourcesEffect(this.game, this.player, this.source.getResources(resource, amount)).do();
-
-        for (const [resource, amount] of this.cost.placedResources)
-            new MoveResourcesToTargetEffect(this.game, this.player, resource, amount, this.target, this.source).do();
+        for (const [resource, amount] of this.cost.placedResources) {
+            const result = new MoveResourcesToTargetEffect(this.game, this.player, resource, amount, this.target, this.source).do();
+            if (result < amount) return false;
+        }
 
         return true;
     }
@@ -382,16 +390,23 @@ export class PayCostToBankEffect extends OathEffect<boolean> {
     resolve(): boolean {
         if (!this.source) return false;
 
-        for (const [resource, amount] of this.cost.totalResources)
-            if (this.source.getResources(resource).length < amount) return false;
+        for (const [resource, amount] of this.cost.burntResources) {
+            const result = new BurnResourcesEffect(this.game, this.player, resource, amount, this.source).do();
+            if (result < amount) return false;
+        }
 
-        for (const [resource, amount] of this.cost.burntResources)
-            new BurnResourcesEffect(this.game, this.player, this.source.getResources(resource, amount)).do();
-
-        if (this.suit)
-            new ParentToTargetEffect(this.game, this.player, this.source?.getResources(Favor, this.cost.placedResources.get(Favor)), this.game.byClass(FavorBank).byId(this.suit)[0]).do();
+        if (this.suit) {
+            const bank = this.game.byClass(FavorBank).byId(this.suit)[0];
+            if (bank) {
+                const favorsToGive = this.cost.placedResources.get(Favor) || 0;
+                const result = new MoveResourcesToTargetEffect(this.game, this.player, Favor, favorsToGive, bank, this.source).do();
+                if (result < favorsToGive) return false;
+            }
+        }
         
-        new FlipSecretsEffect(this.game, this.player, this.cost.placedResources.get(Secret) || 0, true, this.source).do();
+        const secretsToFlip = this.cost.placedResources.get(Secret) || 0;
+        const result = new FlipSecretsEffect(this.game, this.player, secretsToFlip, true, this.source).do();
+        if (result < secretsToFlip) return false;
 
         return true;
     }
@@ -443,7 +458,7 @@ export class FlipSecretsEffect extends OathEffect<number> {
 
     revert(): void {
         if (!this.source) return;
-        for (const secret of this.source.getResources(Secret, this.amount)) secret.flipped = false;
+        for (const secret of this.source.byClass(Secret).max(this.amount)) secret.flipped = false;
     }
 
     serialize(): Record<string, any> | undefined {

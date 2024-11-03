@@ -33,6 +33,7 @@ export abstract class Banner extends ResourceBank<string> implements RecoverActi
     type = "banner";
     name: string;
     powers: Set<Constructor<OathPower<Banner>>>;
+    active = true;
     min = 1;
 
     get owner() { return this.typedParent(OathPlayer); }
@@ -44,7 +45,7 @@ export abstract class Banner extends ResourceBank<string> implements RecoverActi
     }
 
     canRecover(action: RecoverAction): boolean {
-        return action.player.getResources(this.resourceType).length > this.amount;
+        return action.player.byClass(this.resourceType).length > this.amount;
     }
 
     recover(player: OathPlayer): void {
@@ -53,14 +54,14 @@ export abstract class Banner extends ResourceBank<string> implements RecoverActi
 
     finishRecovery(player: OathPlayer, amount: number): void {
         // Banner-specific logic
-        new ParentToTargetEffect(this.game, player, this.getResources(this.resourceType, amount)).doNext();
+        new ParentToTargetEffect(this.game, player, this.byClass(this.resourceType).max(amount)).doNext();
         this.handleRecovery(player);
         new TakeOwnableObjectEffect(this.game, player, this).do();
     }
 
     seize(player: OathPlayer) {
         new TakeOwnableObjectEffect(this.game, player, this).doNext();
-        new BurnResourcesEffect(this.game, player, this.getResources(this.resourceType, 2)).doNext();
+        new BurnResourcesEffect(this.game, player, this.resourceType, 2, this).doNext();
     }
 
     abstract handleRecovery(player: OathPlayer): void;

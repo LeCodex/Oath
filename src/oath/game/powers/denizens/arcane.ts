@@ -245,7 +245,7 @@ export class PlagueEngines extends ActivePower<Denizen> {
 
     usePower(): void {
         for (const playerProxy of Object.values(this.gameProxy.players))
-            new ParentToTargetEffect(this.game, playerProxy.original, playerProxy.original.getResources(Favor, playerProxy.ruledSites), this.game.favorBank(OathSuit.Arcane)).do();
+            new ParentToTargetEffect(this.game, playerProxy.original, playerProxy.original.byClass(Favor).max(playerProxy.ruledSites), this.game.favorBank(OathSuit.Arcane)).do();
     }
 }
 
@@ -260,7 +260,7 @@ export class ForgottenVault extends ActivePower<Denizen> {
         new MakeDecisionAction(
             this.action.player, "Put or remove a secret from the Darkest Secret?",
             () => new PutResourcesOnTargetEffect(this.game, this.action.player, Secret, 1, banner).do(),
-            () => new BurnResourcesEffect(this.game, this.action.player, banner.get(1)).do(),
+            () => new BurnResourcesEffect(this.game, this.action.player, Secret, 1, banner).do(),
             ["Put", "Remove"]
         ).doNext();
     }
@@ -449,8 +449,8 @@ export class WitchsBargain extends ActivePower<Denizen> {
             this.action.player, "Bargain with players at your site",
             (players: OathPlayer[]) => {
                 for (const player of players) {
-                    const maxSecrets = this.action.player.getResources(Secret);
-                    const maxFavors = Math.floor(this.action.player.getResources(Favor).length / 2);
+                    const maxSecrets = this.action.player.byClass(Secret);
+                    const maxFavors = Math.floor(this.action.player.byClass(Favor).length / 2);
                     
                     new ChooseNumberAction(
                         this.action.player, "Give favors to take secrets (positive), or vice versa (negative)", inclusiveRange(-maxSecrets, maxFavors),
@@ -491,7 +491,7 @@ export class Revelation extends WhenPlayed<Denizen> {
             new ChooseNumberAction(
                 player, "Burn favor to gain secrets", inclusiveRange(player.byClass(Favor).length),
                 (value: number) => {
-                    new BurnResourcesEffect(this.game, player, player.byClass(Favor).max(value)).do();
+                    new BurnResourcesEffect(this.game, player, Favor, value).do();
                     new PutResourcesOnTargetEffect(this.game, player, Secret, value).do();
                 }
             ).doNext();

@@ -28,6 +28,8 @@ export class ReliquarySlot extends Container<Relic, number> implements WithPower
     type = "reliquarySlot";
     powers: Set<Constructor<OathPower<ReliquarySlot>>>;
 
+    get active(): boolean { return !this.children[0]; }
+
     constructor(id: number, name: string, powers: Iterable<Constructor<OathPower<ReliquarySlot>>>, relic?: Relic) {
         super(id, Relic);
         this.name = name;

@@ -1,8 +1,8 @@
-import { BurnResourcesEffect, MoveResourcesToTargetEffect, ParentToTargetEffect } from "./effects";
+import { BurnResourcesEffect, ParentToTargetEffect } from "./effects";
 import { OathGameObject, OathGameObjectLeaf } from "./gameObject";
 import { InvalidActionResolution } from "./actions/actions";
 import { PlayerColor } from "./enums";
-import { AbstractConstructor, Constructor } from "./utils";
+import { AbstractConstructor } from "./utils";
 
 
 let resourceId = 0;  // TOOD: Find better solution for unique ids
@@ -31,8 +31,7 @@ export class Secret extends OathResource {
     flipped: boolean = false;
 
     static gain(target: OathGameObject, amount: number): void {
-        for (let i = 0; i < amount; i++)
-            target.addChild(new this());
+        for (let i = 0; i < amount; i++) target.addChild(new this());
     }
 
     burn(): void {
@@ -79,13 +78,7 @@ export abstract class ResourcesAndWarbands<T = any> extends OathGameObject<T> {
 
     putResources(type: typeof OathResource, amount: number): number {
         type.gain(this, amount);
-        return this.getResources(type).length;
-    }
-
-    getResources<T extends OathResource>(type: OathResourceType<T>, amount: number = Infinity): T[] {
-        const resources = this.byClass(type);
-        amount = Math.min(resources.length, amount);
-        return resources.max(amount);
+        return this.byClass(type).length;
     }
 
     getWarbandsAmount(color?: PlayerColor): number {
@@ -112,7 +105,8 @@ export abstract class ResourcesAndWarbands<T = any> extends OathGameObject<T> {
     }
 
     clear() {
-        new BurnResourcesEffect(this.game, undefined, this.resources).do();
+        for (const resource of [Favor, Secret])
+            new BurnResourcesEffect(this.game, undefined, resource, Infinity, this).do();
 
         for (const player of this.game.players)
             new ParentToTargetEffect(this.game, player, this.getWarbands(player.id), player.bag).do();

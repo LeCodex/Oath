@@ -9,6 +9,7 @@ import { Constructor, WithOriginal } from "./utils";
 
 export interface WithPowers extends OathGameObject {
     powers: Set<Constructor<OathPower<WithPowers>>>;
+    active: boolean;
 }
 
 export function hasPowers(obj: object): obj is WithPowers {

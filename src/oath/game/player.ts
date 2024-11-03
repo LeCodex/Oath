@@ -47,17 +47,17 @@ export abstract class OathPlayer extends ResourcesAndWarbands<PlayerColor> imple
     get ruledSites(): number { return [...this.game.board.sites()].reduce((a, e) => a + (e.ruler === this ? 1 : 0), 0); }
 
     getAllResources(type: OathResourceType): number {
-        let amount = this.getResources(type).length;
+        let amount = this.byClass(type).length;
         for (const site of this.game.board.sites())
             for (const denizen of site.denizens)
-                amount += denizen.getResources(type).length;
+                amount += denizen.byClass(type).length;
 
         for (const player of this.game.players) {
             for (const adviser of player.advisers)
-                amount += adviser.getResources(type).length;
+                amount += adviser.byClass(type).length;
 
             for (const relic of player.relics)
-                amount += relic.getResources(type).length;
+                amount += relic.byClass(type).length;
         }
 
         return amount;
@@ -103,7 +103,7 @@ export abstract class OathPlayer extends ResourcesAndWarbands<PlayerColor> imple
     }
 
     seize(player: OathPlayer) {
-        new BurnResourcesEffect(this.game, this, this.getResources(Favor, Math.floor(this.getResources(Favor).length / 2))).doNext();
+        new BurnResourcesEffect(this.game, this, Favor, Math.floor(this.byClass(Favor).length / 2)).doNext();
         new CampaignBanishPlayerAction(player, this).doNext();
     }
 

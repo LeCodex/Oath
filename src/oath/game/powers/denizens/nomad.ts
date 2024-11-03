@@ -3,7 +3,7 @@ import { Region } from "../../board";
 import { Denizen, Edifice, OathCard, Relic, Site, VisionBack, WorldCard } from "../../cards/cards";
 import { DiscardOptions } from "../../cards/decks";
 import { AttackDie, DieSymbol } from "../../dice";
-import { PayCostToTargetEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PayPowerCost, BecomeCitizenEffect, DrawFromDeckEffect, FlipEdificeEffect, MoveResourcesToTargetEffect, DiscardCardEffect, GainSupplyEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, PeekAtCardEffect, MoveWorldCardToAdvisersEffect, MoveDenizenToSiteEffect, OathEffect, DiscardCardGroupEffect, PlayVisionEffect, ApplyModifiersEffect, ParentToTargetEffect } from "../../effects";
+import { PayCostToTargetEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PayPowerCost, BecomeCitizenEffect, DrawFromDeckEffect, FlipEdificeEffect, MoveResourcesToTargetEffect, DiscardCardEffect, GainSupplyEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, PeekAtCardEffect, MoveWorldCardToAdvisersEffect, MoveDenizenToSiteEffect, OathEffect, DiscardCardGroupEffect, PlayVisionEffect, ApplyModifiersEffect, ParentToTargetEffect, BurnResourcesEffect } from "../../effects";
 import { BannerName, OathSuit } from "../../enums";
 import { OwnableObject, isOwnable } from "../../interfaces";
 import { OathPlayer } from "../../player";
@@ -305,7 +305,7 @@ export class VowOfKinshipWhenPlayed extends WhenPlayed<Denizen> {
     name = "Vow of Kinship";
 
     whenPlayed(): void {
-        new ParentToTargetEffect(this.game, this.effect.player, this.effect.player.getResources(Favor, Infinity), this.game.favorBank(OathSuit.Nomad)).do();
+        new ParentToTargetEffect(this.game, this.effect.player, this.effect.player.byClass(Favor).max(Infinity), this.game.favorBank(OathSuit.Nomad)).do();
     }
 }
 export class VowOfKinshipGain extends EffectModifier<Denizen, ParentToTargetEffect> {
@@ -337,8 +337,19 @@ export class VowOfKinshipGive extends EffectModifier<Denizen, MoveResourcesToTar
         const ruler = this.sourceProxy.ruler?.original;
         const nomadBank = this.game.favorBank(OathSuit.Nomad);
         if (!nomadBank) return;
-        new MoveResourcesToTargetEffect(this.game, this.effect.player, this.effect.resource, this.effect.amount, this.effect.target, this.effect.source).do();
-        this.effect.amount = 0;
+        if (this.effect.player === ruler && this.effect.source === ruler) this.effect.source = nomadBank;
+    }
+}
+export class VowOfKinshipBurn extends EffectModifier<Denizen, BurnResourcesEffect> {
+    name = "Vow of Kinship";
+    modifiedEffect = BurnResourcesEffect;
+
+    applyBefore(): void {
+        if (this.effect.resource != Favor) return;
+        const ruler = this.sourceProxy.ruler?.original;
+        const nomadBank = this.game.favorBank(OathSuit.Nomad);
+        if (!nomadBank) return;
+        if (this.effect.player === ruler && this.effect.source === ruler) this.effect.source = nomadBank;
     }
 }
 
@@ -367,7 +378,7 @@ export class AncientBinding extends ActivePower<Denizen> {
 
     usePower(): void {
         for (const player of this.game.players) {
-            new MoveResourcesToTargetEffect(this.game, player, Secret, player.getResources(Secret).length - (player === this.action.player ? 0 : 1), undefined).do();
+            new MoveResourcesToTargetEffect(this.game, player, Secret, player.byClass(Secret).length - (player === this.action.player ? 0 : 1), undefined).do();
 
             for (const adviser of player.advisers)
                 new MoveResourcesToTargetEffect(this.game, player, Secret, Infinity, undefined, adviser).do();

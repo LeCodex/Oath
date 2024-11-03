@@ -2,9 +2,8 @@ import { Denizen, Edifice, OathCard, OwnableCard, Relic, Site, WorldCard } from 
 import { DiscardOptions, SearchableDeck } from "../cards/decks";
 import { AttackDie, DefenseDie, RollResult } from "../dice";
 import { MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, RollDiceEffect, DrawFromDeckEffect, PutPawnAtSiteEffect, DiscardCardEffect, MoveOwnWarbandsEffect, SetPeoplesFavorMobState, OathEffect, PaySupplyEffect, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, FlipEdificeEffect, CampaignResolveSuccessfulAndSkullsEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect, CheckCapacityEffect, ApplyModifiersEffect, CampaignJoinDefenderAlliesEffect, MoveWorldCardToAdvisersEffect, DiscardCardGroupEffect, ParentToTargetEffect } from "../effects";
-import { ALL_OATH_SUITS, OathPhase, OathSuit, OathSuitName, OathType, OathTypeName, PlayerColor } from "../enums";
+import { ALL_OATH_SUITS, OathPhase, OathSuit, OathSuitName, OathType, OathTypeName } from "../enums";
 import { OathGame } from "../game";
-import { OathGameObject } from "../gameObject";
 import { OathTypeToOath } from "../oaths";
 import { Exile, OathPlayer } from "../player";
 import { ActionModifier, ActivePower, CapacityModifier } from "../powers/powers";
@@ -264,7 +263,7 @@ export class MusterAction extends MajorAction {
     modifiedExecution() {
         super.modifiedExecution();
         const cost = new ResourceCost([[this.using, this.amount]]);
-        if (new PayCostToTargetEffect(this.game, this.player, cost, this.cardProxy.original).do())
+        if (!new PayCostToTargetEffect(this.game, this.player, cost, this.cardProxy.original).do())
             throw cost.cannotPayError;
 
         new ParentToTargetEffect(this.game, this.player, this.playerProxy.leader.original.bag.get(this.getting)).do();
@@ -280,7 +279,7 @@ export class TradeAction extends MajorAction {
     _supplyCost = 1;
     cardProxy: Denizen;
     forFavor: boolean;
-    paying: Map<OathResourceType, number>;
+    paying: ResourceCost;
     getting: Map<OathResourceType, number>;
 
     start() {
@@ -296,17 +295,16 @@ export class TradeAction extends MajorAction {
     execute() {
         this.cardProxy = this.parameters.card[0]!;
         this.forFavor = this.parameters.forFavor[0]!;
-        this.paying = new Map([[this.forFavor ? Secret : Favor, this.forFavor ? 1 : 2]]);
-        this.getting = new Map([[this.forFavor ? Favor : Secret, (this.forFavor ? 1 : 0)]]);
+        this.paying = new ResourceCost([[this.forFavor ? Secret : Favor, this.forFavor ? 1 : 2]]);
+        this.getting = new Map([[this.forFavor ? Favor : Secret, this.forFavor ? 1 : 0]]);
         super.execute();
     }
 
     modifiedExecution() {
         super.modifiedExecution();
 
-        const cost = new ResourceCost(this.paying)
-        if (!new PayCostToTargetEffect(this.game, this.player, cost, this.cardProxy.original).do())
-            throw cost.cannotPayError;
+        if (!new PayCostToTargetEffect(this.game, this.player, this.paying, this.cardProxy.original).do())
+            throw this.paying.cannotPayError;
 
         const resource = this.forFavor ? Favor : Secret;
         this.getting.set(resource, (this.getting.get(resource) || 0) + this.playerProxy.suitAdviserCount(this.cardProxy.suit));
@@ -402,7 +400,7 @@ export class RecoverBannerPitchAction extends ModifiableAction {
     }
 
     start() {
-        this.selects.amount = new SelectNumber("Amount", inclusiveRange(this.banner.amount + 1, this.player.getResources(this.banner.resourceType).length));
+        this.selects.amount = new SelectNumber("Amount", inclusiveRange(this.banner.amount + 1, this.player.byClass(this.banner.resourceType).length));
         return super.start();
     }
 
@@ -1543,7 +1541,7 @@ export class TakeResourceFromPlayerAction extends ChoosePlayersAction {
             player, "",
             (targets: OathPlayer[]) => {
                 if (!targets[0]) return;
-                if (resource === Secret && targets[0].getResources(Secret).length <= 1) return;
+                if (resource === Secret && targets[0].byClass(Secret).length <= 1) return;
                 new MoveResourcesToTargetEffect(this.game, player, resource, amount === undefined ? 1 : amount, player, targets[0]).do();
             },
             players && [players]
@@ -1670,8 +1668,8 @@ export class MakeBindingExchangeOfferAction extends OathAction {
     }
 
     start(): boolean {
-        this.selects.favors = new SelectNumber("Favors", inclusiveRange(this.other.getResources(Favor).length));
-        this.selects.secrets = new SelectNumber("Secrets", inclusiveRange(this.other.getResources(Secret).length));
+        this.selects.favors = new SelectNumber("Favors", inclusiveRange(this.other.byClass(Favor).length));
+        this.selects.secrets = new SelectNumber("Secrets", inclusiveRange(this.other.byClass(Secret).length));
         return super.start();
     }
 

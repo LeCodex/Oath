@@ -21,6 +21,8 @@ export abstract class OathCard extends ResourcesAndWarbands<string> implements W
     seenBy: Set<OathPlayer> = new Set();
     powers: Set<Constructor<OathPower<OathCard>>>;
 
+    get active(): boolean { return !this.facedown; }
+
     constructor(name: string, powers: Iterable<Constructor<OathPower<OathCard>>>) {
         super(name);
         this.name = name;
@@ -256,7 +258,7 @@ export class Denizen extends WorldCard implements AtSite {
 
     returnResources(): void {
         super.returnResources();
-        const favor = this.getResources(Favor);
+        const favor = this.byClass(Favor);
         if (favor.length)
             new ParentToTargetEffect(this.game, this.game.currentPlayer, favor, this.game.byClass(FavorBank).byId(this.suit)[0]).do();
     }

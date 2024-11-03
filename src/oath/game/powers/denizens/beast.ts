@@ -279,7 +279,7 @@ export class VowOfPovertyRest extends RestPower<Denizen> {
     name = "Vow of Poverty";
 
     applyAfter(): void {
-        if (this.activatorProxy.getResources(Favor).length === 0)
+        if (this.activatorProxy.byClass(Favor).length === 0)
             new TakeFavorFromBankAction(this.activator, 2).doNext();
     }
 }

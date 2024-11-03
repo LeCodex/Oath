@@ -120,7 +120,7 @@ const renderObject = (parent, obj) => {
             break;
         
         case "banner":
-            node = renderText(obj.name + ":");
+            node = renderText("🏳️ " + obj.name + ":");
             break;
                 
         case "deck":
@@ -142,7 +142,7 @@ const renderObject = (parent, obj) => {
             break;
 
         case "oath":
-            node = renderText("Oath of " + oathNames[obj.id] + (game.isUsurper ? " 🥇" : " 🏅"));
+            node = renderText((game.isUsurper ? "🥇" : "🏅") + " Oath of " + oathNames[obj.id]);
             break;
         
         case "resource":
@@ -170,7 +170,9 @@ const renderObject = (parent, obj) => {
 const renderCard = (card) => {
     const cardNode = document.createElement("li");
     cardNode.id = "card" + card.id;
-    cardNode.innerText = (card.facedown ? card.type === "vision" ? "👁️ " : "❔ " : "")
+    if (card.type === "relic") cardNode.innerText += "🧰 "
+    if (card.type === "site") cardNode.innerText += "🗺️ "
+    cardNode.innerText += (card.facedown ? card.type === "vision" ? "👁️ " : "❔ " : "")
     cardNode.innerText += (!card.facedown || card.seenBy.includes(game.order[game.turn]) ? (card.suit !== undefined ? suitColors[card.suit+1] + " " : "") + card.name : "");
     return cardNode;
 }
