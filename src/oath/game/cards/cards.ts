@@ -211,7 +211,7 @@ export class Relic extends OwnableCard implements RecoverActionTarget, CampaignA
     }
 
     putonBottom(player: OathPlayer) {
-        new DiscardCardEffect(player, this, new DiscardOptions(this.game.relicDeck, true));
+        new DiscardCardEffect(player, this, new DiscardOptions(this.game.relicDeck, true)).do();
     }
 }
 

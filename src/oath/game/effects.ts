@@ -928,10 +928,10 @@ export class DiscardCardEffect<T extends OathCard> extends PlayerEffect {
 
     resolve(): void {
         this.flipped = !this.card.facedown;
-        new ParentToTargetEffect(this.game, this.player, [this.card], this.discardOptions.discard, !this.discardOptions.onBottom);
+        new ParentToTargetEffect(this.game, this.player, [this.card], this.discardOptions.discard, !this.discardOptions.onBottom).do();
         this.card.returnResources();
         for (const player of this.game.players)
-            new ParentToTargetEffect(this.game, player, this.card.getWarbands(player.id), player.bag);
+            new ParentToTargetEffect(this.game, player, this.card.getWarbands(player.id), player.bag).do();
     }
 
     revert(): void {
