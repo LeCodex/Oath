@@ -2,7 +2,7 @@ import { CampaignBanishPlayerAction } from "./actions/actions";
 import { CampaignActionTarget, AtSite } from "./interfaces";
 import { Denizen, OwnableCard, Relic, Site, Vision, WorldCard } from "./cards/cards";
 import { Discard } from "./cards/decks";
-import { BurnResourcesEffect, FlipSecretsEffect, GainSupplyEffect, MoveResourcesToTargetEffect } from "./effects";
+import { BurnResourcesEffect, FlipSecretsEffect, GainSupplyEffect } from "./effects";
 import { OathSuit, PlayerColor } from "./enums";
 import { OathWarband, ResourcesAndWarbands, Favor, OathResourceType } from "./resources";
 import { Container } from "./gameObject";

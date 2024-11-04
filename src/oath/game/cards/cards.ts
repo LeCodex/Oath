@@ -8,9 +8,9 @@ import { OathPlayer } from "../player";
 import { OathPower } from "../powers/powers";
 import { GrandScepterExileCitizen, GrandScepterGrantCitizenship, GrandScepterPeek, GrandScepterRest, GrandScepterSeize } from "../powers/relics";
 import { ConspiracyPower } from "../powers/visions";
-import { Favor, OathResource, OathResourceType, ResourceCost, ResourcesAndWarbands, Secret } from "../resources";
+import { Favor, OathResource, ResourceCost, ResourcesAndWarbands, Secret } from "../resources";
 import { Constructor } from "../utils";
-import { CardDeck, DiscardOptions } from "./decks";
+import { CardDeck, Discard, DiscardOptions, RelicDeck } from "./decks";
 import { DenizenData } from "./denizens";
 import { FavorBank } from "../banks";
 
@@ -107,7 +107,7 @@ export class Site extends OathCard implements CampaignActionTarget {
 
     get ruler(): OathPlayer | undefined {
         let max = 0, ruler = undefined;
-        for (const player of this.game.byClass(OathPlayer)) {
+        for (const player of this.game.players) {
             const amount = this.getWarbandsAmount(player.id);
             if (amount > max) {
                 max = amount;
@@ -132,6 +132,7 @@ export class Site extends OathCard implements CampaignActionTarget {
     reveal(): void {
         super.reveal();
         for (const relic of this.game.relicDeck.draw(this.startingRelics)) this.addChild(relic);
+        this.setupResources();
     }
 
     setupResources(): void {
@@ -144,8 +145,8 @@ export class Site extends OathCard implements CampaignActionTarget {
         for (const resource of this.resources) resource.prune();
     }
 
-    inRegion(regionName: RegionKey) {
-        return this.region.regionKey === regionName;
+    inRegion(regionKey: RegionKey) {
+        return this.region.regionKey === regionKey;
     }
 
     seize(player: OathPlayer) {
@@ -192,7 +193,7 @@ export class Relic extends OwnableCard implements RecoverActionTarget, CampaignA
     
     get site() { return this.typedParent(Site); }
     get facedownName(): string { return super.facedownName + "relic" + (this.site ? " at " + this.site.name : ""); }
-    get discard(): CardDeck<Relic> | undefined { return this.game.relicDeck; }
+    get discard(): RelicDeck | undefined { return this.game.relicDeck; }
 
     canRecover(action: RecoverAction): boolean {
         return !!this.site;
@@ -227,11 +228,10 @@ export class GrandScepter extends Relic {
 export abstract class WorldCard extends OwnableCard {
     type = "worldCard";
 
-    get discard(): CardDeck<WorldCard> | undefined { return this.owner?.discard; }
+    get discard(): Discard | undefined { return this.owner?.discard; }
 }
 
 export class Denizen extends WorldCard implements AtSite {
-    site?: Site;
     restriction: CardRestriction;
     locked: boolean;
     powers: Set<Constructor<OathPower<Denizen>>>;
@@ -243,6 +243,7 @@ export class Denizen extends WorldCard implements AtSite {
         this.locked = locked;
     }
 
+    get site() { return this.typedParent(Site); }
     protected _ruler() { return super._ruler() || this.site?.ruler };
     protected _suit: OathSuit;
     get suit() { return this.facedown ? OathSuit.None : this._suit; }
@@ -250,7 +251,7 @@ export class Denizen extends WorldCard implements AtSite {
     get activelyLocked() { return this.locked && !this.facedown; }
     get facedownName(): string { return super.facedownName + "denizen" + (this.site ? " at " + this.site.name : ""); }
     get data(): DenizenData { return [this._suit, [...this.powers], this.restriction, this.locked]; }
-    get discard(): CardDeck<WorldCard> | undefined { return super.discard || this.site && this.game.board.nextRegion(this.site.region)?.discard; }
+    get discard(): Discard | undefined { return super.discard || this.site && this.game.board.nextRegion(this.site.region)?.discard; }
 
     accessibleBy(player: OathPlayer): boolean {
         return super.accessibleBy(player) || player.leader === this.site?.ruler || this.site === player.site;
