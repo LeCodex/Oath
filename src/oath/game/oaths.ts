@@ -13,7 +13,7 @@ export abstract class Oath extends OathGameObject<OathType> implements OwnableOb
     abstract scoreForSuccessor(player: OathPlayer): number;
 
     constructor(id: keyof typeof OathType) {
-        if (!isEnumKey(id, OathType)) throw new TypeError(`${id} is not a valid oath type`);
+        if (!isEnumKey(id, OathType)) throw TypeError(`${id} is not a valid oath type`);
         super(id);
     }
 

@@ -41,11 +41,15 @@ export class Secret extends OathResource {
     }
 
     serialize(): Record<string, any> | undefined {
-        const obj = super.serialize();
         return {
-            ...obj,
+            ...super.serialize(),
             flipped: this.flipped
         };
+    }
+
+    parse(obj: Record<string, any>, allowCreation?: boolean): void {
+        super.parse(obj, allowCreation);
+        this.flipped = obj.flipped;
     }
 }
 
@@ -68,11 +72,15 @@ export class OathWarband extends OathGameObjectLeaf<number> {
     get id() { return Number(this._id); }
 
     serialize(): Record<string, any> | undefined {
-        const obj = super.serialize();
         return {
-            ...obj,
+            ...super.serialize(),
             color: this.color
         };
+    }
+
+    parse(obj: Record<string, any>, allowCreation?: boolean): void {
+        super.parse(obj, allowCreation);
+        this.color = obj.color;
     }
 }
 
@@ -120,9 +128,8 @@ export abstract class ResourcesAndWarbands<T = any> extends OathGameObject<T> {
     }
 
     serialize(): Record<string, any> | undefined {
-        const obj = super.serialize();
         return {
-            ...obj,
+            ...super.serialize(),
             name: this.name
         }
     }

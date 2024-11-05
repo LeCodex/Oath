@@ -15,7 +15,7 @@ export class WarbandsSupply extends Container<OathWarband, PlayerColor> {
     hidden = true;
 
     constructor(id: keyof typeof PlayerColor) {
-        if (!isEnumKey(id, PlayerColor)) throw new TypeError(`${id} is not a valid player color`);
+        if (!isEnumKey(id, PlayerColor)) throw TypeError(`${id} is not a valid player color`);
         super(id, OathWarband);
     }
 
@@ -34,7 +34,7 @@ export abstract class OathPlayer extends ResourcesAndWarbands<PlayerColor> imple
     force = this;
 
     constructor(id: keyof typeof PlayerColor) {
-        if (!isEnumKey(id, PlayerColor)) throw new TypeError(`${id} is not a valid player color`);
+        if (!isEnumKey(id, PlayerColor)) throw TypeError(`${id} is not a valid player color`);
         super(id);
         this.bag = this.addChild(new WarbandsSupply(id));
         for (let i = 0; i < this.bagAmount; i ++) this.bag.addChild(new OathWarband().colorize(this.id));
@@ -136,11 +136,19 @@ export abstract class OathPlayer extends ResourcesAndWarbands<PlayerColor> imple
 
     serialize(): Record<string, any> {
         return {
+            ...super.serialize(),
             name: this.name,
             supply: this.supply,
             site: this.site?.id,
-            ...super.serialize()
         };
+    }
+
+    parse(obj: Record<string, any>, allowCreation?: boolean): void {
+        super.parse(obj, allowCreation);
+        const site = this.game.search("Site", obj.site);
+        if (!site) throw TypeError(`Couldn't find Site with id ${obj.site}`);
+        this.supply = obj.supply;
+        this.site = site as Site;
     }
 }
 
@@ -217,10 +225,14 @@ export class Exile extends OathPlayer {
     }
 
     serialize(): Record<string, any> {
-        const obj = super.serialize();
         return {
-            ...obj,
+            ...super.serialize(),
             isCitizen: this.isCitizen
         };
+    }
+
+    parse(obj: Record<string, any>, allowCreation?: boolean): void {
+        super.parse(obj, allowCreation);
+        this.isCitizen = obj.isCitizen;
     }
 }

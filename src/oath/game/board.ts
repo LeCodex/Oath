@@ -37,11 +37,15 @@ export class OathBoard extends Container<Region, string> {
     }
 
     serialize(): Record<string, any> {
-        const obj = super.serialize();
         return {
-            ...obj,
+            ...super.serialize(),
             travelCosts: Object.fromEntries([...this.travelCosts.entries()].map(([k, v]) => [k, Object.fromEntries([...v.entries()])]))
         }
+    }
+
+    parse(obj: Record<string, any>, allowCreation?: boolean): void {
+        super.parse(obj, allowCreation);
+        this.travelCosts = new Map(obj.travelCosts);
     }
 }
 
@@ -53,7 +57,7 @@ export class Region extends OathGameObject<RegionKey> {
     discard: Discard;
 
     constructor(id: keyof typeof RegionKey) {
-        if (!isEnumKey(id, RegionKey)) throw new TypeError(`${id} is not a valid region key`);
+        if (!isEnumKey(id, RegionKey)) throw TypeError(`${id} is not a valid region key`);
         super(id);
         this.size = RegionSize[this.id];
         this.discard = this.addChild(new Discard(this._id));

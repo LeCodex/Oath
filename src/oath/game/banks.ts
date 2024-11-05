@@ -25,7 +25,7 @@ export class FavorBank extends ResourceBank<OathSuit> {
     resourceType = Favor;
 
     constructor(id: keyof typeof OathSuit) {
-        if (!isEnumKey(id, OathSuit)) throw new TypeError(`${id} is not a valid suit`);
+        if (!isEnumKey(id, OathSuit)) throw TypeError(`${id} is not a valid suit`);
         super(id);
         this.name = id + " Bank";
     }
@@ -104,11 +104,15 @@ export class PeoplesFavor extends Banner {
     }
 
     serialize(): Record<string, any> {
-        const obj = super.serialize();
         return {
-            ...obj,
+            ...super.serialize(),
             isMob: this.isMob
         };
+    }
+
+    parse(obj: Record<string, any>, allowCreation?: boolean): void {
+        super.parse(obj, allowCreation);
+        this.isMob = obj.isMob;
     }
 }
 

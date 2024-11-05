@@ -29,9 +29,8 @@ export abstract class CardDeck<T extends OathCard, U = any> extends Container<T,
     }
 
     serialize(): Record<string, any> | undefined {
-        const obj = super.serialize();
         return {
-            ...obj,
+            ...super.serialize(),
             name: this.name
         };
     }
@@ -65,9 +64,8 @@ export abstract class SearchableDeck<T = any> extends CardDeck<WorldCard, T> {
     }
 
     serialize(): Record<string, any> | undefined {
-        const obj = super.serialize();
         return {
-            ...obj,
+            ...super.serialize(),
             searchCost: this.searchCost,
         };
     }
@@ -104,11 +102,15 @@ export class WorldDeck extends SearchableDeck<string> {
     }
 
     serialize(): Record<string, any> | undefined {
-        const obj = super.serialize();
         return {
-            ...obj,
+            ...super.serialize(),
             visionsDrawn: this.visionsDrawn
         };
+    }
+
+    parse(obj: Record<string, any>, allowCreation?: boolean): void {
+        super.parse(obj, allowCreation);
+        this.visionsDrawn = obj.visionsDrawn;
     }
 }
 
@@ -117,7 +119,7 @@ export class Discard extends SearchableDeck<RegionKey> {
     name: string;
     
     constructor(id: keyof typeof RegionKey) {
-        if (!isEnumKey(id, RegionKey)) throw new TypeError(`${id} is not a valid region id`)
+        if (!isEnumKey(id, RegionKey)) throw TypeError(`${id} is not a valid region id`)
         super(id);
         this.name = id + " Discard";
     }

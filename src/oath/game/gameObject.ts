@@ -19,7 +19,7 @@ export abstract class Container<ChildrenType extends OathGameObject<any>, U = an
     }
 
     addChild<T extends TreeNode<any>>(child: T, onTop: boolean = false) {
-        if (!(child instanceof this.cls)) throw new TypeError(`${child} is not of the right type ${this.cls.name}`);
+        if (!(child instanceof this.cls)) throw TypeError(`${child} is not of the right type ${this.cls.name}`);
         return super.addChild(child, onTop);
     }
 

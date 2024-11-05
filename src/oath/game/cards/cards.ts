@@ -57,12 +57,17 @@ export abstract class OathCard extends ResourcesAndWarbands<string> implements W
     abstract accessibleBy(player: OathPlayer): boolean;
 
     serialize(): Record<string, any> | undefined {
-        const obj = super.serialize();
         return {
-            ...obj,
+            ...super.serialize(),
             facedown: this.facedown,
             seenBy: [...this.seenBy].map(e => e.id)
         };
+    }
+
+    parse(obj: Record<string, any>, allowCreation?: boolean): void {
+        super.parse(obj, allowCreation);
+        this.facedown = obj.facedown;
+        this.seenBy = new Set(this.game.players.filter(e => obj.seenBy.includes(e.id)));
     }
 }
 
@@ -82,7 +87,7 @@ export class Site extends OathCard implements CampaignActionTarget {
 
     constructor(id: keyof typeof sitesData) {
         const data = sitesData[id];
-        if (!data) throw new TypeError(`${id} is not a valid Site id`);
+        if (!data) throw TypeError(`${id} is not a valid Site id`);
         super(id, data[1]);
         this.capacity = data[0];
         this.startingRelics = data[2] ?? 0;
@@ -147,9 +152,8 @@ export class Site extends OathCard implements CampaignActionTarget {
     }
 
     serialize(): Record<string, any> | undefined {
-        const obj = super.serialize();
         return {
-            ...obj,
+            ...super.serialize(),
             capacity: this.capacity,
             recoverCost: this.recoverCost.serialize(),
             recoverSuit: this.recoverSuit
@@ -180,7 +184,7 @@ export class Relic extends OwnableCard implements RecoverActionTarget, CampaignA
 
     constructor(id: keyof typeof relicsData) {
         const data = relicsData[id];
-        if (!data) throw new TypeError(`${id} is not a valid Relic id`);
+        if (!data) throw TypeError(`${id} is not a valid Relic id`);
         super(id, data[1]);
         this.defense = data[0];
     }
@@ -231,7 +235,7 @@ export class Denizen extends WorldCard implements AtSite {
 
     constructor(id: keyof typeof denizenData) {
         const data = denizenData[id];
-        if (!data) throw new TypeError(`${id} is not a valid Denizen id`);
+        if (!data) throw TypeError(`${id} is not a valid Denizen id`);
         super(id, data[1]);
         this._suit = data[0];
         this.restriction = data[2] ?? CardRestriction.None;
@@ -260,9 +264,8 @@ export class Denizen extends WorldCard implements AtSite {
     }
 
     serialize(): Record<string, any> {
-        const obj = super.serialize();
         return {
-            ...obj,
+            ...super.serialize(),
             suit: this._suit,
             restriction: this.restriction,
             locked: this.activelyLocked

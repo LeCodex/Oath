@@ -64,7 +64,7 @@ export class MaskProxyManager {
         if (typeof value !== "object" || value === null) return value;
         if (this.proxies.has(value)) return value;
         if (value instanceof MaskedSet || value instanceof MaskedMap) {
-            if (value.maskProxyManager !== this) throw new TypeError(`Trying to access a ${value.constructor.name} from another MaskProxyManager`);
+            if (value.maskProxyManager !== this) throw TypeError(`Trying to access a ${value.constructor.name} from another MaskProxyManager`);
             return value;
         }
         
@@ -271,7 +271,7 @@ export abstract class TreeNode<RootType extends TreeRoot<RootType>, IdType = any
 
     addChild<T extends TreeNode<RootType>>(child: T, onTop: boolean = false) {
         if (child as TreeNode<RootType> === this)
-            throw new TypeError("Cannot parent an object to itself");
+            throw TypeError("Cannot parent an object to itself");
 
         child.prune();
         if (onTop)
@@ -327,7 +327,7 @@ export abstract class TreeNode<RootType extends TreeRoot<RootType>, IdType = any
                 if (!allowCreation) throw TypeError(`Could not find node of class ${child.class} and id ${child.id}`);
                 node = this.root.create(obj.class, obj);
             }
-            this.addChild(node);
+            if (node.parent !== this) this.addChild(node);
             node.parse(child);
         }
     }
@@ -348,12 +348,13 @@ export abstract class TreeRoot<RootType extends TreeRoot<RootType>> extends Tree
     get root(): RootType { return this as any; }
 
     prune() {
-        throw new TypeError("Cannot prune a root node");
+        throw TypeError("Cannot prune a root node");
     }
 
     addToLookup(node: TreeNode<RootType>) {
         let classGroup = this.lookup[node.constructor.name];
         if (!classGroup) classGroup = this.lookup[node.constructor.name] = {};
+        if (classGroup[node.id]) throw TypeError(`Object of class ${node.constructor.name} and id ${node.id} already exists`);
         classGroup[node.id] = node;
     }
 
@@ -379,7 +380,7 @@ export abstract class TreeLeaf<RootType extends TreeRoot<RootType>, IdType = any
     children: NodeGroup<never>;
 
     addChild<T extends TreeNode<RootType, any>>(child: T): T {
-        throw new TypeError("Cannot add children to leaf nodes");
+        throw TypeError("Cannot add children to leaf nodes");
     }
 
     serialize(): Record<string, any> | undefined {

@@ -171,9 +171,10 @@ export abstract class ModifiableAction extends OathAction {
     abstract modifiedExecution(): void;
 
     serialize(): Record<string, any> {
-        const obj = super.serialize();
-        obj.modifiers = this.modifiers.map(e => e.serialize());
-        return obj;
+        return {
+            ...super.serialize(),
+            modifiers: this.modifiers.map(e => e.serialize())
+        }
     }
 }
 

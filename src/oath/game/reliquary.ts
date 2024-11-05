@@ -37,7 +37,7 @@ export class ReliquarySlot extends Container<Relic, number> implements WithPower
 
     constructor(id: string, relic?: Relic) {
         const power = reliquarySlotPowers[Number(id)];
-        if (!power) throw new TypeError(`${id} is not a valid Reliquary slot`);
+        if (!power) throw TypeError(`${id} is not a valid Reliquary slot`);
         super(id, Relic);
         this.name = power.name;
         this.powers = new Set([power]);
@@ -47,9 +47,8 @@ export class ReliquarySlot extends Container<Relic, number> implements WithPower
     get id() { return Number(this._id); }
 
     serialize(): Record<string, any> | undefined {
-        const obj = super.serialize();
         return {
-            ...obj,
+            ...super.serialize(),
             name: this.name
         };
     }

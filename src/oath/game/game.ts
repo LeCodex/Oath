@@ -266,9 +266,8 @@ export class OathGame extends TreeRoot<OathGame> {
     }
 
     serialize(): Record<string, any> {
-        const obj = super.serialize();
         return {
-            ...obj,
+            ...super.serialize(),
             name: this.name,
             chronicleNumber: this.chronicleNumber,
             oathkeeper: this.oathkeeper.id,
@@ -282,8 +281,8 @@ export class OathGame extends TreeRoot<OathGame> {
         }
     }
 
-    parse(obj: Record<string, any>) {
-        super.parse(obj);
+    parse(obj: Record<string, any>, allowCreation: boolean = false) {
+        super.parse(obj, allowCreation);
         this.name = obj.name;
         this.chronicleNumber = obj.chronicleNumber;
         this.isUsurper = obj.isUsurper;
