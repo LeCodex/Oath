@@ -1,10 +1,10 @@
 import { Site } from "./cards/cards";
 import { Discard } from "./cards/decks";
-import { RegionKey } from "./enums";
+import { RegionKey, RegionSize, isEnumKey } from "./enums";
 import { Container, OathGameObject } from "./gameObject";
 
 
-export class OathBoard extends Container<Region, "board"> {
+export class OathBoard extends Container<Region, string> {
     type = "board";
     travelCosts = new Map<RegionKey, Map<RegionKey, number>>([
         [RegionKey.Cradle, new Map([[RegionKey.Cradle, 1], [RegionKey.Provinces, 2], [RegionKey.Hinterland, 4]])],
@@ -21,8 +21,11 @@ export class OathBoard extends Container<Region, "board"> {
         super("board", Region);
     }
 
-    nextRegion(region: Region) {
-        const name = this.nextRegionKey.get(region.regionKey);
+    get id() { return this._id; }
+
+    nextRegion(region: Region | undefined) {
+        if (!region) return undefined;
+        const name = this.nextRegionKey.get(region.id);
         if (name === undefined) return undefined;
         return this.byClass(Region).byId(name)[0];
     }
@@ -45,26 +48,18 @@ export class OathBoard extends Container<Region, "board"> {
 
 export class Region extends OathGameObject<RegionKey> {
     type = "region";
-    name: string;
+    _id: keyof typeof RegionKey;
     size: number;
-    regionKey: RegionKey;
     discard: Discard;
 
-    constructor(name: string, size: number, regionKey: RegionKey) {
-        super(regionKey);
-        this.name = name;
-        this.size = size;
-        this.regionKey = regionKey;
-        this.discard = this.addChild(new Discard(this));
+    constructor(id: keyof typeof RegionKey) {
+        if (!isEnumKey(id, RegionKey)) throw new TypeError(`${id} is not a valid region key`);
+        super(id);
+        this.size = RegionSize[this.id];
+        this.discard = this.addChild(new Discard(this._id));
     }
 
+    get name() { return this._id; }
+    get id() { return RegionKey[this._id]; }
     get sites() { return this.byClass(Site); }
-
-    serialize(): Record<string, any> | undefined {
-        const obj = super.serialize();
-        return {
-            ...obj,
-            name: this.name
-        }
-    }
 }

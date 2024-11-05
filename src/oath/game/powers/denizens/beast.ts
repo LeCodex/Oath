@@ -166,8 +166,10 @@ export class Mushrooms extends AccessedActionModifier<Denizen, SearchAction> {
     cost = new ResourceCost([[Secret, 1]]);
 
     applyBefore(): void {
+        const discard = this.activatorProxy.site.region?.discard;
+        if (!discard) return;
         this.action.amount -= 2;  // So it plays well with other amount modifiers
-        this.action.deckProxy = this.activatorProxy.site.region.discard;
+        this.action.deckProxy = discard;
         this.action.fromBottom = true;
         this.action.noSupplyCost = true;
     }
@@ -542,7 +544,7 @@ export class ForestTemple extends EffectModifier<Edifice, FinishChronicleEffect>
         for (const siteProxy of this.gameProxy.board.sites()) {
             for (const denizenProxy of siteProxy.denizens) {
                 if (denizenProxy.suit === OathSuit.Beast) {
-                    siteProxy.addChild(new OathWarband(this.effect.player.id));
+                    siteProxy.addChild(new OathWarband().colorize(this.effect.player.id));
                     break;
                 }
             }

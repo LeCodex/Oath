@@ -1,7 +1,7 @@
 import { ChooseSuitsAction, RecoverAction, RecoverBannerPitchAction } from "./actions/actions";
 import { RecoverActionTarget, CampaignActionTarget, WithPowers, OwnableObject } from "./interfaces";
 import { TakeOwnableObjectEffect, SetPeoplesFavorMobState, ParentToTargetEffect, UnparentEffect, BurnResourcesEffect, MoveResourcesToTargetEffect } from "./effects";
-import { OathSuit, OathSuitName } from "./enums";
+import { isEnumKey, OathSuit } from "./enums";
 import { OathPlayer } from "./player";
 import { PeoplesFavorSearch, PeoplesFavorWake, DarkestSecretPower } from "./powers/banners";
 import { OathPower } from "./powers/powers";
@@ -19,14 +19,18 @@ export abstract class ResourceBank<U = any> extends ResourcesAndWarbands<U> {
 }
 
 export class FavorBank extends ResourceBank<OathSuit> {
+    _id: keyof typeof OathSuit;
     type = "favorBank";
     name: string;
     resourceType = Favor;
 
-    constructor(id: OathSuit) {
+    constructor(id: keyof typeof OathSuit) {
+        if (!isEnumKey(id, OathSuit)) throw new TypeError(`${id} is not a valid suit`);
         super(id);
-        this.name = OathSuitName[id] + " Bank";
+        this.name = id + " Bank";
     }
+
+    get id() { return OathSuit[this._id]; }
 }
 
 export abstract class Banner extends ResourceBank<string> implements RecoverActionTarget, CampaignActionTarget, WithPowers, OwnableObject {
@@ -36,6 +40,7 @@ export abstract class Banner extends ResourceBank<string> implements RecoverActi
     active = true;
     min = 1;
 
+    get id() { return this._id; }
     get owner() { return this.typedParent(OathPlayer); }
     get defense() { return this.amount; }
     get force() { return this.owner; }

@@ -15,9 +15,10 @@ export class PeoplesFavorSearch extends BannerActionModifier<PeoplesFavor, Searc
     mustUse = true; // Not strictly true, but it involves a choice either way, so it's better to always include it
 
     applyAtStart(): void {
-        for (const siteProxy of this.activatorProxy.site.region.sites)
-            if (!siteProxy.facedown)
-                this.action.selects.choice.choices.set(siteProxy.name, siteProxy);
+        if (this.activatorProxy.site.region)
+            for (const siteProxy of this.activatorProxy.site.region.sites)
+                if (!siteProxy.facedown)
+                    this.action.selects.choice.choices.set(siteProxy.name, siteProxy);
     }
 
     applyBefore(): void {

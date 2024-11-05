@@ -1,5 +1,5 @@
 import { DarkestSecret, PeoplesFavor } from "./banks";
-import { OathType } from "./enums";
+import { OathType, isEnumKey } from "./enums";
 import { OathGameObject } from "./gameObject";
 import { OwnableObject } from "./interfaces";
 import { OathPlayer } from "./player";
@@ -7,10 +7,17 @@ import { OathPlayer } from "./player";
 
 export abstract class Oath extends OathGameObject<OathType> implements OwnableObject {
     type = "oath";
+    _id: keyof typeof OathType;
     abstract setup(): void;
     abstract scoreForOathkeeper(player: OathPlayer): number;
     abstract scoreForSuccessor(player: OathPlayer): number;
 
+    constructor(id: keyof typeof OathType) {
+        if (!isEnumKey(id, OathType)) throw new TypeError(`${id} is not a valid oath type`);
+        super(id);
+    }
+
+    get id() { return OathType[this._id]; }
     get owner() { return this.typedParent(OathPlayer); }
 
     setOwner(player?: OathPlayer): void {
@@ -45,7 +52,7 @@ export abstract class Oath extends OathGameObject<OathType> implements OwnableOb
 
 export class OathOfSupremacy extends Oath {
     constructor() {
-        super(OathType.Supremacy);
+        super("Supremacy");
     }
 
     setup() {
@@ -67,7 +74,7 @@ export class OathOfSupremacy extends Oath {
 
 export class OathOfProtection extends Oath {
     constructor() {
-        super(OathType.Protection);
+        super("Protection");
     }
 
     setup() {
@@ -85,7 +92,7 @@ export class OathOfProtection extends Oath {
 
 export class OathOfThePeople extends Oath {
     constructor() {
-        super(OathType.ThePeople);
+        super("ThePeople");
     }
 
     setup() {
@@ -104,7 +111,7 @@ export class OathOfThePeople extends Oath {
 
 export class OathOfDevotion extends Oath {
     constructor() {
-        super(OathType.Devotion);
+        super("Devotion");
     }
 
     setup() {
@@ -122,8 +129,8 @@ export class OathOfDevotion extends Oath {
 }
 
 export const OathTypeToOath = {
-    [OathType.Supremacy]: OathOfSupremacy,
-    [OathType.Protection]: OathOfProtection,
-    [OathType.ThePeople]: OathOfThePeople,
-    [OathType.Devotion]: OathOfDevotion,
+    "Supremacy": OathOfSupremacy,
+    "Protection": OathOfProtection,
+    "ThePeople": OathOfThePeople,
+    "Devotion": OathOfDevotion,
 };

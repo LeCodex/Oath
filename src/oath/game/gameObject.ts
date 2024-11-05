@@ -14,7 +14,7 @@ export abstract class OathGameObjectLeaf<T = any> extends TreeLeaf<OathGame, T> 
 export abstract class Container<ChildrenType extends OathGameObject<any>, U = any> extends OathGameObject<U> {
     children: NodeGroup<ChildrenType>;
 
-    constructor(id: U, public cls: AbstractConstructor<ChildrenType>) {
+    constructor(id: string, public cls: AbstractConstructor<ChildrenType>) {
         super(id);
     }
 

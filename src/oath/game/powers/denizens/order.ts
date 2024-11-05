@@ -287,16 +287,18 @@ export class RelicHunter extends AttackerBattlePlan<Denizen> {
         }
     }
 }
-export class RelicWrapper extends OathGameObject implements CampaignActionTarget {
+export class RelicWrapper extends OathGameObject<Relic["id"]> implements CampaignActionTarget {
     type = "relic";
     defense = 1;
     force = undefined;
     relic: Relic;
 
     constructor(relic: Relic) {
-        super(relic.game);
+        super(relic._id);
         this.relic = relic;
     }
+
+    get id() { return this.relic.id; }
 
     seize(player: OathPlayer): void {
         this.relic.seize(player);
@@ -526,7 +528,7 @@ export class SiegeEngines extends ActivePower<Denizen> {
         new ChooseSitesAction(
             this.action.player, "Kill two warbands",
             (sites: Site[]) => { if (sites[0]) new KillWarbandsOnTargetAction(this.action.player, sites[0], 2).doNext(); },
-            [this.action.playerProxy.site.region.original.sites.filter(e => e.warbands.length)]
+            [this.action.playerProxy.site.region?.original.sites.filter(e => e.warbands.length) ?? []]
         ).doNext();
     }
 }

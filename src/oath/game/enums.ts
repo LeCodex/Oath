@@ -19,16 +19,6 @@ export enum OathSuit {
 
 export const ALL_OATH_SUITS = [OathSuit.Discord, OathSuit.Arcane, OathSuit.Order, OathSuit.Hearth, OathSuit.Beast, OathSuit.Nomad];
 
-export const OathSuitName = {
-    [OathSuit.Discord]: "Discord",
-    [OathSuit.Arcane]: "Arcane",
-    [OathSuit.Order]: "Order",
-    [OathSuit.Hearth]: "Hearth",
-    [OathSuit.Beast]: "Beast",
-    [OathSuit.Nomad]: "Nomad",
-    [OathSuit.None]: "None",
-}
-
 
 export enum OathType {
     Supremacy,
@@ -37,18 +27,11 @@ export enum OathType {
     Protection
 }
 
-export const OathTypeName = {
-    [OathType.Supremacy]: "Supremacy",
-    [OathType.Protection]: "Protection",
-    [OathType.ThePeople]: "The People",
-    [OathType.Devotion]: "Devotion",
-}
-
-export const OathTypeVisionName = {
-    [OathType.Supremacy]: "Conquest",
-    [OathType.Protection]: "Sanctuary",
-    [OathType.ThePeople]: "Rebellion",
-    [OathType.Devotion]: "Faith",
+export const OathTypeVisionName: Record<keyof typeof OathType, string> = {
+    "Supremacy": "Conquest",
+    "Protection": "Sanctuary",
+    "ThePeople": "Rebellion",
+    "Devotion": "Faith",
 }
 
 
@@ -70,14 +53,21 @@ export const RegionSize = {
     [RegionKey.Hinterland]: 3,
 }
 
+
 export enum CardRestriction {
     None,
     Site,
     Adviser
 }
 
+
 export enum OathPhase {
     Wake,
     Act,
     Rest
 }
+
+export type Enum<E> = Record<keyof E, number | string> & { [k: number]: string };
+export function isEnumKey<E extends Enum<E>>(key: string | number | symbol, _enum: E): key is keyof E {
+    return !!_enum[key as keyof typeof _enum];
+} 

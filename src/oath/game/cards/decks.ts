@@ -1,5 +1,5 @@
 import { Region } from "../board";
-import { RegionKey } from "../enums";
+import { isEnumKey, RegionKey } from "../enums";
 import { Container } from "../gameObject";
 import { shuffleArray } from "../utils";
 import { WorldCard, VisionBack, OathCard, Relic, Site } from "./cards";
@@ -37,29 +37,30 @@ export abstract class CardDeck<T extends OathCard, U = any> extends Container<T,
     }
 }
 
-export class RelicDeck extends CardDeck<Relic, "relicDeck"> {
+export class RelicDeck extends CardDeck<Relic, string> {
     name = "Relic Deck";
 
     constructor() {
         super("relicDeck", Relic);
     }
+
+    get id() { return this._id; }
 }
-export class SiteDeck extends CardDeck<Site, "siteDeck"> {
+export class SiteDeck extends CardDeck<Site, string> {
     name = "Site Deck";
+    hidden = true;
 
     constructor() {
         super("siteDeck", Site);
     }
 
-    serialize(): Record<string, any> | undefined {
-        return undefined;
-    }
+    get id() { return this._id; }
 }
 
 export abstract class SearchableDeck<T = any> extends CardDeck<WorldCard, T> {
     get searchCost() { return 2; }
 
-    constructor(id: T) {
+    constructor(id: string) {
         super(id, WorldCard);
     }
 
@@ -72,7 +73,7 @@ export abstract class SearchableDeck<T = any> extends CardDeck<WorldCard, T> {
     }
 }
 
-export class WorldDeck extends SearchableDeck<"worldDeck"> {
+export class WorldDeck extends SearchableDeck<string> {
     name = "World Deck";
     visionsDrawn: number = 0;
     get searchCost() { return this.visionsDrawn < 3 ? this.visionsDrawn < 1 ? 2 : 3 : 4; }
@@ -80,6 +81,8 @@ export class WorldDeck extends SearchableDeck<"worldDeck"> {
     constructor() {
         super("worldDeck");
     }
+
+    get id() { return this._id; }
 
     draw(amount: number, fromBottom: boolean = false, skip: number = 0): WorldCard[] {
         for (let i = 0; i < amount; i++) {
@@ -110,12 +113,16 @@ export class WorldDeck extends SearchableDeck<"worldDeck"> {
 }
 
 export class Discard extends SearchableDeck<RegionKey> {
+    _id: keyof typeof RegionKey;
     name: string;
     
-    constructor(region: Region) {
-        super(region.id);
-        this.name = region.name + " Discard";
+    constructor(id: keyof typeof RegionKey) {
+        if (!isEnumKey(id, RegionKey)) throw new TypeError(`${id} is not a valid region id`)
+        super(id);
+        this.name = id + " Discard";
     }
+
+    get id() { return RegionKey[this._id]; }
 }
 
 export class DiscardOptions<T extends OathCard> {

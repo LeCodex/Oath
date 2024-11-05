@@ -195,7 +195,7 @@ export class Tents extends ActionModifier<Denizen, TravelAction> {
     cost = new ResourceCost([[Favor, 1]]);
 
     applyBefore(): void {
-        if (this.action.travelling.site.region === this.action.siteProxy.region.original)
+        if (this.action.travelling.site.region === this.action.siteProxy.region?.original)
             this.action.noSupplyCost = true;
     }
 }
@@ -403,8 +403,10 @@ export class Convoys extends ActivePower<Denizen> {
             this.action.player, "Move a discard on top of your region's discard",
             (region: Region | undefined) => {
                 if (!region) return;
+                const discard = this.action.playerProxy.site.region?.discard.original;
+                if (!discard) return;
                 const cards = new DrawFromDeckEffect(this.action.player, region.discard, Infinity, true).do()
-                const discardOptions = new DiscardOptions(this.action.playerProxy.site.region.discard.original);
+                const discardOptions = new DiscardOptions(discard);
                 new DiscardCardGroupEffect(this.action.player, cards, discardOptions).do();
             }
         )
@@ -504,6 +506,9 @@ export class Pilgrimage extends WhenPlayed<Denizen> {
     name = "Pilgrimage";
 
     whenPlayed(): void {
+        const discard = this.effect.playerProxy.site.region?.discard.original;
+        if (!discard) return;
+
         let amount = 0;
         for (const denizenProxy of this.effect.playerProxy.site.denizens) {
             if (!denizenProxy.activelyLocked) {
@@ -515,7 +520,7 @@ export class Pilgrimage extends WhenPlayed<Denizen> {
         for (let i = 0; i < amount; i++) {
             const card = new GetRandomCardFromDispossessed(this.game, this.effect.player).do();
             new PeekAtCardEffect(this.effect.player, card).do();
-            new DiscardCardEffect(this.effect.player, card, new DiscardOptions(this.effect.playerProxy.site.region.discard.original)).do();
+            new DiscardCardEffect(this.effect.player, card, new DiscardOptions(discard)).do();
         }
     }
 }

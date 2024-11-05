@@ -224,7 +224,7 @@ export class TerrorSpells extends ActivePower<Denizen> {
                     if (sites[0]) new KillWarbandsOnTargetAction(this.action.player, sites[0], 1).doNext();
                     if (--amount) this.usePower(amount);
                 },
-                [this.action.playerProxy.site.region.original.sites.filter(e => e.warbands.length)]
+                [this.action.playerProxy.site.region?.original.sites.filter(e => e.warbands.length) ?? []]
             ).doNext(),
             () => new ChoosePlayersAction(
                 this.action.player, "Kill a warband (" + amount + " left)",
@@ -409,7 +409,7 @@ export class MapLibrary extends AccessedActionModifier<Denizen, TradeAction> {
     modifiedAction = TradeAction;
     
     applyAtStart(): void {
-        if (this.action.playerProxy.site === this.sourceProxy.site)
+        if (this.action.playerProxy.site === this.sourceProxy.site && this.sourceProxy.site.region)
             for (const siteProxy of this.sourceProxy.site.region.sites)
                 for (const denizenProxy of siteProxy.denizens)
                     this.action.selects.card.choices.set(denizenProxy.name, denizenProxy);
@@ -585,7 +585,9 @@ export class FallenSpire extends ActivePower<Edifice> {
     cost = new ResourceCost([[Secret, 1]], [[Secret, 1]]);
 
     usePower(): void {
-        const discard = this.action.playerProxy.site.region.discard.original;
+        const discard = this.action.playerProxy.site.region?.discard.original;
+        if (!discard) return;
+
         new ChooseNumberAction(
             this.action.player, "Swap cards from your region's discard with the Dispossessed", inclusiveRange(1, Math.min(discard.children.length, 5)),
             (value: number) => {

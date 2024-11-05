@@ -345,7 +345,7 @@ export class BrassHorse extends ActivePower<Relic> {
     cost = new ResourceCost([[Secret, 1]]);
 
     usePower(): void {
-        const cardProxy = this.action.playerProxy.site.region.discard.children[0];
+        const cardProxy = this.action.playerProxy.site.region?.discard.children[0];
         if (!cardProxy) return;
 
         new RevealCardEffect(this.game, this.action.player, cardProxy.original).do();

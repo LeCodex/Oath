@@ -10,8 +10,10 @@ export abstract class OathResource extends OathGameObjectLeaf<number> {
     type = "resource";
 
     constructor() {
-        super(resourceId++);
+        super(String(resourceId++));
     }
+
+    get id() { return Number(this._id); }
 
     abstract burn(): void;
     static gain(target: OathGameObject, amount: number): void { };
@@ -54,10 +56,16 @@ export class OathWarband extends OathGameObjectLeaf<number> {
     type = "warband";
     color: PlayerColor;
 
-    constructor(color: PlayerColor) {
-        super(resourceId++);
-        this.color = color;
+    constructor() {
+        super(String(resourceId++));
     }
+
+    colorize(color: PlayerColor) {
+        this.color = color;
+        return this;
+    }
+
+    get id() { return Number(this._id); }
 
     serialize(): Record<string, any> | undefined {
         const obj = super.serialize();
@@ -87,9 +95,8 @@ export abstract class ResourcesAndWarbands<T = any> extends OathGameObject<T> {
     }
 
     putWarbands(color: PlayerColor, amount: number): number {
-        const newAmount = this.getWarbandsAmount(color) + amount;
-        for (let i = 0; i < amount; i ++) this.addChild(new OathWarband(color));
-        return newAmount;
+        this.game.players.byId(color)[0]?.bag.moveChildrenTo(this, amount);
+        return this.getWarbandsAmount(color);
     }
 
     getWarbands(color: PlayerColor, amount: number = Infinity) {

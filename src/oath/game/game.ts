@@ -6,9 +6,8 @@ import { OathBoard, Region } from "./board";
 import { RelicDeck, SiteDeck, WorldDeck } from "./cards/decks";
 import { DenizenData, denizenData, edificeData } from "./cards/denizens";
 import { relicsData } from "./cards/relics";
-import { sitesData } from "./cards/sites";
-import { OathPhase, OathSuit, RegionKey, PlayerColor, ALL_OATH_SUITS, BannerName, RegionSize } from "./enums";
-import { Oath, OathOfDevotion, OathOfProtection, OathOfSupremacy, OathOfThePeople, OathTypeToOath } from "./oaths";
+import { OathPhase, OathSuit, RegionKey, PlayerColor, ALL_OATH_SUITS, BannerName, OathType } from "./enums";
+import { Oath, OathTypeToOath } from "./oaths";
 import { Conspiracy, Denizen, Edifice, GrandScepter, Relic, Site, Vision, WorldCard } from "./cards/cards";
 import { Chancellor, Exile, OathPlayer } from "./player";
 import { Banner, DarkestSecret, FavorBank, PeoplesFavor } from "./banks";
@@ -17,13 +16,13 @@ import { parseOathTTSSavefileString, serializeOathGame } from "./parser";
 import { Citizenship } from "./parser/interfaces";
 import { hasPowers, SourceType, WithPowers } from "./interfaces";
 import { Favor, Secret } from "./resources";
-import { Brutal, Careless, Decadent, Greedy } from "./powers/reliquary";
 import { ReliquarySlot } from "./reliquary";
+import classIndex from "./classIndex";
 
 
 export class OathGame extends TreeRoot<OathGame> {
     type = "root";
-    actionManager = new OathActionManager(this);
+    classIndex = classIndex;
     
     seed: string;
     name: string;
@@ -35,8 +34,9 @@ export class OathGame extends TreeRoot<OathGame> {
     phase = OathPhase.Act;
     round = 1;
     order: PlayerColor[] = [PlayerColor.Purple];
-
+    
     // References for quick access to static elements
+    actionManager = new OathActionManager(this);
     chancellor: Chancellor;
     worldDeck: WorldDeck;
     relicDeck: RelicDeck;
@@ -79,16 +79,16 @@ export class OathGame extends TreeRoot<OathGame> {
         for (const cardData of gameData.world) {
             const data = this.takeCardDataFromArchive(cardData.name);
             if (data) {
-                this.worldDeck.addChild(new Denizen(cardData.name, ...data), true);
+                this.worldDeck.addChild(new Denizen(cardData.name), true);
                 continue;
             }
 
             let card: WorldCard | undefined = {
                 Conspiracy: new Conspiracy(),
-                Sanctuary: new Vision(new OathOfProtection()),
-                Rebellion: new Vision(new OathOfThePeople()),
-                Faith: new Vision(new OathOfDevotion()),
-                Conquest: new Vision(new OathOfSupremacy())
+                Sanctuary: new Vision("Protection"),
+                Rebellion: new Vision("ThePeople"),
+                Faith: new Vision("Devotion"),
+                Conquest: new Vision("Supremacy")
             }[cardData.name];
                 
             if (card)
@@ -103,61 +103,53 @@ export class OathGame extends TreeRoot<OathGame> {
                 console.warn("Couldn't load " + cardData.name+ " into relic deck");
                 continue;
             }
-            this.relicDeck.addChild(new Relic(cardData.name, ...data), true);
+            this.relicDeck.addChild(new Relic(cardData.name), true);
         }
 
         this.chancellor = this.addChild(new Chancellor());
-        for (const [i, power] of [Brutal, Decadent, Careless, Greedy].entries())
-            this.chancellor.reliquary.addChild(new ReliquarySlot(i, power.name, [power], this.relicDeck.drawSingleCard()));
+        for (let i = 0; i < 4; i++)
+            this.chancellor.reliquary.addChild(new ReliquarySlot(String(i), this.relicDeck.drawSingleCard()));
 
-        for (let i = 1; i < playerCount; i++) {
-            this.addChild(new Exile(i));
+        for (let i: PlayerColor = PlayerColor.Red; i < playerCount; i++) {
+            this.addChild(new Exile(PlayerColor[i] as keyof typeof PlayerColor));
             this.order.push(i);
         }
 
         this.board = this.addChild(new OathBoard());
         for (let i = RegionKey.Cradle; i <= RegionKey.Hinterland; i++) {
-            this.board.addChild(new Region(RegionKey[i], RegionSize[i], i));
+            this.board.addChild(new Region(RegionKey[i] as keyof typeof RegionKey));
         }
 
         let regionKey: RegionKey = RegionKey.Cradle;
         const siteKeys: string[] = [];
         for (const siteData of gameData.sites) {
-            let key = siteData.name;
-            if (!(key in sitesData)) {
-                const keys = Object.keys(sitesData).filter(e => !siteKeys.includes(e));
-                key = keys[Math.floor(Math.random() * keys.length)]!;  // Only undefined if the keys are empty, in which case we have bigger issues
-                console.warn("Couldn't load " + siteData.name + ", defaulting to a random site: " + key);
-            }
-            siteKeys.push(key);
+            const siteId = siteData.name;
+            siteKeys.push(siteId);
             const region = this.board.byClass(Region).byId(regionKey)[0]!;
-            const site = region.addChild(new Site(region, key, ...sitesData[key]!));
+            const site = region.addChild(new Site(siteId));
             site.facedown = siteData.facedown;
             if (!site.facedown) site.setupResources();
 
             for (const denizenOrRelicData of siteData.cards) {
-                const denizen = denizenData[denizenOrRelicData.name];
-                if (denizen) {
-                    const card = new Denizen(denizenOrRelicData.name, ...denizen);
+                const cardId = denizenOrRelicData.name;
+                if (cardId in denizenData) {
+                    const card = new Denizen(cardId);
                     site.addChild(card).reveal();
                     continue;
                 }
 
-                const edifice = edificeData[denizenOrRelicData.name];
-                if (edifice) {
-                    const [_, ...data] = edifice;
-                    const card = new Edifice(denizenOrRelicData.name, ...data);
+                if (cardId in edificeData) {
+                    const card = new Edifice(cardId);
                     site.addChild(card).reveal();
                     continue;
                 }
 
-                const relic = relicsData[denizenOrRelicData.name];
-                if (relic) {
-                    site.addChild(new Relic(denizenOrRelicData.name, ...relic));
+                if (cardId in relicsData) {
+                    site.addChild(new Relic(cardId));
                     continue;
                 }
                 
-                console.warn("Couldn't load " + denizenOrRelicData.name + " for " + key);
+                console.warn("Couldn't load " + cardId + " for " + siteId);
             }
 
             if (region.byClass(Site).length >= region.size) regionKey++;
@@ -199,11 +191,11 @@ export class OathGame extends TreeRoot<OathGame> {
         
         const startingAmount = playerCount < 5 ? 3 : 4;
         for (let i = OathSuit.Discord; i <= OathSuit.Nomad; i++) {
-            const bank = this.addChild(new FavorBank(i));
+            const bank = this.addChild(new FavorBank(OathSuit[i] as keyof typeof OathSuit));
             bank.putResources(Favor, startingAmount);
         }
 
-        this.oath = new OathTypeToOath[gameData.oath]();
+        this.oath = new OathTypeToOath[OathType[gameData.oath] as keyof typeof OathType]();
         this.chancellor.addChild(this.oath).setup();
 
         new WakeAction(this.currentPlayer).doNext();
@@ -288,6 +280,18 @@ export class OathGame extends TreeRoot<OathGame> {
             order: this.order,
             seed: this.seed
         }
+    }
+
+    parse(obj: Record<string, any>) {
+        super.parse(obj);
+        this.name = obj.name;
+        this.chronicleNumber = obj.chronicleNumber;
+        this.isUsurper = obj.isUsurper;
+        this.turn = obj.turn;
+        this.phase = obj.phase;
+        this.round = obj.round;
+        this.order = obj.order;
+        this.seed = obj.seed;
     }
 
     updateSeed(winner: PlayerColor) {

@@ -3,14 +3,17 @@ import { WithPowers } from "./interfaces";
 import { OathPower } from "./powers/powers";
 import { Container } from "./gameObject";
 import { Constructor } from "./utils";
+import { Brutal, Decadent, Careless, Greedy } from "./powers/reliquary";
 
 
-export class Reliquary extends Container<ReliquarySlot, "reliquary"> {
+export class Reliquary extends Container<ReliquarySlot, string> {
     type = "reliquary";
 
     constructor() {
         super("reliquary", ReliquarySlot);
     }
+
+    get id() { return this._id; }
 
     putRelic(relic: Relic | undefined, index: number): Relic | undefined {
         const oldRelic = this.getRelic(index);
@@ -23,6 +26,8 @@ export class Reliquary extends Container<ReliquarySlot, "reliquary"> {
     }
 }
 
+export const reliquarySlotPowers = [Brutal, Decadent, Careless, Greedy];
+
 export class ReliquarySlot extends Container<Relic, number> implements WithPowers {
     name: string;
     type = "reliquarySlot";
@@ -30,12 +35,16 @@ export class ReliquarySlot extends Container<Relic, number> implements WithPower
 
     get active(): boolean { return !this.children[0]; }
 
-    constructor(id: number, name: string, powers: Iterable<Constructor<OathPower<ReliquarySlot>>>, relic?: Relic) {
+    constructor(id: string, relic?: Relic) {
+        const power = reliquarySlotPowers[Number(id)];
+        if (!power) throw new TypeError(`${id} is not a valid Reliquary slot`);
         super(id, Relic);
-        this.name = name;
+        this.name = power.name;
+        this.powers = new Set([power]);
         if (relic) this.addChild(relic);
-        this.powers = new Set(powers);
     }
+
+    get id() { return Number(this._id); }
 
     serialize(): Record<string, any> | undefined {
         const obj = super.serialize();

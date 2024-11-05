@@ -353,7 +353,7 @@ export class TavernSongs extends ActivePower<Denizen> {
 
     usePower(): void {
         for (let i = 0; i < 3; i++) {
-            const card = this.action.player.site.region.discard.children[i];
+            const card = this.action.player.site.region?.discard.children[i];
             if (card) new PeekAtCardEffect(this.action.player, card).do();
         }
     }

@@ -923,7 +923,7 @@ export class DiscardCardEffect<T extends OathCard> extends PlayerEffect {
     constructor(player: OathPlayer, card: T, discardOptions?: DiscardOptions<T>) {
         super(player);
         this.card = card;
-        this.discardOptions = discardOptions || new DiscardOptions(card.discard || player.discard);
+        this.discardOptions = discardOptions || new DiscardOptions(card.discard ?? player.discard ?? this.game.worldDeck);
     }
 
     resolve(): void {
@@ -1332,7 +1332,7 @@ export class GetRandomCardFromDispossessed extends OathEffect<Denizen> {
     resolve(): Denizen {
         const keys = Object.keys(this.game.dispossessed);
         const name = keys[Math.floor(Math.random() * keys.length)]!;
-        this.denizen = new Denizen(name, ...this.game.dispossessed[name]!);
+        this.denizen = new Denizen(name);
         delete this.game.dispossessed[name];
         return this.denizen;
     }
@@ -1412,10 +1412,11 @@ export class RegionDiscardEffect extends PlayerEffect {
 
     resolve(): void {
         const cards: Denizen[] = [];
-        for (const site of this.player.site.region.sites)
-            for (const denizen of site.denizens)
-                if (this.suits.includes(denizen.suit) && denizen !== this.source)
-                    cards.push(denizen);
+        if (this.player.site.region)
+            for (const site of this.player.site.region.sites)
+                for (const denizen of site.denizens)
+                    if (this.suits.includes(denizen.suit) && denizen !== this.source)
+                        cards.push(denizen);
 
         new DiscardCardGroupEffect(this.player, cards).do();
     }
@@ -1544,13 +1545,13 @@ export class BuildEdificeFromDenizenEffect extends OathEffect {
         for (const [key, [_, ...data]] of Object.entries(edificeData)) {
             const suit = data[0];
             if (suit === this.denizen.suit) {
-                this.edifice = new Edifice(key, ...data),
+                this.edifice = new Edifice(key),
                 new ParentToTargetEffect(this.game, this.player, [this.edifice], this.site).do();
                 new ParentToTargetEffect(this.game, this.player, this.denizen.children, this.edifice).do();
                 break;
             }
         }
-        new ParentToTargetEffect(this.game, this.player, [this.denizen], this.site.region.discard).do();
+        new ParentToTargetEffect(this.game, this.player, [this.denizen], this.site.region?.discard).do();
     }
 
     revert(): void {
@@ -1577,10 +1578,9 @@ export class FlipEdificeEffect extends OathEffect {
     resolve(): void {
         if (!this.edifice.site) throw new InvalidActionResolution("Card is not at a site (How?)");
 
-        for (const [key, [other, ...data]] of Object.entries(edificeData)) {
+        for (const [key, [other, ..._]] of Object.entries(edificeData)) {
             if (key === this.edifice.name) {
-                const [_, ...otherData] = edificeData[other]!;
-                this.newEdifice = new Edifice(other, ...otherData);
+                this.newEdifice = new Edifice(other);
                 new ParentToTargetEffect(this.game, this.player, [this.newEdifice], this.edifice.site).do();
                 new ParentToTargetEffect(this.game, this.player, this.edifice.children, this.newEdifice).do();
                 this.newEdifice.reveal();
@@ -1721,12 +1721,9 @@ export class FinishChronicleEffect extends PlayerEffect {
             const cardKeys = this.getRandomCardDataInArchive(suit);
             for (let j = 0; j < i; j++) {
                 const key = cardKeys.pop();
-                if (!key) break;
-                const data = this.game.archive[key];
-                if (!data) break;
+                if (!key || !(key in this.game.archive)) break;
                 delete this.game.archive[key];
-
-                new DiscardCardEffect(this.player, new Denizen(key, ...data), worldDeckDiscardOptions).do();
+                new DiscardCardEffect(this.player, new Denizen(key), worldDeckDiscardOptions).do();
             }
 
             suit++;

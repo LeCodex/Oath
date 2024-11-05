@@ -2,7 +2,7 @@ import { Denizen, Edifice, OathCard, OwnableCard, Relic, Site, WorldCard } from 
 import { DiscardOptions, SearchableDeck } from "../cards/decks";
 import { AttackDie, DefenseDie, RollResult } from "../dice";
 import { MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, RollDiceEffect, DrawFromDeckEffect, PutPawnAtSiteEffect, DiscardCardEffect, MoveOwnWarbandsEffect, SetPeoplesFavorMobState, OathEffect, PaySupplyEffect, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, FlipEdificeEffect, CampaignResolveSuccessfulAndSkullsEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect, CheckCapacityEffect, ApplyModifiersEffect, CampaignJoinDefenderAlliesEffect, MoveWorldCardToAdvisersEffect, DiscardCardGroupEffect, ParentToTargetEffect } from "../effects";
-import { ALL_OATH_SUITS, OathPhase, OathSuit, OathSuitName, OathType, OathTypeName } from "../enums";
+import { ALL_OATH_SUITS, OathPhase, OathSuit, OathType } from "../enums";
 import { OathGame } from "../game";
 import { OathTypeToOath } from "../oaths";
 import { Exile, OathPlayer } from "../player";
@@ -348,7 +348,14 @@ export class TravelAction extends MajorAction {
     execute() {
         this.player = this.travelling;
         this.siteProxy = this.parameters.site[0]!;
-        this.supplyCost = this.gameProxy.board.travelCosts.get(this.player.site.region.regionKey)?.get(this.siteProxy.region.regionKey) || 2;
+
+        const fromRegionId = this.player.site.region?.id;
+        const toRegionId = this.siteProxy.region?.id
+        if (fromRegionId && toRegionId)
+            this.supplyCost = this.gameProxy.board.travelCosts.get(fromRegionId)?.get(toRegionId) || 2;
+        else
+            this.supplyCost = 2;
+        
         super.execute();
     }
 
@@ -420,12 +427,13 @@ export class SearchAction extends MajorAction {
     amount = 3;
     fromBottom = false;
     cards: Set<WorldCard>;
-    discardOptions = new DiscardOptions(this.player.discard);
+    discardOptions = this.player.discardOptions;
 
     start() {
         const choices = new Map<string, SearchableDeck>();
         choices.set("World Deck", this.gameProxy.worldDeck);
-        choices.set(this.playerProxy.site.region.name, this.playerProxy.site.region.discard);
+        const region = this.playerProxy.site.region;
+        if (region) choices.set(region.name, region.discard);
         this.selects.deck = new SelectNOf("Deck", choices, 1);
         return super.start();
     }
@@ -457,7 +465,7 @@ export class SearchChooseAction extends ModifiableAction {
 
     constructor(player: OathPlayer, cards: Iterable<WorldCard>, discardOptions?: DiscardOptions<OathCard>, amount: number = 1) {
         super(player);
-        this.discardOptions = discardOptions || new DiscardOptions(player.discard);
+        this.discardOptions = discardOptions || this.player.discardOptions;
         this.cards = new Set(cards);
         this.playingAmount = Math.min(amount, this.cards.size);
     }
@@ -503,7 +511,7 @@ export class SearchDiscardAction extends ModifiableAction {
         super(player);
         this.cards = new Set(cards);
         this.amount = Math.min(this.cards.size, amount || this.cards.size);
-        this.discardOptions = discardOptions || new DiscardOptions(player.discard);
+        this.discardOptions = discardOptions || this.player.discardOptions;
     }
 
     start() {
@@ -539,7 +547,7 @@ export class SearchPlayOrDiscardAction extends ModifiableAction {
         super(player);
         this.cardProxy = this.maskProxyManager.get(card);
         this.message = "Play or discard " + this.cardProxy.name;
-        this.discardOptions = discardOptions || new DiscardOptions(player.discard);
+        this.discardOptions = discardOptions || this.player.discardOptions;
     }
 
     start() {
@@ -625,14 +633,15 @@ export class MayDiscardACardAction extends OathAction {
 
     constructor(player: OathPlayer, discardOptions?: DiscardOptions<OathCard>, cards?: Iterable<Denizen>) {
         super(player);
-        this.discardOptions = discardOptions || new DiscardOptions(player.discard);
+        this.discardOptions = discardOptions || this.player.discardOptions;
         if (cards) {
             this.cards = new Set(cards);
         } else {
             this.cards = new Set();
-            for (const site of this.player.site.region.sites)
-                for (const denizen of site.denizens)
-                    if (!denizen.activelyLocked) this.cards.add(denizen);
+            if (this.player.site.region)
+                for (const site of this.player.site.region.sites)
+                    for (const denizen of site.denizens)
+                        if (!denizen.activelyLocked) this.cards.add(denizen);
         }
     }
 
@@ -1470,7 +1479,7 @@ export class ChooseSuitsAction extends ChooseTsAction<OathSuit> {
         for (const [i, group] of this.choices.entries()) {
             const choices = new Map<string, OathSuit>();
             for (const suit of group)
-                choices.set(OathSuitName[suit], suit);
+                choices.set(OathSuit[suit], suit);
             this.selects["choices" + i] = new SelectNOf("Suit", choices, this.rangeMin(i), this.rangeMax(i));
         }
 
@@ -1797,11 +1806,11 @@ export class VowOathAction extends OathAction {
         const choices = new Map<string, OathType>();
         if (this.player instanceof Exile && this.player.vision) {
             const oathType = this.player.vision.oath.id;
-            choices.set(OathTypeName[oathType], oathType);
+            choices.set(OathType[oathType], oathType);
         } else {
             for (let i: OathType = 0; i < 4; i++)
                 if (i !== this.game.oath.id)
-                    choices.set(OathTypeName[i], i);
+                    choices.set(OathType[i], i);
         }
         this.selects.oath = new SelectNOf("Oath", choices);
         return super.start();
@@ -1810,7 +1819,7 @@ export class VowOathAction extends OathAction {
     execute(): void {
         // TODO: Put this in an effect
         const oathType = this.parameters.oath[0]!;
-        this.game.oath = new OathTypeToOath[oathType]();
+        this.game.oath = new OathTypeToOath[OathType[oathType] as keyof typeof OathType]();
     }
 }
 
