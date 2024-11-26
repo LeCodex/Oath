@@ -1,5 +1,6 @@
 import { ActionModifier } from "./powers";
-import { InvalidActionResolution, CampaignAttackAction, SearchAction, TradeAction, TravelAction, ModifiableAction } from "../actions/actions";
+import { CampaignAttackAction, SearchAction, TradeAction, TravelAction } from "../actions/actions";
+import { InvalidActionResolution, ModifiableAction } from "../actions/base";
 import { RegionKey } from "../enums";
 import { ReliquarySlot } from "../reliquary";
 import { Favor, Secret } from "../resources";

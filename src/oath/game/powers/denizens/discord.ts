@@ -1,15 +1,17 @@
-import { MakeDecisionAction, ChooseCardsAction, ChooseRegionAction, InvalidActionResolution, TakeFavorFromBankAction, TakeResourceFromPlayerAction, ChooseSuitsAction, ModifiableAction, SearchPlayOrDiscardAction, MusterAction, TravelAction, CampaignAction, KillWarbandsOnTargetAction, CampaignAttackAction, CampaignEndAction, RecoverAction, TakeReliquaryRelicAction } from "../../actions/actions";
+import { MakeDecisionAction, ChooseCardsAction, ChooseRegionAction, TakeFavorFromBankAction, TakeResourceFromPlayerAction, ChooseSuitsAction, SearchPlayOrDiscardAction, MusterAction, TravelAction, CampaignAction, KillWarbandsOnTargetAction, CampaignAttackAction, CampaignEndAction, RecoverAction, TakeReliquaryRelicAction } from "../../actions/actions";
+import { InvalidActionResolution, ModifiableAction } from "../../actions/base";
 import { FavorBank, PeoplesFavor } from "../../banks";
 import { Region } from "../../board";
 import { Denizen, Edifice, OathCard, Relic, Site, Vision, WorldCard } from "../../cards/cards";
 import { D6, DefenseDie, RollResult } from "../../dice";
-import { TakeOwnableObjectEffect, PutResourcesOnTargetEffect, MoveResourcesToTargetEffect, SetNewOathkeeperEffect, RollDiceEffect, DiscardCardEffect, BecomeCitizenEffect, PayCostToTargetEffect, PeekAtCardEffect, OathEffect, WinGameEffect, DrawFromDeckEffect, MoveWorldCardToAdvisersEffect, ParentToTargetEffect, BurnResourcesEffect } from "../../effects";
+import { TakeOwnableObjectEffect, PutResourcesOnTargetEffect, MoveResourcesToTargetEffect, SetNewOathkeeperEffect, RollDiceEffect, DiscardCardEffect, BecomeCitizenEffect, PayCostToTargetEffect, PeekAtCardEffect, WinGameEffect, DrawFromDeckEffect, MoveWorldCardToAdvisersEffect, ParentToTargetEffect, BurnResourcesEffect } from "../../actions/effects";
+import { OathEffect } from "../../actions/base";
 import { BannerName, OathSuit } from "../../enums";
 import { Exile, OathPlayer } from "../../player";
 import { Favor, ResourceCost, Secret } from "../../resources";
 import { EnemyEffectModifier, WhenPlayed, CapacityModifier, ActivePower, RestPower, AttackerBattlePlan, DefenderBattlePlan, EffectModifier, ActionModifier, AccessedActionModifier, WakePower, EnemyActionModifier, EnemyAttackerCampaignModifier, EnemyDefenderCampaignModifier } from "../powers";
 import { minInGroup } from "../../utils";
-import { ResolveCallbackAction } from "../../actions/actions";
+import { ResolveCallbackAction } from "../../actions/base";
 
 
 export class MercenariesAttack extends AttackerBattlePlan<Denizen> {
@@ -18,7 +20,7 @@ export class MercenariesAttack extends AttackerBattlePlan<Denizen> {
 
     applyBefore(): void {
         this.action.campaignResult.params.atkPool += 3;
-        this.action.campaignResult.onSuccessful(false, () => new DiscardCardEffect(this.activator, this.source).do());
+        this.action.campaignResult.onSuccessful(false, () => new DiscardCardEffect(this.activator, this.source).doNext());
     }
 }
 export class MercenariesDefense extends DefenderBattlePlan<Denizen> {
@@ -27,7 +29,7 @@ export class MercenariesDefense extends DefenderBattlePlan<Denizen> {
 
     applyBefore(): void {
         this.action.campaignResult.params.atkPool -= 3;
-        this.action.campaignResult.onSuccessful(true, () => new DiscardCardEffect(this.activator, this.source).do());
+        this.action.campaignResult.onSuccessful(true, () => new DiscardCardEffect(this.activator, this.source).doNext());
     }
 }
 
@@ -80,7 +82,7 @@ export class BookBurning extends AttackerBattlePlan<Denizen> {
         this.action.campaignResult.onSuccessful(true, () => {
             const defender = this.action.campaignResult.defender;
             if (!defender) return;
-            new MoveResourcesToTargetEffect(this.game, defender, Secret, defender.byClass(Secret).length - 1, undefined).do()
+            new MoveResourcesToTargetEffect(this.game, defender, Secret, defender.byClass(Secret).length - 1, undefined).doNext()
         });
     }
 }
@@ -93,7 +95,7 @@ export class Slander extends AttackerBattlePlan<Denizen> {
         this.action.campaignResult.onSuccessful(true, () => {
             const defender = this.action.campaignResult.defender;
             if (!defender) return;
-            new MoveResourcesToTargetEffect(this.game, defender, Favor, Infinity, undefined).do();
+            new MoveResourcesToTargetEffect(this.game, defender, Favor, Infinity, undefined).doNext();
         });
     }
 }
@@ -143,24 +145,23 @@ export class RelicThief extends EnemyEffectModifier<Denizen, TakeOwnableObjectEf
         // TODO: Trigger when multiple things are taken
         const rulerProxy = this.sourceProxy.ruler;
         if (!rulerProxy) return;
-        if (this.effect.target instanceof Relic && this.effect.playerProxy?.site.region === rulerProxy.site.region) {
+        if (this.effect.target instanceof Relic && this.effect.executorProxy?.site.region === rulerProxy.site.region) {
             new MakeDecisionAction(
                 rulerProxy.original, "Try to steal " + this.effect.target.name + "?",
                 () => {
                     const cost = new ResourceCost([[Favor, 1], [Secret, 1]]);
-                    if (!new PayCostToTargetEffect(this.game, rulerProxy.original, cost, this.source).do())
-                        throw cost.cannotPayError;
-
-                    const result = new RollDiceEffect(this.game, rulerProxy.original, DefenseDie, 1).do();
-                    new ResolveCallbackAction(
-                        rulerProxy.original,
-                        () => {
-                            if (result.value === 0)
-                                new TakeOwnableObjectEffect(this.game, rulerProxy.original, this.effect.target).do();
-                        }
-                    ).doNext();
+                    new PayCostToTargetEffect(this.game, rulerProxy.original, cost, this.source).doNext(success => {
+                        if (!success) throw cost.cannotPayError;
+                        
+                        new RollDiceEffect(this.game, rulerProxy.original, DefenseDie, 1).doNext(result => {
+                            new ResolveCallbackAction(
+                                rulerProxy.original,
+                                () => { if (result.value === 0) new TakeOwnableObjectEffect(this.game, rulerProxy.original, this.effect.target).doNext(); }
+                            ).doNext();
+                        });
+                    });
                 }
-            )
+            ).doNext();
         }
     }
 }
@@ -173,9 +174,9 @@ export class KeyToTheCity extends WhenPlayed<Denizen> {
         if (this.sourceProxy.site.ruler?.site === this.sourceProxy.site) return;
 
         for (const player of this.game.players)
-            new ParentToTargetEffect(this.game, player, this.source.site.getWarbands(player.id), player.bag).do();
+            new ParentToTargetEffect(this.game, player, this.source.site.getWarbands(player.id), player.bag).doNext();
 
-        new ParentToTargetEffect(this.game, this.effect.player, this.effect.playerProxy.leader.original.bag.get(1), this.source.site).do();
+        new ParentToTargetEffect(this.game, this.effect.executor, this.effect.executorProxy.leader.original.bag.get(1), this.source.site).doNext();
     }
 }
 
@@ -206,7 +207,7 @@ export class Assassin extends ActivePower<Denizen> {
 
         new ChooseCardsAction(
             this.action.player, "Discard an adviser", [cards], 
-            (cards: WorldCard[]) => { if (cards[0]) new DiscardCardEffect(this.action.player, cards[0]).do(); }
+            (cards: WorldCard[]) => { if (cards[0]) new DiscardCardEffect(this.action.player, cards[0]).doNext(); }
         ).doNext();
     }
 }
@@ -215,7 +216,7 @@ export class Insomnia extends RestPower<Denizen> {
     name = "Insomnia";
 
     applyAfter(): void {
-        new PutResourcesOnTargetEffect(this.game, this.activator, Secret, 1).do();
+        new PutResourcesOnTargetEffect(this.game, this.activator, Secret, 1).doNext();
     }
 }
 
@@ -244,7 +245,7 @@ export class Naysayers extends RestPower<Denizen> {
 
     applyAfter(): void {
         if (!this.game.oathkeeper.isImperial)
-            new MoveResourcesToTargetEffect(this.game, this.activator, Favor, 1, this.activator, this.game.chancellor).do();
+            new MoveResourcesToTargetEffect(this.game, this.activator, Favor, 1, this.activator, this.game.chancellor).doNext();
     }
 }
 
@@ -253,7 +254,7 @@ export class ChaosCult extends EnemyEffectModifier<Denizen, SetNewOathkeeperEffe
     modifiedEffect = SetNewOathkeeperEffect;
 
     applyAfter(): void {
-        new MoveResourcesToTargetEffect(this.effect.game, this.source.ruler, Favor, 1, this.source.ruler, this.effect.player).do();
+        new MoveResourcesToTargetEffect(this.effect.game, this.source.ruler, Favor, 1, this.source.ruler, this.effect.executor).doNext();
     }
 }
 
@@ -262,8 +263,9 @@ export class GamblingHall extends ActivePower<Denizen> {
     cost = new ResourceCost([[Favor, 2]]);
 
     usePower(): void {
-        const result = new RollDiceEffect(this.game, this.action.player, DefenseDie, 4).do();
-        new ResolveCallbackAction(this.action.player, () => new TakeFavorFromBankAction(this.action.player, result.value)).doNext();
+        new RollDiceEffect(this.game, this.action.player, DefenseDie, 4).doNext(result => {
+            new ResolveCallbackAction(this.action.player, () => new TakeFavorFromBankAction(this.action.player, result.value)).doNext();
+        });
     }
 }
 
@@ -274,7 +276,7 @@ export class Scryer extends ActivePower<Denizen> {
     usePower(): void {
         new ChooseRegionAction(
             this.action.player, "Peek at a discard pile",
-            (region: Region | undefined) => { if (region) for (const card of region.discard.children) new PeekAtCardEffect(this.action.player, card).do(); }
+            (region: Region | undefined) => { if (region) for (const card of region.discard.children) new PeekAtCardEffect(this.action.player, card).doNext(); }
         ).doNext();
     }
 }
@@ -284,7 +286,7 @@ export class Charlatan extends WhenPlayed<Denizen> {
 
     whenPlayed(): void {
         const banner = this.game.banners.get(BannerName.DarkestSecret);
-        if (banner) new BurnResourcesEffect(this.game, this.effect.player, Secret, banner.amount - 1, banner).do();
+        if (banner) new BurnResourcesEffect(this.game, this.effect.executor, Secret, banner.amount - 1, banner).doNext();
     }
 }
 
@@ -295,7 +297,7 @@ export class Dissent extends WhenPlayed<Denizen> {
         const peoplesFavorProxy = this.gameProxy.banners.get(BannerName.PeoplesFavor);
         for (const playerProxy of Object.values(this.gameProxy.players))
             if (peoplesFavorProxy?.owner !== playerProxy)
-                new MoveResourcesToTargetEffect(this.game, playerProxy.original, Favor, playerProxy.ruledSuits, this.source).do();
+                new MoveResourcesToTargetEffect(this.game, playerProxy.original, Favor, playerProxy.ruledSuits, this.source).doNext();
     }
 }
 
@@ -322,13 +324,13 @@ export class Riots extends WhenPlayed<Denizen> {
         }
 
         new ChooseSuitsAction(
-            this.effect.player, "Discard all other cards at site of the suit with the most",
+            this.effect.executor, "Discard all other cards at site of the suit with the most",
             (suits: OathSuit[]) => {
                 if (!suits[0]) return;
                 for (const siteProxy of this.gameProxy.board.sites())
                     for (const denizenProxy of siteProxy.denizens)
                         if (denizenProxy.suit === suits[0] && denizenProxy !== this.sourceProxy)
-                            new DiscardCardEffect(this.effect.player, denizenProxy.original).do();
+                            new DiscardCardEffect(this.effect.executor, denizenProxy.original).doNext();
             },
             [suits]
         ).doNext();
@@ -341,23 +343,23 @@ export class Blackmail extends WhenPlayed<Denizen> {
     whenPlayed(): void {
         const relics = new Set<Relic>();
         for (const playerProxy of Object.values(this.gameProxy.players)) {
-            if (playerProxy === this.effect.playerProxy || playerProxy.site === this.effect.playerProxy.site) continue;
+            if (playerProxy === this.effect.executorProxy || playerProxy.site === this.effect.executorProxy.site) continue;
             for (const relicProxy of playerProxy.relics) relics.add(relicProxy.original);
         }
 
         new ChooseCardsAction(
-            this.effect.player, "Steal a relic unless its owner gives you 3 favor", [relics],
+            this.effect.executor, "Steal a relic unless its owner gives you 3 favor", [relics],
             (cards: Relic[]) => {
                 const relic = cards[0];
                 if (!relic?.owner) return;
                 
                 if (relic.owner.byClass(Favor).length < 3)
-                    new TakeOwnableObjectEffect(this.game, this.effect.player, relic).do();
+                    new TakeOwnableObjectEffect(this.game, this.effect.executor, relic).doNext();
                 else
                     new MakeDecisionAction(
-                        relic.owner, "Let " + this.effect.player.name + " take " + relic.name + ", or give them 3 favor?",
-                        () => new TakeOwnableObjectEffect(this.game, this.effect.player, relic).do(),
-                        () => new MoveResourcesToTargetEffect(this.game, relic.owner, Favor, 3, this.effect.player).do(),
+                        relic.owner, "Let " + this.effect.executor.name + " take " + relic.name + ", or give them 3 favor?",
+                        () => new TakeOwnableObjectEffect(this.game, this.effect.executor, relic).doNext(),
+                        () => new MoveResourcesToTargetEffect(this.game, relic.owner, Favor, 3, this.effect.executor).doNext(),
                         ["Give the relic", "Give 3 favor"]
                     ).doNext();
             }
@@ -369,7 +371,7 @@ export class ASmallFavor extends WhenPlayed<Denizen> {
     name = "ASmallFavor";
 
     whenPlayed(): void {
-        new ParentToTargetEffect(this.game, this.effect.player, this.effect.playerProxy.leader.original.bag.get(4)).do();
+        new ParentToTargetEffect(this.game, this.effect.executor, this.effect.executorProxy.leader.original.bag.get(4)).doNext();
     }
 }
 
@@ -378,7 +380,7 @@ export class BanditChief extends WhenPlayed<Denizen> {
 
     whenPlayed(): void {
         for (const site of this.game.board.sites())
-            new KillWarbandsOnTargetAction(this.effect.player, site, 1).doNext();
+            new KillWarbandsOnTargetAction(this.effect.executor, site, 1).doNext();
     }
 }
 export class BanditChiefAction extends ActionModifier<Denizen, ModifiableAction> {
@@ -409,7 +411,7 @@ export class FalseProphet extends WhenPlayed<Denizen> {
     name = "False Prophet";
 
     whenPlayed(): void {
-        if (this.effect.playerProxy?.isImperial) return;
+        if (this.effect.executorProxy?.isImperial) return;
 
         const visions = new Set<Vision>();
         for (const player of this.game.players)
@@ -417,8 +419,8 @@ export class FalseProphet extends WhenPlayed<Denizen> {
                 visions.add(player.vision);
 
         new ChooseCardsAction(
-            this.effect.player, "Place a warband on a revealed Vision", [visions],
-            (cards: OathCard[]) => { if (cards[0]) new ParentToTargetEffect(this.game, this.effect.player, this.effect.playerProxy.leader.original.bag.get(1), cards[0]).do() }
+            this.effect.executor, "Place a warband on a revealed Vision", [visions],
+            (cards: OathCard[]) => { if (cards[0]) new ParentToTargetEffect(this.game, this.effect.executor, this.effect.executorProxy.leader.original.bag.get(1), cards[0]).doNext() }
         ).doNext();
     }
 }
@@ -432,7 +434,7 @@ export class FalseProphetWake extends WakePower<Denizen> {
             if (player instanceof Exile && player.vision && player.vision.getWarbandsAmount(this.action.player.id) > 0) {
                 const candidates = player.vision.oath.getOathkeeperCandidates();
                 if (candidates.size === 1 && candidates.has(this.action.player)) {
-                    new WinGameEffect(this.action.player).do();
+                    new WinGameEffect(this.action.player).doNext();
                     return false;
                 }
             }
@@ -446,9 +448,11 @@ export class FalseProphetDiscard extends EffectModifier<Denizen, DiscardCardEffe
     modifiedEffect = DiscardCardEffect;
 
     applyAfter(): void {
-        const card = new DrawFromDeckEffect(this.effect.player, this.effect.discardOptions.discard, 1, this.effect.discardOptions.onBottom).do()[0];
-        if (!(card instanceof Vision)) return;
-        new SearchPlayOrDiscardAction(this.effect.player, card).doNext();
+        new DrawFromDeckEffect(this.effect.executor, this.effect.discardOptions.discard, 1, this.effect.discardOptions.onBottom).doNext(cards => {
+            const card = cards[0];
+            if (!(card instanceof Vision)) return;
+            new SearchPlayOrDiscardAction(this.effect.executor, card).doNext();
+        })
     }
 }
 
@@ -456,10 +460,10 @@ export class RoyalAmbitions extends WhenPlayed<Denizen> {
     name = "Royal Ambitions";
 
     whenPlayed(): void {
-        if (this.effect.playerProxy.ruledSites > this.gameProxy.chancellor.ruledSites)
-            new MakeDecisionAction(this.effect.player, "Become a Citizen?", () => {
-                new BecomeCitizenEffect(this.effect.player).do(); 
-                new TakeReliquaryRelicAction(this.effect.player).doNext();
+        if (this.effect.executorProxy.ruledSites > this.gameProxy.chancellor.ruledSites)
+            new MakeDecisionAction(this.effect.executor, "Become a Citizen?", () => {
+                new BecomeCitizenEffect(this.effect.executor).doNext(); 
+                new TakeReliquaryRelicAction(this.effect.executor).doNext();
             }).doNext();
     }
 }
@@ -550,8 +554,8 @@ export class Enchantress extends ActivePower<Denizen> {
             (cards: WorldCard[]) => {
                 if (!cards[0]) return;
                 const otherPlayer = cards[0].owner as OathPlayer;
-                new MoveWorldCardToAdvisersEffect(this.game, otherPlayer, this.source).do();
-                new MoveWorldCardToAdvisersEffect(this.game, this.action.player, cards[0]).do();
+                new MoveWorldCardToAdvisersEffect(this.game, otherPlayer, this.source).doNext();
+                new MoveWorldCardToAdvisersEffect(this.game, this.action.player, cards[0]).doNext();
             }
         ).doNext();
     }
@@ -579,7 +583,7 @@ export class VowOfRenewal extends EffectModifier<Denizen, BurnResourcesEffect> {
     applyAfter(result: number): void {
         if (!this.sourceProxy.ruler) return;
         if (this.effect.resource !== Favor) return;
-        new PutResourcesOnTargetEffect(this.game, this.sourceProxy.ruler.original, Favor, result).do();
+        new PutResourcesOnTargetEffect(this.game, this.sourceProxy.ruler.original, Favor, result).doNext();
     }
 }
 export class VowOfRenewalRecover extends AccessedActionModifier<Denizen, RecoverAction> {
@@ -598,11 +602,11 @@ export class SqualidDistrict extends EffectModifier<Edifice, RollDiceEffect> {
     modifiedEffect = RollDiceEffect;
 
     canUse(): boolean {
-        return !!this.effect.playerProxy && this.effect.playerProxy === this.sourceProxy.ruler;
+        return !!this.effect.executorProxy && this.effect.executorProxy === this.sourceProxy.ruler;
     }
 
     applyAfter(result: RollResult): void {
-        const player = this.effect.player;
+        const player = this.effect.executor;
         if (!player) return;
         if (this.effect.die !== D6) return;
 

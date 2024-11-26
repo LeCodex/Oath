@@ -1,7 +1,7 @@
 import { CampaignSeizeSiteAction, RecoverAction } from "../actions/actions";
 import { RecoverActionTarget, WithPowers, AtSite, CampaignActionTarget, OwnableObject } from "../interfaces";
 import { Region } from "../board";
-import { DiscardCardEffect, FlipSecretsEffect, MoveOwnWarbandsEffect, MoveResourcesToTargetEffect, ParentToTargetEffect, PayCostToBankEffect, RevealCardEffect, TakeOwnableObjectEffect } from "../effects";
+import { DiscardCardEffect, FlipSecretsEffect, MoveOwnWarbandsEffect, MoveResourcesToTargetEffect, ParentToTargetEffect, PayCostToBankEffect, RevealCardEffect, TakeOwnableObjectEffect } from "../actions/effects";
 import { CardRestriction, OathSuit, OathType, OathTypeVisionName, PlayerColor, RegionKey } from "../enums";
 import { Oath, OathTypeToOath } from "../oaths";
 import { OathPlayer } from "../player";
@@ -34,7 +34,7 @@ export abstract class OathCard extends ResourcesAndWarbands<string> implements W
     abstract get discard(): CardDeck<OathCard> | undefined;
     
     reveal() {
-        new RevealCardEffect(this.game, undefined, this).do();
+        new RevealCardEffect(this.game, undefined, this).doNext();
         this.facedown = false;
     }
     
@@ -49,8 +49,8 @@ export abstract class OathCard extends ResourcesAndWarbands<string> implements W
     returnResources() {
         const amount = this.byClass(Secret).length;
         if (amount) {
-            new MoveResourcesToTargetEffect(this.game, this.game.currentPlayer, Secret, amount, this.game.currentPlayer, this).do();
-            new FlipSecretsEffect(this.game, this.game.currentPlayer, amount).do();
+            new MoveResourcesToTargetEffect(this.game, this.game.currentPlayer, Secret, amount, this.game.currentPlayer, this).doNext();
+            new FlipSecretsEffect(this.game, this.game.currentPlayer, amount).doNext();
         }
     }
 
@@ -199,18 +199,19 @@ export class Relic extends OwnableCard implements RecoverActionTarget, CampaignA
 
     recover(player: OathPlayer): void {
         if (!this.site) return;
-        if (!new PayCostToBankEffect(this.game, player, this.site.recoverCost, this.site.recoverSuit).do())
-            throw this.site.recoverCost.cannotPayError;
-        
-        new TakeOwnableObjectEffect(this.game, player, this).do();
+        const cost = this.site.recoverCost;
+        new PayCostToBankEffect(this.game, player, cost, this.site.recoverSuit).doNext(success => {
+            if (!success) throw cost.cannotPayError;
+            new TakeOwnableObjectEffect(this.game, player, this).doNext();
+        })
     }
 
     seize(player: OathPlayer) {
         new TakeOwnableObjectEffect(this.game, player, this).doNext();
     }
 
-    putonBottom(player: OathPlayer) {
-        new DiscardCardEffect(player, this, new DiscardOptions(this.game.relicDeck, true)).do();
+    putOnBottom(player: OathPlayer) {
+        new DiscardCardEffect(player, this, new DiscardOptions(this.game.relicDeck, true)).doNext();
     }
 }
 
@@ -260,7 +261,7 @@ export class Denizen extends WorldCard implements AtSite {
         super.returnResources();
         const favor = this.byClass(Favor);
         if (favor.length)
-            new ParentToTargetEffect(this.game, this.game.currentPlayer, favor, this.game.byClass(FavorBank).byId(this.suit)[0]).do();
+            new ParentToTargetEffect(this.game, this.game.currentPlayer, favor, this.game.byClass(FavorBank).byId(this.suit)[0]).doNext();
     }
 
     serialize(): Record<string, any> {

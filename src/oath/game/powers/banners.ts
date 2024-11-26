@@ -1,4 +1,5 @@
-import { WakeAction, SearchPlayOrDiscardAction, MayDiscardACardAction, SearchAction, PeoplesFavorWakeAction, ModifiableAction } from "../actions/actions";
+import { WakeAction, SearchPlayOrDiscardAction, MayDiscardACardAction, SearchAction, PeoplesFavorWakeAction } from "../actions/actions";
+import { ModifiableAction } from "../actions/base";
 import { Banner, PeoplesFavor, DarkestSecret } from "../banks";
 import { ActionModifier } from "./powers";
 

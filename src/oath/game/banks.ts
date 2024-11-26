@@ -1,6 +1,6 @@
 import { ChooseSuitsAction, RecoverAction, RecoverBannerPitchAction } from "./actions/actions";
 import { RecoverActionTarget, CampaignActionTarget, WithPowers, OwnableObject } from "./interfaces";
-import { TakeOwnableObjectEffect, SetPeoplesFavorMobState, ParentToTargetEffect, UnparentEffect, BurnResourcesEffect, MoveResourcesToTargetEffect } from "./effects";
+import { TakeOwnableObjectEffect, SetPeoplesFavorMobState, ParentToTargetEffect, UnparentEffect, BurnResourcesEffect, MoveResourcesToTargetEffect } from "./actions/effects";
 import { isEnumKey, OathSuit } from "./enums";
 import { OathPlayer } from "./player";
 import { PeoplesFavorSearch, PeoplesFavorWake, DarkestSecretPower } from "./powers/banners";
@@ -59,9 +59,9 @@ export abstract class Banner extends ResourceBank<string> implements RecoverActi
 
     finishRecovery(player: OathPlayer, amount: number): void {
         // Banner-specific logic
-        new ParentToTargetEffect(this.game, player, this.byClass(this.resourceType).max(amount)).doNext();
+        new ParentToTargetEffect(this.game, player, this.byClass(this.resourceType).max(amount), this).doNext();
         this.handleRecovery(player);
-        new TakeOwnableObjectEffect(this.game, player, this).do();
+        new TakeOwnableObjectEffect(this.game, player, this).doNext();
     }
 
     seize(player: OathPlayer) {
@@ -83,7 +83,7 @@ export class PeoplesFavor extends Banner {
     }
 
     handleRecovery(player: OathPlayer) {
-        new SetPeoplesFavorMobState(this.game, player, false).do();
+        new SetPeoplesFavorMobState(this.game, player, false).doNext();
         new ChooseSuitsAction(
             player, "Choose where to start returning the favor (" + this.amount + ")",
             (suits: OathSuit[]) => {
@@ -94,7 +94,7 @@ export class PeoplesFavor extends Banner {
                 while (amount > 0) {
                     const bank = this.game.byClass(FavorBank).byId(suit)[0];
                     if (bank) {
-                        new MoveResourcesToTargetEffect(this.game, player, bank.resourceType, 1, bank).do();
+                        new MoveResourcesToTargetEffect(this.game, player, bank.resourceType, 1, bank).doNext();
                         amount--;
                     }
                     if (++suit > OathSuit.Nomad) suit = OathSuit.Discord;

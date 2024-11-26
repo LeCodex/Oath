@@ -1,6 +1,6 @@
-import { BurnResourcesEffect, ParentToTargetEffect } from "./effects";
+import { BurnResourcesEffect, ParentToTargetEffect } from "./actions/effects";
 import { OathGameObject, OathGameObjectLeaf } from "./gameObject";
-import { InvalidActionResolution } from "./actions/actions";
+import { InvalidActionResolution } from "./actions/base";
 import { PlayerColor } from "./enums";
 import { AbstractConstructor } from "./utils";
 
@@ -9,8 +9,8 @@ let resourceId = 0;  // TOOD: Find better solution for unique ids
 export abstract class OathResource extends OathGameObjectLeaf<number> {
     type = "resource";
 
-    constructor() {
-        super(String(resourceId++));
+    constructor(id?: string) {
+        super(id ?? String(resourceId++));
     }
 
     get id() { return Number(this._id); }
@@ -121,10 +121,10 @@ export abstract class ResourcesAndWarbands<T = any> extends OathGameObject<T> {
 
     clear() {
         for (const resource of [Favor, Secret])
-            new BurnResourcesEffect(this.game, undefined, resource, Infinity, this).do();
+            new BurnResourcesEffect(this.game, undefined, resource, Infinity, this).doNext();
 
         for (const player of this.game.players)
-            new ParentToTargetEffect(this.game, player, this.getWarbands(player.id), player.bag).do();
+            new ParentToTargetEffect(this.game, player, this.getWarbands(player.id), player.bag).doNext();
     }
 
     serialize(): Record<string, any> | undefined {

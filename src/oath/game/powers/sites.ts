@@ -1,6 +1,7 @@
-import { InvalidActionResolution, ChooseResourceToTakeAction, WakeAction, TravelAction, CampaignAttackAction, MusterAction, SearchAction, StartBindingExchangeAction, MakeBindingExchangeOfferAction, SearchPlayOrDiscardAction, MayDiscardACardAction, ModifiableAction, RecoverAction } from "../actions/actions";
+import { ChooseResourceToTakeAction, WakeAction, TravelAction, CampaignAttackAction, MusterAction, SearchAction, StartBindingExchangeAction, MakeBindingExchangeOfferAction, SearchPlayOrDiscardAction, MayDiscardACardAction, RecoverAction } from "../actions/actions";
+import { InvalidActionResolution, ModifiableAction } from "../actions/base";
 import { Site, Denizen } from "../cards/cards";
-import { PlayWorldCardEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, FlipSecretsEffect, ParentToTargetEffect } from "../effects";
+import { PlayWorldCardEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, FlipSecretsEffect, ParentToTargetEffect } from "../actions/effects";
 import { OathSuit } from "../enums";
 import { isAtSite, WithPowers } from "../interfaces";
 import { OathPlayer } from "../player";
@@ -15,7 +16,7 @@ export abstract class HomelandSitePower extends EffectModifier<Site, PlayWorldCa
     applyAfter(): void {
         // TODO: "and if you have not discarded a <suit> card here during this turn"
         if (this.effect.site === this.source && this.effect.card instanceof Denizen && this.effect.card.suit === this.suit)
-            this.giveReward(this.effect.player);
+            this.giveReward(this.effect.executor);
     }
 
     abstract giveReward(player: OathPlayer): void;
@@ -28,7 +29,7 @@ export class Wastes extends HomelandSitePower {
     giveReward(player: OathPlayer): void {
         // TODO: Should probably have an effect just for recovering
         for (const relicProxy of this.sourceProxy.relics)
-            return new TakeOwnableObjectEffect(this.game, player, relicProxy.original).do();
+            return new TakeOwnableObjectEffect(this.game, player, relicProxy.original).doNext();
     }
 }
 
@@ -37,7 +38,7 @@ export class StandingStones extends HomelandSitePower {
     suit = OathSuit.Arcane;
 
     giveReward(player: OathPlayer): void {
-        new PutResourcesOnTargetEffect(this.game, player, Secret, 1).do();
+        new PutResourcesOnTargetEffect(this.game, player, Secret, 1).doNext();
     }
 }
 
@@ -46,7 +47,7 @@ export class AncientCity extends HomelandSitePower {
     suit = OathSuit.Order;
 
     giveReward(player: OathPlayer): void {
-        new ParentToTargetEffect(this.game, player, player.leader.bag.get(2)).do();
+        new ParentToTargetEffect(this.game, player, player.leader.bag.get(2)).doNext();
     }
 }
 
@@ -56,7 +57,7 @@ export class FertileValley extends HomelandSitePower {
 
     giveReward(player: OathPlayer): void {
         const bank = this.game.favorBank(this.suit);
-        if (bank) new ParentToTargetEffect(this.game, player, bank?.get(1)).do();
+        if (bank) new ParentToTargetEffect(this.game, player, bank?.get(1)).doNext();
     }
 }
 
@@ -65,7 +66,7 @@ export class Steppe extends HomelandSitePower {
     suit = OathSuit.Nomad;
 
     giveReward(player: OathPlayer): void {
-        new PutResourcesOnTargetEffect(this.game, player, Secret, 1).do();
+        new PutResourcesOnTargetEffect(this.game, player, Secret, 1).doNext();
     }
 }
 
@@ -75,7 +76,7 @@ export class DeepWoods extends HomelandSitePower {
 
     giveReward(player: OathPlayer): void {
         for (const relicProxy of this.sourceProxy.relics)
-            return new TakeOwnableObjectEffect(player.game, player, relicProxy.original).do();
+            return new TakeOwnableObjectEffect(player.game, player, relicProxy.original).doNext();
     }
 }
 
@@ -132,14 +133,14 @@ export class BuriedGiant extends AtSiteActionModifier<TravelAction> {
     name = "Buried Giant";
     modifiedAction = TravelAction;
 
-    applyImmediately(modifiers: Iterable<ActionModifier<WithPowers,TravelAction>>): Iterable<ActionModifier<WithPowers, TravelAction>> {
+    applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, TravelAction>>): Iterable<ActionModifier<WithPowers, TravelAction>> {
         return [...modifiers].filter(e => e instanceof NarrowPass);
     }
 
     applyWhenApplied(): boolean {
-        if (new FlipSecretsEffect(this.game, this.action.player, 1, true).do() < 1)
-            throw new InvalidActionResolution("Cannot flip a secret for Buried Giant");
-
+        new FlipSecretsEffect(this.game, this.action.player, 1, true).doNext(amount => {
+            if (amount < 1) throw new InvalidActionResolution("Cannot flip a secret for Buried Giant");
+        });
         return true;
     }
 
@@ -185,8 +186,9 @@ export class TheHiddenPlaceTravel extends ActionModifier<Site, TravelAction> {
 
     applyBefore(): void {
         if (this.action.siteProxy !== this.sourceProxy) return;
-        if (new FlipSecretsEffect(this.game, this.activator, 1, true).do() < 1)
-            throw new InvalidActionResolution("Cannot flip a secret for The Hidden Place");
+        new FlipSecretsEffect(this.game, this.action.player, 1, true).doNext(amount => {
+            if (amount < 1) throw new InvalidActionResolution("Cannot flip a secret for The Hidden Place");
+        });
     }
 }
 export class TheHiddenPlaceCampaign extends ActionModifier<Site, CampaignAttackAction> {
@@ -197,8 +199,9 @@ export class TheHiddenPlaceCampaign extends ActionModifier<Site, CampaignAttackA
     applyBefore(): void {
         for (const target of this.action.campaignResult.params.targets) {
             if (target === this.source || isAtSite(target) && target.site === this.source) {
-                if (new FlipSecretsEffect(this.game, this.activator, 1, true).do() < 1)
-                    throw new InvalidActionResolution("Cannot flip a secret for The Hidden Place");
+                new FlipSecretsEffect(this.game, this.action.player, 1, true).doNext(amount => {
+                    if (amount < 1) throw new InvalidActionResolution("Cannot flip a secret for The Hidden Place");
+                });
                 break;
             }
         }

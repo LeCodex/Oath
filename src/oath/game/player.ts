@@ -2,7 +2,7 @@ import { CampaignBanishPlayerAction } from "./actions/actions";
 import { CampaignActionTarget, AtSite } from "./interfaces";
 import { Denizen, OwnableCard, Relic, Site, Vision, WorldCard } from "./cards/cards";
 import { Discard, DiscardOptions } from "./cards/decks";
-import { BurnResourcesEffect, FlipSecretsEffect, GainSupplyEffect } from "./effects";
+import { BurnResourcesEffect, FlipSecretsEffect, GainSupplyEffect } from "./actions/effects";
 import { isEnumKey, OathSuit, PlayerColor } from "./enums";
 import { OathWarband, ResourcesAndWarbands, Favor, OathResourceType } from "./resources";
 import { Container } from "./gameObject";
@@ -131,7 +131,7 @@ export abstract class OathPlayer extends ResourcesAndWarbands<PlayerColor> imple
                 relic.returnResources();
         }
 
-        new FlipSecretsEffect(this.game, this, Infinity, false).do();
+        new FlipSecretsEffect(this.game, this, Infinity, false).doNext();
     }
 
     serialize(): Record<string, any> {
@@ -173,7 +173,7 @@ export class Chancellor extends OathPlayer {
         else if (this.bag.amount >= 4) amount = 4;
         else amount = 3;
 
-        new GainSupplyEffect(this, amount).do();
+        new GainSupplyEffect(this, amount).doNext();
     }
 }
 
@@ -212,7 +212,7 @@ export class Exile extends OathPlayer {
         super.rest();
 
         if (this.isImperial) {
-            new GainSupplyEffect(this, this.game.chancellor.supply).do();
+            new GainSupplyEffect(this, this.game.chancellor.supply).doNext();
             return;
         }
 
@@ -221,7 +221,7 @@ export class Exile extends OathPlayer {
         else if (this.bag.amount >= 4) amount = 5;
         else amount = 4;
 
-        new GainSupplyEffect(this, amount).do();
+        new GainSupplyEffect(this, amount).doNext();
     }
 
     serialize(): Record<string, any> {

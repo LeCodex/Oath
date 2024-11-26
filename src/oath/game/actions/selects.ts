@@ -1,4 +1,4 @@
-import { InvalidActionResolution } from "./actions";
+import { InvalidActionResolution } from "./base";
 
 
 export class SelectNOf<T> {
