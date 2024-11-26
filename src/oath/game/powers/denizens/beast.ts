@@ -305,7 +305,7 @@ export class VowOfUnionTravel extends AccessedActionModifier<Denizen, TravelActi
 
     applyWhenApplied(): boolean {
         // Don't cause an error, just prevent the action
-        return !this.activatorProxy.site.getWarbands(this.activatorProxy.leader.original.id);
+        return !this.activatorProxy.site.getWarbands(this.activatorProxy.leader.original.key);
     }
 }
 
@@ -547,7 +547,7 @@ export class ForestTemple extends EffectModifier<Edifice, FinishChronicleEffect>
         for (const siteProxy of this.gameProxy.board.sites()) {
             for (const denizenProxy of siteProxy.denizens) {
                 if (denizenProxy.suit === OathSuit.Beast) {
-                    siteProxy.addChild(new OathWarband().colorize(this.effect.executor.id));
+                    siteProxy.addChild(new OathWarband().colorize(this.effect.executor.key));
                     break;
                 }
             }

@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { OathGame } from './game/game';
 import { InvalidActionResolution } from "./game/actions/base";
+import { PlayerColor } from './game/enums';
 
 
 @Injectable()
@@ -29,9 +30,9 @@ export class OathService {
         return game;
     }
 
-    public beginAction(gameId: number, playerIndex: number, actionName: string): object {        
+    public beginAction(gameId: number, playerColor: keyof typeof PlayerColor, actionName: string): object {        
         try {
-            return this._getGame(gameId).startAction(playerIndex, actionName);
+            return this._getGame(gameId).startAction(playerColor, actionName);
         } catch (e) {
             // TODO: Use exception filters
             if (e instanceof InvalidActionResolution) throw new BadRequestException(e.message);
@@ -43,16 +44,16 @@ export class OathService {
         return this._getGame(gameId).actionManager.checkForNextAction();
     }
 
-    public continueAction(gameId: number, playerIndex: number, values: Record<string, string[]>): object {
+    public continueAction(gameId: number, playerColor: keyof typeof PlayerColor, values: Record<string, string[]>): object {
         try {
-            return this._getGame(gameId).actionManager.continueAction(playerIndex, values);
+            return this._getGame(gameId).actionManager.continueAction(playerColor, values);
         } catch (e) {
             if (e instanceof InvalidActionResolution) throw new BadRequestException(e.message);
             throw e;
         }
     }
 
-    public cancelAction(gameId: number, playerIndex: number): object {
+    public cancelAction(gameId: number, playerColor: keyof typeof PlayerColor): object {
         try {
             return this._getGame(gameId).actionManager.cancelAction();
         } catch (e) {

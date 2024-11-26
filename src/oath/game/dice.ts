@@ -43,15 +43,15 @@ export class DefenseDie extends Die {
     ]
 
     static getValue(symbols: Map<number, number>, ignore?: Set<number>): number {
-        let total = 0, mult = 0;
+        let total = 0, mult = 1;
         for (const [symbol, amount] of symbols.entries()) {
             if (ignore?.has(symbol)) continue;
             if (symbol === DieSymbol.DoubleShield)
-                mult += amount;
+                mult *= 2;
             else
-                total += amount * symbol
+                total += amount * symbol;
         }
-        return total * Math.pow(2, mult);
+        return total * mult;
     }
 }
 
@@ -60,7 +60,7 @@ export class D6 extends Die {
 }
 
 /** 
- * The result of rolling some dice. Extended from a Map, with an ignore Set that forces the number of those faces to 0.
+ * The result of rolling some dice. Has an internal Map, with an ignore Set that forces the number and value of those faces to 0.
  * 
  * get() returns 0 instead of undefined if a key isn't found.
  */

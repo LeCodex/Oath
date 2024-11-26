@@ -17,11 +17,11 @@ const setup = async () => {
     window.alert(`Created game ${gameId}`);
 }
 
-const oathNames = ["Supremacy", "the People", "Devotion", "Protection"];
-const visionNames = ["Conquest", "Revolution", "Faith", "Sanctuary"];
-const pawnColors = ["💜", "❤️", "💙", "💛", "🤍", "🖤"];
+const oathNames = { Supremacy: "Supremacy", ThePeople: "the People", Devotion: "Devotion", Protection: "Protection" };
+const visionNames = { Supremacy: "Conquest", ThePeople: "Revolution", Devotion: "Faith", Protection: "Sanctuary" };
+const pawnColors = { Purple: "💜", Red: "❤️", Blue: "💙", Yellow: "💛", white: "🤍", Black: "🖤" };
 const warbandsColors = ["🟪", "🟥", "🟦", "🟨", "⬜", "⬛"];
-const suitColors = ["🚫", "🔴", "🟣", "🔵", "🟠", "🟤", "🟢"];
+const suitColors = { None: "🚫", Discord: "🔴", Arcane: "🟣", Order: "🔵", Hearth: "🟠", Beast: "🟤", Nomad: "🟢" };
 const render = () => {
     const titleNode = document.getElementById("title");
     titleNode.innerHTML = game.name + " (Tale #" + game.chronicleNumber + "), Round " + game.round;
@@ -69,7 +69,7 @@ const render = () => {
     const actionNode = document.getElementById("action");
     actionNode.innerHTML = "";
     if (action) {
-        actionNode.innerText = "[" + action.message + "] (" + byType(game, "player")[action.player].name + ")";
+        actionNode.innerText = "[" + action.message + "] (" + byType(game, "player").filter(e => e.id === action.player)[0].name + ")";
         if (action.modifiers?.length) actionNode.appendChild(renderText("Modifiers: " + action.modifiers.join(", ")));
         for (const [k, select] of Object.entries(action.selects)) {
             const selectNode = actionNode.appendChild(renderText(select.name + ` (${select.min}-${select.max})`));
@@ -101,7 +101,7 @@ const renderObject = (parent, obj) => {
             node = renderText("[BOARD]");
             break;
         case "region":
-            node = renderText(obj.name);
+            node = renderText(obj.id);
             break;
         
         case "relic":
@@ -116,7 +116,7 @@ const renderObject = (parent, obj) => {
             break;
         
         case "favorBank":
-            node = renderText(suitColors[obj.id + 1] + ":");
+            node = renderText(suitColors[obj.id] + ":");
             break;
         
         case "banner":
@@ -173,7 +173,7 @@ const renderCard = (card) => {
     if (card.type === "relic") cardNode.innerText += "🧰 "
     if (card.type === "site") cardNode.innerText += "🗺️ "
     cardNode.innerText += (card.facedown ? card.type === "vision" ? "👁️ " : "❔ " : "")
-    cardNode.innerText += (!card.facedown || card.seenBy.includes(game.order[game.turn]) ? (card.suit !== undefined ? suitColors[card.suit+1] + " " : "") + card.name : "");
+    cardNode.innerText += (!card.facedown || card.seenBy.includes(game.order[game.turn]) ? (card.suit !== undefined ? suitColors[card.suit] + " " : "") + card.name : "");
     return cardNode;
 }
 
@@ -236,7 +236,7 @@ const renderCheckbox = (key, text) => {
 
 
 const startAction = async (actionName) => {
-    const response = await fetch("http://localhost:3000/oath/" + gameId + "/" + game.turn + "/start/" + actionName, { 
+    const response = await fetch("http://localhost:3000/oath/" + gameId + "/" + game.currentPlayer + "/start/" + actionName, { 
         method: "POST", 
         mode: "cors", 
         headers: { 'Access-Control-Allow-Origin': '*' }

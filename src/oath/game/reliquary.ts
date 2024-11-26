@@ -13,7 +13,7 @@ export class Reliquary extends Container<ReliquarySlot, string> {
         super("reliquary", ReliquarySlot);
     }
 
-    get id() { return this._id; }
+    get key() { return this.id; }
 
     putRelic(relic: Relic | undefined, index: number): Relic | undefined {
         const oldRelic = this.getRelic(index);
@@ -35,16 +35,20 @@ export class ReliquarySlot extends Container<Relic, number> implements WithPower
 
     get active(): boolean { return !this.children[0]; }
 
-    constructor(id: string, relic?: Relic) {
+    constructor(id: string) {
         const power = reliquarySlotPowers[Number(id)];
         if (!power) throw TypeError(`${id} is not a valid Reliquary slot`);
         super(id, Relic);
         this.name = power.name;
         this.powers = new Set([power]);
+    }
+    
+    getRelic() {
+        const relic = this.game.relicDeck.drawSingleCard();
         if (relic) this.addChild(relic);
     }
 
-    get id() { return Number(this._id); }
+    get key() { return Number(this.id); }
 
     serialize(): Record<string, any> | undefined {
         return {

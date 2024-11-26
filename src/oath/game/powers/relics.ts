@@ -158,7 +158,7 @@ export class ObsidianCageActive extends ActivePower<Relic> {
     usePower(): void {
         const players = new Set<OathPlayer>();
         for (const playerProxy of Object.values(this.gameProxy.players))
-            if (this.source.getWarbandsAmount(playerProxy.leader.original.id) + this.source.getWarbandsAmount(playerProxy.original.id) > 0)
+            if (this.source.getWarbandsAmount(playerProxy.leader.original.key) + this.source.getWarbandsAmount(playerProxy.original.key) > 0)
                 players.add(playerProxy.original);
         
         // TODO: "Any number"
@@ -167,8 +167,8 @@ export class ObsidianCageActive extends ActivePower<Relic> {
             (targets: OathPlayer[]) => {
                 const target = targets[0];
                 if (!target) return;
-                new ParentToTargetEffect(this.game, target, this.source.getWarbands(target.leader.id)).doNext();
-                const warbandsToSwap = this.source.getWarbands(target.id);
+                new ParentToTargetEffect(this.game, target, this.source.getWarbands(target.leader.key)).doNext();
+                const warbandsToSwap = this.source.getWarbands(target.key);
                 new ParentToTargetEffect(this.game, target, warbandsToSwap, target.bag).doNext();
                 new ParentToTargetEffect(this.game, target, target.leader.bag.get(warbandsToSwap.length)).doNext();
             },
@@ -421,7 +421,7 @@ export class BanditCrownAction extends ActionModifier<Relic, ModifiableAction> {
             if (siteProxy.ruler && siteProxy.ruler !== rulerProxy.leader) continue;
             const originalFn = siteProxy.getWarbandsAmount.bind(rulerProxy);
             siteProxy.getWarbandsAmount = (color: PlayerColor | undefined) => {
-                return originalFn(color) + (color === rulerProxy.leader.original.id ? siteProxy.bandits : 0);
+                return originalFn(color) + (color === rulerProxy.leader.original.key ? siteProxy.bandits : 0);
             };
         }
         return true;
@@ -440,7 +440,7 @@ export class BanditCrownEffect extends EffectModifier<Relic, OathEffect<any>> {
             if (siteProxy.ruler && siteProxy.ruler !== rulerProxy.leader) continue;
             const originalFn = siteProxy.getWarbandsAmount.bind(siteProxy);
             siteProxy.getWarbandsAmount = (color: PlayerColor | undefined) => {
-                return originalFn(color) + (color === rulerProxy.leader.original.id ? siteProxy.bandits : 0);
+                return originalFn(color) + (color === rulerProxy.leader.original.key ? siteProxy.bandits : 0);
             };
         }
     }

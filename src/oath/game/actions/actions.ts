@@ -1,8 +1,8 @@
 import { OathAction, ModifiableAction, InvalidActionResolution, ChooseModifiers } from "./base";
 import { Denizen, Edifice, OathCard, OwnableCard, Relic, Site, WorldCard } from "../cards/cards";
 import { DiscardOptions, SearchableDeck } from "../cards/decks";
-import { AttackDie, DefenseDie, RollResult } from "../dice";
-import { MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, RollDiceEffect, DrawFromDeckEffect, PutPawnAtSiteEffect, DiscardCardEffect, MoveOwnWarbandsEffect, SetPeoplesFavorMobState, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, FlipEdificeEffect, CampaignResolveSuccessfulAndSkullsEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect, CheckCapacityEffect, CampaignJoinDefenderAlliesEffect, MoveWorldCardToAdvisersEffect, DiscardCardGroupEffect, ParentToTargetEffect, PaySupplyEffect } from "./effects";
+import { AttackDie, DefenseDie, DieSymbol, RollResult } from "../dice";
+import { MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, RollDiceEffect, DrawFromDeckEffect, PutPawnAtSiteEffect, DiscardCardEffect, MoveOwnWarbandsEffect, SetPeoplesFavorMobState, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, FlipEdificeEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect, CheckCapacityEffect, CampaignJoinDefenderAlliesEffect, MoveWorldCardToAdvisersEffect, DiscardCardGroupEffect, ParentToTargetEffect, PaySupplyEffect } from "./effects";
 import { ALL_OATH_SUITS, OathPhase, OathSuit, OathType } from "../enums";
 import { OathGame } from "../game";
 import { OathTypeToOath } from "../oaths";
@@ -190,8 +190,8 @@ export class TravelAction extends MajorAction {
         this.player = this.travelling;
         this.siteProxy = this.parameters.site[0]!;
 
-        const fromRegionId = this.player.site.region?.id;
-        const toRegionId = this.siteProxy.region?.id
+        const fromRegionId = this.player.site.region?.key;
+        const toRegionId = this.siteProxy.region?.key
         if (fromRegionId && toRegionId)
             this.supplyCost = this.gameProxy.board.travelCosts.get(fromRegionId)?.get(toRegionId) || 2;
         else
@@ -596,9 +596,6 @@ export class CampaignAttackAction extends ModifiableAction {
                     allyProxiesCandidates.add(playerProxy);
             }
         }
-        
-        if (this.campaignResult.defender && this.maskProxyManager.get(this.campaignResult.defender) === this.gameProxy.oathkeeper)
-            this.campaignResult.params.defPool += this.gameProxy.isUsurper ? 2 : 1;
 
         for (const allyProxy of allyProxiesCandidates) {
             const ally = allyProxy.original;
@@ -685,8 +682,12 @@ export class CampaignDefenseAction extends ModifiableAction {
     }
     
     modifiedExecution() {
-        this.campaignResult.resolve();
-        new CampaignResolveSuccessfulAndSkullsEffect(this).doNext();
+        this.campaignResult.resolve(() => {
+            this.campaignResult.successful = this.campaignResult.atk > this.campaignResult.def;
+
+            if (!this.campaignResult.params.ignoreKilling)
+                this.campaignResult.attackerKills(this.campaignResult.params.atkRoll.get(DieSymbol.Skull));
+        });
     }
 }
 
@@ -731,8 +732,8 @@ export class CampaignResult {
     get loserLoss() { return this.successful ? this.defenderLoss : this.attackerLoss; }
     get loserKills() { return this.successful ? this.defenderKills : this.attackerKills; }
 
-    get totalAtkForce() { return [...this.params.atkForce].reduce((a, e) => a + e.getWarbandsAmount(this.attacker.leader.original.id), 0); }
-    get totalDefForce() { return [...this.params.defForce].reduce((a, e) => a + e.getWarbandsAmount(this.defender?.leader.original.id), 0); }
+    get totalAtkForce() { return [...this.params.atkForce].reduce((a, e) => a + e.getWarbandsAmount(this.attacker.leader.original.key), 0); }
+    get totalDefForce() { return [...this.params.defForce].reduce((a, e) => a + e.getWarbandsAmount(this.defender?.leader.original.key), 0); }
 
     get atk() { return this.params.atkRoll.value; }
     get def() { return this.params.defRoll.value + this.totalDefForce; }
@@ -773,10 +774,10 @@ export class CampaignResult {
         if (amount) new CampaignKillWarbandsInForceAction(this, false, amount).doNext();
     }
 
-    resolve() {
+    resolve(callback: () => void) {
         new RollDiceEffect(this.game, this.attacker, AttackDie, this.params.atkPool, this.params.atkRoll).doNext();
         const pool = this.params.defPool + (this.params.atkPool < 0 ? -this.params.atkPool : 0);
-        new RollDiceEffect(this.game, this.defender, DefenseDie, pool, this.params.defRoll).doNext();
+        new RollDiceEffect(this.game, this.defender, DefenseDie, pool, this.params.defRoll).doNext(callback);
     }
 }
 
@@ -857,7 +858,7 @@ export class CampaignKillWarbandsInForceAction extends OathAction {
 
     start(): boolean {
         if (this.owner) {
-            const sources: [string, number][] = [...this.force].map(e => [e.name, e.getWarbandsAmount(this.owner?.id)]);
+            const sources: [string, number][] = [...this.force].map(e => [e.name, e.getWarbandsAmount(this.owner?.key)]);
             for (const [key, warbands] of sources) {
                 const min = Math.min(warbands, Math.max(0, this.amount - sources.filter(([k, _]) => k !== key).reduce((a, [_, v]) => a + Math.min(v, this.amount), 0)));
                 const max = Math.min(warbands, this.amount);
@@ -875,7 +876,7 @@ export class CampaignKillWarbandsInForceAction extends OathAction {
             throw new InvalidActionResolution("Invalid total amount of warbands");
         
         for (const source of this.force) {
-            const warbands = source.getWarbands(this.owner.leader.id, this.parameters[source.name]![0]);
+            const warbands = source.getWarbands(this.owner.leader.key, this.parameters[source.name]![0]);
             new ParentToTargetEffect(this.game, this.player, warbands, this.owner.leader.bag).doNext();
             if (this.attacker)
                 this.result.attackerLoss += warbands.length;
@@ -910,7 +911,7 @@ export class CampaignSeizeSiteAction extends OathAction {
     }
 
     start() {
-        this.selects.amount = new SelectNumber("Amount", inclusiveRange(this.player.getWarbandsAmount(this.player.leader.original.id)));
+        this.selects.amount = new SelectNumber("Amount", inclusiveRange(this.player.getWarbandsAmount(this.player.leader.original.key)));
         return super.start();
     }
 
@@ -1030,18 +1031,18 @@ export class MoveWarbandsAction extends ModifiableAction {
     start(): boolean {
         const choices = new Map<string, Site | OathPlayer>();
         const siteProxy = this.playerProxy.site;
-        let max = this.playerProxy.getWarbandsAmount(this.playerProxy.leader.original.id);
+        let max = this.playerProxy.getWarbandsAmount(this.playerProxy.leader.original.key);
         if (this.playerProxy.isImperial) {
             for (const playerProxy of Object.values(this.gameProxy.players)) {
                 if (playerProxy !== this.playerProxy && playerProxy.isImperial && playerProxy.site === siteProxy) {
                     choices.set(playerProxy.name, playerProxy);
-                    max = Math.max(max, playerProxy.getWarbandsAmount(playerProxy.leader.original.id));
+                    max = Math.max(max, playerProxy.getWarbandsAmount(playerProxy.leader.original.key));
                 }
             }
         }
-        if (siteProxy.getWarbandsAmount(this.playerProxy.leader.original.id) > 0) {
+        if (siteProxy.getWarbandsAmount(this.playerProxy.leader.original.key) > 0) {
             choices.set(siteProxy.name, siteProxy);
-            max = Math.max(max, siteProxy.getWarbandsAmount(this.playerProxy.leader.original.id) - 1);
+            max = Math.max(max, siteProxy.getWarbandsAmount(this.playerProxy.leader.original.key) - 1);
         }
         this.selects.target = new SelectNOf("Target", choices, 1);
 
@@ -1063,7 +1064,7 @@ export class MoveWarbandsAction extends ModifiableAction {
         const from = this.giving ? this.player : this.targetProxy.original;
         const to = this.giving ? this.targetProxy.original : this.player;
 
-        if (from instanceof Site && from.getWarbandsAmount(this.playerProxy.leader.original.id) - this.amount < 1)
+        if (from instanceof Site && from.getWarbandsAmount(this.playerProxy.leader.original.key) - this.amount < 1)
             throw new InvalidActionResolution("Cannot take the last warband off a site.");
 
         const effect = new MoveOwnWarbandsEffect(this.playerProxy.leader.original, from, to, this.amount);
@@ -1126,7 +1127,7 @@ export class KillWarbandsOnTargetAction extends OathAction {
     }
 
     start(): boolean {
-        const owners: [string, number][] = this.game.players.map(e => [e.name, this.target.getWarbands(e.id).length]);
+        const owners: [string, number][] = this.game.players.map(e => [e.name, this.target.getWarbands(e.key).length]);
         for (const [key, warbands] of owners) {
             if (warbands === 0) continue;
             const min = Math.min(warbands, Math.max(0, this.amount - owners.filter(([k, _]) => k !== key).reduce((a, [_, v]) => a + Math.min(v, this.amount), 0)));
@@ -1143,7 +1144,7 @@ export class KillWarbandsOnTargetAction extends OathAction {
         
         for (const owner of this.game.players)
             if (this.parameters[owner.name])
-                new ParentToTargetEffect(this.game, this.player, this.target.getWarbands(owner.id, this.parameters[owner.name]![0]), owner.leader.bag).doNext();
+                new ParentToTargetEffect(this.game, this.player, this.target.getWarbands(owner.key, this.parameters[owner.name]![0]), owner.leader.bag).doNext();
     }
 }
 
@@ -1322,7 +1323,7 @@ export class PeoplesFavorWakeAction extends ChooseSuitsAction {
 
     putOrReturnFavor(suit: OathSuit | undefined): void {
         const bank = suit !== undefined ? this.game.favorBank(suit) : undefined;
-        new MoveResourcesToTargetEffect(this.game, this.player, Favor, 1, bank ?? this.player, this.banner).doNext();
+        new MoveResourcesToTargetEffect(this.game, this.player, Favor, 1, bank ?? this.banner, bank ? this.banner : this.player).doNext();
 
         if (this.banner.amount >= 6)
             new SetPeoplesFavorMobState(this.game, this.player, true).doNext();
@@ -1607,11 +1608,11 @@ export class VowOathAction extends OathAction {
     start(): boolean {
         const choices = new Map<string, OathType>();
         if (this.player instanceof Exile && this.player.vision) {
-            const oathType = this.player.vision.oath.id;
+            const oathType = this.player.vision.oath.key;
             choices.set(OathType[oathType], oathType);
         } else {
             for (let i: OathType = 0; i < 4; i++)
-                if (i !== this.game.oath.id)
+                if (i !== this.game.oath.key)
                     choices.set(OathType[i], i);
         }
         this.selects.oath = new SelectNOf("Oath", choices);

@@ -21,13 +21,13 @@ export class OathBoard extends Container<Region, string> {
         super("board", Region);
     }
 
-    get id() { return this._id; }
+    get key() { return this.id; }
 
     nextRegion(region: Region | undefined) {
         if (!region) return undefined;
-        const name = this.nextRegionKey.get(region.id);
+        const name = this.nextRegionKey.get(region.key);
         if (name === undefined) return undefined;
-        return this.byClass(Region).byId(name)[0];
+        return this.byClass(Region).byKey(name)[0];
     }
 
     *sites() {
@@ -39,7 +39,7 @@ export class OathBoard extends Container<Region, string> {
     serialize(): Record<string, any> {
         return {
             ...super.serialize(),
-            travelCosts: Object.fromEntries([...this.travelCosts.entries()].map(([k, v]) => [k, Object.fromEntries([...v.entries()])]))
+            travelCosts: [...this.travelCosts.entries()].map(([k, v]) => [k, [...v.entries()]])
         }
     }
 
@@ -52,18 +52,17 @@ export class OathBoard extends Container<Region, string> {
 
 export class Region extends OathGameObject<RegionKey> {
     type = "region";
-    _id: keyof typeof RegionKey;
+    id: keyof typeof RegionKey;
     size: number;
     discard: Discard;
 
     constructor(id: keyof typeof RegionKey) {
         if (!isEnumKey(id, RegionKey)) throw TypeError(`${id} is not a valid region key`);
         super(id);
-        this.size = RegionSize[this.id];
-        this.discard = this.addChild(new Discard(this._id));
+        this.size = RegionSize[this.key];
     }
 
-    get name() { return this._id; }
-    get id() { return RegionKey[this._id]; }
+    get name() { return this.id; }
+    get key() { return RegionKey[this.id]; }
     get sites() { return this.byClass(Site); }
 }

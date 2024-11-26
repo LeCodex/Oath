@@ -239,12 +239,12 @@ export class DataObject {
 }
 
 
-export abstract class TreeNode<RootType extends TreeRoot<RootType>, IdType = any> extends WithOriginal {
+export abstract class TreeNode<RootType extends TreeRoot<RootType>, KeyType = any> extends WithOriginal {
     /** Different objects of the same class MUST have different ids. */
-    _id: string;
+    id: string;
     children = new NodeGroup<TreeNode<RootType>>();
     /** Use {@linkcode typedParent()} to get a strongly typed version of this. */
-    parent: TreeNode<any>;
+    parent: TreeNode<RootType>;
     /** Used for serialization. General cateogrization. */
     abstract type: string;
     /** Used for serialization. If clients should skip rendering this object. */
@@ -252,12 +252,12 @@ export abstract class TreeNode<RootType extends TreeRoot<RootType>, IdType = any
 
     constructor(id: string) {
         super();
-        this._id = id;
+        this.id = id;
     }
 
     /** All objects in the tree share the same root, and same root type. */
     get root(): RootType { return this.parent?.root; }
-    abstract get id(): IdType;
+    abstract get key(): KeyType;
 
     unparent() {
         return this.root.addChild(this);
@@ -265,7 +265,7 @@ export abstract class TreeNode<RootType extends TreeRoot<RootType>, IdType = any
 
     prune() {
         this.parent?.children.delete(this);
-        this.root.removeFromLookup(this);
+        this.root?.removeFromLookup(this);
         (this.parent as any) = undefined;  // Pruned objects shouldn't be accessed anyways
     }
 
@@ -311,7 +311,8 @@ export abstract class TreeNode<RootType extends TreeRoot<RootType>, IdType = any
         return {
             type: this.type,
             class: this.constructor.name,
-            id: this._id,
+            id: this.id,
+            hidden: this.hidden,
             children: this.children.map(e => e.serialize()).filter(e => e !== undefined)
         };
     }
@@ -321,14 +322,17 @@ export abstract class TreeNode<RootType extends TreeRoot<RootType>, IdType = any
         if (obj.class !== this.constructor.name) throw TypeError(`Class parsing doesn't match: expected ${this.constructor.name}, got ${obj.class}`);
         if (obj.id !== this.id) throw TypeError(`Id parsing doesn't match: expected ${this.id}, got ${obj.id}`);
 
+        if (!obj.children) return;
+
         for (const child of obj.children) {
             let node = this.root.search(child.class, child.id);
             if (!node) {
+                console.warn(`Didn't find node of class ${child.class} and id ${child.id}`);
                 if (!allowCreation) throw TypeError(`Could not find node of class ${child.class} and id ${child.id}`);
-                node = this.root.create(obj.class, obj);
+                node = this.root.create(child.class, child);
             }
             if (node.parent !== this) this.addChild(node);
-            node.parse(child);
+            node.parse(child, allowCreation);
         }
     }
 }
@@ -344,7 +348,7 @@ export abstract class TreeRoot<RootType extends TreeRoot<RootType>> extends Tree
         super("root");
     }
 
-    get id(): "root" { return "root"; }
+    get key(): "root" { return "root"; }
     get root(): RootType { return this as any; }
 
     prune() {
@@ -364,19 +368,19 @@ export abstract class TreeRoot<RootType extends TreeRoot<RootType>> extends Tree
         delete classGroup[node.id];
     }
 
-    search<T extends TreeNode<RootType>>(cls: AbstractConstructor<T> | string, id: T["id"]): T | undefined {
+    search<T extends TreeNode<RootType>>(cls: AbstractConstructor<T> | string, id: T["key"]): T | undefined {
         const classGroup = this.root.lookup[typeof cls === "string" ? cls : cls.name];
         if (!classGroup) return undefined;
         return classGroup[id] as T;
     }
 
     create(cls: string, obj: Record<string, any>): TreeNode<RootType> {
-        if (!this.classIndex[cls]) throw TypeError(`Cannot create an node of class ${cls}`);
+        if (!this.classIndex[cls]) throw TypeError(`Cannot create a node of class ${cls}`);
         return new this.classIndex[cls](obj.id);
     }
 }
 
-export abstract class TreeLeaf<RootType extends TreeRoot<RootType>, IdType = any> extends TreeNode<RootType, IdType> {
+export abstract class TreeLeaf<RootType extends TreeRoot<RootType>, KeyType = any> extends TreeNode<RootType, KeyType> {
     children: NodeGroup<never>;
 
     addChild<T extends TreeNode<RootType, any>>(child: T): T {
@@ -426,8 +430,8 @@ export class NodeGroup<T extends TreeNode<any>> extends Array<T> {
         return new NodeGroup(...this.filter(e => e[key] === value));
     }
 
-    byId(id: T["id"]) {
-        return this.by("id", id);
+    byKey(key: T["key"]) {
+        return this.by("key", key);
     }
 
     max(amount: number) {

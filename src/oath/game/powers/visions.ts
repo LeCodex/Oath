@@ -1,7 +1,22 @@
-import { ChoosePlayersAction, ConspiracyStealAction } from "../actions/actions";
+import { CampaignDefenseAction, ChoosePlayersAction, ConspiracyStealAction } from "../actions/actions";
 import { Conspiracy, Denizen } from "../cards/cards";
+import { Oath } from "../oaths";
 import { OathPlayer } from "../player";
-import { WhenPlayed } from "./powers";
+import { ActionModifier, WhenPlayed } from "./powers";
+
+
+export class OathDefense extends ActionModifier<Oath, CampaignDefenseAction> {
+    name = "Oathkeeper"
+    modifiedAction = CampaignDefenseAction;
+
+    canUse(): boolean {
+        return this.activatorProxy === this.sourceProxy.parent;
+    }
+
+    applyBefore(): void {
+        this.action.campaignResult.params.defPool += this.gameProxy.isUsurper ? 2 : 1;
+    }
+}
 
 
 // NOTE: Visions are directly integrated in the WakeAction

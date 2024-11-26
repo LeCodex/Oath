@@ -14,7 +14,7 @@ import { CardDeck } from "../cards/decks";
 import { Constructor, isExtended, shuffleArray, TreeNode } from "../utils";
 import { D6, RollResult, Die, DieSymbol } from "../dice";
 import { Region } from "../board";
-import { edificeData } from "../cards/denizens";
+import { denizenData, edificeFlipside } from "../cards/denizens";
 
 
 
@@ -109,6 +109,7 @@ export class PutResourcesOnTargetEffect extends OathEffect<number> {
 
     serialize(): Record<string, any> {
         return {
+            ...super.serialize(),
             target: this.target?.name,
             resource: this.resource.name,
             amount: this.amount
@@ -148,6 +149,7 @@ export class MoveResourcesToTargetEffect extends OathEffect<number> {
 
     serialize(): Record<string, any> {
         return {
+            ...super.serialize(),
             source: this.source?.name,
             target: this.target?.name,
             resource: this.resource.name,
@@ -244,7 +246,7 @@ export class PayCostToBankEffect extends OathEffect<boolean> {
 
         this.result = true;
         if (this.suit) {
-            const bank = this.game.byClass(FavorBank).byId(this.suit)[0];
+            const bank = this.game.byClass(FavorBank).byKey(this.suit)[0];
             if (bank) {
                 const favorsToGive = this.cost.placedResources.get(Favor) || 0;
                 new MoveResourcesToTargetEffect(this.game, this.executor, Favor, favorsToGive, bank, this.source).doNext(result => { if (result < favorsToGive) this.result = false; });
@@ -297,6 +299,7 @@ export class FlipSecretsEffect extends OathEffect<number> {
 
     serialize(): Record<string, any> {
         return {
+            ...super.serialize(),
             source: this.source?.name,
             amount: this.amount,
             facedown: this.facedown
@@ -319,12 +322,13 @@ export class MoveWarbandsToEffect extends OathEffect<number> {
     }
 
     resolve(): void {
-        this.amount = this.source?.moveWarbandsTo(this.owner.id, this.target, this.amount) || 0;
+        this.amount = this.source?.moveWarbandsTo(this.owner.key, this.target, this.amount) || 0;
         this.result = this.amount;
     }
 
     serialize(): Record<string, any> {
         return {
+            ...super.serialize(),
             owner: this.owner.name,
             source: this.source?.name,
             target: this.target?.name,
@@ -352,6 +356,7 @@ export class MoveOwnWarbandsEffect extends PlayerEffect<number> {
 
     serialize(): Record<string, any> {
         return {
+            ...super.serialize(),
             owner: this.executor.name,
             source: this.from.name,
             target: this.to.name,
@@ -383,7 +388,7 @@ export class PutPawnAtSiteEffect extends PlayerEffect {
 
     serialize(): Record<string, any> {
         return {
-            player: this.executor.name,
+            ...super.serialize(),
             site: this.site.name
         };
     }
@@ -447,14 +452,14 @@ export class DrawFromDeckEffect<T extends OathCard> extends PlayerEffect<T[]> {
         this.skip = skip;
     }
 
-    resolve(): T[] {
+    resolve(): void {
         this.cards = this.deck.draw(this.amount, this.fromBottom, this.skip);
         for (const card of this.cards) {
             if (this.cards.length > 1) new ClearCardPeekEffect(this.executor, card).doNext();
             new PeekAtCardEffect(this.executor, card).doNext();
         }
 
-        return this.cards;
+        this.result = this.cards;
     }
 }
 
@@ -527,7 +532,7 @@ export class PlayDenizenAtSiteEffect extends PlayerEffect {
         if (this.revealedCard) this.card.reveal();
         
         // TODO: Put this in an effect?
-        const bank = this.game.byClass(FavorBank).byId(this.card.suit)[0];
+        const bank = this.game.byClass(FavorBank).byKey(this.card.suit)[0];
         for (const [resource, amount] of this.getting) {
             if (bank && resource === Favor)
                 new ParentToTargetEffect(this.game, this.executor, bank.byClass(Favor).max(amount)).doNext();
@@ -592,6 +597,7 @@ export class MoveWorldCardToAdvisersEffect extends OathEffect {
 
     serialize(): Record<string, any> {
         return {
+            ...super.serialize(),
             card: this.card.name,
             target: this.target?.name
         };
@@ -619,6 +625,7 @@ export class MoveDenizenToSiteEffect extends OathEffect {
 
     serialize(): Record<string, any> {
         return {
+            ...super.serialize(),
             card: this.card.name,
             target: this.target?.name
         };
@@ -692,7 +699,7 @@ export class DiscardCardEffect<T extends OathCard> extends PlayerEffect {
         new ParentToTargetEffect(this.game, this.executor, [this.card], this.discardOptions.discard, !this.discardOptions.onBottom).doNext();
         this.card.returnResources();
         for (const player of this.game.players)
-            new ParentToTargetEffect(this.game, player, this.card.getWarbands(player.id), player.bag).doNext();
+            new ParentToTargetEffect(this.game, player, this.card.getWarbands(player.key), player.bag).doNext();
     }
 }
 
@@ -718,7 +725,7 @@ export class TakeOwnableObjectEffect extends OathEffect {
 
     serialize(): Record<string, any> {
         return {
-            player: this.executor?.name,
+            ...super.serialize(),
             target: (this.target as unknown as ResourcesAndWarbands).name,
         };
     }
@@ -742,6 +749,7 @@ export class RollDiceEffect extends OathEffect<RollResult> {
 
     serialize(): Record<string, any> {
         return {
+            ...super.serialize(),
             die: this.die.name,
             result: Object.fromEntries(this.result.symbols.entries())
         };
@@ -759,40 +767,11 @@ export class CampaignJoinDefenderAlliesEffect extends PlayerEffect {
     resolve(): void {
         this.campaignResult.defenderAllies.add(this.executor);
     }
-
-    serialize(): Record<string, any> {
-        return {
-            player: this.executor.name
-        };
-    }
-}
-
-export class CampaignResolveSuccessfulAndSkullsEffect extends PlayerEffect {
-    action: CampaignDefenseAction;
-
-    constructor(action: CampaignDefenseAction) {
-        super(action.player);
-        this.action = action;
-    }
-    
-    resolve(): void {
-        const campaignResult = this.action.campaignResult;
-        campaignResult.successful = campaignResult.atk > campaignResult.def;
-
-        if (!campaignResult.params.ignoreKilling)
-            campaignResult.attackerKills(campaignResult.params.atkRoll.get(DieSymbol.Skull));
-    }
 }
 
 export class SetNewOathkeeperEffect extends PlayerEffect {
     resolve(): void {
         this.executor.addChild(this.game.oath);
-    }
-
-    serialize(): Record<string, any> {
-        return {
-            player: this.executor.name
-        };
     }
 }
 
@@ -806,12 +785,6 @@ export class SetUsurperEffect extends OathEffect {
 
     resolve(): void {
         this.game.isUsurper = this.usurper;
-    }
-
-    serialize(): Record<string, any> {
-        return {
-            usurper: this.usurper
-        };
     }
 }
 
@@ -836,7 +809,7 @@ export class PaySupplyEffect extends PlayerEffect<boolean> {
 
     serialize(): Record<string, any> {
         return {
-            player: this.executor.name,
+            ...super.serialize(),
             amount: this.amount
         };
     }
@@ -858,7 +831,7 @@ export class GainSupplyEffect extends PlayerEffect {
 
     serialize(): Record<string, any> {
         return {
-            player: this.executor.name,
+            ...super.serialize(),
             amount: this.amount
         };
     }
@@ -879,6 +852,7 @@ export class ChangePhaseEffect extends OathEffect {
 
     serialize(): Record<string, any> {
         return {
+            ...super.serialize(),
             phase: this.phase
         };
     }
@@ -936,12 +910,12 @@ export class BecomeCitizenEffect extends PlayerEffect {
         if (!(this.executor instanceof Exile) || this.executor.isCitizen) return;
         this.resolved = true;
         
-        const amount = this.executor.getWarbandsAmount(this.executor.id);
-        new ParentToTargetEffect(this.game, this.executor, this.executor.getWarbands(this.executor.id), this.executor.bag).doNext();
+        const amount = this.executor.getWarbandsAmount(this.executor.key);
+        new ParentToTargetEffect(this.game, this.executor, this.executor.getWarbands(this.executor.key), this.executor.bag).doNext();
         new ParentToTargetEffect(this.game, this.game.chancellor, this.game.chancellor.bag.get(amount), this.executor).doNext();
         for (const site of this.game.board.sites()) {
-            const amount = site.getWarbandsAmount(this.executor.id);
-            new ParentToTargetEffect(this.game, this.executor, site.getWarbands(this.executor.id), this.executor.bag).doNext();
+            const amount = site.getWarbandsAmount(this.executor.key);
+            new ParentToTargetEffect(this.game, this.executor, site.getWarbands(this.executor.key), this.executor.bag).doNext();
             new ParentToTargetEffect(this.game, this.game.chancellor, this.game.chancellor.bag.get(amount), site).doNext();
         }
 
@@ -949,12 +923,6 @@ export class BecomeCitizenEffect extends PlayerEffect {
         this.executor.isCitizen = true;
         new GainSupplyEffect(this.executor, Infinity).doNext();
         if (this.game.currentPlayer === this.executor) new RestAction(this.executor).doNext();
-    }
-
-    serialize(): Record<string, any> {
-        return {
-            player: this.executor.name
-        };
     }
 }
 
@@ -971,12 +939,6 @@ export class BecomeExileEffect extends PlayerEffect {
         new ParentToTargetEffect(this.game, this.executor, this.executor.bag.get(amount), this.executor).doNext();
 
         if (this.game.currentPlayer === this.executor) new RestAction(this.executor).doNext();
-    }
-
-    serialize(): Record<string, any> {
-        return {
-            player: this.executor.name
-        };
     }
 }
 
@@ -995,6 +957,7 @@ export class PutDenizenIntoDispossessedEffect extends OathEffect {
 
     serialize(): Record<string, any> {
         return {
+            ...super.serialize(),
             card: this.denizen.name
         };
     }
@@ -1013,6 +976,7 @@ export class GetRandomCardFromDispossessed extends OathEffect<Denizen> {
 
     serialize(): Record<string, any> {
         return {
+            ...super.serialize(),
             card: this.denizen.name
         };
     }
@@ -1040,6 +1004,7 @@ export class SetPeoplesFavorMobState extends OathEffect {
 
     serialize(): Record<string, any> {
         return {
+            ...super.serialize(),
             state: this.state
         };
     }
@@ -1137,7 +1102,7 @@ export class TakeReliquaryRelicEffect extends PlayerEffect {
 
     serialize(): Record<string, any> {
         return {
-            player: this.executor.name,
+            ...super.serialize(),
             relic: this.relic?.name
         };
     }
@@ -1159,12 +1124,6 @@ export class WinGameEffect extends PlayerEffect {
         
         new FinishChronicleEffect(this.executor).doNext();
     }
-
-    serialize(): Record<string, any> {
-        return {
-            player: this.executor.name
-        };
-    }
 }
 
 export class BuildEdificeFromDenizenEffect extends OathEffect {
@@ -1181,7 +1140,8 @@ export class BuildEdificeFromDenizenEffect extends OathEffect {
         if (!this.denizen.site) throw new InvalidActionResolution("Card is not at a site");
         this.site = this.denizen.site;
             
-        for (const [key, [_, ...data]] of Object.entries(edificeData)) {
+        for (const key of Object.keys(edificeFlipside)) {
+            const data = denizenData[key]!;
             const suit = data[0];
             if (suit === this.denizen.suit) {
                 this.edifice = new Edifice(key),
@@ -1195,6 +1155,7 @@ export class BuildEdificeFromDenizenEffect extends OathEffect {
 
     serialize(): Record<string, any> {
         return {
+            ...super.serialize(),
             denizen: this.denizen.name,
             edifice: this.edifice.name
         };
@@ -1213,7 +1174,7 @@ export class FlipEdificeEffect extends OathEffect {
     resolve(): void {
         if (!this.edifice.site) throw new InvalidActionResolution("Card is not at a site (How?)");
 
-        for (const [key, [other, ..._]] of Object.entries(edificeData)) {
+        for (const [key, other] of Object.entries(edificeFlipside)) {
             if (key === this.edifice.name) {
                 this.newEdifice = new Edifice(other);
                 new ParentToTargetEffect(this.game, this.executor, [this.newEdifice], this.edifice.site).doNext();
@@ -1227,6 +1188,7 @@ export class FlipEdificeEffect extends OathEffect {
 
     serialize(): Record<string, any> {
         return {
+            ...super.serialize(),
             edifice: this.edifice.name,
             newEdifice: this.newEdifice.name
         };
@@ -1394,7 +1356,7 @@ export class FinishChronicleEffect extends PlayerEffect {
 
         new DiscardCardGroupEffect(this.executor, firstDiscard.children, worldDeckDiscardOptions).doNext(() => {
             worldDeck.shuffle();
-    
+
             // Rebuild the World Deck
             const visions: VisionBack[] = [];
             const topPile: WorldCard[] = [];
@@ -1417,7 +1379,7 @@ export class FinishChronicleEffect extends PlayerEffect {
             worldDeck.addChildren(middlePile);
             worldDeck.addChildren(topPile);
     
-            this.game.updateSeed(this.executor.id);
+            this.game.updateSeed(this.executor.key);
         });
     }
 }

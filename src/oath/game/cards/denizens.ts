@@ -8,7 +8,7 @@ import { ArmedMob, ARoundOfAle, AwaitedReturn, BallotBox, BookBinders, CharmingF
 import { AnimalHost, AnimalPlaymates, Birdsong, Bracken, ErrandBoy, FaeMerchant, ForestCouncilMuster, ForestCouncilTrade, ForestPaths, ForestTemple, GiantPython, GraspingVines, InsectSwarmAttack, InsectSwarmDefense, LongLostHeir, MarshSpirit, MemoryOfNature, Mushrooms, NatureWorshipAttack, NatureWorshipDefense, NewGrowth, PiedPiper, Rangers, RovingTerror, RuinedTemple, SecondChance, SmallFriends, TheOldOak, ThreateningRoar, TrueNamesAttack, TrueNamesDefense, VowOfBeastkin, VowOfPoverty, VowOfPovertyRest, VowOfUnionAttack, VowOfUnionTravel, WalledGarden, WarTortoiseAttack, WarTortoiseDefense, WildAllies, WildCry, Wolves } from "../powers/denizens/beast";
 import { AFastSteed, AncientBinding, AncientBloodlineAction, AncientBloodlineEffect, AncientBloodlineRelics, AncientForge, AncientPact, BrokenForge, Convoys, Elders, FaithfulFriend, FamilyWagon, GreatCrusadeAttack, GreatCrusadeDefense, GreatHerd, HorseArchersAttack, HorseArchersDefense, Hospitality, Lancers, LostTongue, LostTongueCampaign, MountainGiantAttack, MountainGiantDefense, MountedPatrol, Oracle, Pilgrimage, RainBoots, RelicWorship, Resettle, RivalKhanAttack, RivalKhanDefense, SacredGround, SpecialEnvoy, SpellBreaker, StormCaller, Tents, TwinBrother, VowOfKinshipBurn, VowOfKinshipGain, VowOfKinshipGive, VowOfKinshipWhenPlayed, WarningSignals, WayStation } from "../powers/denizens/nomad";
 import { Constructor } from "../utils";
-import { Denizen, Edifice } from "./cards";
+import { Denizen } from "./cards";
 
 export type DenizenData = [OathSuit, Constructor<OathPower<Denizen>>[], CardRestriction?, boolean?];
 
@@ -216,24 +216,43 @@ export const denizenData: Record<string, DenizenData> = {
     AFastSteed:         [OathSuit.Nomad,    [AFastSteed]],
     RelicWorship:       [OathSuit.Nomad,    [RelicWorship]],
     TheGathering:       [OathSuit.Nomad,    []],
+    
+    // EDIFICES //
+    FestivalDistrict:   [OathSuit.Discord,  [],                 CardRestriction.Site, true],
+    SqualidDistrict:    [OathSuit.None,     [SqualidDistrict],  CardRestriction.Site, true],
+
+    GreatSpire:         [OathSuit.Arcane,   [GreatSpire],       CardRestriction.Site, true],
+    FallenSpire:        [OathSuit.None,     [FallenSpire],      CardRestriction.Site, true],
+
+    SprawlingRampart:   [OathSuit.Order,    [SprawlingRampart], CardRestriction.Site, true],
+    BanditRampart:      [OathSuit.None,     [BanditRampart],    CardRestriction.Site, true],
+
+    HallOfDebate:       [OathSuit.Hearth,   [HallOfDebate],     CardRestriction.Site, true],
+    HallOfMockery:      [OathSuit.None,     [HallOfMockery],    CardRestriction.Site, true],
+
+    ForestTemple:       [OathSuit.Beast,    [ForestTemple],     CardRestriction.Site, true],
+    RuinedTemple:       [OathSuit.None,     [RuinedTemple],     CardRestriction.Site, true],
+
+    AncientForge:       [OathSuit.Nomad,    [AncientForge],     CardRestriction.Site, true],
+    BrokenForge:        [OathSuit.None,     [BrokenForge],      CardRestriction.Site, true]
 }
 
-export const edificeData: Record<string, [string, OathSuit, Constructor<OathPower<Edifice>>[]]> = {
-    FestivalDistrict:   ["SqualidDistrict",     OathSuit.Discord,   []],
-    SqualidDistrict:    ["FestivalDistrict",    OathSuit.None,      [SqualidDistrict]],
+export const edificeFlipside: Record<keyof typeof denizenData, keyof typeof denizenData> = {
+    FestivalDistrict:   "SqualidDistrict",
+    SqualidDistrict:    "FestivalDistrict",
 
-    GreatSpire:         ["FallenSpire",         OathSuit.Arcane,    [GreatSpire]],
-    FallenSpire:        ["GreatSpire",          OathSuit.None,      [FallenSpire]],
+    GreatSpire:         "FallenSpire",
+    FallenSpire:        "GreatSpire",
 
-    SprawlingRampart:   ["BanditRampart",       OathSuit.Order,     [SprawlingRampart]],
-    BanditRampart:      ["SprawlingRampart",    OathSuit.None,      [BanditRampart]],
+    SprawlingRampart:   "BanditRampart",
+    BanditRampart:      "SprawlingRampart",
 
-    HallOfDebate:       ["HallOfMockery",       OathSuit.Hearth,    [HallOfDebate]],
-    HallOfMockery:      ["HallOfDebate",        OathSuit.None,      [HallOfMockery]],
+    HallOfDebate:       "HallOfMockery",
+    HallOfMockery:      "HallOfDebate",
 
-    ForestTemple:       ["RuinedTemple",        OathSuit.Beast,     [ForestTemple]],
-    RuinedTemple:       ["ForestTemple",        OathSuit.None,      [RuinedTemple]],
+    ForestTemple:       "RuinedTemple",
+    RuinedTemple:       "ForestTemple",
 
-    AncientForge:       ["BrokenForge",         OathSuit.Nomad,     [AncientForge]],
-    BrokenForge:        ["AncientForge",        OathSuit.None,      [BrokenForge]]
+    AncientForge:       "BrokenForge",
+    BrokenForge:        "AncientForge",
 }

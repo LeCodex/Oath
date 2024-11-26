@@ -154,10 +154,7 @@ export class RelicThief extends EnemyEffectModifier<Denizen, TakeOwnableObjectEf
                         if (!success) throw cost.cannotPayError;
                         
                         new RollDiceEffect(this.game, rulerProxy.original, DefenseDie, 1).doNext(result => {
-                            new ResolveCallbackAction(
-                                rulerProxy.original,
-                                () => { if (result.value === 0) new TakeOwnableObjectEffect(this.game, rulerProxy.original, this.effect.target).doNext(); }
-                            ).doNext();
+                            if (result.value === 0) new TakeOwnableObjectEffect(this.game, rulerProxy.original, this.effect.target).doNext();
                         });
                     });
                 }
@@ -174,7 +171,7 @@ export class KeyToTheCity extends WhenPlayed<Denizen> {
         if (this.sourceProxy.site.ruler?.site === this.sourceProxy.site) return;
 
         for (const player of this.game.players)
-            new ParentToTargetEffect(this.game, player, this.source.site.getWarbands(player.id), player.bag).doNext();
+            new ParentToTargetEffect(this.game, player, this.source.site.getWarbands(player.key), player.bag).doNext();
 
         new ParentToTargetEffect(this.game, this.effect.executor, this.effect.executorProxy.leader.original.bag.get(1), this.source.site).doNext();
     }
@@ -264,7 +261,7 @@ export class GamblingHall extends ActivePower<Denizen> {
 
     usePower(): void {
         new RollDiceEffect(this.game, this.action.player, DefenseDie, 4).doNext(result => {
-            new ResolveCallbackAction(this.action.player, () => new TakeFavorFromBankAction(this.action.player, result.value)).doNext();
+            new TakeFavorFromBankAction(this.action.player, result.value);
         });
     }
 }
@@ -431,7 +428,7 @@ export class FalseProphetWake extends WakePower<Denizen> {
         if (this.action.playerProxy?.isImperial) return true;
 
         for (const player of this.game.players) {
-            if (player instanceof Exile && player.vision && player.vision.getWarbandsAmount(this.action.player.id) > 0) {
+            if (player instanceof Exile && player.vision && player.vision.getWarbandsAmount(this.action.player.key) > 0) {
                 const candidates = player.vision.oath.getOathkeeperCandidates();
                 if (candidates.size === 1 && candidates.has(this.action.player)) {
                     new WinGameEffect(this.action.player).doNext();
@@ -485,7 +482,7 @@ export class Downtrodden extends AccessedActionModifier<Denizen, MusterAction> {
     modifiedAction = MusterAction;
 
     applyBefore(): void {
-        let minSuits = minInGroup(this.game.byClass(FavorBank), "amount").map(e => e.id);
+        let minSuits = minInGroup(this.game.byClass(FavorBank), "amount").map(e => e.key);
         if (minSuits.length === 1 && minSuits[0] === this.action.cardProxy.suit)
             this.action.getting += 2;
     }

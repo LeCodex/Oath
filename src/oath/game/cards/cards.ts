@@ -21,8 +21,8 @@ export abstract class OathCard extends ResourcesAndWarbands<string> implements W
     seenBy: Set<OathPlayer> = new Set();
     powers: Set<Constructor<OathPower<OathCard>>>;
 
-    get name() { return this.id; }
-    get id() { return this._id; }
+    get name() { return this.key; }
+    get key() { return this.id; }
     get active(): boolean { return !this.facedown; }
 
     constructor(id: string, powers: Iterable<Constructor<OathPower<OathCard>>>) {
@@ -60,14 +60,14 @@ export abstract class OathCard extends ResourcesAndWarbands<string> implements W
         return {
             ...super.serialize(),
             facedown: this.facedown,
-            seenBy: [...this.seenBy].map(e => e.id)
+            seenBy: [...this.seenBy].map(e => e.key)
         };
     }
 
     parse(obj: Record<string, any>, allowCreation?: boolean): void {
         super.parse(obj, allowCreation);
         this.facedown = obj.facedown;
-        this.seenBy = new Set(this.game.players.filter(e => obj.seenBy.includes(e.id)));
+        this.seenBy = new Set(this.game.players.filter(e => obj.seenBy.includes(e.key)));
     }
 }
 
@@ -105,7 +105,7 @@ export class Site extends OathCard implements CampaignActionTarget {
     get ruler(): OathPlayer | undefined {
         let max = 0, ruler = undefined;
         for (const player of this.game.players) {
-            const amount = this.getWarbandsAmount(player.id);
+            const amount = this.getWarbandsAmount(player.key);
             if (amount > max) {
                 max = amount;
                 ruler = player;
@@ -143,7 +143,7 @@ export class Site extends OathCard implements CampaignActionTarget {
     }
 
     inRegion(regionKey: RegionKey) {
-        return this.region?.id === regionKey;
+        return this.region?.key === regionKey;
     }
 
     seize(player: OathPlayer) {
@@ -261,13 +261,13 @@ export class Denizen extends WorldCard implements AtSite {
         super.returnResources();
         const favor = this.byClass(Favor);
         if (favor.length)
-            new ParentToTargetEffect(this.game, this.game.currentPlayer, favor, this.game.byClass(FavorBank).byId(this.suit)[0]).doNext();
+            new ParentToTargetEffect(this.game, this.game.currentPlayer, favor, this.game.byClass(FavorBank).byKey(this.suit)[0]).doNext();
     }
 
     serialize(): Record<string, any> {
         return {
             ...super.serialize(),
-            suit: this._suit,
+            suit: OathSuit[this._suit],
             restriction: this.restriction,
             locked: this.activelyLocked
         };
@@ -286,7 +286,7 @@ export abstract class VisionBack extends WorldCard {
 }
 
 export class Vision extends VisionBack {
-    _id: keyof typeof OathType;
+    id: keyof typeof OathType;
     oath: Oath;
 
     constructor(id: keyof typeof OathType) {
@@ -294,7 +294,7 @@ export class Vision extends VisionBack {
         this.oath = new OathTypeToOath[id]();
     }
 
-    get id() { return `VisionOf${OathTypeVisionName[this._id]}`; }
+    get key() { return `VisionOf${OathTypeVisionName[this.id]}`; }
 }
 
 export class Conspiracy extends VisionBack {

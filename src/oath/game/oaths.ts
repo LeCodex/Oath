@@ -1,25 +1,29 @@
 import { DarkestSecret, PeoplesFavor } from "./banks";
 import { OathType, isEnumKey } from "./enums";
 import { OathGameObject } from "./gameObject";
-import { OwnableObject } from "./interfaces";
+import { OwnableObject, WithPowers } from "./interfaces";
 import { OathPlayer } from "./player";
+import { OathDefense } from "./powers/visions";
 
 
-export abstract class Oath extends OathGameObject<OathType> implements OwnableObject {
+export abstract class Oath extends OathGameObject<OathType> implements OwnableObject, WithPowers {
     type = "oath";
-    _id: keyof typeof OathType;
-    abstract setup(): void;
-    abstract scoreForOathkeeper(player: OathPlayer): number;
-    abstract scoreForSuccessor(player: OathPlayer): number;
-
+    id: keyof typeof OathType;
+    active = true;
+    powers = new Set([OathDefense]);
+    
     constructor(id: keyof typeof OathType) {
         if (!isEnumKey(id, OathType)) throw TypeError(`${id} is not a valid oath type`);
         super(id);
     }
-
-    get id() { return OathType[this._id]; }
+    
+    get key() { return OathType[this.id]; }
     get owner() { return this.typedParent(OathPlayer); }
-
+    
+    abstract setup(): void;
+    abstract scoreForOathkeeper(player: OathPlayer): number;
+    abstract scoreForSuccessor(player: OathPlayer): number;
+    
     setOwner(player?: OathPlayer): void {
         player?.addChild(this);
     }

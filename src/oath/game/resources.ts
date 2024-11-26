@@ -13,7 +13,7 @@ export abstract class OathResource extends OathGameObjectLeaf<number> {
         super(id ?? String(resourceId++));
     }
 
-    get id() { return Number(this._id); }
+    get key() { return Number(this.id); }
 
     abstract burn(): void;
     static gain(target: OathGameObject, amount: number): void { };
@@ -69,7 +69,7 @@ export class OathWarband extends OathGameObjectLeaf<number> {
         return this;
     }
 
-    get id() { return Number(this._id); }
+    get key() { return Number(this.id); }
 
     serialize(): Record<string, any> | undefined {
         return {
@@ -99,16 +99,16 @@ export abstract class ResourcesAndWarbands<T = any> extends OathGameObject<T> {
 
     getWarbandsAmount(color?: PlayerColor): number {
         if (!color) return 0;
-        return this.warbands.byId(color).length;
+        return this.warbands.byKey(color).length;
     }
 
     putWarbands(color: PlayerColor, amount: number): number {
-        this.game.players.byId(color)[0]?.bag.moveChildrenTo(this, amount);
+        this.game.players.byKey(color)[0]?.bag.moveChildrenTo(this, amount);
         return this.getWarbandsAmount(color);
     }
 
     getWarbands(color: PlayerColor, amount: number = Infinity) {
-        const warbands = this.warbands.byId(color);
+        const warbands = this.warbands.byKey(color);
         amount = Math.min(warbands.length, amount);
         return warbands.max(amount);
     }
@@ -124,7 +124,7 @@ export abstract class ResourcesAndWarbands<T = any> extends OathGameObject<T> {
             new BurnResourcesEffect(this.game, undefined, resource, Infinity, this).doNext();
 
         for (const player of this.game.players)
-            new ParentToTargetEffect(this.game, player, this.getWarbands(player.id), player.bag).doNext();
+            new ParentToTargetEffect(this.game, player, this.getWarbands(player.key), player.bag).doNext();
     }
 
     serialize(): Record<string, any> | undefined {

@@ -3,7 +3,7 @@ import { CampaignActionTarget, AtSite } from "./interfaces";
 import { Denizen, OwnableCard, Relic, Site, Vision, WorldCard } from "./cards/cards";
 import { Discard, DiscardOptions } from "./cards/decks";
 import { BurnResourcesEffect, FlipSecretsEffect, GainSupplyEffect } from "./actions/effects";
-import { isEnumKey, OathSuit, PlayerColor } from "./enums";
+import { ALL_OATH_SUITS, isEnumKey, OathSuit, PlayerColor } from "./enums";
 import { OathWarband, ResourcesAndWarbands, Favor, OathResourceType } from "./resources";
 import { Container } from "./gameObject";
 import { Banner } from "./banks";
@@ -11,7 +11,7 @@ import { Reliquary } from "./reliquary";
 
 export class WarbandsSupply extends Container<OathWarband, PlayerColor> {
     type = "bag";
-    _id: keyof typeof PlayerColor;
+    id: keyof typeof PlayerColor;
     hidden = true;
 
     constructor(id: keyof typeof PlayerColor) {
@@ -19,12 +19,12 @@ export class WarbandsSupply extends Container<OathWarband, PlayerColor> {
         super(id, OathWarband);
     }
 
-    get id() { return PlayerColor[this._id]; }
+    get key() { return PlayerColor[this.id]; }
 }
 
 export abstract class OathPlayer extends ResourcesAndWarbands<PlayerColor> implements CampaignActionTarget, AtSite {
     type = "player";
-    _id: keyof typeof PlayerColor;
+    id: keyof typeof PlayerColor;
     bagAmount: number = 14;
     supply: number = 7;
     site: Site;
@@ -36,11 +36,9 @@ export abstract class OathPlayer extends ResourcesAndWarbands<PlayerColor> imple
     constructor(id: keyof typeof PlayerColor) {
         if (!isEnumKey(id, PlayerColor)) throw TypeError(`${id} is not a valid player color`);
         super(id);
-        this.bag = this.addChild(new WarbandsSupply(id));
-        for (let i = 0; i < this.bagAmount; i ++) this.bag.addChild(new OathWarband().colorize(this.id));
     }
 
-    get id() { return PlayerColor[this._id]; }
+    get key() { return PlayerColor[this.id]; }
     get advisers() { return this.byClass(WorldCard); }
     get denizens() { return this.byClass(Denizen); }
     get relics() { return this.byClass(Relic); }
@@ -50,7 +48,7 @@ export abstract class OathPlayer extends ResourcesAndWarbands<PlayerColor> imple
     get leader(): OathPlayer { return this.isImperial ? this.game.chancellor : this; }
     get discard(): Discard | undefined { return this.game.board.nextRegion(this.site.region)?.discard || this.site.region?.discard; }
     get discardOptions() { return new DiscardOptions(this.discard ?? this.game.worldDeck); }
-    get ruledSuits(): number { return [0, 1, 2, 3, 4, 5].reduce((a, e) => a + (this.suitRuledCount(e) > 0 ? 1 : 0), 0); }
+    get ruledSuits(): number { return ALL_OATH_SUITS.reduce((a, e) => a + (this.suitRuledCount(e) > 0 ? 1 : 0), 0); }
     get ruledSites(): number { return [...this.game.board.sites()].reduce((a, e) => a + (e.ruler === this ? 1 : 0), 0); }
 
     getAllResources(type: OathResourceType): number {
@@ -96,7 +94,7 @@ export abstract class OathPlayer extends ResourcesAndWarbands<PlayerColor> imple
     }
 
     moveOwnWarbands(from: ResourcesAndWarbands, to: ResourcesAndWarbands, amount: number): number {
-        return from.moveWarbandsTo(this.id, to, amount);
+        return from.moveWarbandsTo(this.key, to, amount);
     }
 
     gainSupply(amount: number) {
@@ -159,7 +157,6 @@ export class Chancellor extends OathPlayer {
 
     constructor() {
         super("Purple");
-        this.reliquary = this.addChild(new Reliquary());
     }
 
     get isImperial(): boolean { return true; }
@@ -179,13 +176,13 @@ export class Chancellor extends OathPlayer {
 
 export class VisionSlot extends Container<Vision, PlayerColor> {
     type = "visionSlot";
-    _id: keyof typeof PlayerColor;
+    id: keyof typeof PlayerColor;
 
     constructor(id: keyof typeof PlayerColor) {
         super(id, Vision);
     }
 
-    get id() { return PlayerColor[this._id]; }
+    get key() { return PlayerColor[this.id]; }
 }
 
 export class Exile extends OathPlayer {
@@ -196,7 +193,6 @@ export class Exile extends OathPlayer {
     constructor(id: keyof typeof PlayerColor) {
         super(id);
         this.name = id + "Exile";
-        this.visionSlot = this.addChild(new VisionSlot(id));
     }
 
     get isImperial(): boolean { return this.isCitizen; }

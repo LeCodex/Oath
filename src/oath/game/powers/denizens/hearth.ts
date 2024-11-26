@@ -310,12 +310,11 @@ export class LandWarden extends AccessedActionModifier<Denizen, SearchChooseActi
         return true;
     }
 
-    applyAfter(): void {
-        if (this.action.playing.length > 1)
-            new ResolveCallbackAction(this.action.player, () => {
-                for (const playing of this.action.playing) if (playing instanceof Denizen && playing.site) return;
-                throw new InvalidActionResolution("Must play a card to a site with Land Warden");
-            }).doNext();
+    applyAtEnd(): void {
+        if (this.action.playing.length > 1) {
+            for (const playing of this.action.playing) if (playing instanceof Denizen && playing.site) return;
+            throw new InvalidActionResolution("Must play a card to a site with Land Warden");
+        }
     }
 }
 

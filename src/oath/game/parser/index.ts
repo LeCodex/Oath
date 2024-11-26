@@ -3,8 +3,7 @@
  *  Adapted to fit into the rest of the system
 */
 
-import { PlayerColor } from '../enums';
-import { OathTypeToOath } from '../oaths';
+import { OathType, PlayerColor } from '../enums';
 import {
   CardData,
   CardName,
@@ -311,7 +310,7 @@ export function parseOathTTSSavefileString(saveDataString: string): OathGameData
 
     // parse the oath from the game
     game.oath = getHexByIndex(SavefileDataType.OathType);
-    if(!(game.oath in OathTypeToOath)) throw new Error(`Invalid Oath value was found while parsing the savefile: ${game.oath}`);
+    if(!(game.oath in OathType)) throw new Error(`Invalid Oath value was found while parsing the savefile: ${game.oath}`);
 
     // Load suit order. This is unused in retail Oath but still
     // part of the save file format.

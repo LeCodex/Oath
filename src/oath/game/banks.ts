@@ -19,7 +19,7 @@ export abstract class ResourceBank<U = any> extends ResourcesAndWarbands<U> {
 }
 
 export class FavorBank extends ResourceBank<OathSuit> {
-    _id: keyof typeof OathSuit;
+    id: keyof typeof OathSuit;
     type = "favorBank";
     name: string;
     resourceType = Favor;
@@ -30,7 +30,7 @@ export class FavorBank extends ResourceBank<OathSuit> {
         this.name = id + " Bank";
     }
 
-    get id() { return OathSuit[this._id]; }
+    get key() { return OathSuit[this.id]; }
 }
 
 export abstract class Banner extends ResourceBank<string> implements RecoverActionTarget, CampaignActionTarget, WithPowers, OwnableObject {
@@ -40,7 +40,7 @@ export abstract class Banner extends ResourceBank<string> implements RecoverActi
     active = true;
     min = 1;
 
-    get id() { return this._id; }
+    get key() { return this.id; }
     get owner() { return this.typedParent(OathPlayer); }
     get defense() { return this.amount; }
     get force() { return this.owner; }
@@ -92,7 +92,7 @@ export class PeoplesFavor extends Banner {
 
                 let amount = this.amount;
                 while (amount > 0) {
-                    const bank = this.game.byClass(FavorBank).byId(suit)[0];
+                    const bank = this.game.byClass(FavorBank).byKey(suit)[0];
                     if (bank) {
                         new MoveResourcesToTargetEffect(this.game, player, bank.resourceType, 1, bank).doNext();
                         amount--;

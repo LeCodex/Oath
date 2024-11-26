@@ -290,18 +290,18 @@ export class RelicHunter extends AttackerBattlePlan<Denizen> {
         }
     }
 }
-export class RelicWrapper extends OathGameObject<Relic["id"]> implements CampaignActionTarget {
+export class RelicWrapper extends OathGameObject<Relic["key"]> implements CampaignActionTarget {
     type = "relic";
     defense = 1;
     force = undefined;
     relic: Relic;
 
     constructor(relic: Relic) {
-        super(relic._id);
+        super(relic.id);
         this.relic = relic;
     }
 
-    get id() { return this.relic.id; }
+    get key() { return this.relic.key; }
 
     seize(player: OathPlayer): void {
         this.relic.seize(player);
@@ -486,7 +486,7 @@ export class Garrison extends WhenPlayed<Denizen> {
             this.effect.executor, "Place a warband on each site you rule",
             (sites: Site[]) => { for (const site of sites) new MoveOwnWarbandsEffect(leader, this.effect.executor, site).doNext() },
             [sites],
-            [[Math.min(sites.size, this.effect.executor.getWarbandsAmount(leader.id))]]
+            [[Math.min(sites.size, this.effect.executor.getWarbandsAmount(leader.key))]]
         ).doNext();
     }
 }

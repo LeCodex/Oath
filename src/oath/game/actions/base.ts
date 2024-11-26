@@ -61,7 +61,7 @@ export abstract class OathAction {
 
     abstract execute(): void;
 
-    serialize(): Record<string, any> {
+    serialize(): Record<string, any> | undefined {
         return {
             message: this.message,
             player: this.player.id,
@@ -163,14 +163,14 @@ export abstract class ModifiableAction extends OathAction {
 
     execute() {
         for (const modifier of this.modifiers) modifier.applyBefore();
-        new ResolveCallbackAction(this.player, () => this.modifiedExecution()).doNext(); // This allows actions to be slotted before the actual resolution of the action
+        new ResolveCallbackAction(this.game, () => this.modifiedExecution()).doNext(); // This allows actions to be slotted before the actual resolution of the action
         for (const modifier of this.modifiers) modifier.applyAfter();
-        new ResolveCallbackAction(this.player, () => { for (const modifier of this.modifiers) modifier.applyAtEnd(); }).doNext();
+        new ResolveCallbackAction(this.game, () => { for (const modifier of this.modifiers) modifier.applyAtEnd(); }).doNext();
     }
 
     abstract modifiedExecution(): void;
 
-    serialize(): Record<string, any> {
+    serialize(): Record<string, any> | undefined {
         return {
             ...super.serialize(),
             modifiers: this.modifiers.map(e => e.serialize())
@@ -180,11 +180,10 @@ export abstract class ModifiableAction extends OathAction {
 
 export class ResolveCallbackAction extends OathAction {
     readonly message = "";
-
     callback: () => void;
 
-    constructor(player: OathPlayer, callback: () => void) {
-        super(player);
+    constructor(game: OathGame, callback: () => void) {
+        super(game.currentPlayer);
         this.callback = callback;
     }
 
@@ -204,7 +203,7 @@ export abstract class OathEffect<T = never> extends ModifiableAction {
 
     executor: OathPlayer | undefined;
     callback?: (e: T) => void;
-    result?: T;
+    result: T;
     executorProxy: OathPlayer | undefined;
 
     constructor(game: OathGame, executor: OathPlayer | undefined) {
@@ -221,7 +220,12 @@ export abstract class OathEffect<T = never> extends ModifiableAction {
 
     execute(): void {
         super.execute();
-        new ResolveCallbackAction(this.player, () => { if (this.callback && this.result !== undefined && this.result !== null) this.callback(this.result); }).doNext();
+        new ResolveCallbackAction(this.game, () => {
+            if (this.callback) {
+                console.log("Calling callback of " + this.constructor.name);
+                this.callback(this.result);
+            }
+        }).doNext();
     }
 
     modifiedExecution(): void {
@@ -229,12 +233,19 @@ export abstract class OathEffect<T = never> extends ModifiableAction {
         this.resolve();
     }
 
-    relay(effect: OathEffect<T>) {
-        effect.doNext(this.callback);
-        this.callback = undefined;
-    }
-
     abstract resolve(): void;
+
+    serialize(): Record<string, any> | undefined {
+        const data = {
+            ...super.serialize(),
+            effect: this.constructor.name,
+            player: this.executor?.id,
+            message: undefined,
+            selects: undefined,
+            modifiers: undefined
+        };
+        return data;
+    }
 }
 
 export abstract class PlayerEffect<T = never> extends OathEffect<T> {

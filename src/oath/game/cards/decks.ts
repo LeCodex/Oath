@@ -12,7 +12,7 @@ export abstract class CardDeck<T extends OathCard, U = any> extends Container<T,
     draw(amount: number, fromBottom: boolean = false, skip: number = 0): T[] {
         // Why such an involved process instead of just using splice? To make sure the draws are in correct order for reverting
         amount = Math.min(this.children.length - skip, amount);
-        let cards: T[] = [];
+        const cards: T[] = [];
         for (let i = 0; i < amount; i++) {
             const card = this.drawSingleCard(fromBottom, skip);
             if (card) cards.push(card);
@@ -43,7 +43,7 @@ export class RelicDeck extends CardDeck<Relic, string> {
         super("relicDeck", Relic);
     }
 
-    get id() { return this._id; }
+    get key() { return this.id; }
 }
 export class SiteDeck extends CardDeck<Site, string> {
     name = "Site Deck";
@@ -53,7 +53,7 @@ export class SiteDeck extends CardDeck<Site, string> {
         super("siteDeck", Site);
     }
 
-    get id() { return this._id; }
+    get key() { return this.id; }
 }
 
 export abstract class SearchableDeck<T = any> extends CardDeck<WorldCard, T> {
@@ -80,7 +80,7 @@ export class WorldDeck extends SearchableDeck<string> {
         super("worldDeck");
     }
 
-    get id() { return this._id; }
+    get key() { return this.id; }
 
     draw(amount: number, fromBottom: boolean = false, skip: number = 0): WorldCard[] {
         for (let i = 0; i < amount; i++) {
@@ -115,7 +115,7 @@ export class WorldDeck extends SearchableDeck<string> {
 }
 
 export class Discard extends SearchableDeck<RegionKey> {
-    _id: keyof typeof RegionKey;
+    id: keyof typeof RegionKey;
     name: string;
     
     constructor(id: keyof typeof RegionKey) {
@@ -124,17 +124,13 @@ export class Discard extends SearchableDeck<RegionKey> {
         this.name = id + " Discard";
     }
 
-    get id() { return RegionKey[this._id]; }
+    get key() { return RegionKey[this.id]; }
 }
 
 export class DiscardOptions<T extends OathCard> {
-    discard: CardDeck<T>;
-    onBottom: boolean;
-    ignoreLocked: boolean;
-
-    constructor(discard: CardDeck<T>, onBottom: boolean = false, ignoreLocked: boolean = false) {
-        this.discard = discard;
-        this.onBottom = onBottom;
-        this.ignoreLocked = ignoreLocked;
-    }
+    constructor(
+        public discard: CardDeck<T>,
+        public onBottom: boolean = false,
+        public ignoreLocked: boolean = false
+    ) { }
 }

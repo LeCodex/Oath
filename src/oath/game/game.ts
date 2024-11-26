@@ -4,20 +4,20 @@ import { OathActionManager } from "./actions/manager";
 import { DrawFromDeckEffect, PutPawnAtSiteEffect, SetNewOathkeeperEffect, SetUsurperEffect, WinGameEffect } from "./actions/effects";
 import { ActionModifier, OathPower } from "./powers/powers";
 import { OathBoard, Region } from "./board";
-import { RelicDeck, SiteDeck, WorldDeck } from "./cards/decks";
-import { DenizenData, denizenData, edificeData } from "./cards/denizens";
+import { Discard, RelicDeck, SiteDeck, WorldDeck } from "./cards/decks";
+import { DenizenData, denizenData, edificeFlipside } from "./cards/denizens";
 import { relicsData } from "./cards/relics";
 import { OathPhase, OathSuit, RegionKey, PlayerColor, ALL_OATH_SUITS, BannerName, OathType } from "./enums";
 import { Oath, OathTypeToOath } from "./oaths";
 import { Conspiracy, Denizen, Edifice, GrandScepter, Relic, Site, Vision, WorldCard } from "./cards/cards";
-import { Chancellor, Exile, OathPlayer } from "./player";
+import { Chancellor, Exile, OathPlayer, VisionSlot, WarbandsSupply } from "./player";
 import { Banner, DarkestSecret, FavorBank, PeoplesFavor } from "./banks";
 import { AbstractConstructor, Constructor, isExtended, TreeNode, TreeRoot } from "./utils";
 import { parseOathTTSSavefileString, serializeOathGame } from "./parser";
 import { Citizenship } from "./parser/interfaces";
 import { hasPowers, SourceType, WithPowers } from "./interfaces";
-import { Favor, Secret } from "./resources";
-import { ReliquarySlot } from "./reliquary";
+import { Favor, OathWarband, Secret } from "./resources";
+import { Reliquary, ReliquarySlot } from "./reliquary";
 import classIndex from "./classIndex";
 
 
@@ -108,17 +108,22 @@ export class OathGame extends TreeRoot<OathGame> {
         }
 
         this.chancellor = this.addChild(new Chancellor());
+        this.chancellor.reliquary = this.chancellor.addChild(new Reliquary());
         for (let i = 0; i < 4; i++)
-            this.chancellor.reliquary.addChild(new ReliquarySlot(String(i), this.relicDeck.drawSingleCard()));
+            this.chancellor.reliquary.addChild(new ReliquarySlot(String(i))).getRelic();
 
         for (let i: PlayerColor = PlayerColor.Red; i < playerCount; i++) {
-            this.addChild(new Exile(PlayerColor[i] as keyof typeof PlayerColor));
+            const id = PlayerColor[i] as keyof typeof PlayerColor;
+            const exile = this.addChild(new Exile(id))
+            exile.visionSlot = exile.addChild(new VisionSlot(id));
             this.order.push(i);
         }
 
         this.board = this.addChild(new OathBoard());
         for (let i = RegionKey.Cradle; i <= RegionKey.Hinterland; i++) {
-            this.board.addChild(new Region(RegionKey[i] as keyof typeof RegionKey));
+            const id = RegionKey[i] as keyof typeof RegionKey;
+            const region = this.board.addChild(new Region(id));
+            region.discard = this.addChild(new Discard(id));
         }
 
         let regionKey: RegionKey = RegionKey.Cradle;
@@ -126,7 +131,7 @@ export class OathGame extends TreeRoot<OathGame> {
         for (const siteData of gameData.sites) {
             const siteId = siteData.name;
             siteKeys.push(siteId);
-            const region = this.board.byClass(Region).byId(regionKey)[0]!;
+            const region = this.board.byClass(Region).byKey(regionKey)[0]!;
             const site = region.addChild(new Site(siteId));
             site.facedown = siteData.facedown;
             if (!site.facedown) site.setupResources();
@@ -139,7 +144,7 @@ export class OathGame extends TreeRoot<OathGame> {
                     continue;
                 }
 
-                if (cardId in edificeData) {
+                if (cardId in edificeFlipside) {
                     const card = new Edifice(cardId);
                     site.addChild(card).reveal();
                     continue;
@@ -161,10 +166,13 @@ export class OathGame extends TreeRoot<OathGame> {
             const fromBottom = this.worldDeck.drawSingleCard(true);
             if (fromBottom) region.discard.addChild(fromBottom);
         }
-        const topCradleSite = regions.byId(RegionKey.Cradle)[0]?.byClass(Site)[0]!;
+        const topCradleSite = regions.byKey(RegionKey.Cradle)[0]?.byClass(Site)[0]!;
 
         const players = this.byClass(OathPlayer);
         for (const player of players) {
+            player.bag = player.addChild(new WarbandsSupply(player.id));
+            for (let i = 0; i < player.bagAmount; i++) player.bag.addChild(new OathWarband().colorize(player.key));
+            
             player.putResources(Favor, player === this.chancellor ? 2 : 1);
             player.putResources(Secret, 1);
             player.leader.bag.moveChildrenTo(player, 3);
@@ -203,11 +211,11 @@ export class OathGame extends TreeRoot<OathGame> {
     }
 
     get players() { return this.byClass(OathPlayer); }
-    get currentPlayer() { return this.players.byId(this.order[this.turn]!)[0]!; }
+    get currentPlayer() { return this.players.byKey(this.order[this.turn]!)[0]!; }
     get oathkeeper() { return this.oath.owner ?? this.chancellor; }
     
     favorBank(suit: OathSuit) {
-        return this.byClass(FavorBank).byId(suit)[0];
+        return this.byClass(FavorBank).byKey(suit)[0];
     }
 
     takeCardDataFromArchive(key: string) {
@@ -243,7 +251,8 @@ export class OathGame extends TreeRoot<OathGame> {
         return instances;
     }
 
-    startAction(by: number, actionName: string): object {
+    startAction(playerColor: keyof typeof PlayerColor, actionName: string): object {
+        const by = PlayerColor[playerColor];
         if (this.turn !== by) throw new InvalidActionResolution(`Cannot begin an action outside your turn`);
         if (this.phase !== OathPhase.Act) throw new InvalidActionResolution(`Cannot begin an action outside the Act phase`);
         if (this.actionManager.actionsStack.length) throw new InvalidActionResolution("Cannot start an action while other actions are active");
@@ -281,7 +290,7 @@ export class OathGame extends TreeRoot<OathGame> {
             ...super.serialize(),
             name: this.name,
             chronicleNumber: this.chronicleNumber,
-            oathkeeper: this.oathkeeper.id,
+            oathkeeper: this.oathkeeper.key,
             isUsurper: this.isUsurper,
             currentPlayer: this.currentPlayer.id,
             turn: this.turn,
@@ -317,7 +326,7 @@ export class OathGame extends TreeRoot<OathGame> {
             
             // TODO: Store overall state of Citizenships
             playerCitizenship: {[1]: Citizenship.Exile, [2]: Citizenship.Exile, [3]: Citizenship.Exile, [4]: Citizenship.Exile, [5]: Citizenship.Exile},
-            oath: this.oath.id,
+            oath: this.oath.key,
             suitOrder: ALL_OATH_SUITS,
             sites: [...this.board.sites()].map(e => ({ name: e.name, facedown: e.facedown, cards: [...e.denizens, ...e.relics].map(e => ({ name: e.name })) })),
             world: this.worldDeck.children.map(e => ({ name: e.name })),
