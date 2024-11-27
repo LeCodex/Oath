@@ -7,7 +7,7 @@ import { RegionDiscardEffect, PutResourcesOnTargetEffect, RollDiceEffect, Become
 import { BannerName, OathSuit } from "../../enums";
 import { OathPlayer } from "../../player";
 import { Favor, OathResourceType, ResourceCost, Secret } from "../../resources";
-import { ActionModifier, AttackerBattlePlan, DefenderBattlePlan, ActivePower, WhenPlayed, AccessedActionModifier, EffectModifier, AccessedEffectModifier, EnemyAttackerCampaignModifier, EnemyDefenderCampaignModifier } from "../powers";
+import { ActionModifier, AttackerBattlePlan, DefenderBattlePlan, ActivePower, WhenPlayed, AccessedActionModifier, EnemyAttackerCampaignModifier, EnemyDefenderCampaignModifier } from "../powers";
 import { inclusiveRange } from "../../utils";
 import { WithPowers } from "../../interfaces";
 import { DarkestSecret } from "../../banks";
@@ -133,7 +133,7 @@ export class Dazzle extends WhenPlayed<Denizen> {
     name = "Dazzle";
 
     whenPlayed(): void {
-        new RegionDiscardEffect(this.effect.executor, [OathSuit.Hearth, OathSuit.Order], this.source).doNext();
+        new RegionDiscardEffect(this.action.executor, [OathSuit.Hearth, OathSuit.Order], this.source).doNext();
     }
 }
 
@@ -293,27 +293,28 @@ export class ActingTroupe extends AccessedActionModifier<Denizen, TradeAction> {
     }
 }
 
-export class Jinx extends EffectModifier<Denizen, RollDiceEffect> {
+export class Jinx extends ActionModifier<Denizen, RollDiceEffect> {
     name = "Jinx";
-    modifiedEffect = RollDiceEffect;
+    modifiedAction = RollDiceEffect;
     cost = new ResourceCost([[Secret, 1]]);
 
     canUse(): boolean {
-        return !!this.effect.executorProxy && this.effect.executorProxy.rules(this.sourceProxy) && !(!this.sourceProxy.empty && this.gameProxy.currentPlayer === this.effect.executorProxy);
+        return !!this.action.executorProxy && this.action.executorProxy.rules(this.sourceProxy) && !(!this.sourceProxy.empty && this.gameProxy.currentPlayer === this.action.executorProxy);
     }
 
-    applyAfter(result: RollResult): void {
-        const player = this.effect.executor;
+    applyAfter(): void {
+        const result = this.action.result;
+        const player = this.action.executor;
         if (!player) return;
-        if (this.effect.die !== AttackDie || this.effect.die !== DefenseDie) return;
+        if (this.action.die !== AttackDie || this.action.die !== DefenseDie) return;
 
-        const dieResult = result.dice.get(this.effect.die)
+        const dieResult = result.dice.get(this.action.die)
         if (!dieResult) return;
 
         new MakeDecisionAction(player, "Reroll " + [...dieResult.values()].join(", ") + "?", () => {
             this.payCost(player, success => {
                 if (!success) return;
-                result.dice.set(this.effect.die, new RollResult().roll(this.effect.die, this.effect.amount).dice.get(this.effect.die)!)
+                result.dice.set(this.action.die, new RollResult().roll(this.action.die, this.action.amount).dice.get(this.action.die)!)
             });
         }).doNext();
     }
@@ -483,8 +484,8 @@ export class Bewitch extends WhenPlayed<Denizen> {
     name = "Bewitch";
 
     whenPlayed(): void {
-        if (this.effect.executorProxy.getAllResources(Secret) > this.gameProxy.chancellor.byClass(Secret).length)
-            new MakeDecisionAction(this.effect.executor, "Become a Citizen?", () => new BecomeCitizenEffect(this.effect.executor).doNext());
+        if (this.action.executorProxy.getAllResources(Secret) > this.gameProxy.chancellor.byClass(Secret).length)
+            new MakeDecisionAction(this.action.executor, "Become a Citizen?", () => new BecomeCitizenEffect(this.action.executor).doNext());
     }
 }
 
@@ -504,14 +505,14 @@ export class Revelation extends WhenPlayed<Denizen> {
     }
 }
 
-export class VowOfSilence extends AccessedEffectModifier<Denizen, ParentToTargetEffect> {
+export class VowOfSilence extends AccessedActionModifier<Denizen, ParentToTargetEffect> {
     name = "Vow of Silence";
-    modifiedEffect = ParentToTargetEffect;
+    modifiedAction = ParentToTargetEffect;
 
     applyAfter(): void {
-        for (const object of this.effect.objects)
+        for (const object of this.action.objects)
             if (object instanceof Secret && object.parent === this.sourceProxy.ruler?.original)
-                this.effect.objects.delete(object);
+                this.action.objects.delete(object);
     }
 }
 export class VowOfSilenceRecover extends AccessedActionModifier<Denizen, RecoverAction> {

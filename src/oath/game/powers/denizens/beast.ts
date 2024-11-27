@@ -7,7 +7,7 @@ import { OathSuit } from "../../enums";
 import { WithPowers } from "../../interfaces";
 import { OathPlayer } from "../../player";
 import { Favor, OathWarband, ResourceCost, Secret } from "../../resources";
-import { AccessedActionModifier, ActionModifier, AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, RestPower, ActivePower, EnemyActionModifier, EnemyAttackerCampaignModifier, EnemyDefenderCampaignModifier, AccessedEffectModifier, EffectModifier, EnemyEffectModifier } from "../powers";
+import { AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, RestPower, ActivePower, EnemyAttackerCampaignModifier, EnemyDefenderCampaignModifier, AccessedActionModifier, ActionModifier, EnemyActionModifier } from "../powers";
 
 
 export class NatureWorshipAttack extends AttackerBattlePlan<Denizen> {
@@ -119,14 +119,14 @@ export class NewGrowth extends AccessedActionModifier<Denizen, SearchPlayOrDisca
     }
 }
 
-export class WildCry extends AccessedEffectModifier<Denizen, PlayWorldCardEffect> {
+export class WildCry extends AccessedActionModifier<Denizen, PlayWorldCardEffect> {
     name = "Wild Cry";
-    modifiedEffect = PlayWorldCardEffect;
+    modifiedAction = PlayWorldCardEffect;
 
     applyBefore(): void {
-        if (!this.effect.facedown && this.effect.card instanceof Denizen && this.effect.card.suit === OathSuit.Beast) {
-            new GainSupplyEffect(this.effect.executor, 1).doNext();
-            new ParentToTargetEffect(this.game, this.effect.executor, this.effect.executorProxy.leader.original.bag.get(2)).doNext();
+        if (!this.action.facedown && this.action.card instanceof Denizen && this.action.card.suit === OathSuit.Beast) {
+            new GainSupplyEffect(this.action.executor, 1).doNext();
+            new ParentToTargetEffect(this.game, this.action.executor, this.action.executorProxy.leader.original.bag.get(2)).doNext();
         }
     }
 }
@@ -251,7 +251,7 @@ export class ThreateningRoar extends WhenPlayed<Denizen> {
     name = "Threatening Roar";
 
     whenPlayed(): void {
-        new RegionDiscardEffect(this.effect.executor, [OathSuit.Beast, OathSuit.Nomad], this.source).doNext();
+        new RegionDiscardEffect(this.action.executor, [OathSuit.Beast, OathSuit.Nomad], this.source).doNext();
     }
 }
 
@@ -265,7 +265,7 @@ export class AnimalHost extends WhenPlayed<Denizen> {
                 if (denizenProxy.suit === OathSuit.Beast)
                     amount++;
 
-        new ParentToTargetEffect(this.game, this.effect.executor, this.effect.executorProxy.leader.original.bag.get(amount)).doNext();
+        new ParentToTargetEffect(this.game, this.action.executor, this.action.executorProxy.leader.original.bag.get(amount)).doNext();
     }
 }
 
@@ -391,7 +391,7 @@ export class LongLostHeir extends WhenPlayed<Denizen> {
     name = "Long-Lost Heir";
 
     whenPlayed(): void {
-        new MakeDecisionAction(this.effect.executor, "Become a Citizen?", () => new BecomeCitizenEffect(this.effect.executor).doNext());
+        new MakeDecisionAction(this.action.executor, "Become a Citizen?", () => new BecomeCitizenEffect(this.action.executor).doNext());
     }
 }
 
@@ -539,15 +539,15 @@ export class RovingTerror extends ActivePower<Denizen> {
 }
 
 
-export class ForestTemple extends EffectModifier<Edifice, FinishChronicleEffect> {
+export class ForestTemple extends ActionModifier<Edifice, FinishChronicleEffect> {
     name = "Forest Temple";
-    modifiedEffect = FinishChronicleEffect;
+    modifiedAction = FinishChronicleEffect;
 
     applyBefore(): void {
         for (const siteProxy of this.gameProxy.board.sites()) {
             for (const denizenProxy of siteProxy.denizens) {
                 if (denizenProxy.suit === OathSuit.Beast) {
-                    siteProxy.addChild(new OathWarband().colorize(this.effect.executor.key));
+                    siteProxy.addChild(new OathWarband().colorize(this.action.executor.key));
                     break;
                 }
             }
@@ -555,12 +555,12 @@ export class ForestTemple extends EffectModifier<Edifice, FinishChronicleEffect>
     }
 }
 
-export class RuinedTemple extends EnemyEffectModifier<Edifice, PlayWorldCardEffect> {
+export class RuinedTemple extends EnemyActionModifier<Edifice, PlayWorldCardEffect> {
     name = "Ruined Temple";
-    modifiedEffect = PlayWorldCardEffect;
+    modifiedAction = PlayWorldCardEffect;
 
     applyBefore(): void {
-        if (!this.effect.facedown && this.effect.card instanceof Denizen && this.effect.card.suit === OathSuit.Beast)
+        if (!this.action.facedown && this.action.card instanceof Denizen && this.action.card.suit === OathSuit.Beast)
             throw new InvalidActionResolution("Cannot play Beast cards faceup unless you rule the Ruined Temple");
     }
 }

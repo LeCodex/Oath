@@ -9,7 +9,7 @@ import { BannerName, OathSuit, ALL_OATH_SUITS } from "../../enums";
 import { WithPowers } from "../../interfaces";
 import { Favor, ResourceCost, Secret } from "../../resources";
 import { maxInGroup, minInGroup } from "../../utils";
-import { DefenderBattlePlan, AccessedActionModifier, ActivePower, WhenPlayed, EnemyEffectModifier, EnemyActionModifier, AttackerBattlePlan, ActionModifier, EffectModifier, EnemyDefenderCampaignModifier } from "../powers";
+import { DefenderBattlePlan, AccessedActionModifier, ActivePower, WhenPlayed, EnemyActionModifier, AttackerBattlePlan, ActionModifier, EnemyDefenderCampaignModifier } from "../powers";
 
 
 export class TravelingDoctorAttack extends AttackerBattlePlan<Denizen> {
@@ -175,7 +175,7 @@ export class FabledFeast extends WhenPlayed<Denizen> {
 
     whenPlayed(): void {
         const bank = this.game.favorBank(OathSuit.Hearth);
-        if (bank) new ParentToTargetEffect(this.game, this.effect.executor, bank.get(this.effect.executorProxy.suitRuledCount(OathSuit.Hearth))).doNext();
+        if (bank) new ParentToTargetEffect(this.game, this.action.executor, bank.get(this.action.executorProxy.suitRuledCount(OathSuit.Hearth))).doNext();
     }
 }
 
@@ -184,11 +184,11 @@ export class SaladDays extends WhenPlayed<Denizen> {
 
     whenPlayed(): void {
         new ChooseSuitsAction(
-            this.effect.executor, "Take 1 favor from three different banks",
+            this.action.executor, "Take 1 favor from three different banks",
             (suits: OathSuit[]) => { 
                 for (const suit of suits) {
                     const bank = this.game.favorBank(OathSuit.Hearth);
-                    if (bank) new ParentToTargetEffect(this.game, this.effect.executor, bank.get(1)).doNext(); 
+                    if (bank) new ParentToTargetEffect(this.game, this.action.executor, bank.get(1)).doNext(); 
                 }
             },
             undefined,
@@ -201,14 +201,14 @@ export class FamilyHeirloom extends WhenPlayed<Denizen> {
     name = "Family Heirloom";
 
     whenPlayed(): void {
-        new DrawFromDeckEffect(this.effect.executor, this.game.relicDeck, 1).doNext(cards => {
+        new DrawFromDeckEffect(this.action.executor, this.game.relicDeck, 1).doNext(cards => {
             const relic = cards[0];
             if (!relic) return;
             
             new MakeDecisionAction(
-                this.effect.executor, "Keep the relic?",
-                () => new TakeOwnableObjectEffect(this.game, this.effect.executor, relic).doNext(),
-                () => relic.putOnBottom(this.effect.executor)
+                this.action.executor, "Keep the relic?",
+                () => new TakeOwnableObjectEffect(this.game, this.action.executor, relic).doNext(),
+                () => relic.putOnBottom(this.action.executor)
             ).doNext();
         });
     }
@@ -231,9 +231,9 @@ export class VowOfPeaceDefense extends EnemyDefenderCampaignModifier<Denizen> {
     }
 }
 
-export class BookBinders extends EnemyEffectModifier<Denizen, PlayVisionEffect> {
+export class BookBinders extends EnemyActionModifier<Denizen, PlayVisionEffect> {
     name = "Book Binders";
-    modifiedEffect = PlayVisionEffect;
+    modifiedAction = PlayVisionEffect;
 
     applyAfter(): void {
         if (!this.sourceProxy.ruler?.original) return;
@@ -241,18 +241,18 @@ export class BookBinders extends EnemyEffectModifier<Denizen, PlayVisionEffect> 
     }
 }
 
-export class SaddleMakers extends EnemyEffectModifier<Denizen, PlayWorldCardEffect> {
+export class SaddleMakers extends EnemyActionModifier<Denizen, PlayWorldCardEffect> {
     name = "Saddle Makers";
-    modifiedEffect = PlayWorldCardEffect;
+    modifiedAction = PlayWorldCardEffect;
 
     applyAfter(): void {
         if (!this.sourceProxy.ruler?.original) return;
-        if (this.effect.facedown || !(this.effect.card instanceof Denizen)) return;
+        if (this.action.facedown || !(this.action.card instanceof Denizen)) return;
 
-        const cardProxy = this.effect.maskProxyManager.get(this.effect.card);
+        const cardProxy = this.action.maskProxyManager.get(this.action.card);
         if (cardProxy.suit === OathSuit.Nomad || cardProxy.suit === OathSuit.Order) {
             const bank = this.game.favorBank(cardProxy.suit);
-            if (bank) new ParentToTargetEffect(this.effect.game, this.sourceProxy.ruler?.original, bank.get(2)).doNext();
+            if (bank) new ParentToTargetEffect(this.action.game, this.sourceProxy.ruler?.original, bank.get(2)).doNext();
         }
     }
 }
@@ -269,7 +269,7 @@ export class Herald extends EnemyActionModifier<Denizen, CampaignEndAction> {
     }
 }
 
-export class MarriageAction extends ActionModifier<Denizen, ModifiableAction> {
+export class Marriage extends ActionModifier<Denizen, ModifiableAction> {
     name = "Marriage";
     modifiedAction = ModifiableAction;
     mustUse = true;
@@ -283,20 +283,6 @@ export class MarriageAction extends ActionModifier<Denizen, ModifiableAction> {
         };
 
         return true;
-    }
-}
-export class MarriageEffect extends EffectModifier<Denizen, OathEffect<any>> {
-    name = "Marriage";
-    modifiedEffect = OathEffect;
-    mustUse = true;
-
-    applyWhenApplied(): void {
-        const rulerProxy = this.sourceProxy.ruler;
-        if (!rulerProxy) return;
-        const originalFn = rulerProxy.suitAdviserCount.bind(rulerProxy);
-        rulerProxy.suitAdviserCount = (suit: OathSuit) => {
-            return originalFn(suit) + (suit === OathSuit.Hearth ? 1 : 0);
-        };
     }
 }
 

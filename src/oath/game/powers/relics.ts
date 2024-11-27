@@ -7,17 +7,17 @@ import { BannerName, PlayerColor } from "../enums";
 import { OathPlayer, Exile } from "../player";
 import { OwnableObject, isOwnable } from "../interfaces";
 import { Favor, OathWarband, ResourceCost, Secret } from "../resources";
-import { AccessedActionModifier, EnemyEffectModifier, AccessedEffectModifier, AttackerBattlePlan, DefenderBattlePlan, ActionModifier, EffectModifier, ActivePower, RestPower, BattlePlan, EnemyAttackerCampaignModifier } from "./powers";
+import { AccessedActionModifier, EnemyActionModifier, AttackerBattlePlan, DefenderBattlePlan, ActionModifier, ActivePower, RestPower, BattlePlan, EnemyAttackerCampaignModifier } from "./powers";
 import { DiscardOptions } from "../cards/decks";
 import { isExtended } from "../utils";
 
 
-export class GrandScepterSeize extends EffectModifier<GrandScepter, TakeOwnableObjectEffect> {
+export class GrandScepterSeize extends ActionModifier<GrandScepter, TakeOwnableObjectEffect> {
     name = "Lock the Grand Scepter";
-    modifiedEffect = TakeOwnableObjectEffect;
+    modifiedAction = TakeOwnableObjectEffect;
 
     canUse(): boolean {
-        return this.effect.target === this.source;
+        return this.action.target === this.source;
     }
     
     applyAfter(): void {
@@ -194,13 +194,13 @@ function circletOfCommandCheckOwnable(sourceProxy: Relic, targetProxy: OwnableOb
     if (targetProxy !== sourceProxy)
         throw new InvalidActionResolution(`Cannot target or take objects from ${sourceProxy.ruler.name} while protected by the Circlet of Command.`);
 }
-export class CircletOfCommand extends EnemyEffectModifier<Relic, TakeOwnableObjectEffect> {
+export class CircletOfCommand extends EnemyActionModifier<Relic, TakeOwnableObjectEffect> {
     name = "Circlet of Command";
-    modifiedEffect = TakeOwnableObjectEffect;
+    modifiedAction = TakeOwnableObjectEffect;
 
     applyBefore(): void {
-        const targetProxy = this.effect.maskProxyManager.get(this.effect.target);
-        circletOfCommandCheckOwnable(this.sourceProxy, targetProxy, this.effect.executorProxy);
+        const targetProxy = this.action.maskProxyManager.get(this.action.target);
+        circletOfCommandCheckOwnable(this.sourceProxy, targetProxy, this.action.executorProxy);
     }
 }
 export class CircletOfCommandCampaign extends EnemyAttackerCampaignModifier<Relic> {
@@ -227,13 +227,13 @@ export class DragonskinDrum extends AccessedActionModifier<Relic, TravelAction> 
     }
 }
 
-export class BookOfRecords extends AccessedEffectModifier<Relic, PlayDenizenAtSiteEffect> {
+export class BookOfRecords extends AccessedActionModifier<Relic, PlayDenizenAtSiteEffect> {
     name = "Book of Records";
-    modifiedEffect = PlayDenizenAtSiteEffect;
+    modifiedAction = PlayDenizenAtSiteEffect;
 
     applyBefore(): void {
-        this.effect.getting.set(Secret, this.effect.getting.get(Favor) || 0);
-        this.effect.getting.delete(Favor);
+        this.action.getting.set(Secret, this.action.getting.get(Favor) || 0);
+        this.action.getting.delete(Favor);
     }
 }
 
@@ -245,12 +245,12 @@ export class RingOfDevotionMuster extends ActionModifier<Relic, MusterAction> {
         this.action.amount += 2;
     }
 }
-export class RingOfDevotionRestriction extends EffectModifier<Relic, MoveOwnWarbandsEffect> {
+export class RingOfDevotionRestriction extends ActionModifier<Relic, MoveOwnWarbandsEffect> {
     name = "Ring of Devotion";
-    modifiedEffect = MoveOwnWarbandsEffect;
+    modifiedAction = MoveOwnWarbandsEffect;
 
     applyBefore(): void {
-        if (this.effect.to instanceof Site)
+        if (this.action.to instanceof Site)
             throw new InvalidActionResolution("Cannot place warbands at site with the Ring of Devotion");
     }
 }
@@ -408,7 +408,7 @@ export class CrackedHorn extends ActionModifier<Relic, SearchAction> {
     }
 }
 
-export class BanditCrownAction extends ActionModifier<Relic, ModifiableAction> {
+export class BanditCrown extends ActionModifier<Relic, ModifiableAction> {
     name = "Bandit Crown";
     modifiedAction = ModifiableAction;
     mustUse = true;
@@ -427,26 +427,8 @@ export class BanditCrownAction extends ActionModifier<Relic, ModifiableAction> {
         return true;
     }
 }
-export class BanditCrownEffect extends EffectModifier<Relic, OathEffect<any>> {
-    name = "Bandit Crown";
-    modifiedEffect = OathEffect;
-    mustUse = true;
 
-    applyWhenApplied(): void {
-        const rulerProxy = this.sourceProxy.ruler;
-        if (!rulerProxy) return;
-
-        for (const siteProxy of this.gameProxy.board.sites()) {
-            if (siteProxy.ruler && siteProxy.ruler !== rulerProxy.leader) continue;
-            const originalFn = siteProxy.getWarbandsAmount.bind(siteProxy);
-            siteProxy.getWarbandsAmount = (color: PlayerColor | undefined) => {
-                return originalFn(color) + (color === rulerProxy.leader.original.key ? siteProxy.bandits : 0);
-            };
-        }
-    }
-}
-
-export class GrandMaskAction extends ActionModifier<Relic, ModifiableAction> {
+export class GrandMask extends ActionModifier<Relic, ModifiableAction> {
     name = "Grand Mask";
     modifiedAction = ModifiableAction;
     mustUse = true;
@@ -472,33 +454,5 @@ export class GrandMaskAction extends ActionModifier<Relic, ModifiableAction> {
         }
 
         return true;
-    }
-}
-export class GrandMaskEffect extends EffectModifier<Relic, OathEffect<any>> {
-    name = "Grand Mask";
-    modifiedEffect = OathEffect;
-    mustUse = true;
-
-    applyWhenApplied(): void {
-        const rulerProxy = this.sourceProxy.ruler;
-        if (rulerProxy !== this.gameProxy.currentPlayer) return;
-
-        const overrideRule = new Set();
-        for (const siteProxy of this.gameProxy.board.sites()) {
-            if (!siteProxy.ruler?.isImperial) continue;
-            for (const denizenProxy of siteProxy.denizens) {
-                let isBattlePlan = false;
-                for (const power of denizenProxy.powers) {
-                    if (isExtended(power, BattlePlan)) {
-                        isBattlePlan = true;
-                        break;
-                    }
-                }
-                if (isBattlePlan) continue;
-                denizenProxy.ruler = rulerProxy.original;
-            }
-        }
-
-        return;
     }
 }

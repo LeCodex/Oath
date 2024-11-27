@@ -1,5 +1,5 @@
 import { OathPower } from "../powers/powers";
-import { BanditCrownAction, BanditCrownEffect, BookOfRecords, BrassHorse, CircletOfCommand, CrackedHorn, CupOfPlenty, CursedCauldronAttack, CursedCauldronDefense, DowsingSticks, DragonskinDrum, GrandMaskAction, GrandMaskEffect, GrandScepterExileCitizen, GrandScepterGrantCitizenship, GrandScepterPeek, GrandScepterRest, GrandScepterSeize, HornedMask, IvoryEye, MapRelic, ObsidianCageActive, ObsidianCageAttack, ObsidianCageDefense, OracularPig, RingOfDevotionMuster, RingOfDevotionRestriction, SkeletonKey, StickyFireAttack, StickyFireDefense, TruthfulHarp, Whistle } from "../powers/relics";
+import { BanditCrown, BookOfRecords, BrassHorse, CircletOfCommand, CrackedHorn, CupOfPlenty, CursedCauldronAttack, CursedCauldronDefense, DowsingSticks, DragonskinDrum, GrandMask, GrandScepterExileCitizen, GrandScepterGrantCitizenship, GrandScepterPeek, GrandScepterRest, GrandScepterSeize, HornedMask, IvoryEye, MapRelic, ObsidianCageActive, ObsidianCageAttack, ObsidianCageDefense, OracularPig, RingOfDevotionMuster, RingOfDevotionRestriction, SkeletonKey, StickyFireAttack, StickyFireDefense, TruthfulHarp, Whistle } from "../powers/relics";
 import { Constructor } from "../utils";
 import { Relic } from "./cards";
 
@@ -12,7 +12,7 @@ export const relicsData: Record<string, [number, Constructor<OathPower<Relic>>[]
     BrassHorse:         [2, [BrassHorse]],
     StickyFire:         [2, [StickyFireAttack, StickyFireDefense]],
     TruthfulHarp:       [2, [TruthfulHarp]],
-    GrandMask:          [2, [GrandMaskAction, GrandMaskEffect]],
+    GrandMask:          [2, [GrandMask]],
     HornedMask:         [2, [HornedMask]],
     Whistle:            [2, [Whistle]],
     CrackedHorn:        [2, [CrackedHorn]],
@@ -23,7 +23,7 @@ export const relicsData: Record<string, [number, Constructor<OathPower<Relic>>[]
     SkeletonKey:        [3, [SkeletonKey]],
     Map:                [3, [MapRelic]],
     DowsingSticks:      [3, [DowsingSticks]],
-    BanditCrown:        [3, [BanditCrownAction, BanditCrownEffect]],
+    BanditCrown:        [3, [BanditCrown]],
     
     // TODO: Add allowing peeking for other players
     GrandScepter:       [5, [GrandScepterSeize, GrandScepterRest, GrandScepterPeek, GrandScepterGrantCitizenship, GrandScepterExileCitizen]]

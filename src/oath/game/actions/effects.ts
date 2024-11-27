@@ -868,18 +868,18 @@ export class NextTurnEffect extends OathEffect {
         if (this.game.turn === 0) this.game.round++;
 
         if (this.game.round > 8) {
-            if (this.game.oathkeeper.isImperial)
+            if (this.gameProxy.oathkeeper.isImperial)
                 return this.game.empireWins();
             
-            if (this.game.isUsurper)
-                return new WinGameEffect(this.game.oathkeeper).doNext();
+            if (this.gameProxy.isUsurper)
+                return new WinGameEffect(this.gameProxy.oathkeeper.original).doNext();
 
             // TODO: Break ties according to the rules. Maybe have constant references to the Visions?
-            for (const player of this.game.players) {
-                if (player instanceof Exile && player.vision) {
-                    const candidates = player.vision.oath.getOathkeeperCandidates();
-                    if (candidates.size === 1 && candidates.has(player))
-                        return new WinGameEffect(player).doNext();
+            for (const playerProxy of this.gameProxy.players) {
+                if (playerProxy instanceof Exile && playerProxy.vision) {
+                    const candidates = playerProxy.vision.oath.getOathkeeperCandidates();
+                    if (candidates.size === 1 && candidates.has(playerProxy))
+                        return new WinGameEffect(playerProxy.original).doNext();
                 }
             }
 

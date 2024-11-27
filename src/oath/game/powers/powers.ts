@@ -1,13 +1,14 @@
 import { RestAction, UsePowerAction, WakeAction, CampaignAttackAction, CampaignDefenseAction } from "../actions/actions";
 import { ModifiableAction } from "../actions/base";
 import { ApplyWhenPlayedEffect, GainPowerEffect, LosePowerEffect, PayPowerCostEffect } from "../actions/effects";
-import { OathEffect } from "../actions/base";
 import { OathCard, OwnableCard, Site, WorldCard } from "../cards/cards";
 import { ResourceCost } from "../resources";
 import { OathPlayer } from "../player";
 import { AbstractConstructor, Constructor, MaskProxyManager } from "../utils";
 import { OathGame } from "../game";
 import { WithPowers } from "../interfaces";
+
+
 
 //////////////////////////////////////////////////
 //                BASE CLASSES                  //
@@ -53,11 +54,11 @@ export abstract class CapacityModifier<T extends WorldCard> extends PowerWithPro
 }
 
 export abstract class WhenPlayed<T extends WorldCard> extends PowerWithProxy<T> {
-    effect: ApplyWhenPlayedEffect;
+    action: ApplyWhenPlayedEffect;
 
-    constructor(source: T, effect: ApplyWhenPlayedEffect) {
-        super(source, effect.maskProxyManager);
-        this.effect = effect;
+    constructor(source: T, action: ApplyWhenPlayedEffect) {
+        super(source, action.maskProxyManager);
+        this.action = action;
     }
 
     abstract whenPlayed(): void;
@@ -109,7 +110,7 @@ export abstract class ActionModifier<T extends WithPowers, U extends ModifiableA
     applyBefore(): void { }
     /** Applied after the execution of the action is put onto the stack */
     applyAfter(): void { }
-    /** Applied after the full execution of the action */
+    /** Applied after the full execution of the action (and its modifiers) */
     applyAtEnd(): void { }
     
     serialize(): string {
@@ -192,36 +193,5 @@ export abstract class EnemyDefenderCampaignModifier<T extends OwnableCard> exten
             (this.activator === this.action.campaignResult.defender || this.action.campaignResult.defenderAllies.has(this.activator))
             && ruler === this.action.campaignResult.attacker
         );
-    }
-}
-
-export abstract class EffectModifier<T extends WithPowers, U extends OathEffect<any>> extends PowerWithProxy<T> {
-    abstract modifiedEffect: AbstractConstructor<U>;
-    effect: U;
-
-    constructor(source: T, effect: U) {
-        super(source, effect.maskProxyManager);
-        this.effect = effect;
-    }
-
-    canUse(): boolean {
-        return true;
-    }
-
-    applyBefore(): void { }                                                 // Applied right before the resolution of the effect
-    applyAfter(result: U extends OathEffect<infer V> ? V : never): void { } // Applied after the resolution of the effect
-}
-
-export abstract class EnemyEffectModifier<T extends OwnableCard, U extends OathEffect<any>> extends EffectModifier<T, U> {
-    mustUse = true;
-
-    canUse(): boolean {
-        return !!this.effect.executorProxy && this.effect.executorProxy?.enemyWith(this.sourceProxy.ruler);
-    }
-}
-
-export abstract class AccessedEffectModifier<T extends OwnableCard, U extends OathEffect<any>> extends EffectModifier<T, U> {
-    canUse(): boolean {
-        return !!this.effect.executorProxy && this.sourceProxy.accessibleBy(this.effect.executorProxy);
     }
 }

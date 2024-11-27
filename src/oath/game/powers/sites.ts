@@ -6,17 +6,17 @@ import { OathSuit } from "../enums";
 import { isAtSite, WithPowers } from "../interfaces";
 import { OathPlayer } from "../player";
 import { Secret } from "../resources";
-import { EffectModifier, ActionModifier, ActivePower } from "./powers";
+import { ActionModifier, ActivePower } from "./powers";
 
 
-export abstract class HomelandSitePower extends EffectModifier<Site, PlayWorldCardEffect> {
-    modifiedEffect = PlayWorldCardEffect;
+export abstract class HomelandSitePower extends ActionModifier<Site, PlayWorldCardEffect> {
+    modifiedAction = PlayWorldCardEffect;
     abstract suit: OathSuit;
 
     applyAfter(): void {
         // TODO: "and if you have not discarded a <suit> card here during this turn"
-        if (this.effect.site === this.source && this.effect.card instanceof Denizen && this.effect.card.suit === this.suit)
-            this.giveReward(this.effect.executor);
+        if (this.action.site === this.source && this.action.card instanceof Denizen && this.action.card.suit === this.suit)
+            this.giveReward(this.action.executor);
     }
 
     abstract giveReward(player: OathPlayer): void;

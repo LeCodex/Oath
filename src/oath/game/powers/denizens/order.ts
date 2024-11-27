@@ -8,7 +8,7 @@ import { OathGameObject } from "../../gameObject";
 import { CampaignActionTarget } from "../../interfaces";
 import { OathPlayer } from "../../player";
 import { Favor, ResourceCost } from "../../resources";
-import { AttackerBattlePlan, DefenderBattlePlan, EnemyActionModifier, WhenPlayed, AccessedActionModifier, RestPower, ActivePower, ActionModifier, AccessedEffectModifier, EnemyEffectModifier, EnemyAttackerCampaignModifier } from "../powers";
+import { AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, RestPower, ActivePower, ActionModifier, AccessedActionModifier, EnemyActionModifier, EnemyAttackerCampaignModifier } from "../powers";
 
 
 export class LongbowsAttack extends AttackerBattlePlan<Denizen> {
@@ -360,13 +360,13 @@ export class ForcedLabor extends EnemyActionModifier<Denizen, SearchAction> {
     }
 }
 
-export class SecretPolice extends EnemyEffectModifier<Denizen, PlayVisionEffect> {
+export class SecretPolice extends EnemyActionModifier<Denizen, PlayVisionEffect> {
     name = "Secret Police";
-    modifiedEffect = PlayVisionEffect;
+    modifiedAction = PlayVisionEffect;
     mustUse = true;
 
     canUse(): boolean {
-        return super.canUse() && this.effect.executorProxy.site?.ruler === this.sourceProxy.ruler;
+        return super.canUse() && this.action.executorProxy.site?.ruler === this.sourceProxy.ruler;
     }
 
     applyBefore(): void {
@@ -374,12 +374,12 @@ export class SecretPolice extends EnemyEffectModifier<Denizen, PlayVisionEffect>
     }
 }
 
-export class TomeGuardians extends EnemyEffectModifier<Denizen, TakeOwnableObjectEffect> {
+export class TomeGuardians extends EnemyActionModifier<Denizen, TakeOwnableObjectEffect> {
     name = "Tome Guardians";
-    modifiedEffect = TakeOwnableObjectEffect;
+    modifiedAction = TakeOwnableObjectEffect;
 
     applyBefore(): void {
-        if (this.effect.maskProxyManager.get(this.effect.target) === this.gameProxy.banners.get(BannerName.DarkestSecret))
+        if (this.action.maskProxyManager.get(this.action.target) === this.gameProxy.banners.get(BannerName.DarkestSecret))
             throw new InvalidActionResolution("Cannot take the Darkest Secret from the Tome Guardians.");
     }
 }
@@ -403,9 +403,9 @@ export class Tyrant extends AccessedActionModifier<Denizen, TravelAction> {
     }
 }
 
-export class CouncilSeat extends AccessedEffectModifier<Denizen, BecomeExileEffect> {
+export class CouncilSeat extends AccessedActionModifier<Denizen, BecomeExileEffect> {
     name = "Council Seat";
-    modifiedEffect = BecomeExileEffect;
+    modifiedAction = BecomeExileEffect;
     museUse = true;
 
     applyBefore(): void {
@@ -463,8 +463,8 @@ export class RoyalTax extends WhenPlayed<Denizen> {
 
     whenPlayed(): void {
         for (const playerProxy of this.gameProxy.players) {
-            if (playerProxy.site.ruler === this.effect.executorProxy.leader)
-                new MoveResourcesToTargetEffect(this.game, this.effect.executor, Favor, 2, this.effect.executor, playerProxy).doNext();
+            if (playerProxy.site.ruler === this.action.executorProxy.leader)
+                new MoveResourcesToTargetEffect(this.game, this.action.executor, Favor, 2, this.action.executor, playerProxy).doNext();
         }
     }
 }
@@ -474,19 +474,19 @@ export class Garrison extends WhenPlayed<Denizen> {
 
     whenPlayed(): void {
         const sites = new Set<Site>();
-        const leader = this.effect.executorProxy.leader.original;
+        const leader = this.action.executorProxy.leader.original;
         for (const siteProxy of this.gameProxy.board.sites()) {
-            if (siteProxy.ruler === this.effect.executorProxy.leader) {
-                new ParentToTargetEffect(this.game, this.effect.executor, this.effect.executorProxy.leader.original.bag.get(1), siteProxy.original).doNext();
+            if (siteProxy.ruler === this.action.executorProxy.leader) {
+                new ParentToTargetEffect(this.game, this.action.executor, this.action.executorProxy.leader.original.bag.get(1), siteProxy.original).doNext();
                 sites.add(siteProxy.original);
             }
         }
         
         new ChooseSitesAction(
-            this.effect.executor, "Place a warband on each site you rule",
-            (sites: Site[]) => { for (const site of sites) new MoveOwnWarbandsEffect(leader, this.effect.executor, site).doNext() },
+            this.action.executor, "Place a warband on each site you rule",
+            (sites: Site[]) => { for (const site of sites) new MoveOwnWarbandsEffect(leader, this.action.executor, site).doNext() },
             [sites],
-            [[Math.min(sites.size, this.effect.executor.getWarbandsAmount(leader.key))]]
+            [[Math.min(sites.size, this.action.executor.getWarbandsAmount(leader.key))]]
         ).doNext();
     }
 }
