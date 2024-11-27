@@ -165,7 +165,7 @@ export class CharmingFriend extends ActivePower<Denizen> {
     cost = new ResourceCost([[Secret, 1]]);
 
     usePower(): void {
-        const players = Object.values(this.gameProxy.players).filter(e => e.site === this.action.playerProxy.site).map(e => e.original);
+        const players = this.gameProxy.players.filter(e => e.site === this.action.playerProxy.site).map(e => e.original);
         new TakeResourceFromPlayerAction(this.action.player, Favor, 1, players).doNext();
     }
 }

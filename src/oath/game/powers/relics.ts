@@ -49,7 +49,7 @@ export class GrandScepterGrantCitizenship extends GrandScepterActive {
     name = "Grant Citizenship";
 
     usePower(): void {
-        const players = Object.values(this.gameProxy.players).filter(e => e instanceof Exile && !e.isCitizen).map(e => e.original);
+        const players = this.gameProxy.players.filter(e => e instanceof Exile && !e.isCitizen).map(e => e.original);
         new StartBindingExchangeAction(this.action.player, CitizenshipOfferAction, players).doNext();
     }
 }
@@ -157,7 +157,7 @@ export class ObsidianCageActive extends ActivePower<Relic> {
 
     usePower(): void {
         const players = new Set<OathPlayer>();
-        for (const playerProxy of Object.values(this.gameProxy.players))
+        for (const playerProxy of this.gameProxy.players)
             if (this.source.getWarbandsAmount(playerProxy.leader.original.key) + this.source.getWarbandsAmount(playerProxy.original.key) > 0)
                 players.add(playerProxy.original);
         
@@ -362,7 +362,7 @@ export class BrassHorse extends ActivePower<Relic> {
                             sites.add(siteProxy.original);
         
         const travelAction = new TravelAction(this.action.player, this.action.player, (s: Site) => !sites.size || sites.has(s));
-        travelAction._noSupplyCost = true;
+        travelAction.noSupplyCost = true;
         travelAction.doNext();
     }
 }
@@ -377,11 +377,11 @@ export class Whistle extends ActivePower<Relic> {
             (targets: OathPlayer[]) => {
                 if (!targets[0]) return;
                 const travelAction = new TravelAction(targets[0], this.action.player, (s: Site) => s === this.action.player.site)
-                travelAction._noSupplyCost = true;
+                travelAction.noSupplyCost = true;
                 travelAction.doNext();
                 new MoveResourcesToTargetEffect(this.game, this.action.player, Secret, 1, targets[0], this.source).doNext();
             },
-            [Object.values(this.gameProxy.players).filter(e => e.site !== this.action.playerProxy.site).map(e => e.original)]
+            [this.gameProxy.players.filter(e => e.site !== this.action.playerProxy.site).map(e => e.original)]
         )
     }
 }

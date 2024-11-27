@@ -53,21 +53,11 @@ export class SetupChooseAction extends OathAction {
 export abstract class MajorAction extends ModifiableAction {
     readonly autocompleteSelects: boolean = false;
 
-    _supplyCost: number; // Set those if you're modifying the action before its start
-    _supplyCostModifier = 0;
-    _noSupplyCost: boolean = false;
+    supplyCost: number; // Set those if you're modifying the action before its start
+    supplyCostModifier: number = 0;
+    noSupplyCost: boolean = false;
 
-    supplyCost: number; // You may set the Supply cost if the effect replaces it. Multiple instances will just be tie-broken with timestamps
-    supplyCostModifier: number; // Use this for linear modifications to the Supply cost
-    noSupplyCost: boolean;
     get actualSupplyCost() { return this.noSupplyCost ? 0 : this.supplyCost + this.supplyCostModifier; }
-
-    start(): boolean {
-        this.supplyCost = this._supplyCost;
-        this.supplyCostModifier = this._supplyCostModifier;
-        this.noSupplyCost = this._noSupplyCost;
-        return super.start();
-    }
 
     modifiedExecution() {
         new PaySupplyEffect(this.player, this.actualSupplyCost).doNext(success => {
@@ -83,8 +73,8 @@ export class MusterAction extends MajorAction {
     readonly selects: { card: SelectNOf<Denizen> };
     readonly parameters: { card: Denizen[] };
     readonly message = "Put a favor on a card to muster";
+    supplyCost = 1;
 
-    _supplyCost = 1;
     cardProxy: Denizen;
     using: OathResourceType = Favor;
     amount = 1;
@@ -117,8 +107,8 @@ export class TradeAction extends MajorAction {
     readonly selects: { card: SelectNOf<Denizen>, forFavor: SelectBoolean };
     readonly parameters: { card: Denizen[], forFavor: boolean[] };
     readonly message = "Put resources on a card to trade";
+    supplyCost = 1;
 
-    _supplyCost = 1;
     cardProxy: Denizen;
     forFavor: boolean;
     paying: ResourceCost;
@@ -210,8 +200,8 @@ export class RecoverAction extends MajorAction {
     readonly selects: { target: SelectNOf<RecoverActionTarget> };
     readonly parameters: { target: RecoverActionTarget[] };
     readonly message = "Choose a target to recover";
-    
-    _supplyCost = 1;
+    supplyCost = 1;
+
     targetProxy: RecoverActionTarget;
 
     start() {
@@ -504,13 +494,13 @@ export class CampaignAction extends MajorAction {
     readonly selects: { defender: SelectNOf<OathPlayer | undefined> };
     readonly parameters: { defender: (OathPlayer | undefined)[] };
     readonly message = "Choose a defender";
-    
-    _supplyCost = 2;
+    supplyCost = 2;
+
     defenderProxy: OathPlayer | undefined;
 
     start() {
         const choices = new Map<string, OathPlayer | undefined>();
-        for (const playerProxy of Object.values(this.gameProxy.players)) choices.set(playerProxy.name, playerProxy);
+        for (const playerProxy of this.gameProxy.players) choices.set(playerProxy.name, playerProxy);
         if (this.playerProxy.site.ruler === undefined) choices.set("Bandits", undefined);
         this.selects.defender = new SelectNOf("Defender", choices, 1);
         return super.start();
@@ -590,7 +580,7 @@ export class CampaignAttackAction extends ModifiableAction {
             const targetProxy = this.maskProxyManager.get(target);
             this.campaignResult.params.defPool += targetProxy.defense;
             
-            for (const playerProxy of Object.values(this.gameProxy.players)) {
+            for (const playerProxy of this.gameProxy.players) {
                 const siteProxy = targetProxy instanceof Site ? targetProxy : this.playerProxy.site;
                 if (playerProxy.site === siteProxy)
                     allyProxiesCandidates.add(playerProxy);
@@ -749,7 +739,7 @@ export class CampaignResult {
     }
 
     discardAtEnd(denizen: Denizen) {
-        this.atEnd(() => new DiscardCardEffect(denizen.ruler || this.attacker, denizen).doNext());
+        this.atEnd(() => new DiscardCardEffect(denizen.ruler ?? this.attacker, denizen).doNext());
     }
 
     onSuccessful(successful: boolean, callback: () => void) {
@@ -888,7 +878,7 @@ export class CampaignKillWarbandsInForceAction extends OathAction {
 
 export class CampaignBanishPlayerAction extends TravelAction {
     readonly message: string;
-    _noSupplyCost = true;
+    noSupplyCost = true;
 
     constructor(player: OathPlayer, banished: OathPlayer) {
         super(banished, player);
@@ -1031,18 +1021,19 @@ export class MoveWarbandsAction extends ModifiableAction {
     start(): boolean {
         const choices = new Map<string, Site | OathPlayer>();
         const siteProxy = this.playerProxy.site;
-        let max = this.playerProxy.getWarbandsAmount(this.playerProxy.leader.original.key);
+        let max = this.player.getWarbandsAmount(this.playerProxy.leader.original.key);
         if (this.playerProxy.isImperial) {
-            for (const playerProxy of Object.values(this.gameProxy.players)) {
+            for (const playerProxy of this.gameProxy.players) {
                 if (playerProxy !== this.playerProxy && playerProxy.isImperial && playerProxy.site === siteProxy) {
                     choices.set(playerProxy.name, playerProxy);
-                    max = Math.max(max, playerProxy.getWarbandsAmount(playerProxy.leader.original.key));
+                    max = Math.max(max, playerProxy.original.getWarbandsAmount(playerProxy.leader.original.key));
                 }
             }
         }
-        if (siteProxy.getWarbandsAmount(this.playerProxy.leader.original.key) > 0) {
+        const siteAmount = siteProxy.original.getWarbandsAmount(this.playerProxy.leader.original.key);
+        if (siteAmount > 0) {
             choices.set(siteProxy.name, siteProxy);
-            max = Math.max(max, siteProxy.getWarbandsAmount(this.playerProxy.leader.original.key) - 1);
+            max = Math.max(max, siteAmount - 1);
         }
         this.selects.target = new SelectNOf("Target", choices, 1);
 

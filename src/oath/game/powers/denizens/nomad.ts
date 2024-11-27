@@ -423,7 +423,7 @@ export class Resettle extends ActivePower<Denizen> {
     usePower(): void {
         new ChooseCardsAction(
             this.action.player, "Choose a Nomad adviser",
-            [Object.values(this.gameProxy.players).reduce((a, e) => [...a, ...[...e.advisers].filter(e => e instanceof Denizen && e.suit == OathSuit.Nomad)], [] as Denizen[])],
+            [this.gameProxy.players.reduce((a, e) => [...a, ...[...e.advisers].filter(e => e instanceof Denizen && e.suit == OathSuit.Nomad)], [] as Denizen[])],
             (cards: Denizen[]) => {
                 if (!cards[0]) return;
                 new ChooseSitesAction(
@@ -535,7 +535,7 @@ export class TwinBrother extends WhenPlayed<Denizen> {
 
     whenPlayed(): void {
         const cards = new Set<Denizen>();
-        for (const playerProxy of Object.values(this.gameProxy.players)) {
+        for (const playerProxy of this.gameProxy.players) {
             if (playerProxy !== this.effect.executorProxy) continue;
             for (const adviserProxy of playerProxy.advisers)
                 if (adviserProxy instanceof Denizen && adviserProxy.suit === OathSuit.Nomad && !adviserProxy.activelyLocked)

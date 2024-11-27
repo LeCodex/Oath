@@ -60,8 +60,8 @@ export class OathWarband extends OathGameObjectLeaf<number> {
     type = "warband";
     color: PlayerColor;
 
-    constructor() {
-        super(String(resourceId++));
+    constructor(id?: string) {
+        super(id ?? String(resourceId++));
     }
 
     colorize(color: PlayerColor) {
@@ -98,8 +98,8 @@ export abstract class ResourcesAndWarbands<T = any> extends OathGameObject<T> {
     }
 
     getWarbandsAmount(color?: PlayerColor): number {
-        if (!color) return 0;
-        return this.warbands.byKey(color).length;
+        if (color === undefined) return 0;
+        return this.warbands.by("color", color).length;
     }
 
     putWarbands(color: PlayerColor, amount: number): number {
@@ -108,7 +108,7 @@ export abstract class ResourcesAndWarbands<T = any> extends OathGameObject<T> {
     }
 
     getWarbands(color: PlayerColor, amount: number = Infinity) {
-        const warbands = this.warbands.byKey(color);
+        const warbands = this.warbands.by("color", color);
         amount = Math.min(warbands.length, amount);
         return warbands.max(amount);
     }

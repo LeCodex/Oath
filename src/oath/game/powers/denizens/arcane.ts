@@ -188,7 +188,7 @@ export class Inquisitor extends ActivePower<Denizen> {
 
     usePower(): void {
         const cards = new Set<WorldCard>();
-        for (const playerProxy of Object.values(this.gameProxy.players)) {
+        for (const playerProxy of this.gameProxy.players) {
             if (playerProxy === this.action.playerProxy || playerProxy.site !== this.action.playerProxy.site) continue;
             for (const adviserProxy of playerProxy.advisers)
                 if (adviserProxy.original.facedown) cards.add(adviserProxy.original);
@@ -233,7 +233,7 @@ export class TerrorSpells extends ActivePower<Denizen> {
                     if (targets[0]) new KillWarbandsOnTargetAction(this.action.player, targets[0], 1).doNext();
                     if (--amount) this.usePower(amount);
                 },
-                [Object.values(this.gameProxy.players).filter(e => e.site.region === this.action.playerProxy.site.region && e.original.warbands.length > 0).map(e => e.original)]
+                [this.gameProxy.players.filter(e => e.site.region === this.action.playerProxy.site.region && e.original.warbands.length > 0).map(e => e.original)]
             ).doNext(),
             ["At sites", "On boards"]
         ).doNext();
@@ -245,7 +245,7 @@ export class PlagueEngines extends ActivePower<Denizen> {
     cost = new ResourceCost([[Secret, 1]], [[Secret, 1]]);
 
     usePower(): void {
-        for (const playerProxy of Object.values(this.gameProxy.players))
+        for (const playerProxy of this.gameProxy.players)
             new ParentToTargetEffect(this.game, playerProxy.original, playerProxy.original.byClass(Favor).max(playerProxy.ruledSites), this.game.favorBank(OathSuit.Arcane)).doNext();
     }
 }
@@ -473,7 +473,7 @@ export class WitchsBargain extends ActivePower<Denizen> {
                     ).doNext();
                 }
             },
-            [Object.values(this.gameProxy.players).filter(e => e.site === this.action.playerProxy.site).map(e => e.original)],
+            [this.gameProxy.players.filter(e => e.site === this.action.playerProxy.site).map(e => e.original)],
             [[1, Infinity]]
         ).doNext();
     }
@@ -538,7 +538,7 @@ export class DreamThief extends ActivePower<Denizen> {
 
     usePower(): void {
         const cards = new Set<WorldCard>();
-        for (const playerProxy of Object.values(this.gameProxy.players)) {
+        for (const playerProxy of this.gameProxy.players) {
             if (playerProxy === this.action.playerProxy || playerProxy.site !== this.action.playerProxy.site) continue;
             for (const adviserProxy of playerProxy.advisers)
                 if (adviserProxy.original.facedown && !(adviserProxy instanceof Denizen && adviserProxy.activelyLocked))

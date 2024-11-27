@@ -122,7 +122,7 @@ export class Site extends OathCard implements CampaignActionTarget {
     }
 
     getWarbandsAmount(color?: PlayerColor): number {
-        if (!color) return this.bandits;
+        if (color === undefined) return this.bandits;
         return super.getWarbandsAmount(color);
     }
 

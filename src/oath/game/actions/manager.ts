@@ -160,6 +160,7 @@ export class OathActionManager {
         node.events.pop();
         this.actionsStack.length = 0;
         this.futureActionsList.length = 0;
+        this.currentEffectsStack.length = 0;
         this.game.parse(node.game, true);
         for (const event of node.events) event.replay(this);
         

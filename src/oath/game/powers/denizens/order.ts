@@ -433,7 +433,7 @@ export class KnightsErrant extends AccessedActionModifier<Denizen, MusterAction>
         new MakeDecisionAction(this.action.player, "Start a campaign?",
             () => {
                 const campaignAction = new CampaignAction(this.action.player);
-                campaignAction._noSupplyCost = true;
+                campaignAction.noSupplyCost = true;
                 campaignAction.doNext();
             }
         ).doNext();
@@ -450,7 +450,7 @@ export class HuntingParty extends AccessedActionModifier<Denizen, SearchAction> 
             new MakeDecisionAction(this.action.player, "Start a campaign?",
                 () => { 
                     const campaignAction = new CampaignAction(this.action.player);
-                    campaignAction._noSupplyCost = true;
+                    campaignAction.noSupplyCost = true;
                     campaignAction.doNext();
                 }
             ).doNext();
@@ -462,7 +462,7 @@ export class RoyalTax extends WhenPlayed<Denizen> {
     name = "Royal Tax";
 
     whenPlayed(): void {
-        for (const playerProxy of Object.values(this.gameProxy.players)) {
+        for (const playerProxy of this.gameProxy.players) {
             if (playerProxy.site.ruler === this.effect.executorProxy.leader)
                 new MoveResourcesToTargetEffect(this.game, this.effect.executor, Favor, 2, this.effect.executor, playerProxy).doNext();
         }
@@ -515,7 +515,7 @@ export class Captains extends ActivePower<Denizen> {
 
     usePower(): void {
         const campaignAction = new CampaignAction(this.action.player);
-        campaignAction._noSupplyCost = true;
+        campaignAction.noSupplyCost = true;
 
         const sites = new Set<Site>();
         for (const siteProxy of this.gameProxy.board.sites())
@@ -563,12 +563,12 @@ export class Palanquin extends ActivePower<Denizen> {
                         if (!sites[0]) return;
                         new PutPawnAtSiteEffect(this.action.player, sites[0]).doNext();
                         const travelAction = new TravelAction(targets[0]!, this.action.player, (s: Site) => s === sites[0]);
-                        travelAction._noSupplyCost = true;
+                        travelAction.noSupplyCost = true;
                         travelAction.doNext();
                     }
                 )
             },
-            [Object.values(this.gameProxy.players).filter(e => e !== this.action.playerProxy && e.site.region === this.action.playerProxy.site.region).map(e => e.original)]
+            [this.gameProxy.players.filter(e => e !== this.action.playerProxy && e.site.region === this.action.playerProxy.site.region).map(e => e.original)]
         ).doNext();
     }
 }

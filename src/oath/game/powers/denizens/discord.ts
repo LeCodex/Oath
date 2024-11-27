@@ -110,7 +110,7 @@ export class SecondWind extends AttackerBattlePlan<Denizen> {
                 this.action.player, "Take a Travel action?",
                 () => {
                     const travelAction = new TravelAction(this.action.player);
-                    travelAction._noSupplyCost = true;
+                    travelAction.noSupplyCost = true;
                     travelAction.doNext();
                 }
             ).doNext();
@@ -119,7 +119,7 @@ export class SecondWind extends AttackerBattlePlan<Denizen> {
                 this.action.player, "Take a Campaign action?",
                 () => {
                     const campaignAction = new CampaignAction(this.action.player);
-                    campaignAction._noSupplyCost = true;
+                    campaignAction.noSupplyCost = true;
                     campaignAction.doNext();
                 }
             ).doNext();
@@ -195,7 +195,7 @@ export class Assassin extends ActivePower<Denizen> {
 
     usePower(): void {
         const cards = new Set<WorldCard>();
-        for (const playerProxy of Object.values(this.gameProxy.players)) {
+        for (const playerProxy of this.gameProxy.players) {
             if (playerProxy === this.action.playerProxy || playerProxy.site !== this.action.playerProxy.site) continue;
             for (const adviserProxy of playerProxy.advisers)
                 if (!adviserProxy.original.facedown && !(adviserProxy instanceof Denizen && adviserProxy.activelyLocked))
@@ -232,7 +232,7 @@ export class SleightOfHand extends ActivePower<Denizen> {
     cost = new ResourceCost([[Favor, 1]]);
 
     usePower(): void {
-        const players = Object.values(this.gameProxy.players).filter(e => e.site === this.action.playerProxy.site).map(e => e.original);
+        const players = this.gameProxy.players.filter(e => e.site === this.action.playerProxy.site).map(e => e.original);
         new TakeResourceFromPlayerAction(this.action.player, Secret, 1, players).doNext();
     }
 }
@@ -292,7 +292,7 @@ export class Dissent extends WhenPlayed<Denizen> {
 
     whenPlayed(): void {
         const peoplesFavorProxy = this.gameProxy.banners.get(BannerName.PeoplesFavor);
-        for (const playerProxy of Object.values(this.gameProxy.players))
+        for (const playerProxy of this.gameProxy.players)
             if (peoplesFavorProxy?.owner !== playerProxy)
                 new MoveResourcesToTargetEffect(this.game, playerProxy.original, Favor, playerProxy.ruledSuits, this.source).doNext();
     }
@@ -339,7 +339,7 @@ export class Blackmail extends WhenPlayed<Denizen> {
 
     whenPlayed(): void {
         const relics = new Set<Relic>();
-        for (const playerProxy of Object.values(this.gameProxy.players)) {
+        for (const playerProxy of this.gameProxy.players) {
             if (playerProxy === this.effect.executorProxy || playerProxy.site === this.effect.executorProxy.site) continue;
             for (const relicProxy of playerProxy.relics) relics.add(relicProxy.original);
         }
@@ -539,7 +539,7 @@ export class Enchantress extends ActivePower<Denizen> {
 
     usePower(): void {
         const cards = new Set<WorldCard>();
-        for (const playerProxy of Object.values(this.gameProxy.players)) {
+        for (const playerProxy of this.gameProxy.players) {
             if (playerProxy === this.action.playerProxy || playerProxy.site !== this.action.playerProxy.site) continue;
             for (const adviserProxy of playerProxy.advisers)
                 if (!adviserProxy.original.facedown && !(adviserProxy instanceof Denizen && adviserProxy.activelyLocked))

@@ -25,7 +25,7 @@ export class ConspiracyPower extends WhenPlayed<Conspiracy> {
 
     whenPlayed(): void {
         const targets: OathPlayer[] = [];
-        for (const playerProxy of Object.values(this.gameProxy.players)) {
+        for (const playerProxy of this.gameProxy.players) {
             if (playerProxy.site === this.effect.executorProxy.site) {
                 let totalAdviserSuitCount = 0;
                 for (const adviserProxy of playerProxy.advisers)

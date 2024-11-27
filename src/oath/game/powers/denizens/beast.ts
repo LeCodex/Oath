@@ -401,7 +401,7 @@ export class WildAllies extends ActivePower<Denizen> {
 
     usePower(): void {
         const campaignAction = new CampaignAction(this.action.player);
-        campaignAction._noSupplyCost = true;
+        campaignAction.noSupplyCost = true;
 
         const sites = new Set<Site>();
         for (const siteProxy of this.gameProxy.board.sites()) {
@@ -470,7 +470,7 @@ export class SecondChance extends ActivePower<Denizen> {
 
     usePower(): void {
         const players = new Set<OathPlayer>();
-        for (const playerProxy of Object.values(this.gameProxy.players)) {
+        for (const playerProxy of this.gameProxy.players) {
             for (const adviserProxy of playerProxy.advisers) {
                 if (adviserProxy instanceof Denizen && (adviserProxy.suit === OathSuit.Order || adviserProxy.suit === OathSuit.Discord)) {
                     players.add(playerProxy.original);

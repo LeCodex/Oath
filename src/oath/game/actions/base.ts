@@ -220,12 +220,7 @@ export abstract class OathEffect<T = never> extends ModifiableAction {
 
     execute(): void {
         super.execute();
-        new ResolveCallbackAction(this.game, () => {
-            if (this.callback) {
-                console.log("Calling callback of " + this.constructor.name);
-                this.callback(this.result);
-            }
-        }).doNext();
+        new ResolveCallbackAction(this.game, () => { if (this.callback) this.callback(this.result); }).doNext();
     }
 
     modifiedExecution(): void {
