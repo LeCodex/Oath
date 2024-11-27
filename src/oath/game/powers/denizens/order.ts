@@ -15,14 +15,14 @@ export class LongbowsAttack extends AttackerBattlePlan<Denizen> {
     name = "Longbows";
 
     applyBefore(): void {
-        this.action.campaignResult.params.atkPool++;
+        this.action.campaignResult.atkPool++;
     }
 }
 export class LongbowsDefense extends DefenderBattlePlan<Denizen> {
     name = "Longbows";
 
     applyBefore(): void {
-        this.action.campaignResult.params.atkPool--;
+        this.action.campaignResult.atkPool--;
     }
 }
 
@@ -31,7 +31,7 @@ export class EncirclementAttack extends AttackerBattlePlan<Denizen> {
     cost = new ResourceCost([[Favor, 1]]);
 
     applyBefore(): void {
-        if (this.action.campaignResult.totalAtkForce > this.action.campaignResult.totalDefForce) this.action.campaignResult.params.atkPool += 2;
+        if (this.action.campaignResult.totalAtkForce > this.action.campaignResult.totalDefForce) this.action.campaignResult.atkPool += 2;
     }
 }
 export class EncirclementDefense extends DefenderBattlePlan<Denizen> {
@@ -39,7 +39,7 @@ export class EncirclementDefense extends DefenderBattlePlan<Denizen> {
     cost = new ResourceCost([[Favor, 1]]);
 
     applyBefore(): void {
-        if (this.action.campaignResult.totalDefForce > this.action.campaignResult.totalAtkForce) this.action.campaignResult.params.atkPool -= 2;
+        if (this.action.campaignResult.totalDefForce > this.action.campaignResult.totalAtkForce) this.action.campaignResult.atkPool -= 2;
     }
 }
 
@@ -51,7 +51,7 @@ export class CodeOfHonorAttack extends AttackerBattlePlan<Denizen> {
             if (modifier !== this && modifier instanceof AttackerBattlePlan)
                 throw new InvalidActionResolution("Cannot use other battle plans with the Code of Honor");
 
-        this.action.campaignResult.params.atkPool += 2;
+        this.action.campaignResult.atkPool += 2;
     }
 }
 export class CodeOfHonorDefense extends DefenderBattlePlan<Denizen> {
@@ -62,7 +62,7 @@ export class CodeOfHonorDefense extends DefenderBattlePlan<Denizen> {
             if (modifier !== this && modifier instanceof DefenderBattlePlan)
                 throw new InvalidActionResolution("Cannot use other battle plans with the Code of Honor");
 
-        this.action.campaignResult.params.atkPool -= 2;
+        this.action.campaignResult.atkPool -= 2;
     }
 }
 
@@ -155,10 +155,10 @@ export class PeaceEnvoyAttack extends AttackerBattlePlan<Denizen> {
 
         // TODO: This will mean no other modifiers get to do anything. Is this fine?
         if (this.action.campaignResultProxy.defender?.site === this.activatorProxy.site) {
-            new MoveResourcesToTargetEffect(this.game, this.activator, Favor, this.action.campaignResult.params.defPool, this.action.campaignResult.defender).doNext(amount => {
+            new MoveResourcesToTargetEffect(this.game, this.activator, Favor, this.action.campaignResult.defPool, this.action.campaignResult.defender).doNext(amount => {
                 if (amount === 0) return;
                 this.action.campaignResult.successful = false;
-                this.action.campaignResult.params.ignoreKilling = true;
+                this.action.campaignResult.ignoreKilling = true;
                 this.action.next.doNext();
             });
         }
@@ -176,10 +176,10 @@ export class PeaceEnvoyDefense extends DefenderBattlePlan<Denizen> {
                 throw new InvalidActionResolution("Cannot use other battle plans with the Peace Envoy");
 
         if (this.action.campaignResultProxy.attacker.site === this.activatorProxy.site) {
-            new MoveResourcesToTargetEffect(this.game, this.activator, Favor, this.action.campaignResult.params.defPool, this.action.campaignResult.attacker).doNext(amount => {
+            new MoveResourcesToTargetEffect(this.game, this.activator, Favor, this.action.campaignResult.defPool, this.action.campaignResult.attacker).doNext(amount => {
                 if (amount === 0) return;
                 this.action.campaignResult.successful = false;
-                this.action.campaignResult.params.ignoreKilling = true;
+                this.action.campaignResult.ignoreKilling = true;
                 this.action.next.doNext();
             });
         }
@@ -193,8 +193,8 @@ export class ShieldWall extends DefenderBattlePlan<Denizen> {
     cost = new ResourceCost([[Favor, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.params.defPool += 2;
-        this.action.campaignResult.params.defenderKillsEntireForce = true;
+        this.action.campaignResult.defPool += 2;
+        this.action.campaignResult.defenderKillsEntireForce = true;
     }
 }
 
@@ -203,7 +203,7 @@ export class Wrestlers extends DefenderBattlePlan<Denizen> {
 
     applyBefore(): void {
         if (this.action.campaignResult.totalDefForce > 0) {
-            this.action.campaignResult.params.defPool++;
+            this.action.campaignResult.defPool++;
             new CampaignKillWarbandsInForceAction(this.action.campaignResult, false, 1).doNext();
         }
     }
@@ -213,7 +213,7 @@ export class BearTraps extends DefenderBattlePlan<Denizen> {
     name = "Bear Traps";
 
     applyBefore(): void {
-        this.action.campaignResult.params.atkPool--;
+        this.action.campaignResult.atkPool--;
         new KillWarbandsOnTargetAction(this.action.player, this.action.campaignResult.attacker, 1).doNext();
     }
 }
@@ -222,8 +222,8 @@ export class Keep extends DefenderBattlePlan<Denizen> {
     name = "Keep";
 
     applyBefore(): void {
-        if (this.source.site && this.action.campaignResult.params.targets.has(this.source.site))
-            this.action.campaignResult.params.defPool += 2;
+        if (this.source.site && this.action.campaignResult.targets.has(this.source.site))
+            this.action.campaignResult.defPool += 2;
     }
 }
 
@@ -239,7 +239,7 @@ export class Outriders extends AttackerBattlePlan<Denizen> {
     name = "Outriders";
 
     applyBefore(): void {
-        this.action.campaignResult.params.atkRoll.ignore.add(DieSymbol.Skull);
+        this.action.campaignResult.atkRoll.ignore.add(DieSymbol.Skull);
     }
 }
 
@@ -275,10 +275,10 @@ export class RelicHunter extends AttackerBattlePlan<Denizen> {
     }
 
     applyBefore(): void {
-        for (const target of this.action.campaignResult.params.targets) {
+        for (const target of this.action.campaignResult.targets) {
             if (target instanceof RelicWrapper) {
                 let targetedSite = false;
-                for (const target2 of this.action.campaignResult.params.targets) {
+                for (const target2 of this.action.campaignResult.targets) {
                     if (target.relic.site === target2) {
                         targetedSite = true;
                         break;
@@ -387,7 +387,7 @@ export class TomeGuardiansAttack extends EnemyAttackerCampaignModifier<Denizen> 
     name = "Tome Guardians";
 
     applyBefore(): void {
-        for (const targetProxy of this.action.campaignResultProxy.params.targets)
+        for (const targetProxy of this.action.campaignResultProxy.targets)
             if (targetProxy === this.gameProxy.banners.get(BannerName.DarkestSecret))
                 throw new InvalidActionResolution("Cannot target the Darkest Secret under the Tome Guardians.");
     }
@@ -578,9 +578,9 @@ export class SprawlingRampart extends DefenderBattlePlan<Edifice> {
     name = "Sprawling Rampart";
 
     applyBefore(): void {
-        for (const targetProxy of this.action.campaignResultProxy.params.targets) {
+        for (const targetProxy of this.action.campaignResultProxy.targets) {
             if (targetProxy instanceof Site && targetProxy.ruler === this.sourceProxy.ruler)
-                this.action.campaignResult.params.defPool++;
+                this.action.campaignResult.defPool++;
         }
     }
 }
@@ -589,7 +589,7 @@ export class BanditRampart extends DefenderBattlePlan<Edifice> {
     name = "Bandit Rampart";
 
     applyBefore(): void {
-        if (this.source.site && this.action.campaignResult.params.targets.has(this.source.site))
-            this.action.campaignResult.params.atkPool -= 2;
+        if (this.source.site && this.action.campaignResult.targets.has(this.source.site))
+            this.action.campaignResult.atkPool -= 2;
     }
 }

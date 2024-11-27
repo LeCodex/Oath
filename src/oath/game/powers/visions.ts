@@ -14,7 +14,7 @@ export class OathDefense extends ActionModifier<Oath, CampaignDefenseAction> {
     }
 
     applyBefore(): void {
-        this.action.campaignResult.params.defPool += this.gameProxy.isUsurper ? 2 : 1;
+        this.action.campaignResult.defPool += this.gameProxy.isUsurper ? 2 : 1;
     }
 }
 
@@ -38,7 +38,7 @@ export class ConspiracyPower extends WhenPlayed<Conspiracy> {
         }
 
         new ChoosePlayersAction(
-            this.action.executor, "Target a player (or no-one) with the Conspiracy", 
+            this.action.executor, "Target a player (or no-one) with the Conspiracy",
             (targets: OathPlayer[]) => { if (targets[0]) new ConspiracyStealAction(this.action.executor, targets[0]).doNext(); }, 
             [targets],
             [[0, 1]]

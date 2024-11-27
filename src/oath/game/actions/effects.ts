@@ -8,11 +8,11 @@ import { Banner, FavorBank, PeoplesFavor } from "../banks";
 import { OwnableObject, WithPowers } from "../interfaces";
 import { OathGame } from "../game";
 import { OathGameObject } from "../gameObject";
-import { BuildOrRepairEdificeAction, ChooseNewCitizensAction, VowOathAction, RestAction, WakeAction, CampaignDefenseAction, CampaignResult, SearchDiscardAction, SearchPlayOrDiscardAction, ChooseSuitsAction } from "./actions";
+import { BuildOrRepairEdificeAction, ChooseNewCitizensAction, VowOathAction, RestAction, WakeAction, CampaignResult, SearchDiscardAction, SearchPlayOrDiscardAction, ChooseSuitsAction } from "./actions";
 import { DiscardOptions } from "../cards/decks";
 import { CardDeck } from "../cards/decks";
-import { Constructor, isExtended, shuffleArray, TreeNode } from "../utils";
-import { D6, RollResult, Die, DieSymbol } from "../dice";
+import { Constructor, isExtended, TreeNode } from "../utils";
+import { D6, RollResult, Die } from "../dice";
 import { Region } from "../board";
 import { denizenData, edificeFlipside } from "../cards/denizens";
 
@@ -736,7 +736,7 @@ export class RollDiceEffect extends OathEffect<RollResult> {
     amount: number;
     result: RollResult;
 
-    constructor(game: OathGame, player: OathPlayer | undefined, die: typeof Die, amount: number, result: RollResult = new RollResult()) {
+    constructor(game: OathGame, player: OathPlayer | undefined, die: typeof Die, amount: number, result: RollResult = new RollResult(game.random)) {
         super(game, player);
         this.die = die;
         this.amount = Math.max(0, amount);
@@ -968,7 +968,7 @@ export class GetRandomCardFromDispossessed extends OathEffect<Denizen> {
 
     resolve(): Denizen {
         const keys = Object.keys(this.game.dispossessed);
-        const name = keys[Math.floor(Math.random() * keys.length)]!;
+        const name = keys[this.game.random.nextInt(keys.length)]!;
         this.denizen = new Denizen(name);
         delete this.game.dispossessed[name];
         return this.denizen;
@@ -1269,7 +1269,7 @@ export class FinishChronicleEffect extends PlayerEffect {
             }
         }
 
-        shuffleArray(futureReliquary);
+        this.game.random.shuffleArray(futureReliquary);
         while (futureReliquary.length) {
             const relic = futureReliquary.pop();
             if (relic) relicDeck.addChild(relic)
@@ -1303,7 +1303,7 @@ export class FinishChronicleEffect extends PlayerEffect {
         for (const [key, data] of Object.entries(this.game.archive))
             if (data[0] === suit) cardKeys.push(key);
 
-        shuffleArray(cardKeys);
+        this.game.random.shuffleArray(cardKeys);
         return cardKeys;
     }
 
@@ -1372,8 +1372,8 @@ export class FinishChronicleEffect extends PlayerEffect {
     
             topPile.push(...visions.splice(0, 2));
             middlePile.push(...visions.splice(0, 3));
-            shuffleArray(topPile);
-            shuffleArray(middlePile);
+            this.game.random.shuffleArray(topPile);
+            this.game.random.shuffleArray(middlePile);
     
             // Those effectively just reorder the cards
             worldDeck.addChildren(middlePile);

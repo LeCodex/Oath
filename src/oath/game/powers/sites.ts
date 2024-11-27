@@ -197,7 +197,7 @@ export class TheHiddenPlaceCampaign extends ActionModifier<Site, CampaignAttackA
     mustUse = true;
 
     applyBefore(): void {
-        for (const target of this.action.campaignResult.params.targets) {
+        for (const target of this.action.campaignResult.targets) {
             if (target === this.source || isAtSite(target) && target.site === this.source) {
                 new FlipSecretsEffect(this.game, this.action.player, 1, true).doNext(amount => {
                     if (amount < 1) throw new InvalidActionResolution("Cannot flip a secret for The Hidden Place");
@@ -227,9 +227,9 @@ export class Plains extends AtSiteActionModifier<CampaignAttackAction> {
     mustUse = true;
 
     applyBefore(): void {
-        for (const target of this.action.campaignResult.params.targets) {
+        for (const target of this.action.campaignResult.targets) {
             if (target === this.source || isAtSite(target) && target.site === this.source) {
-                this.action.campaignResult.params.atkPool++;
+                this.action.campaignResult.atkPool++;
                 return
             }
         }
@@ -242,9 +242,9 @@ export class Mountain extends AtSiteActionModifier<CampaignAttackAction> {
     mustUse = true;
 
     applyBefore(): void {
-        for (const target of this.action.campaignResult.params.targets) {
+        for (const target of this.action.campaignResult.targets) {
             if (target === this.source || isAtSite(target) && target.site === this.source) {
-                this.action.campaignResult.params.atkPool--;
+                this.action.campaignResult.atkPool--;
                 return
             }
         }

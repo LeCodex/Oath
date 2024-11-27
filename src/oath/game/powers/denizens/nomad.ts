@@ -17,7 +17,7 @@ export class HorseArchersAttack extends AttackerBattlePlan<Denizen> {
     name = "Horse Archers";
 
     applyBefore(): void {
-        this.action.campaignResult.params.atkPool += 3;
+        this.action.campaignResult.atkPool += 3;
         this.action.campaignResult.discardAtEnd(this.source);
     }
 }
@@ -25,7 +25,7 @@ export class HorseArchersDefense extends DefenderBattlePlan<Denizen> {
     name = "Horse Archers";
 
     applyBefore(): void {
-        this.action.campaignResult.params.atkPool -= 3;
+        this.action.campaignResult.atkPool -= 3;
         this.action.campaignResult.discardAtEnd(this.source);
     }
 }
@@ -34,7 +34,7 @@ export class RivalKhanAttack extends AttackerBattlePlan<Denizen> {
     name = "Rival Khan";
 
     applyBefore(): void {
-        if (this.action.campaignResult.defender?.suitAdviserCount(OathSuit.Nomad)) this.action.campaignResult.params.atkPool += 4;
+        if (this.action.campaignResult.defender?.suitAdviserCount(OathSuit.Nomad)) this.action.campaignResult.atkPool += 4;
         this.action.campaignResult.discardAtEnd(this.source);
     }
 }
@@ -42,7 +42,7 @@ export class RivalKhanDefense extends DefenderBattlePlan<Denizen> {
     name = "Rival Khan";
 
     applyBefore(): void {
-        if (this.action.campaignResult.attacker?.suitAdviserCount(OathSuit.Nomad)) this.action.campaignResult.params.atkPool -= 4;
+        if (this.action.campaignResult.attacker?.suitAdviserCount(OathSuit.Nomad)) this.action.campaignResult.atkPool -= 4;
         this.action.campaignResult.discardAtEnd(this.source);
     }
 }
@@ -51,7 +51,7 @@ export class GreatCrusadeAttack extends AttackerBattlePlan<Denizen> {
     name = "Great Crusade";
 
     applyBefore(): void {
-        this.action.campaignResult.params.atkPool += this.activator.suitRuledCount(OathSuit.Nomad);
+        this.action.campaignResult.atkPool += this.activator.suitRuledCount(OathSuit.Nomad);
         this.action.campaignResult.discardAtEnd(this.source);
     }
 }
@@ -59,7 +59,7 @@ export class GreatCrusadeDefense extends DefenderBattlePlan<Denizen> {
     name = "Great Crusade";
 
     applyBefore(): void {
-        this.action.campaignResult.params.atkPool -= this.activator.suitRuledCount(OathSuit.Nomad);
+        this.action.campaignResult.atkPool -= this.activator.suitRuledCount(OathSuit.Nomad);
         this.action.campaignResult.discardAtEnd(this.source);
     }
 }
@@ -71,9 +71,9 @@ export class MountainGiantAttack extends AttackerBattlePlan<Denizen> {
     applyBefore(): void {
         new MakeDecisionAction(
             this.activator, "±1, or ±3 and discard at end?",
-            () => { this.action.campaignResult.params.atkPool++; },
+            () => { this.action.campaignResult.atkPool++; },
             () => {
-                this.action.campaignResult.params.atkPool += 3;
+                this.action.campaignResult.atkPool += 3;
                 this.action.campaignResult.discardAtEnd(this.source);
             }, 
             ["±1", "±3"]
@@ -86,9 +86,9 @@ export class MountainGiantDefense extends DefenderBattlePlan<Denizen> {
     applyBefore(): void {
         new MakeDecisionAction(
             this.activator, "±1, or ±3 and discard at end?",
-            () => { this.action.campaignResult.params.atkPool--; },
+            () => { this.action.campaignResult.atkPool--; },
             () => {
-                this.action.campaignResult.params.atkPool -= 3;
+                this.action.campaignResult.atkPool -= 3;
                 this.action.campaignResult.discardAtEnd(this.source);
             },
             ["±1", "±3"]
@@ -116,7 +116,7 @@ export class RainBoots extends AttackerBattlePlan<Denizen> {
     name = "Rain Boots";
 
     applyBefore(): void {
-        this.action.campaignResult.params.defRoll.ignore.add(DieSymbol.Shield)
+        this.action.campaignResult.defRoll.ignore.add(DieSymbol.Shield)
     }
 }
 
@@ -132,7 +132,7 @@ export class LancersEnd extends ActionModifier<Denizen, CampaignEndAction> {
     modifiedAction = CampaignEndAction;
 
     applyBefore(): void {
-        const roll = this.action.campaignResult.params.atkRoll.dice.get(AttackDie);
+        const roll = this.action.campaignResult.atkRoll.dice.get(AttackDie);
         if (!roll) return;
         for (const [symbol, amount] of roll) roll.set(symbol, 2 * amount);
     }
@@ -142,7 +142,7 @@ export class StormCaller extends DefenderBattlePlan<Denizen> {
     name = "Storm Caller";
 
     applyBefore(): void {
-        this.action.campaignResult.params.defPool += 2;
+        this.action.campaignResult.defPool += 2;
         this.action.campaignResult.discardAtEnd(this.source);
     }
 }
@@ -151,7 +151,7 @@ export class MountedPatrol extends DefenderBattlePlan<Denizen> {
     name = "Mounted Patrol";
 
     applyBefore(): void {
-        this.action.campaignResult.params.atkPool = Math.floor(this.action.campaignResult.params.atkPool / 2);
+        this.action.campaignResult.atkPool = Math.floor(this.action.campaignResult.atkPool / 2);
         this.action.campaignResult.discardAtEnd(this.source);
     }
 }
@@ -261,7 +261,7 @@ export class LostTongueCampaign extends EnemyAttackerCampaignModifier<Denizen> {
     name = "Lost Tongue";
 
     applyBefore(): void {
-        for (const target of this.action.campaignResult.params.targets) {
+        for (const target of this.action.campaignResult.targets) {
             if (isOwnable(target)) {
                 const targetProxy = this.action.maskProxyManager.get(target);
                 lostTongueCheckOwnable(this.sourceProxy, targetProxy, this.activatorProxy);

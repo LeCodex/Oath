@@ -15,7 +15,7 @@ export class NatureWorshipAttack extends AttackerBattlePlan<Denizen> {
     cost = new ResourceCost([[Secret, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.params.atkPool += this.activator.suitAdviserCount(OathSuit.Beast);
+        this.action.campaignResult.atkPool += this.activator.suitAdviserCount(OathSuit.Beast);
     }
 }
 export class NatureWorshipDefense extends DefenderBattlePlan<Denizen> {
@@ -23,7 +23,7 @@ export class NatureWorshipDefense extends DefenderBattlePlan<Denizen> {
     cost = new ResourceCost([[Secret, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.params.atkPool -= this.activator.suitAdviserCount(OathSuit.Beast);
+        this.action.campaignResult.atkPool -= this.activator.suitAdviserCount(OathSuit.Beast);
     }
 }
 
@@ -32,7 +32,7 @@ export class WarTortoiseAttack extends AttackerBattlePlan<Denizen> {
     cost = new ResourceCost([[Favor, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.params.defRoll.ignore.add(DieSymbol.TwoShield);
+        this.action.campaignResult.defRoll.ignore.add(DieSymbol.TwoShield);
     }
 }
 export class WarTortoiseDefense extends DefenderBattlePlan<Denizen> {
@@ -40,7 +40,7 @@ export class WarTortoiseDefense extends DefenderBattlePlan<Denizen> {
     cost = new ResourceCost([[Favor, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.params.atkRoll.ignore.add(DieSymbol.TwoSword);
+        this.action.campaignResult.atkRoll.ignore.add(DieSymbol.TwoSword);
     }
 }
 
@@ -49,8 +49,8 @@ export class Rangers extends AttackerBattlePlan<Denizen> {
     cost = new ResourceCost([[Favor, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.params.atkRoll.ignore.add(DieSymbol.Skull);
-        if (this.action.campaignResult.params.defPool >= 4) this.action.campaignResult.params.atkPool += 2;
+        this.action.campaignResult.atkRoll.ignore.add(DieSymbol.Skull);
+        if (this.action.campaignResult.defPool >= 4) this.action.campaignResult.atkPool += 2;
     }
 }
 
@@ -58,12 +58,12 @@ export class WalledGarden extends DefenderBattlePlan<Denizen> {
     name = "Walled Garden";
 
     applyBefore(): void {
-        for (const target of this.action.campaignResult.params.targets) {
+        for (const target of this.action.campaignResult.targets) {
             if (target !== this.source.site) return;
             for (const siteProxy of this.gameProxy.board.sites())
                 for (const denizenProxy of siteProxy.denizens)
                     if (denizenProxy.suit === OathSuit.Beast)
-                        this.action.campaignResult.params.defPool++;
+                        this.action.campaignResult.defPool++;
         }
     }
 }
@@ -181,7 +181,7 @@ export class MarshSpirit extends ActionModifier<Denizen, CampaignAttackAction> {
     modifiedAction = CampaignAttackAction;
 
     applyBefore(): void {
-        for (const targetProxy of this.action.campaignResult.params.targets)
+        for (const targetProxy of this.action.campaignResult.targets)
             if (targetProxy === this.sourceProxy.site && this.action.modifiers.some(e => e instanceof AttackerBattlePlan))
                 throw new InvalidActionResolution("Cannot use battle plans when targeting the Marsh Spirit's site");
     }
@@ -295,7 +295,7 @@ export class VowOfUnionAttack extends AccessedActionModifier<Denizen, CampaignAt
     applyBefore(): void {
         for (const siteProxy of this.gameProxy.board.sites())
             if (siteProxy.ruler === this.sourceProxy.ruler?.leader)
-                this.action.campaignResult.params.atkForce.add(siteProxy.original);
+                this.action.campaignResult.atkForce.add(siteProxy.original);
     }
 }
 export class VowOfUnionTravel extends AccessedActionModifier<Denizen, TravelAction> {
@@ -351,7 +351,7 @@ export class GiantPython extends EnemyAttackerCampaignModifier<Denizen> {
     name = "Giant Python";
 
     applyBefore(): void {
-        if (this.action.campaignResult.params.defPool % 2 == 1)
+        if (this.action.campaignResult.defPool % 2 == 1)
             throw new InvalidActionResolution("Must declare an even number of defense die against the Giant Python");
     }
 }

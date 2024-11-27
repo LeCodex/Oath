@@ -18,7 +18,7 @@ export class MercenariesAttack extends AttackerBattlePlan<Denizen> {
     cost = new ResourceCost([[Favor, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.params.atkPool += 3;
+        this.action.campaignResult.atkPool += 3;
         this.action.campaignResult.onSuccessful(false, () => new DiscardCardEffect(this.activator, this.source).doNext());
     }
 }
@@ -27,7 +27,7 @@ export class MercenariesDefense extends DefenderBattlePlan<Denizen> {
     cost = new ResourceCost([[Favor, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.params.atkPool -= 3;
+        this.action.campaignResult.atkPool -= 3;
         this.action.campaignResult.onSuccessful(true, () => new DiscardCardEffect(this.activator, this.source).doNext());
     }
 }
@@ -40,7 +40,7 @@ export class CrackedSageAttack extends AttackerBattlePlan<Denizen> {
         if (!this.action.campaignResult.defender) return;
         for (const adviser of this.action.campaignResult.defender.advisers) {
             if (!(adviser instanceof Denizen) || adviser.suit !== OathSuit.Arcane) continue;
-            this.action.campaignResult.params.atkPool += 4;
+            this.action.campaignResult.atkPool += 4;
             break;
         }
     }
@@ -52,7 +52,7 @@ export class CrackedSageDefense extends DefenderBattlePlan<Denizen> {
     applyBefore(): void {
         for (const adviser of this.action.campaignResult.attacker.advisers) {
             if (!(adviser instanceof Denizen) || adviser.suit !== OathSuit.Arcane) continue;
-            this.action.campaignResult.params.atkPool -= 4;
+            this.action.campaignResult.atkPool -= 4;
             break;
         }
     }
@@ -63,11 +63,11 @@ export class DisgracedCaptain extends AttackerBattlePlan<Denizen> {
     cost = new ResourceCost([[Favor, 1]], [[Favor, 1]]);
 
     applyBefore(): void {
-        for (const target of this.action.campaignResult.params.targets) {
+        for (const target of this.action.campaignResult.targets) {
             if (!(target instanceof Site)) continue;
             for (const denizenProxy of this.action.maskProxyManager.get(target).denizens) {
                 if (denizenProxy.suit !== OathSuit.Order) continue;
-                this.action.campaignResult.params.atkPool += 4;
+                this.action.campaignResult.atkPool += 4;
                 break;
             }
         }
@@ -132,7 +132,7 @@ export class Zealots extends AttackerBattlePlan<Denizen> {
 
     applyAtEnd(): void {
         if (this.action.campaignResult.totalAtkForce < this.action.campaignResult.totalDefForce)
-            this.action.campaignResult.params.sacrificeValue = 3;
+            this.action.campaignResult.sacrificeValue = 3;
     }
 }
 
@@ -151,7 +151,6 @@ export class RelicThief extends EnemyActionModifier<Denizen, TakeOwnableObjectEf
                     const cost = new ResourceCost([[Favor, 1], [Secret, 1]]);
                     new PayCostToTargetEffect(this.game, rulerProxy.original, cost, this.source).doNext(success => {
                         if (!success) throw cost.cannotPayError;
-                        
                         new RollDiceEffect(this.game, rulerProxy.original, DefenseDie, 1).doNext(result => {
                             if (result.value === 0) new TakeOwnableObjectEffect(this.game, rulerProxy.original, this.action.target).doNext();
                         });
@@ -260,7 +259,7 @@ export class GamblingHall extends ActivePower<Denizen> {
 
     usePower(): void {
         new RollDiceEffect(this.game, this.action.player, DefenseDie, 4).doNext(result => {
-            new TakeFavorFromBankAction(this.action.player, result.value);
+            new TakeFavorFromBankAction(this.action.player, result.value).doNext();
         });
     }
 }
@@ -505,7 +504,7 @@ export class BeastTamerAttack extends EnemyAttackerCampaignModifier<Denizen> {
                 modifier instanceof AttackerBattlePlan && modifier.sourceProxy instanceof Denizen && 
                 (modifier.sourceProxy.suit === OathSuit.Beast || modifier.sourceProxy.suit === OathSuit.Nomad)
             )
-                throw new InvalidActionResolution("Cannot use Beast or Nomad battle plans against Beast Tamer");
+                throw new InvalidActionResolution("Cannot use Beast or Nomad battle plans against the Beast Tamer");
     }
 }
 export class BeastTamerDefense extends EnemyDefenderCampaignModifier<Denizen> {
@@ -517,7 +516,7 @@ export class BeastTamerDefense extends EnemyDefenderCampaignModifier<Denizen> {
                 modifier instanceof DefenderBattlePlan && modifier.sourceProxy instanceof Denizen && 
                 (modifier.sourceProxy.suit === OathSuit.Beast || modifier.sourceProxy.suit === OathSuit.Nomad)
             )
-                throw new InvalidActionResolution("Cannot use Beast or Nomad battle plans against Beast Tamer");
+                throw new InvalidActionResolution("Cannot use Beast or Nomad battle plans against the Beast Tamer");
     }
 }
 

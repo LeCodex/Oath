@@ -1,7 +1,5 @@
-import { Region } from "../board";
 import { isEnumKey, RegionKey } from "../enums";
 import { Container } from "../gameObject";
-import { shuffleArray } from "../utils";
 import { WorldCard, VisionBack, OathCard, Relic, Site } from "./cards";
 
 
@@ -25,7 +23,7 @@ export abstract class CardDeck<T extends OathCard, U = any> extends Container<T,
     }
 
     shuffle() {
-        shuffleArray(this.children);
+        this.game.random.shuffleArray(this.children);
     }
 
     serialize(): Record<string, any> | undefined {

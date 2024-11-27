@@ -20,7 +20,7 @@ export class FireTalkersAttack extends AttackerBattlePlan<Denizen> {
     applyBefore(): void {
         const darkestSecretProxy = this.gameProxy.banners.get(BannerName.DarkestSecret);
         if (darkestSecretProxy?.owner !== this.activatorProxy) return;
-        this.action.campaignResult.params.atkPool += 3;
+        this.action.campaignResult.atkPool += 3;
     }
 }
 export class FireTalkersDefense extends DefenderBattlePlan<Denizen> {
@@ -30,7 +30,7 @@ export class FireTalkersDefense extends DefenderBattlePlan<Denizen> {
     applyBefore(): void {
         const darkestSecretProxy = this.gameProxy.banners.get(BannerName.DarkestSecret);
         if (darkestSecretProxy?.owner !== this.activatorProxy) return;
-        this.action.campaignResult.params.atkPool -= 3;
+        this.action.campaignResult.atkPool -= 3;
     }
 }
 
@@ -39,7 +39,7 @@ export class BillowingFogAttack extends AttackerBattlePlan<Denizen> {
     cost = new ResourceCost([[Secret, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.params.attackerKillsNoWarbands = true;
+        this.action.campaignResult.attackerKillsNoWarbands = true;
     }
 }
 export class BillowingFogDefense extends DefenderBattlePlan<Denizen> {
@@ -47,7 +47,7 @@ export class BillowingFogDefense extends DefenderBattlePlan<Denizen> {
     cost = new ResourceCost([[Secret, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.params.defenderKillsNoWarbands = true;
+        this.action.campaignResult.defenderKillsNoWarbands = true;
     }
 }
 
@@ -56,8 +56,8 @@ export class KindredWarriorsAttack extends AttackerBattlePlan<Denizen> {
     cost = new ResourceCost([[Secret, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.params.atkRoll.ignore.add(DieSymbol.Skull);
-        this.action.campaignResult.params.atkPool += (this.activator.ruledSuits - 1);
+        this.action.campaignResult.atkRoll.ignore.add(DieSymbol.Skull);
+        this.action.campaignResult.atkPool += (this.activator.ruledSuits - 1);
     }
 }
 export class KindredWarriorsDefense extends DefenderBattlePlan<Denizen> {
@@ -65,7 +65,7 @@ export class KindredWarriorsDefense extends DefenderBattlePlan<Denizen> {
     cost = new ResourceCost([[Secret, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.params.atkPool -= (this.activator.ruledSuits - 1);
+        this.action.campaignResult.atkPool -= (this.activator.ruledSuits - 1);
     }
 }
 
@@ -74,7 +74,7 @@ export class CrackingGroundAttack extends AttackerBattlePlan<Denizen> {
     cost = new ResourceCost([], [[Secret, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.params.atkPool += [...this.action.campaignResult.params.targets].filter(e => e instanceof Site).length;
+        this.action.campaignResult.atkPool += [...this.action.campaignResult.targets].filter(e => e instanceof Site).length;
     }
 }
 export class CrackingGroundDefense extends DefenderBattlePlan<Denizen> {
@@ -82,7 +82,7 @@ export class CrackingGroundDefense extends DefenderBattlePlan<Denizen> {
     cost = new ResourceCost([], [[Secret, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.params.atkPool -= [...this.action.campaignResult.params.targets].filter(e => e instanceof Site).length;
+        this.action.campaignResult.atkPool -= [...this.action.campaignResult.targets].filter(e => e instanceof Site).length;
     }
 }
 
@@ -93,7 +93,7 @@ export class RustingRay extends DefenderBattlePlan<Denizen> {
     applyBefore(): void {
         const darkestSecretProxy = this.gameProxy.banners.get(BannerName.DarkestSecret);
         if (darkestSecretProxy?.owner !== this.activatorProxy) return;
-        this.action.campaignResult.params.atkRoll.ignore.add(DieSymbol.HollowSword);
+        this.action.campaignResult.atkRoll.ignore.add(DieSymbol.HollowSword);
     }
 }
 
@@ -314,7 +314,7 @@ export class Jinx extends ActionModifier<Denizen, RollDiceEffect> {
         new MakeDecisionAction(player, "Reroll " + [...dieResult.values()].join(", ") + "?", () => {
             this.payCost(player, success => {
                 if (!success) return;
-                result.dice.set(this.action.die, new RollResult().roll(this.action.die, this.action.amount).dice.get(this.action.die)!)
+                result.dice.set(this.action.die, new RollResult(this.game.random).roll(this.action.die, this.action.amount).dice.get(this.action.die)!)
             });
         }).doNext();
     }
@@ -361,9 +361,9 @@ export class SealingWard extends EnemyAttackerCampaignModifier<Denizen> {
     name = "Sealing Ward";
     
     applyAfter(): void {
-        for (const target of this.action.campaignResult.params.targets)
+        for (const target of this.action.campaignResult.targets)
             if (target instanceof Relic && target.owner === this.sourceProxy.ruler?.original)
-                this.action.campaignResult.params.defPool += 1;
+                this.action.campaignResult.defPool += 1;
     }
 }
 

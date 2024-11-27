@@ -207,13 +207,13 @@ export class CircletOfCommandCampaign extends EnemyAttackerCampaignModifier<Reli
     name = "Circlet of Command";
 
     applyBefore(): void {
-        for (const target of this.action.campaignResult.params.targets) {
+        for (const target of this.action.campaignResult.targets) {
             if (isOwnable(target)) {
                 const targetProxy = this.action.maskProxyManager.get(target);
                 circletOfCommandCheckOwnable(this.sourceProxy, targetProxy, this.activatorProxy);
             }
 
-            if (target === this.sourceProxy.ruler?.original) this.action.campaignResult.params.defPool += 1;
+            if (target === this.sourceProxy.ruler?.original) this.action.campaignResult.defPool += 1;
         }
     }
 }

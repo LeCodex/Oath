@@ -42,11 +42,6 @@ export class OathBoard extends Container<Region, string> {
             travelCosts: [...this.travelCosts.entries()].map(([k, v]) => [k, [...v.entries()]])
         }
     }
-
-    parse(obj: Record<string, any>, allowCreation?: boolean): void {
-        super.parse(obj, allowCreation);
-        this.travelCosts = new Map(obj.travelCosts);
-    }
 }
 
 

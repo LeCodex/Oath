@@ -12,7 +12,7 @@ import { Oath, OathTypeToOath } from "./oaths";
 import { Conspiracy, Denizen, Edifice, GrandScepter, Relic, Site, Vision, WorldCard } from "./cards/cards";
 import { Chancellor, Exile, OathPlayer, VisionSlot, WarbandsSupply } from "./player";
 import { Banner, DarkestSecret, FavorBank, PeoplesFavor } from "./banks";
-import { AbstractConstructor, Constructor, isExtended, TreeNode, TreeRoot } from "./utils";
+import { AbstractConstructor, Constructor, isExtended, PRNG, TreeNode, TreeRoot } from "./utils";
 import { parseOathTTSSavefileString, serializeOathGame } from "./parser";
 import { Citizenship } from "./parser/interfaces";
 import { hasPowers, SourceType, WithPowers } from "./interfaces";
@@ -24,6 +24,8 @@ import classIndex from "./classIndex";
 export class OathGame extends TreeRoot<OathGame> {
     type = "root";
     classIndex = classIndex;
+
+    random: PRNG;
     
     seed: string;
     name: string;
@@ -52,6 +54,7 @@ export class OathGame extends TreeRoot<OathGame> {
     constructor(seed: string, playerCount: number) {
         super();
         this.seed = seed;
+        this.random = new PRNG();
         
         this.worldDeck = this.addChild(new WorldDeck());
         this.relicDeck = this.addChild(new RelicDeck());
@@ -297,7 +300,8 @@ export class OathGame extends TreeRoot<OathGame> {
             phase: this.phase,
             round: this.round,
             order: this.order,
-            seed: this.seed
+            seed: this.seed,
+            randomSeed: this.random.seed,
         }
     }
 
@@ -311,6 +315,7 @@ export class OathGame extends TreeRoot<OathGame> {
         this.round = obj.round;
         this.order = obj.order;
         this.seed = obj.seed;
+        this.random.seed = obj.randomSeed;
     }
 
     updateSeed(winner: PlayerColor) {

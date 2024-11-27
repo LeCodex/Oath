@@ -1,16 +1,51 @@
-import { clone, cloneWith, isMap, isSet, range } from "lodash";
+import { isMap, isSet, range } from "lodash";
 
 export type AbstractConstructor<T> = abstract new (...args: any) => T;
 export type Constructor<T> = new (...args: any) => T;
 export const isExtended = <T>(constructor: Constructor<any>, type: AbstractConstructor<T>): constructor is Constructor<T> => { return constructor.prototype instanceof type };
 export const instanceOf = <T>(obj: any, type: AbstractConstructor<T>): obj is T => { return obj instanceof type };
 
-export function shuffleArray(array: any[]) {
-    let currentIndex = array.length;
-    while (currentIndex != 0) {
-        let randomIndex = Math.floor(Math.random() * currentIndex);
-        currentIndex--;
-        [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+export class PRNG {
+    public seed: number;
+
+    constructor(seed?: number) {
+        this.seed = seed ?? Date.now();
+    }
+
+    private next(min?: number, max?: number): number {
+        max = max ?? 0;
+        min = min ?? 0;
+
+        this.seed = (this.seed * 9301 + 49297) % 233280;
+        var rnd = this.seed / 233280;
+
+        return min + rnd * (max - min);
+    }
+
+    // http://indiegamr.com/generate-repeatable-random-numbers-in-js/
+    public nextInt(min: number, max?: number): number {
+        if (max === undefined) {
+            max = min;
+            min = 0;
+        }
+        return Math.floor(this.next(min, max));
+    }
+
+    public nextDouble(): number {
+        return this.next(0, 1);
+    }
+
+    public pick<T>(collection: T[]): T {
+        return collection[this.nextInt(0, collection.length - 1)]!;
+    }
+
+    public shuffleArray(array: any[]) {
+        let currentIndex = array.length;
+        while (currentIndex != 0) {
+            let randomIndex = this.nextInt(currentIndex);
+            currentIndex--;
+            [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+        }
     }
 }
 
@@ -219,23 +254,6 @@ export class MaskedMap<K, V extends object> implements Map<K, V> {
 
     [Symbol.iterator]() { return this.entries(); }
     get [Symbol.toStringTag]() { return this.map[Symbol.toStringTag]; }
-}
-
-
-export class DataObject {
-    copy: this
-    
-    save() {
-        const customizer = (value: any, key?: PropertyKey, object?: any, stack?: any) => {
-            if (key === "copy") return undefined;
-            if (typeof value === "object") return clone(value);
-        }
-        this.copy = cloneWith(this, customizer);
-    }
-
-    restore() {
-        Object.assign(this, this.copy);
-    }
 }
 
 

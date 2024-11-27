@@ -19,8 +19,8 @@ export class Brutal extends ReliquaryModifier<CampaignAttackAction> {
     modifiedAction = CampaignAttackAction;
 
     applyBefore() {
-        this.action.campaignResult.params.attackerKillsEntireForce = true;
-        this.action.campaignResult.params.defenderKillsEntireForce = true;
+        this.action.campaignResult.attackerKillsEntireForce = true;
+        this.action.campaignResult.defenderKillsEntireForce = true;
     }
 }
 
