@@ -180,10 +180,10 @@ export class TravelAction extends MajorAction {
         this.player = this.travelling;
         this.siteProxy = this.parameters.site[0]!;
 
-        const fromRegionId = this.player.site.region?.key;
-        const toRegionId = this.siteProxy.region?.key
-        if (fromRegionId !== undefined && toRegionId !== undefined)
-            this.supplyCost = this.gameProxy.board.travelCosts.get(fromRegionId)?.get(toRegionId) || 2;
+        const fromRegionKey = this.playerProxy.site.region?.key;
+        const toRegionKey = this.siteProxy.region?.key;
+        if (fromRegionKey !== undefined && toRegionKey !== undefined)
+            this.supplyCost = this.gameProxy.board.travelCosts.get(fromRegionKey)?.get(toRegionKey) ?? 2;
         else
             this.supplyCost = 2;
         

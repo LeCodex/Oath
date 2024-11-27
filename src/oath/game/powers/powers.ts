@@ -77,7 +77,7 @@ export abstract class ActionPower<T extends WithPowers, U extends ModifiableActi
 
 export abstract class ActivePower<T extends OathCard> extends ActionPower<T, UsePowerAction> {
     canUse(): boolean {
-        return this.sourceProxy.accessibleBy(this.action.playerProxy) && (this.sourceProxy.empty || this.cost.placedResources.size === 0);
+        return this.sourceProxy.accessibleBy(this.action.playerProxy) && (this.sourceProxy.empty || !this.cost.placesResources);
     }
 
     abstract usePower(): void;
@@ -128,7 +128,7 @@ export abstract class EnemyActionModifier<T extends OwnableCard, U extends Modif
 
 export abstract class AccessedActionModifier<T extends OwnableCard, U extends ModifiableAction> extends ActionModifier<T, U> {
     canUse(): boolean {
-        return this.sourceProxy.accessibleBy(this.activatorProxy) && (this.sourceProxy.empty || this.cost.placedResources.size === 0);
+        return this.sourceProxy.accessibleBy(this.activatorProxy) && (this.sourceProxy.empty || !this.cost.placesResources);
     }
 }
 

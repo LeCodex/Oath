@@ -1,4 +1,5 @@
 import { DarkestSecret, PeoplesFavor } from "./banks";
+import { GrandScepter } from "./cards/cards";
 import { OathType, isEnumKey } from "./enums";
 import { OathGameObject } from "./gameObject";
 import { OwnableObject, WithPowers } from "./interfaces";
@@ -90,7 +91,7 @@ export class OathOfProtection extends Oath {
     }
 
     scoreForSuccessor(player: OathPlayer): number {
-        return this.game.byClass(PeoplesFavor)[0]?.parent === player ? 1 : 0;
+        return player.byClass(PeoplesFavor).length > 0 ? 1 : 0;
     }
 }
 
@@ -105,11 +106,11 @@ export class OathOfThePeople extends Oath {
     }
 
     scoreForOathkeeper(player: OathPlayer): number {
-        return this.game.byClass(PeoplesFavor)[0]?.parent === player ? 1 : 0;
+        return player.byClass(PeoplesFavor).length > 0 ? 1 : 0;
     }
 
     scoreForSuccessor(player: OathPlayer): number {
-        return this.game.byClass(DarkestSecret)[0]?.parent === player ? 1 : 0;
+        return player.byClass(DarkestSecret).length > 0 ? 1 : 0;
     }
 }
 
@@ -124,11 +125,11 @@ export class OathOfDevotion extends Oath {
     }
 
     scoreForOathkeeper(player: OathPlayer): number {
-        return this.game.byClass(DarkestSecret)[0]?.parent === player ? 1 : 0;
+        return player.byClass(DarkestSecret).length > 0 ? 1 : 0;
     }
 
     scoreForSuccessor(player: OathPlayer): number {
-        return this.game.grandScepter.parent === player ? 1 : 0;
+        return player.byClass(GrandScepter).length > 0 ? 1 : 0;
     }
 }
 

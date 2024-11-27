@@ -151,6 +151,11 @@ export class ResourceCost {
         return total;
     }
 
+    get placesResources() {
+        for (const amount of this.placedResources.values()) if (amount) return true;
+        return false;
+    }
+
     get free(): boolean {
         for (const amount of this.placedResources.values()) if (amount) return false;
         for (const amount of this.burntResources.values()) if (amount) return false;
