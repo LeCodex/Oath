@@ -1,6 +1,6 @@
 import { ChoosePlayersAction, SetupChooseAction, WakeAction, ChooseSitesAction } from "./actions/actions";
 import { InvalidActionResolution, ModifiableAction, OathAction } from "./actions/base";
-import { OathActionManager } from "./actions/manager";
+import { HistoryNode, OathActionManager } from "./actions/manager";
 import { DrawFromDeckEffect, PutPawnAtSiteEffect, SetNewOathkeeperEffect, SetUsurperEffect, WinGameEffect } from "./actions/effects";
 import { ActionModifier, OathPower } from "./powers/powers";
 import { OathBoard, Region } from "./board";
@@ -164,7 +164,7 @@ export class OathGame extends TreeRoot<OathGame> {
             if (region.byClass(Site).length >= region.size) regionKey++;
         }
         
-        const regions = this.board.byClass(Region);
+        const regions = this.board.children;
         for (const region of regions) {
             const fromBottom = this.worldDeck.drawSingleCard(true);
             if (fromBottom) region.discard.addChild(fromBottom);
@@ -179,18 +179,6 @@ export class OathGame extends TreeRoot<OathGame> {
             player.putResources(Favor, player === this.chancellor ? 2 : 1);
             player.putResources(Secret, 1);
             player.leader.bag.moveChildrenTo(player, 3);
-
-            new DrawFromDeckEffect(player, this.worldDeck, 3, true).doNext(cards => {
-                if (player !== this.chancellor)
-                    new ChooseSitesAction(
-                        player, "Put your pawn at a faceup site (Hand: " + cards.map(e => e.name).join(", ") + ")",
-                        (sites: Site[]) => { if (sites[0]) new PutPawnAtSiteEffect(player, sites[0]).doNext(); }
-                    ).doNext();
-                else
-                    new PutPawnAtSiteEffect(player, topCradleSite).doNext();
-                
-                new SetupChooseAction(player, cards).doNext();
-            });
         }
 
         this.grandScepter = new GrandScepter();
@@ -209,6 +197,26 @@ export class OathGame extends TreeRoot<OathGame> {
 
         this.oath = new OathTypeToOath[OathType[gameData.oath] as keyof typeof OathType]();
         this.chancellor.addChild(this.oath).setup();
+        
+        this.actionManager.history.push(new HistoryNode(this.serialize()));
+        this.initialActions();
+    }
+
+    initialActions() {
+        const topCradleSite = this.board.children.byKey(RegionKey.Cradle)[0]?.byClass(Site)[0]!;
+        for (const player of this.players) {
+            new DrawFromDeckEffect(player, this.worldDeck, 3, true).doNext(cards => {
+                if (player !== this.chancellor)
+                    new ChooseSitesAction(
+                        player, "Put your pawn at a faceup site (Hand: " + cards.map(e => e.name).join(", ") + ")",
+                        (sites: Site[]) => { if (sites[0]) new PutPawnAtSiteEffect(player, sites[0]).doNext(); }
+                    ).doNext();
+                else
+                    new PutPawnAtSiteEffect(player, topCradleSite).doNext();
+                
+                new SetupChooseAction(player, cards).doNext();
+            });
+        }
 
         new WakeAction(this.currentPlayer).doNext();
     }

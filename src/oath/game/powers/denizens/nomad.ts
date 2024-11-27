@@ -283,14 +283,14 @@ export class AncientBloodline extends EnemyActionModifier<Denizen, ModifiableAct
     }
 }
 // TODO: Allow relics to be locked too
-export class AncientBloodlineRelics extends EnemyActionModifier<Denizen, TakeOwnableObjectEffect> {
+export class AncientBloodlineRelics extends EnemyActionModifier<Denizen, ParentToTargetEffect> {
     name = "Ancient Bloodline";
-    modifiedAction = TakeOwnableObjectEffect;
+    modifiedAction = ParentToTargetEffect;
 
     applyBefore(): void {
         const targetProxy = this.action.maskProxyManager.get(this.action.target);
         if (targetProxy instanceof Relic && targetProxy.site?.ruler === this.action.executorProxy)
-            throw new InvalidActionResolution("Cannot take locked relics from the Ancient Bloodline");
+            throw new InvalidActionResolution("Relics under the Ancient Bloodline are locked");
     }
 }
 

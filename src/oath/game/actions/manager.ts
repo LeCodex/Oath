@@ -163,6 +163,7 @@ export class OathActionManager {
         this.currentEffectsStack.length = 0;
         this.game.parse(node.game, true);
         for (const event of node.events) event.replay(this);
+        if (this.history.length <= 1 && node.events.length === 0) this.game.initialActions();
         
         return this.checkForNextAction();
     }

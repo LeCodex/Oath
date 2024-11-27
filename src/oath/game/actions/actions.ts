@@ -182,7 +182,7 @@ export class TravelAction extends MajorAction {
 
         const fromRegionId = this.player.site.region?.key;
         const toRegionId = this.siteProxy.region?.key
-        if (fromRegionId && toRegionId)
+        if (fromRegionId !== undefined && toRegionId !== undefined)
             this.supplyCost = this.gameProxy.board.travelCosts.get(fromRegionId)?.get(toRegionId) || 2;
         else
             this.supplyCost = 2;
