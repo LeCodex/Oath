@@ -157,7 +157,7 @@ export class TheOldOak extends AccessedActionModifier<Denizen, TradeAction> {
 
     applyBefore(): void {
         if (this.action.cardProxy === this.sourceProxy && !this.action.forFavor && [...this.action.playerProxy.advisers].some(e => e instanceof Denizen && e.suit === OathSuit.Beast))
-            this.action.getting.set(Secret, (this.action.getting.get(Secret) || 0) + 1);
+            this.action.getting.set(Secret, (this.action.getting.get(Secret) ?? 0) + 1);
     }
 }
 

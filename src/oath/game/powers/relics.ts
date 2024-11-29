@@ -1,8 +1,7 @@
 import { CitizenshipOfferAction, StartBindingExchangeAction, SkeletonKeyAction, TradeAction, MusterAction, TravelAction, MakeDecisionAction, ChoosePlayersAction, SearchAction, ChooseCardsAction } from "../actions/actions";
 import { InvalidActionResolution, ModifiableAction } from "../actions/base";
 import { Denizen, GrandScepter, OathCard, Relic, Site } from "../cards/cards";
-import { TakeOwnableObjectEffect, PlayDenizenAtSiteEffect, MoveOwnWarbandsEffect, PeekAtCardEffect, SetGrandScepterLockEffect, GainSupplyEffect, DrawFromDeckEffect, RevealCardEffect, PayCostToTargetEffect, BecomeExileEffect, MoveWarbandsToEffect, MoveResourcesToTargetEffect, MoveDenizenToSiteEffect, MoveWorldCardToAdvisersEffect, ParentToTargetEffect } from "../actions/effects";
-import { OathEffect } from "../actions/base";
+import { TakeOwnableObjectEffect, PlayDenizenAtSiteEffect, MoveOwnWarbandsEffect, PeekAtCardEffect, SetGrandScepterLockEffect, GainSupplyEffect, DrawFromDeckEffect, RevealCardEffect, PayCostToTargetEffect, BecomeExileEffect, MoveResourcesToTargetEffect, MoveDenizenToSiteEffect, MoveWorldCardToAdvisersEffect, ParentToTargetEffect } from "../actions/effects";
 import { BannerName, PlayerColor } from "../enums";
 import { OathPlayer, Exile } from "../player";
 import { OwnableObject, isOwnable } from "../interfaces";
@@ -232,7 +231,7 @@ export class BookOfRecords extends AccessedActionModifier<Relic, PlayDenizenAtSi
     modifiedAction = PlayDenizenAtSiteEffect;
 
     applyBefore(): void {
-        this.action.getting.set(Secret, this.action.getting.get(Favor) || 0);
+        this.action.getting.set(Secret, this.action.getting.get(Favor) ?? 0);
         this.action.getting.delete(Favor);
     }
 }

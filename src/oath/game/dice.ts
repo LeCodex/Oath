@@ -89,7 +89,7 @@ export class RollResult {
 
     roll(die: typeof Die, amount: number): this {
         for (let i = 0; i < amount; i++) {
-            const symbols = die.faces[this.random.nextInt(die.faces.length)]!;
+            const symbols = this.random.pick(die.faces);
             const symbolCount = this.dice.get(die) ?? new Map<number, number>();
             for (const symbol of symbols) symbolCount.set(symbol, (symbolCount.get(symbol) ?? 0) + 1);
             this.dice.set(die, symbolCount);

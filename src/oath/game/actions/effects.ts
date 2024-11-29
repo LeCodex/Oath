@@ -105,7 +105,7 @@ export class PutResourcesOnTargetEffect extends OathEffect<number> {
     }
 
     resolve(): void {
-        this.result = this.target?.putResources(this.resource, this.amount) || 0;
+        this.result = this.target?.putResources(this.resource, this.amount) ?? 0;
     }
 
     serialize(): Record<string, any> {
@@ -249,12 +249,12 @@ export class PayCostToBankEffect extends OathEffect<boolean> {
         if (this.suit) {
             const bank = this.game.byClass(FavorBank).byKey(this.suit)[0];
             if (bank) {
-                const favorsToGive = this.cost.placedResources.get(Favor) || 0;
+                const favorsToGive = this.cost.placedResources.get(Favor) ?? 0;
                 new MoveResourcesToTargetEffect(this.game, this.executor, Favor, favorsToGive, bank, this.source).doNext(result => { if (result < favorsToGive) this.result = false; });
             }
         }
         
-        const secretsToFlip = this.cost.placedResources.get(Secret) || 0;
+        const secretsToFlip = this.cost.placedResources.get(Secret) ?? 0;
         new FlipSecretsEffect(this.game, this.executor, secretsToFlip, true, this.source).doNext(result => { if (result < secretsToFlip) this.result = false; });
     }
 }
@@ -323,7 +323,7 @@ export class MoveWarbandsToEffect extends OathEffect<number> {
     }
 
     resolve(): void {
-        this.amount = this.source?.moveWarbandsTo(this.owner.key, this.target, this.amount) || 0;
+        this.amount = this.source?.moveWarbandsTo(this.owner.key, this.target, this.amount) ?? 0;
         this.result = this.amount;
     }
 

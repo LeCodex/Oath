@@ -3,9 +3,8 @@ import { InvalidActionResolution, ModifiableAction } from "../../actions/base";
 import { FavorBank, PeoplesFavor } from "../../banks";
 import { Region } from "../../board";
 import { Denizen, Edifice, OathCard, Relic, Site, Vision, WorldCard } from "../../cards/cards";
-import { D6, DefenseDie, RollResult } from "../../dice";
+import { D6, DefenseDie } from "../../dice";
 import { TakeOwnableObjectEffect, PutResourcesOnTargetEffect, MoveResourcesToTargetEffect, SetNewOathkeeperEffect, RollDiceEffect, DiscardCardEffect, BecomeCitizenEffect, PayCostToTargetEffect, PeekAtCardEffect, WinGameEffect, DrawFromDeckEffect, MoveWorldCardToAdvisersEffect, ParentToTargetEffect, BurnResourcesEffect } from "../../actions/effects";
-import { OathEffect } from "../../actions/base";
 import { BannerName, OathSuit } from "../../enums";
 import { Exile, OathPlayer } from "../../player";
 import { Favor, ResourceCost, Secret } from "../../resources";
@@ -306,7 +305,7 @@ export class Riots extends WhenPlayed<Denizen> {
         const suitCounts = new Map<OathSuit, number>();
         for (const siteProxy of this.gameProxy.board.sites())
             for (const denizenProxy of siteProxy.denizens)
-                suitCounts.set(denizenProxy.suit, (suitCounts.get(denizenProxy.suit) || 0) + 1);
+                suitCounts.set(denizenProxy.suit, (suitCounts.get(denizenProxy.suit) ?? 0) + 1);
         
         let max = 0;
         const suits = new Set<OathSuit>();

@@ -137,11 +137,11 @@ export class TradeAction extends MajorAction {
             if (!success) throw this.paying.cannotPayError;
 
             const resource = this.forFavor ? Favor : Secret;
-            this.getting.set(resource, (this.getting.get(resource) || 0) + this.playerProxy.suitAdviserCount(this.cardProxy.suit));
+            this.getting.set(resource, (this.getting.get(resource) ?? 0) + this.playerProxy.suitAdviserCount(this.cardProxy.suit));
     
             const bank = this.gameProxy.favorBank(this.cardProxy.suit)?.original;
-            if (bank) new ParentToTargetEffect(this.game, this.player, bank.get(this.getting.get(Favor) || 0)).doNext();
-            new PutResourcesOnTargetEffect(this.game, this.player, Secret, this.getting.get(Secret) || 0).doNext();
+            if (bank) new ParentToTargetEffect(this.game, this.player, bank.get(this.getting.get(Favor) ?? 0)).doNext();
+            new PutResourcesOnTargetEffect(this.game, this.player, Secret, this.getting.get(Secret) ?? 0).doNext();
         });
     }
 }

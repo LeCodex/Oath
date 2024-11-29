@@ -5,12 +5,11 @@ import { Denizen, Edifice, OathCard, Relic, Site, VisionBack, WorldCard } from "
 import { DiscardOptions } from "../../cards/decks";
 import { AttackDie, DieSymbol } from "../../dice";
 import { PayCostToTargetEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PayPowerCostEffect, BecomeCitizenEffect, DrawFromDeckEffect, FlipEdificeEffect, MoveResourcesToTargetEffect, DiscardCardEffect, GainSupplyEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, PeekAtCardEffect, MoveWorldCardToAdvisersEffect, MoveDenizenToSiteEffect, DiscardCardGroupEffect, PlayVisionEffect, ParentToTargetEffect, BurnResourcesEffect } from "../../actions/effects";
-import { OathEffect } from "../../actions/base";
 import { BannerName, OathSuit } from "../../enums";
 import { OwnableObject, isOwnable } from "../../interfaces";
 import { OathPlayer } from "../../player";
 import { Favor, ResourceCost, Secret } from "../../resources";
-import { ActivePower, CapacityModifier, AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, EnemyAttackerCampaignModifier, EnemyActionModifier, ActionModifier, untilActionResolves } from "../powers";
+import { ActivePower, CapacityModifier, AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, EnemyAttackerCampaignModifier, EnemyActionModifier, ActionModifier, gainPowerUntilActionResolves, BattlePlan } from "../powers";
 
 
 export class HorseArchersAttack extends AttackerBattlePlan<Denizen> {
@@ -96,19 +95,50 @@ export class MountainGiantDefense extends DefenderBattlePlan<Denizen> {
     }
 }
 
-export class WildMountsAttack extends AttackerBattlePlan<Denizen> {
+export class WildMounts extends AttackerBattlePlan<Denizen> {
     name = "Wild Mounts";
 
     applyBefore(): void {
-        untilActionResolves(this.source, WildMountsReplace, CampaignEndAction);
+        gainPowerUntilActionResolves(this.source, WildMountsReplace, CampaignEndAction);
+        WildMountsReplace.firstDiscardDone = false;
     }
 }
-export class WildMountsReplace<T extends OathCard> extends ActionModifier<Denizen, DiscardCardEffect<T>> {
+export class WildMountsReplace extends ActionModifier<Denizen, DiscardCardEffect<OathCard>> {
     name = "Wild Mounts";
     modifiedAction = DiscardCardEffect;
 
-    applyBefore(): void {
-        
+    static firstDiscardDone = false;
+
+    constructor(source: Denizen, action: DiscardCardEffect<OathCard>, activator: OathPlayer) {
+        super(source, action, activator);
+        this.mustUse = WildMountsReplace.firstDiscardDone;  // All future discards must be cancelled
+    }
+
+    applyWhenApplied(): boolean {
+        if (this.action.card instanceof Denizen && this.action.card.suit === OathSuit.Nomad && [...this.action.card.powers].some(e => e instanceof BattlePlan)) {
+            if (!WildMountsReplace.firstDiscardDone) {
+                WildMountsReplace.firstDiscardDone = true;
+
+                const ruledBeastCards: Denizen[] = [];
+                for (const siteProxy of this.gameProxy.board.sites())
+                    if (siteProxy.ruler === this.action.playerProxy)
+                        for (const denizenProxy of siteProxy.denizens)
+                            if (denizenProxy.suit === OathSuit.Beast)
+                                ruledBeastCards.push(denizenProxy.original);
+
+                for (const adviserProxy of this.action.playerProxy.advisers)
+                    if (adviserProxy instanceof Denizen && adviserProxy.suit === OathSuit.Beast)
+                        ruledBeastCards.push(adviserProxy.original);
+
+                new ChooseCardsAction(
+                    this.action.player, "Choose a Beast card to discard instead",
+                    [ruledBeastCards],
+                    (cards: Denizen[]) => { if (cards[0]) new DiscardCardEffect(this.action.player, cards[0], this.action.discardOptions); }
+                ).doNext();
+            }
+            return false;
+        }
+        return true;
     }
 }
 

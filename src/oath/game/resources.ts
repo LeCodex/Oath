@@ -147,7 +147,7 @@ export class ResourceCost {
     get totalResources() {
         const total = new Map<OathResourceType, number>();
         for (const [resource, amount] of this.placedResources) total.set(resource, amount);
-        for (const [resource, amount] of this.burntResources) total.set(resource, (total.get(resource) || 0) + amount);
+        for (const [resource, amount] of this.burntResources) total.set(resource, (total.get(resource) ?? 0) + amount);
         return total;
     }
 
@@ -173,8 +173,8 @@ export class ResourceCost {
     }
 
     add(other: ResourceCost) {
-        for (const [resource, amount] of other.placedResources) this.placedResources.set(resource, (this.placedResources.get(resource) || 0) + amount);
-        for (const [resource, amount] of other.burntResources) this.burntResources.set(resource, (this.burntResources.get(resource) || 0) + amount);
+        for (const [resource, amount] of other.placedResources) this.placedResources.set(resource, (this.placedResources.get(resource) ?? 0) + amount);
+        for (const [resource, amount] of other.burntResources) this.burntResources.set(resource, (this.burntResources.get(resource) ?? 0) + amount);
     }
 
     serialize(): Record<string, any> {

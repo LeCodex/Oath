@@ -142,7 +142,7 @@ export abstract class RestPower<T extends OwnableCard> extends AccessedActionMod
     mustUse = true;
 }
 
-export function untilActionResolves<T extends WithPowers, U extends ModifiableAction>(source: T, power: Constructor<OathPower<T>>, action: Constructor<U>) {
+export function gainPowerUntilActionResolves<T extends WithPowers, U extends ModifiableAction>(source: T, power: Constructor<OathPower<T>>, action: Constructor<U>) {
     new GainPowerEffect(source.game, source, power).doNext();
     new GainPowerEffect(source.game, source, class LosePowerWhenActionResolves extends ActionModifier<T, U> {
         name = "Lose " + power.name;

@@ -42,8 +42,8 @@ export class Careless extends ReliquaryModifier<TradeAction> {
     modifiedAction = TradeAction;
 
     applyBefore(): void {
-        this.action.getting.set(Secret, (this.action.getting.get(Secret) || 0) - 1);
-        this.action.getting.set(Favor, (this.action.getting.get(Favor) || 0) + 1);
+        this.action.getting.set(Secret, (this.action.getting.get(Secret) ?? 0) - 1);
+        this.action.getting.set(Favor, (this.action.getting.get(Favor) ?? 0) + 1);
     }
 }
 

@@ -1,10 +1,8 @@
 import { TradeAction, TakeResourceFromPlayerAction, TakeFavorFromBankAction, CampaignEndAction, MakeDecisionAction, CampaignAttackAction, RecoverAction, ChooseSuitsAction, ChooseCardsAction, MusterAction, SearchPlayOrDiscardAction, MayDiscardACardAction, SearchAction, SearchChooseAction, KillWarbandsOnTargetAction } from "../../actions/actions";
-import { ResolveCallbackAction } from "../../actions/base";
 import { ModifiableAction, InvalidActionResolution } from "../../actions/base";
 import { Denizen, Edifice, Relic, WorldCard } from "../../cards/cards";
 import { DieSymbol } from "../../dice";
 import { PlayVisionEffect, PlayWorldCardEffect, PeekAtCardEffect, DiscardCardEffect, BecomeCitizenEffect, SetPeoplesFavorMobState, GainSupplyEffect, DrawFromDeckEffect, TakeOwnableObjectEffect, MoveDenizenToSiteEffect, ParentToTargetEffect, PutResourcesOnTargetEffect } from "../../actions/effects";
-import { OathEffect } from "../../actions/base";
 import { BannerName, OathSuit, ALL_OATH_SUITS } from "../../enums";
 import { WithPowers } from "../../interfaces";
 import { Favor, ResourceCost, Secret } from "../../resources";
@@ -432,8 +430,8 @@ export class Levelers extends ActivePower<Denizen> {
     cost = new ResourceCost([[Secret, 1]]);
 
     usePower(): void {
-        const maxSuits = new Set(maxInGroup(ALL_OATH_SUITS, e => this.game.favorBank(e)?.amount || 0));
-        const minSuits = new Set(minInGroup(ALL_OATH_SUITS, e => this.game.favorBank(e)?.amount || Infinity));
+        const maxSuits = new Set(maxInGroup(ALL_OATH_SUITS, e => this.game.favorBank(e)?.amount ?? 0));
+        const minSuits = new Set(minInGroup(ALL_OATH_SUITS, e => this.game.favorBank(e)?.amount ?? Infinity));
 
         new ChooseSuitsAction(
             this.action.player, "Move 2 favor from a bank with the most favor to a bank with the least",
