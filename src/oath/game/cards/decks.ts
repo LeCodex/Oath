@@ -1,6 +1,6 @@
 import { isEnumKey, RegionKey } from "../enums";
 import { Container } from "../gameObject";
-import { WorldCard, VisionBack, OathCard, Relic, Site } from "./cards";
+import { WorldCard, VisionBack, OathCard, Relic } from "./cards";
 
 
 export abstract class CardDeck<T extends OathCard, U = any> extends Container<T, U> {
@@ -39,16 +39,6 @@ export class RelicDeck extends CardDeck<Relic, string> {
 
     constructor() {
         super("relicDeck", Relic);
-    }
-
-    get key() { return this.id; }
-}
-export class SiteDeck extends CardDeck<Site, string> {
-    name = "Site Deck";
-    hidden = true;
-
-    constructor() {
-        super("siteDeck", Site);
     }
 
     get key() { return this.id; }

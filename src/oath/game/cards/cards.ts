@@ -250,7 +250,6 @@ export class Denizen extends WorldCard implements AtSite {
     set suit(_suit: OathSuit) { this._suit = _suit; }
     get activelyLocked() { return this.locked && !this.facedown; }
     get facedownName(): string { return super.facedownName + "denizen" + (this.site ? " at " + this.site.name : ""); }
-    get data(): DenizenData { return [this._suit, [...this.powers], this.restriction, this.locked]; }
     get discard(): Discard | undefined { return super.discard || this.site && this.game.board.nextRegion(this.site.region)?.discard; }
 
     accessibleBy(player: OathPlayer): boolean {

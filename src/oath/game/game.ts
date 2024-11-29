@@ -4,7 +4,7 @@ import { HistoryNode, OathActionManager } from "./actions/manager";
 import { DrawFromDeckEffect, PutPawnAtSiteEffect, SetNewOathkeeperEffect, SetUsurperEffect, WinGameEffect } from "./actions/effects";
 import { ActionModifier, OathPower } from "./powers/powers";
 import { OathBoard, Region } from "./board";
-import { Discard, RelicDeck, SiteDeck, WorldDeck } from "./cards/decks";
+import { Discard, RelicDeck, WorldDeck } from "./cards/decks";
 import { DenizenData, denizenData, edificeFlipside } from "./cards/denizens";
 import { relicsData } from "./cards/relics";
 import { OathPhase, OathSuit, RegionKey, PlayerColor, ALL_OATH_SUITS, BannerName, OathType } from "./enums";
@@ -43,13 +43,12 @@ export class OathGame extends TreeRoot<OathGame> {
     chancellor: Chancellor;
     worldDeck: WorldDeck;
     relicDeck: RelicDeck;
-    siteDeck: SiteDeck;
     board: OathBoard;
     grandScepter: GrandScepter;
     banners = new Map<BannerName, Banner>;
 
-    archive: Record<string, DenizenData>;
-    dispossessed: Record<string, DenizenData>;
+    archive: Set<string>;
+    dispossessed: Set<string>;
 
     constructor(seed: string, playerCount: number) {
         super();
@@ -58,7 +57,6 @@ export class OathGame extends TreeRoot<OathGame> {
         
         this.worldDeck = this.addChild(new WorldDeck());
         this.relicDeck = this.addChild(new RelicDeck());
-        this.siteDeck = this.addChild(new SiteDeck());
         for (let i = 0; i < 36; i++) this.addChild(new Favor());
         
         const peoplesFavor = new PeoplesFavor();
@@ -72,17 +70,17 @@ export class OathGame extends TreeRoot<OathGame> {
         this.name = gameData.chronicleName;
         this.chronicleNumber = gameData.gameCount;
 
-        this.archive = {...denizenData};
-        this.dispossessed = {};
+        this.archive = new Set(Object.keys(denizenData));
+        this.dispossessed = new Set();
 
         for (const cardData of gameData.dispossessed) {
-            const data = this.takeCardDataFromArchive(cardData.name);
-            if (data) this.dispossessed[cardData.name] = data;
+            const existing = this.archive.delete(cardData.name);
+            if (existing) this.dispossessed.add(cardData.name);
         }
 
         for (const cardData of gameData.world) {
-            const data = this.takeCardDataFromArchive(cardData.name);
-            if (data) {
+            const existing = this.archive.delete(cardData.name);
+            if (existing) {
                 this.worldDeck.addChild(new Denizen(cardData.name), true);
                 continue;
             }
@@ -227,12 +225,6 @@ export class OathGame extends TreeRoot<OathGame> {
     
     favorBank(suit: OathSuit) {
         return this.byClass(FavorBank).byKey(suit)[0];
-    }
-
-    takeCardDataFromArchive(key: string) {
-        const data = this.archive[key];
-        if (data) delete this.archive[key];
-        return data;
     }
 
     getPowers<T extends OathPower<WithPowers>>(type: AbstractConstructor<T>): [SourceType<T>, Constructor<T>][] {

@@ -15,6 +15,7 @@ import { Constructor, isExtended, TreeNode } from "../utils";
 import { D6, RollResult, Die } from "../dice";
 import { Region } from "../board";
 import { denizenData, edificeFlipside } from "../cards/denizens";
+import { sitesData } from "../cards/sites";
 
 
 
@@ -952,7 +953,7 @@ export class PutDenizenIntoDispossessedEffect extends OathEffect {
 
     resolve(): void {
         this.denizen.prune();
-        this.game.dispossessed[this.denizen.name] = this.denizen.data;
+        this.game.dispossessed.add(this.denizen.id);
     }
 
     serialize(): Record<string, any> {
@@ -967,10 +968,9 @@ export class GetRandomCardFromDispossessed extends OathEffect<Denizen> {
     denizen: Denizen;
 
     resolve(): Denizen {
-        const keys = Object.keys(this.game.dispossessed);
-        const name = keys[this.game.random.nextInt(keys.length)]!;
+        const name = this.game.random.pick([...this.game.dispossessed]);
         this.denizen = new Denizen(name);
-        delete this.game.dispossessed[name];
+        this.game.dispossessed.delete(name);
         return this.denizen;
     }
 
@@ -1201,8 +1201,9 @@ export class FinishChronicleEffect extends PlayerEffect {
     resolve(): void {
         const storedSites: Site[] = [];
         const pushedSites: Site[] = [];
+        const sitesKeysSet = new Set(Object.keys(sitesData));
 
-        // Discard and put aside sites 
+        // Discard and put aside sites
         for (const regionProxy of this.gameProxy.board.children) {
             this.oldRegions.set(regionProxy, [...regionProxy.sites]);
 
@@ -1217,20 +1218,21 @@ export class FinishChronicleEffect extends PlayerEffect {
                             new DiscardCardEffect(this.executor, denizenProxy.original, new DiscardOptions(regionProxy.discard.original, false, true)).doNext();
                         }
                     }
-                    new DiscardCardEffect(this.executor, siteProxy.original, new DiscardOptions(this.game.siteDeck)).doNext();
+                    siteProxy.original.prune();
                 } else {
                     storedSites.push(siteProxy.original);
                 }
-
+                
+                sitesKeysSet.delete(siteProxy.id);
                 siteProxy.original.clear();
             }
         }
-        this.game.siteDeck.shuffle();  // TODO: Shuffles in an effect to be reverted/replayed
-        let total = this.game.board.byClass(Region).reduce((a, e) => a + e.size, 0) - storedSites.length - pushedSites.length;
+        const total = this.game.board.byClass(Region).reduce((a, e) => a + e.size, 0) - storedSites.length - pushedSites.length;
+        const sitesKey = [...sitesKeysSet];
         for (var i = 0; i < total; i++) {
-            const site = this.game.siteDeck.drawSingleCard();
-            if (!site) throw Error("Not enough sites");
-            storedSites.push(site);
+            if (!sitesKey.length) throw Error("Not enough sites");
+            const site = sitesKey.splice(this.game.random.nextInt(sitesKey.length), 1)[0]!;
+            storedSites.push(new Site(site));
         }
         storedSites.push(...pushedSites);
 
@@ -1315,7 +1317,7 @@ export class FinishChronicleEffect extends PlayerEffect {
             for (let j = 0; j < i; j++) {
                 const key = cardKeys.pop();
                 if (!key || !(key in this.game.archive)) break;
-                delete this.game.archive[key];
+                this.game.archive.delete(key);
                 new DiscardCardEffect(this.executor, new Denizen(key), worldDeckDiscardOptions).doNext();
             }
 
@@ -1348,7 +1350,7 @@ export class FinishChronicleEffect extends PlayerEffect {
                 }
 
                 card.prune();
-                this.game.dispossessed[card.name] = card.data;
+                this.game.dispossessed.add(card.name);
             }
 
             effect.doNext(callback);

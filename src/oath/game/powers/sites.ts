@@ -16,7 +16,7 @@ export abstract class HomelandSitePower extends ActionModifier<Site, PlayWorldCa
     applyAfter(): void {
         // TODO: "and if you have not discarded a <suit> card here during this turn"
         if (this.action.site === this.source && this.action.card instanceof Denizen && this.action.card.suit === this.suit)
-            this.giveReward(this.action.executor);
+            this.giveReward(this.action.executorProxy);
     }
 
     abstract giveReward(player: OathPlayer): void;
@@ -26,10 +26,10 @@ export class Wastes extends HomelandSitePower {
     name = "Wastes";
     suit = OathSuit.Discord;
 
-    giveReward(player: OathPlayer): void {
+    giveReward(playerProxy: OathPlayer): void {
         // TODO: Should probably have an effect just for recovering
         for (const relicProxy of this.sourceProxy.relics)
-            return new TakeOwnableObjectEffect(this.game, player, relicProxy.original).doNext();
+            return new TakeOwnableObjectEffect(this.game, playerProxy.original, relicProxy.original).doNext();
     }
 }
 
@@ -37,8 +37,8 @@ export class StandingStones extends HomelandSitePower {
     name = "Standing Stones";
     suit = OathSuit.Arcane;
 
-    giveReward(player: OathPlayer): void {
-        new PutResourcesOnTargetEffect(this.game, player, Secret, 1).doNext();
+    giveReward(playerProxy: OathPlayer): void {
+        new PutResourcesOnTargetEffect(this.game, playerProxy.original, Secret, 1).doNext();
     }
 }
 
@@ -46,8 +46,8 @@ export class AncientCity extends HomelandSitePower {
     name = "Ancient City";
     suit = OathSuit.Order;
 
-    giveReward(player: OathPlayer): void {
-        new ParentToTargetEffect(this.game, player, player.leader.bag.get(2)).doNext();
+    giveReward(playerProxy: OathPlayer): void {
+        new ParentToTargetEffect(this.game, playerProxy.original, playerProxy.leader.bag.original.get(2)).doNext();
     }
 }
 
@@ -55,9 +55,9 @@ export class FertileValley extends HomelandSitePower {
     name = "Fertile Valley";
     suit = OathSuit.Hearth;
 
-    giveReward(player: OathPlayer): void {
+    giveReward(playerProxy: OathPlayer): void {
         const bank = this.game.favorBank(this.suit);
-        if (bank) new ParentToTargetEffect(this.game, player, bank?.get(1)).doNext();
+        if (bank) new ParentToTargetEffect(this.game, playerProxy.original, bank?.get(1)).doNext();
     }
 }
 
@@ -65,8 +65,8 @@ export class Steppe extends HomelandSitePower {
     name = "Steppe";
     suit = OathSuit.Nomad;
 
-    giveReward(player: OathPlayer): void {
-        new PutResourcesOnTargetEffect(this.game, player, Secret, 1).doNext();
+    giveReward(playerProxy: OathPlayer): void {
+        new PutResourcesOnTargetEffect(this.game, playerProxy.original, Secret, 1).doNext();
     }
 }
 
@@ -74,9 +74,9 @@ export class DeepWoods extends HomelandSitePower {
     name = "Deep Woods";
     suit = OathSuit.Beast;
 
-    giveReward(player: OathPlayer): void {
+    giveReward(playerProxy: OathPlayer): void {
         for (const relicProxy of this.sourceProxy.relics)
-            return new TakeOwnableObjectEffect(player.game, player, relicProxy.original).doNext();
+            return new TakeOwnableObjectEffect(this.game, playerProxy.original, relicProxy.original).doNext();
     }
 }
 
