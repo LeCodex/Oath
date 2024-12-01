@@ -33,7 +33,7 @@ export class SetupChooseAction extends OathAction {
     }
 
     start(): boolean {
-        this.selects.card = new SelectNOf("Card", this.cards.map(e => [e.name, e]), 1);
+        this.selects.card = new SelectNOf("Card", this.cards.map(e => [e.name, e]), { min: 1 });
         return super.start();
     }
 
@@ -84,7 +84,7 @@ export class MusterAction extends MajorAction {
         const choices = new Map<string, Denizen>();
         for (const denizenProxy of this.playerProxy.site.denizens)
             if (denizenProxy.suit !== OathSuit.None && denizenProxy.empty) choices.set(denizenProxy.name, denizenProxy);
-        this.selects.card = new SelectNOf("Card", choices, 1);
+        this.selects.card = new SelectNOf("Card", choices, { min: 1 });
         return super.start();
     }
 
@@ -119,7 +119,7 @@ export class TradeAction extends MajorAction {
         for (const denizenProxy of this.playerProxy.site.denizens)
             if (denizenProxy.suit !== OathSuit.None && denizenProxy.empty)
                 choices.set(denizenProxy.name, denizenProxy);
-        this.selects.card = new SelectNOf("Card", choices, 1);
+        this.selects.card = new SelectNOf("Card", choices, { min: 1 });
         this.selects.forFavor = new SelectBoolean("Type", ["For favors", "For secrets"]);
         return super.start();
     }
@@ -172,7 +172,7 @@ export class TravelAction extends MajorAction {
         for (const siteProxy of this.gameProxy.board.sites())
             if (siteProxy !== this.playerProxy.site && this.restriction(siteProxy))
                 choices.set(siteProxy.visualName(this.player), siteProxy);
-        this.selects.site = new SelectNOf("Site", choices, 1);
+        this.selects.site = new SelectNOf("Site", choices, { min: 1 });
         return super.start();
     }
 
@@ -208,7 +208,7 @@ export class RecoverAction extends MajorAction {
         const choices = new Map<string, RecoverActionTarget>();
         for (const relicProxy of this.playerProxy.site.relics) if (relicProxy.canRecover(this)) choices.set(relicProxy.visualName(this.player), relicProxy);
         for (const bannerProxy of this.gameProxy.banners.values()) if (bannerProxy.canRecover(this)) choices.set(bannerProxy.name, bannerProxy);
-        this.selects.target = new SelectNOf("Target", choices, 1);
+        this.selects.target = new SelectNOf("Target", choices, { min: 1 });
         return super.start();
     }
 
@@ -263,7 +263,7 @@ export class SearchAction extends MajorAction {
         choices.set("World Deck", this.gameProxy.worldDeck);
         const region = this.playerProxy.site.region;
         if (region) choices.set(region.name, region.discard);
-        this.selects.deck = new SelectNOf("Deck", choices, 1);
+        this.selects.deck = new SelectNOf("Deck", choices, { min: 1 });
         return super.start();
     }
 
@@ -303,7 +303,7 @@ export class SearchChooseAction extends ModifiableAction {
     start() {
         const cardsChoice = new Map<string, WorldCard>();
         for (const card of this.cards) cardsChoice.set(card.name, card);
-        this.selects.cards = new SelectNOf("Card(s)", cardsChoice, 1, this.playingAmount);
+        this.selects.cards = new SelectNOf("Card(s)", cardsChoice, { min: 1, max: this.playingAmount });
         return super.start();
     }
 
@@ -347,7 +347,7 @@ export class SearchDiscardAction extends ModifiableAction {
     start() {
         const choices = new Map<string, WorldCard>();
         for (const card of this.cards) choices.set(card.name, card);
-        this.selects.cards = new SelectNOf("Card(s)", choices, this.amount);
+        this.selects.cards = new SelectNOf("Card(s)", choices, { min: this.amount });
         return super.start();
     }
 
@@ -386,7 +386,7 @@ export class SearchPlayOrDiscardAction extends ModifiableAction {
         sitesChoice.set("Facedown adviser", true);
         sitesChoice.set(this.playerProxy.site.name, this.playerProxy.site);
         sitesChoice.set("Discard", undefined);
-        this.selects.choice = new SelectNOf("Choice", sitesChoice, 1);
+        this.selects.choice = new SelectNOf("Choice", sitesChoice, { min: 1 });
 
         return super.start();
     }
@@ -478,7 +478,7 @@ export class MayDiscardACardAction extends OathAction {
     start() {
         const choices = new Map<string, Denizen>();
         for (const card of this.cards) choices.set(card.visualName(this.player), card);
-        this.selects.card = new SelectNOf("Card", choices, 0, 1);
+        this.selects.card = new SelectNOf("Card", choices, { min: 0, max: 1 });
         return super.start();
     }
 
@@ -502,7 +502,7 @@ export class CampaignAction extends MajorAction {
         const choices = new Map<string, OathPlayer | undefined>();
         for (const playerProxy of this.gameProxy.players) choices.set(playerProxy.name, playerProxy);
         if (this.playerProxy.site.ruler === undefined) choices.set("Bandits", undefined);
-        this.selects.defender = new SelectNOf("Defender", choices, 1);
+        this.selects.defender = new SelectNOf("Defender", choices, { min: 1 });
         return super.start();
     }
 
@@ -554,7 +554,7 @@ export class CampaignAttackAction extends ModifiableAction {
             for (const relicProxy of this.defenderProxy.relics) choices.set(relicProxy.visualName(this.player), relicProxy)
             for (const bannerProxy of this.defenderProxy.banners) choices.set(bannerProxy.name, bannerProxy);
         }
-        this.selects.targets = new SelectNOf("Target(s)", choices, 1 - this.campaignResult.targets.size, choices.size);
+        this.selects.targets = new SelectNOf("Target(s)", choices, { min: 1 - this.campaignResult.targets.size, max: choices.size });
 
         this.selects.pool = new SelectNumber("Attack pool", inclusiveRange(this.playerProxy.warbands.length));
         
@@ -954,7 +954,7 @@ export class UsePowerAction extends ModifiableAction {
             const instance = new power(sourceProxy.original, this);
             if (instance.canUse()) choices.set(instance.name, instance);
         }
-        this.selects.power = new SelectNOf("Power", choices, 1);
+        this.selects.power = new SelectNOf("Power", choices, { min: 1 });
         return super.start();
     }
 
@@ -984,7 +984,7 @@ export class PlayFacedownAdviserAction extends ModifiableAction {
         this.cardProxies = new Set([...this.playerProxy.advisers].filter(e => e.facedown));
         const cardsChoice = new Map<string, WorldCard>();
         for (const cardProxy of this.cardProxies) cardsChoice.set(cardProxy.name, cardProxy);
-        this.selects.cards = new SelectNOf("Adviser", cardsChoice, 1);
+        this.selects.cards = new SelectNOf("Adviser", cardsChoice, { min: 1 });
         return super.start();
     }
 
@@ -1025,7 +1025,7 @@ export class MoveWarbandsAction extends ModifiableAction {
             choices.set(siteProxy.name, siteProxy);
             max = Math.max(max, siteAmount - 1);
         }
-        this.selects.target = new SelectNOf("Target", choices, 1);
+        this.selects.target = new SelectNOf("Target", choices, { min: 1 });
 
         this.selects.amount = new SelectNumber("Amount", inclusiveRange(max));
 
@@ -1184,7 +1184,7 @@ export class ChooseResourceToTakeAction extends OathAction {
         const choices = new Map<string, OathResource>();
         for (const resource of this.source.resources)
             choices.set(resource.constructor.name, resource);
-        this.selects.resource = new SelectNOf("Resource", choices, 1);
+        this.selects.resource = new SelectNOf("Resource", choices, { min: 1 });
         return super.start();
     }
 
@@ -1219,7 +1219,7 @@ export class ChooseRegionAction extends OathAction {
         const choices = new Map<string, Region | undefined>();
         if (this.none) choices.set(this.none, undefined);
         for (const region of this.regions) choices.set(region.name, region);
-        this.selects.region = new SelectNOf("Region", choices, 1);
+        this.selects.region = new SelectNOf("Region", choices, { min: 1 });
 
         return super.start();
     }
@@ -1264,7 +1264,7 @@ export class ChooseSuitsAction extends ChooseTsAction<OathSuit> {
             const choices = new Map<string, OathSuit>();
             for (const suit of group)
                 choices.set(OathSuit[suit], suit);
-            this.selects["choices" + i] = new SelectNOf("Suit", choices, this.rangeMin(i), this.rangeMax(i));
+            this.selects["choices" + i] = new SelectNOf("Suit", choices, { min: this.rangeMin(i), max: this.rangeMax(i) });
         }
 
         return super.start();
@@ -1321,7 +1321,7 @@ export class ChoosePlayersAction extends ChooseTsAction<OathPlayer> {
             for (const player of group)
                 if (player !== this.player)
                     choices.set(player.name, player);
-            this.selects["choices" + i] = new SelectNOf("Player", choices, this.rangeMin(i), this.rangeMax(i));
+            this.selects["choices" + i] = new SelectNOf("Player", choices, { min: this.rangeMin(i), max: this.rangeMax(i) });
         }
 
         return super.start();
@@ -1360,7 +1360,7 @@ export class ChooseSitesAction extends ChooseTsAction<Site> {
         for (const [i, group] of this.choices.entries()) {
             const choices = new Map<string, Site>();
             for (const site of group) choices.set(site.visualName(this.player), site);
-            this.selects["choices" + i] = new SelectNOf("Site", choices, this.rangeMin(i), this.rangeMax(i));
+            this.selects["choices" + i] = new SelectNOf("Site", choices, { min: this.rangeMin(i), max: this.rangeMax(i) });
         }
 
         return super.start();
@@ -1410,7 +1410,7 @@ export class ChooseCardsAction<T extends OathCard> extends ChooseTsAction<T> {
         for (const [i, group] of this.choices.entries()) {
             const choices = new Map<string, T>();
             for (const card of group) choices.set(card.visualName(this.player), card);
-            this.selects["choices" + i] = new SelectNOf("Card", choices, this.rangeMin(i), this.rangeMax(i));
+            this.selects["choices" + i] = new SelectNOf("Card", choices, { min: this.rangeMin(i), max: this.rangeMax(i) });
         }
 
         return super.start();
@@ -1434,7 +1434,7 @@ export class ConspiracyStealAction extends OathAction {
         const choices = new Map<string, Relic | Banner>();
         for (const relic of this.player.relics) choices.set(relic.visualName(this.player), relic);
         for (const banner of this.player.banners) choices.set(banner.name, banner);
-        this.selects.taking = new SelectNOf("Target", choices, 1);
+        this.selects.taking = new SelectNOf("Target", choices, { min: 1 });
         return super.start();
     }
 
@@ -1565,7 +1565,7 @@ export class BrackenAction extends OathAction {
         const regions = new Set(Object.values(this.game.board.children));
         const choices = new Map<string, Region>();
         for (const region of regions) choices.set(region.name, region);
-        this.selects.region = new SelectNOf("Region", choices, 1);
+        this.selects.region = new SelectNOf("Region", choices, { min: 1 });
         this.selects.onTop = new SelectBoolean("Position", ["Bottom", "Top"])
         return super.start();
     }
@@ -1596,12 +1596,11 @@ export class VowOathAction extends OathAction {
                 if (i !== this.game.oath.key)
                     choices.set(OathType[i], i);
         }
-        this.selects.oath = new SelectNOf("Oath", choices);
+        this.selects.oath = new SelectNOf("Oath", choices, { min: 1 });
         return super.start();
     }
 
     execute(): void {
-        // TODO: Put this in an effect
         const oathType = this.parameters.oath[0]!;
         this.game.oath = new OathTypeToOath[OathType[oathType] as keyof typeof OathType]();
     }
@@ -1643,9 +1642,8 @@ export class BuildOrRepairEdificeAction extends OathAction {
                 for (const denizen of site.denizens)
                     if (!(denizen instanceof Edifice && denizen.suit !== OathSuit.None))
                         choices.set(denizen.name, denizen);
-
-        choices.set("None", undefined);
-        this.selects.card = new SelectNOf("Card", choices, 1);
+        this.selects.card = new SelectNOf("Card", choices);
+        
         return super.start();
     }
 

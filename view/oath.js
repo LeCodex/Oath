@@ -77,7 +77,7 @@ const render = () => {
             
             const selectList = selectNode.appendChild(document.createElement("ul"));
             for (const [i, choice] of select.choices.entries())
-                selectList.append(...renderCheckbox(k + i, choice));
+                selectList.append(...renderCheckbox(k + i, choice, select.defaults.includes(choice)));
         }
         actionNode.appendChild(renderButton("Submit", () => continueAction()));
     } else {
@@ -223,11 +223,12 @@ const renderButton = (text, callback) => {
     return parentNode;
 }
 
-const renderCheckbox = (key, text) => {
+const renderCheckbox = (key, text, checked=false) => {
     const checkboxNode = document.createElement("input");
     checkboxNode.type = "checkbox";
     checkboxNode.id = "check" + key;
     checkboxNode.value = text;
+    checkboxNode.checked = checked;
     const checkboxLabel = document.createElement("label");
     checkboxLabel.htmlFor = "check" + key;
     checkboxLabel.innerText = text;

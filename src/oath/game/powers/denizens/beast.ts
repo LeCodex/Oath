@@ -542,6 +542,7 @@ export class RovingTerror extends ActivePower<Denizen> {
 export class ForestTemple extends ActionModifier<Edifice, FinishChronicleEffect> {
     name = "Forest Temple";
     modifiedAction = FinishChronicleEffect;
+    mustUse = true;
 
     applyBefore(): void {
         for (const siteProxy of this.gameProxy.board.sites()) {

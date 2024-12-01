@@ -342,14 +342,14 @@ export abstract class TreeNode<RootType extends TreeRoot<RootType>, KeyType = an
 
         if (!obj.children) return;
 
-        for (const child of obj.children) {
+        for (const [i, child] of obj.children.entries()) {
             let node = this.root.search(child.class, child.id);
             if (!node) {
                 console.warn(`Didn't find node of class ${child.class} and id ${child.id}`);
                 if (!allowCreation) throw TypeError(`Could not find node of class ${child.class} and id ${child.id}`);
                 node = this.root.create(child.class, child);
             }
-            if (node.parent !== this) this.addChild(node);
+            if (node.parent !== this || node.parent.children.indexOf(node) !== i) this.addChild(node);
             node.parse(child, allowCreation);
         }
     }

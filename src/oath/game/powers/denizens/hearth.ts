@@ -467,6 +467,7 @@ export class RelicBreaker extends ActivePower<Denizen> {
 export class HallOfDebate extends ActionModifier<Edifice, CampaignAttackAction> {
     name = "Hall of Debate";
     modifiedAction = CampaignAttackAction;
+    mustUse = true;
 
     applyBefore(): void {
         const peoplesFavor = this.game.banners.get(BannerName.PeoplesFavor);
@@ -478,6 +479,7 @@ export class HallOfDebate extends ActionModifier<Edifice, CampaignAttackAction> 
 export class HallOfMockery extends ActionModifier<Edifice, RecoverAction> {
     name = "Hall of Mockery";
     modifiedAction = RecoverAction;
+    mustUse = true;
 
     applyAfter(): void {
         if (this.action.targetProxy === this.gameProxy.banners.get(BannerName.PeoplesFavor))

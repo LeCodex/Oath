@@ -88,14 +88,16 @@ export class ChooseModifiers<T extends ModifiableAction> extends OathAction {
     start() {
         this.persistentModifiers = new Set();
         const choices = new Map<string, ActionModifier<WithPowers, T>>();
+        const defaults: string[] = []
         for (const modifier of this.game.gatherModifiers(this.action, this.player)) {
-            if (modifier.mustUse)
+            if (modifier.mustUse) {
                 this.persistentModifiers.add(modifier);
-
-            else
+            } else {
                 choices.set(modifier.name, modifier);
+                if (modifier.cost.free) defaults.push(modifier.name);
+            }
         }
-        this.selects.modifiers = new SelectNOf("Modifiers", choices);
+        this.selects.modifiers = new SelectNOf("Modifiers", choices, { defaults });
 
         return super.start();
     }

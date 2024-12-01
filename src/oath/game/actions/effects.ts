@@ -397,7 +397,6 @@ export class PutPawnAtSiteEffect extends PlayerEffect {
 
 export class PeekAtCardEffect extends PlayerEffect {
     card: OathCard;
-    peeked: boolean;
 
     constructor(player: OathPlayer, card: OathCard) {
         super(player);
@@ -405,8 +404,7 @@ export class PeekAtCardEffect extends PlayerEffect {
     }
 
     resolve(): void {
-        this.peeked = !this.card.seenBy.has(this.executor);
-        if (this.peeked) this.card.seenBy.add(this.executor);
+        this.card.seenBy.add(this.executor);
     }
 }
 
@@ -419,7 +417,7 @@ export class RevealCardEffect extends OathEffect {
     }
 
     resolve(): void {
-        for (const player of this.game.players) new PeekAtCardEffect(player, this.card).doNext();
+        for (const player of this.game.players) this.card.seenBy.add(player);
     }
 }
 
