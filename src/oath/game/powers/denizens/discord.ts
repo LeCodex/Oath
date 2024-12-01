@@ -18,7 +18,7 @@ export class MercenariesAttack extends AttackerBattlePlan<Denizen> {
 
     applyBefore(): void {
         this.action.campaignResult.atkPool += 3;
-        this.action.campaignResult.onSuccessful(false, () => new DiscardCardEffect(this.activator, this.source).doNext());
+        this.action.campaignResult.onDefenseWin(() => new DiscardCardEffect(this.activator, this.source).doNext());
     }
 }
 export class MercenariesDefense extends DefenderBattlePlan<Denizen> {
@@ -27,7 +27,7 @@ export class MercenariesDefense extends DefenderBattlePlan<Denizen> {
 
     applyBefore(): void {
         this.action.campaignResult.atkPool -= 3;
-        this.action.campaignResult.onSuccessful(true, () => new DiscardCardEffect(this.activator, this.source).doNext());
+        this.action.campaignResult.onAttackWin(() => new DiscardCardEffect(this.activator, this.source).doNext());
     }
 }
 

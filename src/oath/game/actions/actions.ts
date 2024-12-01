@@ -734,6 +734,14 @@ export class CampaignResult {
         this.atEnd(() => { if (this.successful === successful) callback(); });
     }
 
+    onAttackWin(callback: () => void) {
+        return this.onSuccessful(true, callback);
+    }
+
+    onDefenseWin(callback: () => void) {
+        return this.onSuccessful(false, callback);
+    }
+
     checkForImperialInfighting(maskProxyManager: MaskProxyManager) {
         if (maskProxyManager.get(this.defender)?.isImperial) {
             if (this.attacker instanceof Exile)  // Citizen attacks: revoke Citizen priviledges

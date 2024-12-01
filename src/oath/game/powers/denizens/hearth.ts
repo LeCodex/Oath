@@ -15,7 +15,7 @@ export class TravelingDoctorAttack extends AttackerBattlePlan<Denizen> {
 
     applyBefore(): void {
         this.action.campaignResult.attackerKillsNoWarbands = true;
-        this.action.campaignResult.onSuccessful(false, () => new DiscardCardEffect(this.activator, this.source).doNext());
+        this.action.campaignResult.onAttackWin(() => new DiscardCardEffect(this.activator, this.source).doNext());
     }
 }
 export class TravelingDoctorDefense extends DefenderBattlePlan<Denizen> {
@@ -23,7 +23,7 @@ export class TravelingDoctorDefense extends DefenderBattlePlan<Denizen> {
 
     applyBefore(): void {
         this.action.campaignResult.defenderKillsNoWarbands = true;
-        this.action.campaignResult.onSuccessful(true, () => new DiscardCardEffect(this.activator, this.source).doNext());
+        this.action.campaignResult.onDefenseWin(() => new DiscardCardEffect(this.activator, this.source).doNext());
     }
 }
 
