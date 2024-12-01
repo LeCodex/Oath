@@ -236,7 +236,7 @@ export class RecoverBannerPitchAction extends ModifiableAction {
     }
 
     start() {
-        this.selects.amount = new SelectNumber("Amount", inclusiveRange(this.banner.amount + 1, this.player.byClass(this.banner.resourceType).length));
+        this.selects.amount = new SelectNumber("Amount", inclusiveRange(this.banner.amount + 1, this.player.byClass(this.banner.cls).length));
         return super.start();
     }
 

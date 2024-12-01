@@ -121,10 +121,10 @@ export class PutResourcesOnTargetEffect extends OathEffect<number> {
 export class MoveResourcesToTargetEffect extends OathEffect<number> {
     resource: OathResourceType;
     amount: number;
-    target?: ResourcesAndWarbands;
-    source?: ResourcesAndWarbands;
+    target?: OathGameObject;
+    source?: OathGameObject;
 
-    constructor(game: OathGame, player: OathPlayer | undefined, resource: OathResourceType, amount: number, target: ResourcesAndWarbands | undefined, source?: ResourcesAndWarbands) {
+    constructor(game: OathGame, player: OathPlayer | undefined, resource: OathResourceType, amount: number, target: OathGameObject | undefined, source?: OathGameObject) {
         super(game, player);
         this.resource = resource;
         this.amount = Math.max(0, amount);
@@ -151,8 +151,8 @@ export class MoveResourcesToTargetEffect extends OathEffect<number> {
     serialize(): Record<string, any> {
         return {
             ...super.serialize(),
-            source: this.source?.name,
-            target: this.target?.name,
+            source: this.source?.key,
+            target: this.target?.key,
             resource: this.resource.name,
             amount: this.amount
         };
@@ -162,9 +162,9 @@ export class MoveResourcesToTargetEffect extends OathEffect<number> {
 export class BurnResourcesEffect extends OathEffect<number> {
     resource: OathResourceType;
     amount: number;
-    source?: ResourcesAndWarbands;
+    source?: OathGameObject;
 
-    constructor(game: OathGame, player: OathPlayer | undefined, resource: OathResourceType, amount: number, source?: ResourcesAndWarbands) {
+    constructor(game: OathGame, player: OathPlayer | undefined, resource: OathResourceType, amount: number, source?: OathGameObject) {
         super(game, player);
         this.resource = resource;
         this.amount = Math.max(0, amount);

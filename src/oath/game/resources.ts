@@ -16,11 +16,11 @@ export abstract class OathResource extends OathGameObjectLeaf<number> {
     get key() { return Number(this.id); }
 
     abstract burn(): void;
-    static gain(target: OathGameObject, amount: number): void { };
+    static putOn(target: OathGameObject, amount: number): void { };
 }
 
 export class Favor extends OathResource {
-    static gain(target: OathGameObject, amount: number): void {
+    static putOn(target: OathGameObject, amount: number): void {
         target.addChildren(target.game.byClass(this).max(amount));
     }
     
@@ -32,7 +32,7 @@ export class Favor extends OathResource {
 export class Secret extends OathResource {
     flipped: boolean = false;
 
-    static gain(target: OathGameObject, amount: number): void {
+    static putOn(target: OathGameObject, amount: number): void {
         for (let i = 0; i < amount; i++) target.addChild(new this());
     }
 
@@ -93,7 +93,7 @@ export abstract class ResourcesAndWarbands<T = any> extends OathGameObject<T> {
     get resources() { return this.byClass(OathResource); }
 
     putResources(type: typeof OathResource, amount: number): number {
-        type.gain(this, amount);
+        type.putOn(this, amount);
         return this.byClass(type).length;
     }
 

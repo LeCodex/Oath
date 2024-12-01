@@ -63,8 +63,8 @@ export class OathGame extends TreeRoot<OathGame> {
         const darkestSecret = new DarkestSecret();
         this.banners.set(BannerKey.PeoplesFavor, this.addChild(peoplesFavor));
         this.banners.set(BannerKey.DarkestSecret, this.addChild(darkestSecret));
-        peoplesFavor.putResources(Favor, 1);
-        darkestSecret.putResources(Secret, 1);
+        Favor.putOn(peoplesFavor, 1);
+        Secret.putOn(darkestSecret, 1);
 
         const gameData = parseOathTTSSavefileString(seed);
         this.name = gameData.chronicleName;
@@ -190,7 +190,7 @@ export class OathGame extends TreeRoot<OathGame> {
         const startingAmount = playerCount < 5 ? 3 : 4;
         for (let i = OathSuit.Discord; i <= OathSuit.Nomad; i++) {
             const bank = this.addChild(new FavorBank(OathSuit[i] as keyof typeof OathSuit));
-            bank.putResources(Favor, startingAmount);
+            Favor.putOn(bank, startingAmount);
         }
 
         this.oath = new OathTypeToOath[OathType[gameData.oath] as keyof typeof OathType]();
