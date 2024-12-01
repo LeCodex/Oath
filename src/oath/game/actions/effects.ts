@@ -1,6 +1,6 @@
 import { InvalidActionResolution, OathEffect, PlayerEffect } from "./base";
 import { Denizen, Edifice, OathCard, Relic, Site, Vision, VisionBack, WorldCard } from "../cards/cards";
-import { BannerName, CardRestriction, OathPhase, OathSuit, PlayerColor } from "../enums";
+import { BannerKey, CardRestriction, OathPhase, OathSuit, PlayerColor } from "../enums";
 import { Exile, OathPlayer } from "../player";
 import { OathPower, WhenPlayed } from "../powers/powers";
 import { Favor, OathResource, OathResourceType, ResourceCost, ResourcesAndWarbands, Secret } from "../resources";
@@ -990,7 +990,7 @@ export class SetPeoplesFavorMobState extends OathEffect {
 
     constructor(game: OathGame, player: OathPlayer | undefined, state: boolean) {
         super(game, player);
-        const banner = game.banners.get(BannerName.PeoplesFavor) as PeoplesFavor | undefined;
+        const banner = game.banners.get(BannerKey.PeoplesFavor) as PeoplesFavor | undefined;
         if (!banner) throw new InvalidActionResolution("No People's Favor");
         this.banner = banner;
         this.state = state;

@@ -3,7 +3,7 @@ import { ModifiableAction, InvalidActionResolution } from "../../actions/base";
 import { Denizen, Edifice, Relic, WorldCard } from "../../cards/cards";
 import { DieSymbol } from "../../dice";
 import { PlayVisionEffect, PlayWorldCardEffect, PeekAtCardEffect, DiscardCardEffect, BecomeCitizenEffect, SetPeoplesFavorMobState, GainSupplyEffect, DrawFromDeckEffect, TakeOwnableObjectEffect, MoveDenizenToSiteEffect, ParentToTargetEffect, PutResourcesOnTargetEffect } from "../../actions/effects";
-import { BannerName, OathSuit, ALL_OATH_SUITS } from "../../enums";
+import { BannerKey, OathSuit, ALL_OATH_SUITS } from "../../enums";
 import { WithPowers } from "../../interfaces";
 import { Favor, ResourceCost, Secret } from "../../resources";
 import { maxInGroup, minInGroup } from "../../utils";
@@ -31,7 +31,7 @@ export class VillageConstableAttack extends AttackerBattlePlan<Denizen> {
     name = "Village Constable";
 
     applyBefore(): void {
-        const peoplesFavorProxy = this.gameProxy.banners.get(BannerName.PeoplesFavor);
+        const peoplesFavorProxy = this.gameProxy.banners.get(BannerKey.PeoplesFavor);
         if (peoplesFavorProxy?.owner?.original === this.action.campaignResult.defender) return;
         this.action.campaignResult.atkPool += 2;
     }
@@ -40,7 +40,7 @@ export class VillageConstableDefense extends DefenderBattlePlan<Denizen> {
     name = "Village Constable";
 
     applyBefore(): void {
-        const peoplesFavorProxy = this.gameProxy.banners.get(BannerName.PeoplesFavor);
+        const peoplesFavorProxy = this.gameProxy.banners.get(BannerKey.PeoplesFavor);
         if (peoplesFavorProxy?.owner?.original === this.action.campaignResult.attacker) return;
         this.action.campaignResult.atkPool -= 2;
     }
@@ -51,7 +51,7 @@ export class TheGreatLevyAttack extends AttackerBattlePlan<Denizen> {
     cost = new ResourceCost([[Favor, 2]]);
 
     applyBefore(): void {
-        const peoplesFavorProxy = this.gameProxy.banners.get(BannerName.PeoplesFavor);
+        const peoplesFavorProxy = this.gameProxy.banners.get(BannerKey.PeoplesFavor);
         if (peoplesFavorProxy?.owner?.original === this.action.campaignResult.defender) return;
         this.action.campaignResult.atkPool += 3;
         this.action.campaignResult.atkRoll.ignore.add(DieSymbol.Skull);
@@ -62,7 +62,7 @@ export class TheGreatLevyDefense extends DefenderBattlePlan<Denizen> {
     cost = new ResourceCost([[Favor, 2]]);
 
     applyBefore(): void {
-        const peoplesFavorProxy = this.gameProxy.banners.get(BannerName.PeoplesFavor);
+        const peoplesFavorProxy = this.gameProxy.banners.get(BannerKey.PeoplesFavor);
         if (peoplesFavorProxy?.owner?.original === this.action.campaignResult.attacker) return;
         this.action.campaignResult.atkPool -= 3;
     }
@@ -98,7 +98,7 @@ export class HeartsAndMinds extends DefenderBattlePlan<Denizen> {
         this.action.campaignResult.successful = false;
         this.action.next.doNext();
 
-        if (this.gameProxy.banners.get(BannerName.PeoplesFavor)?.owner !== this.activatorProxy)
+        if (this.gameProxy.banners.get(BannerKey.PeoplesFavor)?.owner !== this.activatorProxy)
             this.action.campaignResult.discardAtEnd(this.source);
 
         return false;
@@ -351,7 +351,7 @@ export class BallotBox extends ActivePower<Denizen> {
     name = "Ballot Box";
 
     usePower(): void {
-        const peoplesFavorProxy = this.gameProxy.banners.get(BannerName.PeoplesFavor);
+        const peoplesFavorProxy = this.gameProxy.banners.get(BannerKey.PeoplesFavor);
         if (peoplesFavorProxy?.owner !== this.action.playerProxy) return;
         new MakeDecisionAction(this.action.player, "Become a Citizen?", () => new BecomeCitizenEffect(this.action.player).doNext());
     }
@@ -362,7 +362,7 @@ export class Storyteller extends ActivePower<Denizen> {
     cost = new ResourceCost([[Favor, 1]]);
 
     usePower(): void {
-        new PutResourcesOnTargetEffect(this.game, this.action.player, Secret, 1, this.game.banners.get(BannerName.DarkestSecret)).doNext();
+        new PutResourcesOnTargetEffect(this.game, this.action.player, Secret, 1, this.game.banners.get(BannerKey.DarkestSecret)).doNext();
     }
 }
 
@@ -398,8 +398,8 @@ export class ArmedMob extends ActivePower<Denizen> {
     cost = new ResourceCost([[Favor, 1]]);
 
     usePower(): void {
-        const darkestSecretProxy = this.gameProxy.banners.get(BannerName.DarkestSecret);
-        const peoplesFavorProxy = this.gameProxy.banners.get(BannerName.PeoplesFavor);
+        const darkestSecretProxy = this.gameProxy.banners.get(BannerKey.DarkestSecret);
+        const peoplesFavorProxy = this.gameProxy.banners.get(BannerKey.PeoplesFavor);
         if (!darkestSecretProxy?.owner || darkestSecretProxy.owner === peoplesFavorProxy?.owner) return;
 
         const cards = new Set<WorldCard>();
@@ -470,7 +470,7 @@ export class HallOfDebate extends ActionModifier<Edifice, CampaignAttackAction> 
     mustUse = true;
 
     applyBefore(): void {
-        const peoplesFavor = this.game.banners.get(BannerName.PeoplesFavor);
+        const peoplesFavor = this.game.banners.get(BannerKey.PeoplesFavor);
         if (peoplesFavor && this.action.campaignResult.targets.has(peoplesFavor))
             throw new InvalidActionResolution("Cannot target the People's Favor in campaigns with the Hall of Debate");
     }
@@ -482,7 +482,7 @@ export class HallOfMockery extends ActionModifier<Edifice, RecoverAction> {
     mustUse = true;
 
     applyAfter(): void {
-        if (this.action.targetProxy === this.gameProxy.banners.get(BannerName.PeoplesFavor))
+        if (this.action.targetProxy === this.gameProxy.banners.get(BannerKey.PeoplesFavor))
             new SetPeoplesFavorMobState(this.game, undefined, true).doNext();
     }
 }

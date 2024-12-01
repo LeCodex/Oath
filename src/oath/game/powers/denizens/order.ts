@@ -3,7 +3,7 @@ import { InvalidActionResolution } from "../../actions/base";
 import { Denizen, Edifice, Relic, Site, Vision } from "../../cards/cards";
 import { DieSymbol } from "../../dice";
 import { PayCostToTargetEffect, MoveResourcesToTargetEffect, GainSupplyEffect, BecomeCitizenEffect, PutPawnAtSiteEffect, MoveOwnWarbandsEffect, BecomeExileEffect, PlayVisionEffect, TakeOwnableObjectEffect, ParentToTargetEffect } from "../../actions/effects";
-import { BannerName, OathSuit } from "../../enums";
+import { BannerKey, OathSuit } from "../../enums";
 import { OathGameObject } from "../../gameObject";
 import { CampaignActionTarget } from "../../interfaces";
 import { OathPlayer } from "../../player";
@@ -379,7 +379,7 @@ export class TomeGuardians extends EnemyActionModifier<Denizen, TakeOwnableObjec
     modifiedAction = TakeOwnableObjectEffect;
 
     applyBefore(): void {
-        if (this.action.maskProxyManager.get(this.action.target) === this.gameProxy.banners.get(BannerName.DarkestSecret))
+        if (this.action.maskProxyManager.get(this.action.target) === this.gameProxy.banners.get(BannerKey.DarkestSecret))
             throw new InvalidActionResolution("Cannot take the Darkest Secret from the Tome Guardians.");
     }
 }
@@ -388,7 +388,7 @@ export class TomeGuardiansAttack extends EnemyAttackerCampaignModifier<Denizen> 
 
     applyBefore(): void {
         for (const targetProxy of this.action.campaignResultProxy.targets)
-            if (targetProxy === this.gameProxy.banners.get(BannerName.DarkestSecret))
+            if (targetProxy === this.gameProxy.banners.get(BannerKey.DarkestSecret))
                 throw new InvalidActionResolution("Cannot target the Darkest Secret under the Tome Guardians.");
     }
 }

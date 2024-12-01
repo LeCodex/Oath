@@ -7,7 +7,7 @@ import { OathBoard, Region } from "./board";
 import { Discard, RelicDeck, WorldDeck } from "./cards/decks";
 import { DenizenData, denizenData, edificeFlipside } from "./cards/denizens";
 import { relicsData } from "./cards/relics";
-import { OathPhase, OathSuit, RegionKey, PlayerColor, ALL_OATH_SUITS, BannerName, OathType } from "./enums";
+import { OathPhase, OathSuit, RegionKey, PlayerColor, ALL_OATH_SUITS, BannerKey, OathType } from "./enums";
 import { Oath, OathTypeToOath } from "./oaths";
 import { Conspiracy, Denizen, Edifice, GrandScepter, Relic, Site, Vision, WorldCard } from "./cards/cards";
 import { Chancellor, Exile, OathPlayer, VisionSlot, WarbandsSupply } from "./player";
@@ -45,7 +45,7 @@ export class OathGame extends TreeRoot<OathGame> {
     relicDeck: RelicDeck;
     board: OathBoard;
     grandScepter: GrandScepter;
-    banners = new Map<BannerName, Banner>;
+    banners = new Map<BannerKey, Banner>;
 
     archive: Set<string>;
     dispossessed: Set<string>;
@@ -61,8 +61,8 @@ export class OathGame extends TreeRoot<OathGame> {
         
         const peoplesFavor = new PeoplesFavor();
         const darkestSecret = new DarkestSecret();
-        this.banners.set(BannerName.PeoplesFavor, this.addChild(peoplesFavor));
-        this.banners.set(BannerName.DarkestSecret, this.addChild(darkestSecret));
+        this.banners.set(BannerKey.PeoplesFavor, this.addChild(peoplesFavor));
+        this.banners.set(BannerKey.DarkestSecret, this.addChild(darkestSecret));
         peoplesFavor.putResources(Favor, 1);
         darkestSecret.putResources(Secret, 1);
 

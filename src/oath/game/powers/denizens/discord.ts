@@ -5,7 +5,7 @@ import { Region } from "../../board";
 import { Denizen, Edifice, OathCard, Relic, Site, Vision, WorldCard } from "../../cards/cards";
 import { D6, DefenseDie } from "../../dice";
 import { TakeOwnableObjectEffect, PutResourcesOnTargetEffect, MoveResourcesToTargetEffect, SetNewOathkeeperEffect, RollDiceEffect, DiscardCardEffect, BecomeCitizenEffect, PayCostToTargetEffect, PeekAtCardEffect, WinGameEffect, DrawFromDeckEffect, MoveWorldCardToAdvisersEffect, ParentToTargetEffect, BurnResourcesEffect } from "../../actions/effects";
-import { BannerName, OathSuit } from "../../enums";
+import { BannerKey, OathSuit } from "../../enums";
 import { Exile, OathPlayer } from "../../player";
 import { Favor, ResourceCost, Secret } from "../../resources";
 import { WhenPlayed, CapacityModifier, ActivePower, RestPower, AttackerBattlePlan, DefenderBattlePlan, ActionModifier, AccessedActionModifier, WakePower, EnemyActionModifier, EnemyAttackerCampaignModifier, EnemyDefenderCampaignModifier } from "../powers";
@@ -279,7 +279,7 @@ export class Charlatan extends WhenPlayed<Denizen> {
     name = "Charlatan";
 
     whenPlayed(): void {
-        const banner = this.game.banners.get(BannerName.DarkestSecret);
+        const banner = this.game.banners.get(BannerKey.DarkestSecret);
         if (banner) new BurnResourcesEffect(this.game, this.action.executor, Secret, banner.amount - 1, banner).doNext();
     }
 }
@@ -288,7 +288,7 @@ export class Dissent extends WhenPlayed<Denizen> {
     name = "Dissent";
 
     whenPlayed(): void {
-        const peoplesFavorProxy = this.gameProxy.banners.get(BannerName.PeoplesFavor);
+        const peoplesFavorProxy = this.gameProxy.banners.get(BannerKey.PeoplesFavor);
         for (const playerProxy of this.gameProxy.players)
             if (peoplesFavorProxy?.owner !== playerProxy)
                 new MoveResourcesToTargetEffect(this.game, playerProxy.original, Favor, playerProxy.ruledSuits, this.source).doNext();
@@ -299,7 +299,7 @@ export class Riots extends WhenPlayed<Denizen> {
     name = "Riots";
 
     whenPlayed(): void {
-        const peoplesFavorProxy = this.gameProxy.banners.get(BannerName.PeoplesFavor) as PeoplesFavor;
+        const peoplesFavorProxy = this.gameProxy.banners.get(BannerKey.PeoplesFavor) as PeoplesFavor;
         if (!peoplesFavorProxy?.isMob) return;
 
         const suitCounts = new Map<OathSuit, number>();
@@ -574,7 +574,7 @@ export class VowOfRenewalRecover extends AccessedActionModifier<Denizen, Recover
     modifiedAction = RecoverAction;
 
     applyBefore(): void {
-        if (this.action.targetProxy === this.gameProxy.banners.get(BannerName.PeoplesFavor))
+        if (this.action.targetProxy === this.gameProxy.banners.get(BannerKey.PeoplesFavor))
             throw new InvalidActionResolution("Cannot recover the People's Favor with the Vow of Renewal");
     }
 }

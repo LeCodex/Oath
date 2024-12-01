@@ -35,7 +35,7 @@ export const OathTypeVisionName: Record<keyof typeof OathType, string> = {
 }
 
 
-export enum BannerName {
+export enum BannerKey {
     PeoplesFavor,
     DarkestSecret
 }

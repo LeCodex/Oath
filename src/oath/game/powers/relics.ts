@@ -2,7 +2,7 @@ import { CitizenshipOfferAction, StartBindingExchangeAction, SkeletonKeyAction, 
 import { InvalidActionResolution, ModifiableAction } from "../actions/base";
 import { Denizen, GrandScepter, OathCard, Relic, Site } from "../cards/cards";
 import { TakeOwnableObjectEffect, PlayDenizenAtSiteEffect, MoveOwnWarbandsEffect, PeekAtCardEffect, SetGrandScepterLockEffect, GainSupplyEffect, DrawFromDeckEffect, RevealCardEffect, PayCostToTargetEffect, BecomeExileEffect, MoveResourcesToTargetEffect, MoveDenizenToSiteEffect, MoveWorldCardToAdvisersEffect, ParentToTargetEffect } from "../actions/effects";
-import { BannerName, PlayerColor } from "../enums";
+import { BannerKey, PlayerColor } from "../enums";
 import { OathPlayer, Exile } from "../player";
 import { OwnableObject, isOwnable } from "../interfaces";
 import { Favor, OathWarband, ResourceCost, Secret } from "../resources";
@@ -68,7 +68,7 @@ export class GrandScepterExileCitizen extends GrandScepterActive {
                 if (!target) return;
 
                 let amount = 5;
-                const peoplesFavor = this.game.banners.get(BannerName.PeoplesFavor);
+                const peoplesFavor = this.game.banners.get(BannerKey.PeoplesFavor);
                 if (this.action.player === this.game.oathkeeper) amount--;
                 if (this.action.player === peoplesFavor?.owner) amount--;
                 if (target === this.game.oathkeeper) amount++;

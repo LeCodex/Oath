@@ -4,7 +4,7 @@ import { Conspiracy, Denizen, Edifice, Relic, Site, WorldCard } from "../../card
 import { DiscardOptions } from "../../cards/decks";
 import { AttackDie, DefenseDie, DieSymbol, RollResult } from "../../dice";
 import { RegionDiscardEffect, PutResourcesOnTargetEffect, RollDiceEffect, BecomeCitizenEffect, DiscardCardEffect, PeekAtCardEffect, MoveResourcesToTargetEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, MoveWorldCardToAdvisersEffect, ParentToTargetEffect, BurnResourcesEffect } from "../../actions/effects";
-import { BannerName, OathSuit } from "../../enums";
+import { BannerKey, OathSuit } from "../../enums";
 import { OathPlayer } from "../../player";
 import { Favor, OathResourceType, ResourceCost, Secret } from "../../resources";
 import { ActionModifier, AttackerBattlePlan, DefenderBattlePlan, ActivePower, WhenPlayed, AccessedActionModifier, EnemyAttackerCampaignModifier, EnemyDefenderCampaignModifier } from "../powers";
@@ -18,7 +18,7 @@ export class FireTalkersAttack extends AttackerBattlePlan<Denizen> {
     cost = new ResourceCost([[Secret, 1]]);
 
     applyBefore(): void {
-        const darkestSecretProxy = this.gameProxy.banners.get(BannerName.DarkestSecret);
+        const darkestSecretProxy = this.gameProxy.banners.get(BannerKey.DarkestSecret);
         if (darkestSecretProxy?.owner !== this.activatorProxy) return;
         this.action.campaignResult.atkPool += 3;
     }
@@ -28,7 +28,7 @@ export class FireTalkersDefense extends DefenderBattlePlan<Denizen> {
     cost = new ResourceCost([[Secret, 1]]);
 
     applyBefore(): void {
-        const darkestSecretProxy = this.gameProxy.banners.get(BannerName.DarkestSecret);
+        const darkestSecretProxy = this.gameProxy.banners.get(BannerKey.DarkestSecret);
         if (darkestSecretProxy?.owner !== this.activatorProxy) return;
         this.action.campaignResult.atkPool -= 3;
     }
@@ -91,7 +91,7 @@ export class RustingRay extends DefenderBattlePlan<Denizen> {
     cost = new ResourceCost([[Secret, 1]]);
 
     applyBefore(): void {
-        const darkestSecretProxy = this.gameProxy.banners.get(BannerName.DarkestSecret);
+        const darkestSecretProxy = this.gameProxy.banners.get(BannerKey.DarkestSecret);
         if (darkestSecretProxy?.owner !== this.activatorProxy) return;
         this.action.campaignResult.atkRoll.ignore.add(DieSymbol.HollowSword);
     }
@@ -215,7 +215,7 @@ export class TerrorSpells extends ActivePower<Denizen> {
     cost = new ResourceCost([[Secret, 1]]);
 
     usePower(amount: number = 2): void {
-        if (this.gameProxy.banners.get(BannerName.DarkestSecret)?.owner !== this.action.playerProxy) return;
+        if (this.gameProxy.banners.get(BannerKey.DarkestSecret)?.owner !== this.action.playerProxy) return;
 
         new MakeDecisionAction(
             this.action.player, "Kill at site or on boards? (" + amount + " left)",
@@ -255,7 +255,7 @@ export class ForgottenVault extends ActivePower<Denizen> {
     cost = new ResourceCost([[Favor, 1]]);
 
     usePower(): void {
-        const banner = this.game.banners.get(BannerName.DarkestSecret);
+        const banner = this.game.banners.get(BannerKey.DarkestSecret);
         if (!banner) return;
 
         new MakeDecisionAction(
@@ -520,7 +520,7 @@ export class VowOfSilenceRecover extends AccessedActionModifier<Denizen, Recover
     modifiedAction = RecoverAction;
 
     applyBefore(): void {
-        if (this.action.targetProxy === this.gameProxy.banners.get(BannerName.DarkestSecret))
+        if (this.action.targetProxy === this.gameProxy.banners.get(BannerKey.DarkestSecret))
             throw new InvalidActionResolution("Cannot recover the Darkest Secret with the Vow of Silence");
     }
 }

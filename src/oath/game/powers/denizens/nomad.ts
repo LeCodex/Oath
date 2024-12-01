@@ -5,7 +5,7 @@ import { Denizen, Edifice, OathCard, Relic, Site, VisionBack, WorldCard } from "
 import { DiscardOptions } from "../../cards/decks";
 import { AttackDie, DieSymbol } from "../../dice";
 import { PayCostToTargetEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PayPowerCostEffect, BecomeCitizenEffect, DrawFromDeckEffect, FlipEdificeEffect, MoveResourcesToTargetEffect, DiscardCardEffect, GainSupplyEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, PeekAtCardEffect, MoveWorldCardToAdvisersEffect, MoveDenizenToSiteEffect, DiscardCardGroupEffect, PlayVisionEffect, ParentToTargetEffect, BurnResourcesEffect } from "../../actions/effects";
-import { BannerName, OathSuit } from "../../enums";
+import { BannerKey, OathSuit } from "../../enums";
 import { OwnableObject, isOwnable } from "../../interfaces";
 import { OathPlayer } from "../../player";
 import { Favor, ResourceCost, Secret } from "../../resources";
@@ -504,7 +504,7 @@ export class AncientPact extends WhenPlayed<Denizen> {
     name = "Ancient Pact";
 
     whenPlayed(): void {
-        const darkestSecretProxy = this.gameProxy.banners.get(BannerName.DarkestSecret);
+        const darkestSecretProxy = this.gameProxy.banners.get(BannerKey.DarkestSecret);
         if (!darkestSecretProxy) return;
         if (darkestSecretProxy?.owner !== this.action.executorProxy) return;
 

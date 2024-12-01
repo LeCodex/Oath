@@ -6,7 +6,7 @@ import { ActingTroupe, Alchemist, Augury, Bewitch, BillowingFogAttack, Billowing
 import { BanditRampart, BattleHonorsAttack, BattleHonorsDefense, BearTraps, Captains, CodeOfHonorAttack, CodeOfHonorDefense, CouncilSeat, Curfew, EncirclementAttack, EncirclementDefense, FieldPromotionAttack, FieldPromotionDefense, ForcedLabor, Garrison, HuntingParty, Keep, KnightsErrant, LongbowsAttack, LongbowsDefense, MartialCultureAttack, MartialCultureDefense, Messenger, MilitaryParadeAttack, MilitaryParadeDefense, Outriders, Palanquin, PeaceEnvoyAttack, PeaceEnvoyDefense, Pressgangs, RelicHunter, RoyalTax, Scouts, SecretPolice, ShieldWall, SiegeEngines, Specialist, SprawlingRampart, TollRoads, TomeGuardians, TomeGuardiansAttack, Tyrant, VowOfObedience, VowOfObedienceRest, Wrestlers } from "../powers/denizens/order";
 import { ArmedMob, ARoundOfAle, AwaitedReturn, BallotBox, BookBinders, CharmingFriend, CropRotation, ExtraProvisions, FabledFeast, FamilyHeirloom, HallOfDebate, HallOfMockery, HeartsAndMinds, Herald, Homesteaders, HospitalAttack, HospitalDefense, LandWarden, Levelers, Marriage, MemoryOfHome, NewsFromAfar, RelicBreaker, RowdyPub, SaddleMakers, SaladDays, Storyteller, TavernSongs, TheGreatLevyAttack, TheGreatLevyDefense, TravelingDoctorAttack, TravelingDoctorDefense, VillageConstableAttack, VillageConstableDefense, VowOfPeace, VowOfPeaceDefense, WaysideInn, WelcomingParty } from "../powers/denizens/hearth";
 import { AnimalHost, AnimalPlaymates, Birdsong, Bracken, ErrandBoy, FaeMerchant, ForestCouncilMuster, ForestCouncilTrade, ForestPaths, ForestTemple, GiantPython, GraspingVines, InsectSwarmAttack, InsectSwarmDefense, LongLostHeir, MarshSpirit, MemoryOfNature, Mushrooms, NatureWorshipAttack, NatureWorshipDefense, NewGrowth, PiedPiper, Rangers, RovingTerror, RuinedTemple, SecondChance, SmallFriends, TheOldOak, ThreateningRoar, TrueNamesAttack, TrueNamesDefense, VowOfBeastkin, VowOfPoverty, VowOfPovertyRest, VowOfUnionAttack, VowOfUnionTravel, WalledGarden, WarTortoiseAttack, WarTortoiseDefense, WildAllies, WildCry, Wolves } from "../powers/denizens/beast";
-import { AFastSteed, AncientBinding, AncientBloodline, AncientBloodlineRelics, AncientForge, AncientPact, BrokenForge, Convoys, Elders, FaithfulFriend, FamilyWagon, GreatCrusadeAttack, GreatCrusadeDefense, GreatHerd, HorseArchersAttack, HorseArchersDefense, Hospitality, Lancers, LostTongue, LostTongueCampaign, MountainGiantAttack, MountainGiantDefense, MountedPatrol, Oracle, Pilgrimage, RainBoots, RelicWorship, Resettle, RivalKhanAttack, RivalKhanDefense, SacredGround, SpecialEnvoy, SpellBreaker, StormCaller, Tents, TwinBrother, VowOfKinshipBurn, VowOfKinshipGain, VowOfKinshipGive, VowOfKinshipWhenPlayed, WarningSignals, WayStation } from "../powers/denizens/nomad";
+import { AFastSteed, AncientBinding, AncientBloodline, AncientBloodlineRelics, AncientForge, AncientPact, BrokenForge, Convoys, Elders, FaithfulFriend, FamilyWagon, GreatCrusadeAttack, GreatCrusadeDefense, GreatHerd, HorseArchersAttack, HorseArchersDefense, Hospitality, Lancers, LostTongue, LostTongueCampaign, MountainGiantAttack, MountainGiantDefense, MountedPatrol, Oracle, Pilgrimage, RainBoots, RelicWorship, Resettle, RivalKhanAttack, RivalKhanDefense, SacredGround, SpecialEnvoy, SpellBreaker, StormCaller, Tents, TwinBrother, VowOfKinshipBurn, VowOfKinshipGain, VowOfKinshipGive, VowOfKinshipWhenPlayed, WarningSignals, WayStation, WildMounts } from "../powers/denizens/nomad";
 import { Constructor } from "../utils";
 import { Denizen } from "./cards";
 
@@ -207,7 +207,7 @@ export const denizenData: Record<string, DenizenData> = {
     MountedPatrol:      [OathSuit.Nomad,    [MountedPatrol]],
     GreatCrusade:       [OathSuit.Nomad,    [GreatCrusadeAttack, GreatCrusadeDefense]],
     StormCaller:        [OathSuit.Nomad,    [StormCaller]],
-    WildMounts:         [OathSuit.Nomad,    []],
+    WildMounts:         [OathSuit.Nomad,    [WildMounts]],
     Elders:             [OathSuit.Nomad,    [Elders]],
     AncientBinding:     [OathSuit.Nomad,    [AncientBinding]],
     Tents:              [OathSuit.Nomad,    [Tents]],
@@ -218,7 +218,7 @@ export const denizenData: Record<string, DenizenData> = {
     TheGathering:       [OathSuit.Nomad,    []],
     
     // EDIFICES //
-    FestivalDistrict:   [OathSuit.Discord,  [],                 CardRestriction.Site, true],
+    FestivalDistrict:   [OathSuit.Discord,  [], CardRestriction.Site, true],
     SqualidDistrict:    [OathSuit.None,     [SqualidDistrict],  CardRestriction.Site, true],
 
     GreatSpire:         [OathSuit.Arcane,   [GreatSpire],       CardRestriction.Site, true],
