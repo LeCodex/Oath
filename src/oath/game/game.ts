@@ -5,7 +5,7 @@ import { DrawFromDeckEffect, PutPawnAtSiteEffect, SetNewOathkeeperEffect, SetUsu
 import { ActionModifier, OathPower } from "./powers/powers";
 import { OathBoard, Region } from "./board";
 import { Discard, RelicDeck, WorldDeck } from "./cards/decks";
-import { DenizenData, denizenData, edificeFlipside } from "./cards/denizens";
+import { denizenData, edificeFlipside } from "./cards/denizens";
 import { relicsData } from "./cards/relics";
 import { OathPhase, OathSuit, RegionKey, PlayerColor, ALL_OATH_SUITS, BannerKey, OathType } from "./enums";
 import { Oath, OathTypeToOath } from "./oaths";
@@ -115,7 +115,7 @@ export class OathGame extends TreeRoot<OathGame> {
 
         for (let i: PlayerColor = PlayerColor.Red; i < playerCount; i++) {
             const id = PlayerColor[i] as keyof typeof PlayerColor;
-            const exile = this.addChild(new Exile(id))
+            const exile = this.addChild(new Exile(id));
             exile.visionSlot = exile.addChild(new VisionSlot(id));
             this.order.push(i);
         }
@@ -140,14 +140,8 @@ export class OathGame extends TreeRoot<OathGame> {
             for (const denizenOrRelicData of siteData.cards) {
                 const cardId = denizenOrRelicData.name;
                 if (cardId in denizenData) {
-                    const card = new Denizen(cardId);
-                    site.addChild(card).reveal();
-                    continue;
-                }
-
-                if (cardId in edificeFlipside) {
-                    const card = new Edifice(cardId);
-                    site.addChild(card).reveal();
+                    const card = cardId in edificeFlipside ? new Edifice(cardId) : new Denizen(cardId);
+                    site.addChild(card).turnFaceup();
                     continue;
                 }
 
@@ -180,7 +174,7 @@ export class OathGame extends TreeRoot<OathGame> {
         }
 
         this.grandScepter = new GrandScepter();
-        this.chancellor.addChild(this.grandScepter).reveal();
+        this.chancellor.addChild(this.grandScepter).turnFaceup();
 
         for (const site of this.board.sites()) 
             if (site !== topCradleSite && site.byClass(Denizen).filter(e => e.suit !== OathSuit.None).length)

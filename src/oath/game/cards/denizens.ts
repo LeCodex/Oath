@@ -10,9 +10,7 @@ import { AFastSteed, AncientBinding, AncientBloodline, AncientBloodlineRelics, A
 import { Constructor } from "../utils";
 import { Denizen } from "./cards";
 
-export type DenizenData = [OathSuit, Constructor<OathPower<Denizen>>[], CardRestriction?, boolean?];
-
-export const denizenData: Record<string, DenizenData> = {
+export const denizenData: Record<string, [OathSuit, Constructor<OathPower<Denizen>>[], CardRestriction?, boolean?]> = {
     SleightOfHand:      [OathSuit.Discord,  [SleightOfHand],                                        CardRestriction.Adviser],
     Naysayers:          [OathSuit.Discord,  [Naysayers],                                            CardRestriction.Adviser],
     ChaosCult:          [OathSuit.Discord,  [ChaosCult],                                            CardRestriction.Adviser],

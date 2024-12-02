@@ -381,7 +381,7 @@ export class PutPawnAtSiteEffect extends PlayerEffect {
         this.executor.site = this.site;
 
         this.revealedSite = this.site.facedown;
-        if (this.revealedSite) this.site.reveal();
+        if (this.revealedSite) this.site.turnFaceup();
 
         // TODO: Technically, this is a minor action
         for (const relic of this.site.relics) new PeekAtCardEffect(this.executor, relic).doNext();
@@ -528,7 +528,7 @@ export class PlayDenizenAtSiteEffect extends PlayerEffect {
     resolve(): void {
         new ParentToTargetEffect(this.game, this.executor, [this.card], this.site).doNext();
         this.revealedCard = this.card.facedown;
-        if (this.revealedCard) this.card.reveal();
+        if (this.revealedCard) this.card.turnFaceup();
         
         // TODO: Put this in an effect?
         const bank = this.game.byClass(FavorBank).byKey(this.card.suit)[0];
@@ -544,7 +544,6 @@ export class PlayDenizenAtSiteEffect extends PlayerEffect {
 export class PlayWorldCardToAdviserEffect extends PlayerEffect {
     card: WorldCard;
     facedown: boolean;
-    revealedCard: boolean;
 
     constructor(player: OathPlayer, card: WorldCard, facedown: boolean) {
         super(player);
@@ -554,8 +553,7 @@ export class PlayWorldCardToAdviserEffect extends PlayerEffect {
 
     resolve(): void {
         new ParentToTargetEffect(this.game, this.executor, [this.card]).doNext();
-        this.revealedCard = this.card.facedown && !this.facedown;
-        if (this.revealedCard) this.card.reveal();
+        this.card.turnFaceup();
     }
 }
 
@@ -716,7 +714,7 @@ export class TakeOwnableObjectEffect extends OathEffect {
     resolve(): void {
         if (this.target instanceof OathCard) {
             this.flipFaceup = this.flipFaceup && this.target.facedown;
-            if (this.flipFaceup) this.target.reveal();
+            if (this.flipFaceup) this.target.turnFaceup();
         }
         
         new ParentToTargetEffect(this.game, this.executor, [this.target]).doNext();
@@ -1177,7 +1175,7 @@ export class FlipEdificeEffect extends OathEffect {
                 this.newEdifice = new Edifice(other);
                 new ParentToTargetEffect(this.game, this.executor, [this.newEdifice], this.edifice.site).doNext();
                 new ParentToTargetEffect(this.game, this.executor, this.edifice.children, this.newEdifice).doNext();
-                this.newEdifice.reveal();
+                this.newEdifice.turnFaceup();
                 break;
             }
         }
@@ -1244,7 +1242,7 @@ export class FinishChronicleEffect extends PlayerEffect {
                 if (!site.facedown) hasFaceupSite = true;
             }
 
-            if (!hasFaceupSite) region.sites[0]?.reveal();
+            if (!hasFaceupSite) region.sites[0]?.turnFaceup();
         }
 
         // Collect and deal relics (technically not at this point of the Chronicle, but this has no impact)

@@ -10,7 +10,7 @@ import { ConspiracyPower } from "../powers/visions";
 import { Favor, OathResource, ResourceCost, ResourcesAndWarbands, Secret } from "../resources";
 import { Constructor } from "../utils";
 import { CardDeck, Discard, DiscardOptions, RelicDeck } from "./decks";
-import { denizenData, DenizenData } from "./denizens";
+import { denizenData } from "./denizens";
 import { FavorBank } from "../banks";
 import { sitesData } from "./sites";
 import { relicsData } from "./relics";
@@ -33,12 +33,12 @@ export abstract class OathCard extends ResourcesAndWarbands<string> implements W
     abstract get facedownName(): string;
     abstract get discard(): CardDeck<OathCard> | undefined;
     
-    reveal() {
+    turnFaceup() {
         new RevealCardEffect(this.game, undefined, this).doNext();
         this.facedown = false;
     }
     
-    hide() {
+    turnFacedown() {
         this.facedown = true;
     }
     
@@ -126,18 +126,18 @@ export class Site extends OathCard implements CampaignActionTarget {
         return super.getWarbandsAmount(color);
     }
 
-    reveal(): void {
-        super.reveal();
+    turnFaceup(): void {
+        super.turnFaceup();
         for (const relic of this.game.relicDeck.draw(this.startingRelics)) this.addChild(relic);
         this.setupResources();
     }
 
     setupResources(): void {
-        for (const [resource, amount] of this.startingResources) this.putResources(resource, amount);
+        for (const [resource, amount] of this.startingResources) resource.putOn(this, amount);
     }
 
-    hide(): void {
-        super.hide();
+    turnFacedown(): void {
+        super.turnFacedown();
         for (const relic of this.relics) this.game.relicDeck.addChild(relic);
         for (const resource of this.resources) resource.prune();
     }

@@ -5,12 +5,12 @@ import { PlayerColor } from "./enums";
 import { AbstractConstructor } from "./utils";
 
 
-let resourceId = 0;  // TOOD: Find better solution for unique ids
 export abstract class OathResource extends OathGameObjectLeaf<number> {
+    static resourceId = 0;  // TOOD: Find better solution for unique ids
     type = "resource";
 
     constructor(id?: string) {
-        super(id ?? String(resourceId++));
+        super(id ?? String(OathResource.resourceId++));
     }
 
     get key() { return Number(this.id); }
@@ -61,7 +61,7 @@ export class OathWarband extends OathGameObjectLeaf<number> {
     color: PlayerColor;
 
     constructor(id?: string) {
-        super(id ?? String(resourceId++));
+        super(id ?? String(OathResource.resourceId++));
     }
 
     colorize(color: PlayerColor) {
