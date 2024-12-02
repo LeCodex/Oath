@@ -1,12 +1,12 @@
 import { CardRestriction, OathSuit } from "../enums";
 import { OathPower } from "../powers/powers";
 import { IgnoresCapacity } from "../powers/denizens/denizens";
-import { ASmallFavor, Assassin, BanditChief, BanditChiefWhenPlayed, Blackmail, BookBurning, ChaosCult, Charlatan, CrackedSageAttack, CrackedSageDefense, DisgracedCaptain, Dissent, GamblingHall, Insomnia, KeyToTheCity, MercenariesAttack, MercenariesDefense, Naysayers, OnlyTwoAdvisers, RelicThief, Riots, RoyalAmbitions, Scryer, SilverTongue, Slander, SleightOfHand, SaltTheEarth, FalseProphet, FalseProphetWake, FalseProphetDiscard, Downtrodden, SecondWind, BoilingLake, Gossip, BeastTamerAttack, BeastTamerDefense, Enchantress, SneakAttack, VowOfRenewal, VowOfRenewalRecover, Zealots, SqualidDistrict } from "../powers/denizens/discord";
+import { ASmallFavor, Assassin, BanditChief, BanditChiefWhenPlayed, Blackmail, BookBurning, ChaosCult, Charlatan, CrackedSageAttack, CrackedSageDefense, DisgracedCaptain, Dissent, GamblingHall, Insomnia, KeyToTheCity, MercenariesAttack, MercenariesDefense, Naysayers, OnlyTwoAdvisers, RelicThief, Riots, RoyalAmbitions, Scryer, SilverTongue, Slander, SleightOfHand, SaltTheEarth, FalseProphet, FalseProphetWake, FalseProphetDiscard, Downtrodden, SecondWind, BoilingLake, Gossip, BeastTamerAttack, BeastTamerDefense, Enchantress, SneakAttack, VowOfRenewal, VowOfRenewalRecover, Zealots, SqualidDistrict, FestivalDistrict } from "../powers/denizens/discord";
 import { ActingTroupe, Alchemist, Augury, Bewitch, BillowingFogAttack, BillowingFogDefense, BloodPact, CrackingGroundAttack, Dazzle, DreamThief, FallenSpire, FireTalkersAttack, FireTalkersDefense, ForgottenVault, GleamingArmorAttack, GleamingArmorDefense, GreatSpire, InitiationRite, Inquisitor, Jinx, KindredWarriorsAttack, KindredWarriorsDefense, MagiciansCode, MapLibrary, MasterOfDisguise, Observatory, PlagueEngines, Portal, Revelation, RustingRay, SealingWard, SecretSignal, SpiritSnare, TamingCharm, TerrorSpells, Tutor, VowOfSilence, VowOfSilencePitch, VowOfSilenceRecover, WitchsBargain, WizardSchool } from "../powers/denizens/arcane";
 import { BanditRampart, BattleHonorsAttack, BattleHonorsDefense, BearTraps, Captains, CodeOfHonorAttack, CodeOfHonorDefense, CouncilSeat, Curfew, EncirclementAttack, EncirclementDefense, FieldPromotionAttack, FieldPromotionDefense, ForcedLabor, Garrison, HuntingParty, Keep, KnightsErrant, LongbowsAttack, LongbowsDefense, MartialCultureAttack, MartialCultureDefense, Messenger, MilitaryParadeAttack, MilitaryParadeDefense, Outriders, Palanquin, PeaceEnvoyAttack, PeaceEnvoyDefense, Pressgangs, RelicHunter, RoyalTax, Scouts, SecretPolice, ShieldWall, SiegeEngines, Specialist, SprawlingRampart, TollRoads, TomeGuardians, TomeGuardiansAttack, Tyrant, VowOfObedience, VowOfObedienceRest, Wrestlers } from "../powers/denizens/order";
-import { ArmedMob, ARoundOfAle, AwaitedReturn, BallotBox, BookBinders, CharmingFriend, CropRotation, ExtraProvisions, FabledFeast, FamilyHeirloom, HallOfDebate, HallOfMockery, HeartsAndMinds, Herald, Homesteaders, HospitalAttack, HospitalDefense, LandWarden, Levelers, Marriage, MemoryOfHome, NewsFromAfar, RelicBreaker, RowdyPub, SaddleMakers, SaladDays, Storyteller, TavernSongs, TheGreatLevyAttack, TheGreatLevyDefense, TravelingDoctorAttack, TravelingDoctorDefense, VillageConstableAttack, VillageConstableDefense, VowOfPeace, VowOfPeaceDefense, WaysideInn, WelcomingParty } from "../powers/denizens/hearth";
+import { ArmedMob, ARoundOfAle, AwaitedReturn, BallotBox, BookBinders, CharmingFriend, CropRotation, DeedWriter, ExtraProvisions, FabledFeast, FamilyHeirloom, HallOfDebate, HallOfMockery, HeartsAndMinds, Herald, Homesteaders, HospitalAttack, HospitalDefense, LandWarden, Levelers, Marriage, MemoryOfHome, NewsFromAfar, RelicBreaker, RowdyPub, SaddleMakers, SaladDays, Storyteller, TavernSongs, TheGreatLevyAttack, TheGreatLevyDefense, TinkersFair, TravelingDoctorAttack, TravelingDoctorDefense, VillageConstableAttack, VillageConstableDefense, VowOfPeace, VowOfPeaceDefense, WaysideInn, WelcomingParty } from "../powers/denizens/hearth";
 import { AnimalHost, AnimalPlaymates, Birdsong, Bracken, ErrandBoy, FaeMerchant, ForestCouncilMuster, ForestCouncilTrade, ForestPaths, ForestTemple, GiantPython, GraspingVines, InsectSwarmAttack, InsectSwarmDefense, LongLostHeir, MarshSpirit, MemoryOfNature, Mushrooms, NatureWorshipAttack, NatureWorshipDefense, NewGrowth, PiedPiper, Rangers, RovingTerror, RuinedTemple, SecondChance, SmallFriends, TheOldOak, ThreateningRoar, TrueNamesAttack, TrueNamesDefense, VowOfBeastkin, VowOfPoverty, VowOfPovertyRest, VowOfUnionAttack, VowOfUnionTravel, WalledGarden, WarTortoiseAttack, WarTortoiseDefense, WildAllies, WildCry, Wolves } from "../powers/denizens/beast";
-import { AFastSteed, AncientBinding, AncientBloodline, AncientBloodlineRelics, AncientForge, AncientPact, BrokenForge, Convoys, Elders, FaithfulFriend, FamilyWagon, GreatCrusadeAttack, GreatCrusadeDefense, GreatHerd, HorseArchersAttack, HorseArchersDefense, Hospitality, Lancers, LostTongue, LostTongueCampaign, MountainGiantAttack, MountainGiantDefense, MountedPatrol, Oracle, Pilgrimage, RainBoots, RelicWorship, Resettle, RivalKhanAttack, RivalKhanDefense, SacredGround, SpecialEnvoy, SpellBreaker, StormCaller, Tents, TwinBrother, VowOfKinshipBurn, VowOfKinshipGain, VowOfKinshipGive, VowOfKinshipWhenPlayed, WarningSignals, WayStation, WildMounts } from "../powers/denizens/nomad";
+import { AFastSteed, AncientBinding, AncientBloodline, AncientBloodlineRelics, AncientForge, AncientPact, BrokenForge, Convoys, Elders, FaithfulFriend, FamilyWagon, GreatCrusadeAttack, GreatCrusadeDefense, GreatHerd, HorseArchersAttack, HorseArchersDefense, Hospitality, Lancers, LostTongue, LostTongueCampaign, MountainGiantAttack, MountainGiantDefense, MountedPatrol, Oracle, Pilgrimage, RainBoots, RelicWorship, Resettle, RivalKhanAttack, RivalKhanDefense, SacredGround, SpecialEnvoy, SpellBreaker, StormCaller, Tents, TheGathering, TwinBrother, VowOfKinshipBurn, VowOfKinshipGain, VowOfKinshipGive, VowOfKinshipWhenPlayed, WarningSignals, WayStation, WildMounts } from "../powers/denizens/nomad";
 import { Constructor } from "../utils";
 import { Denizen } from "./cards";
 
@@ -123,7 +123,7 @@ export const denizenData: Record<string, [OathSuit, Constructor<OathPower<Denize
     HeartsAndMinds:     [OathSuit.Hearth,   [HeartsAndMinds],                                       CardRestriction.Site],
     VillageConstable:   [OathSuit.Hearth,   [VillageConstableAttack, VillageConstableDefense],      CardRestriction.Site],
     Hospital:           [OathSuit.Hearth,   [HospitalAttack, HospitalDefense],                      CardRestriction.Site],
-    TinkersFair:        [OathSuit.Hearth,   [], CardRestriction.Site],
+    TinkersFair:        [OathSuit.Hearth,   [TinkersFair],                                          CardRestriction.Site],
     WaysideInn:         [OathSuit.Hearth,   [WaysideInn],                                           CardRestriction.Site],
     WelcomingParty:     [OathSuit.Hearth,   [WelcomingParty],                                       CardRestriction.Site],
     ArmedMob:           [OathSuit.Hearth,   [ArmedMob],                                             CardRestriction.Site],
@@ -143,7 +143,7 @@ export const denizenData: Record<string, [OathSuit, Constructor<OathPower<Denize
     NewsFromAfar:       [OathSuit.Hearth,   [NewsFromAfar]],
     Levelers:           [OathSuit.Hearth,   [Levelers]],
     RelicBreaker:       [OathSuit.Hearth,   [RelicBreaker]],
-    DeedWriter:         [OathSuit.Hearth,   []],
+    DeedWriter:         [OathSuit.Hearth,   [DeedWriter]],
     FabledFeast:        [OathSuit.Hearth,   [FabledFeast]],
     SaladDays:          [OathSuit.Hearth,   [SaladDays]],
     
@@ -213,10 +213,10 @@ export const denizenData: Record<string, [OathSuit, Constructor<OathPower<Denize
     SpecialEnvoy:       [OathSuit.Nomad,    [SpecialEnvoy]],
     AFastSteed:         [OathSuit.Nomad,    [AFastSteed]],
     RelicWorship:       [OathSuit.Nomad,    [RelicWorship]],
-    TheGathering:       [OathSuit.Nomad,    []],
+    TheGathering:       [OathSuit.Nomad,    [TheGathering]],
     
     // EDIFICES //
-    FestivalDistrict:   [OathSuit.Discord,  [], CardRestriction.Site, true],
+    FestivalDistrict:   [OathSuit.Discord,  [FestivalDistrict], CardRestriction.Site, true],
     SqualidDistrict:    [OathSuit.None,     [SqualidDistrict],  CardRestriction.Site, true],
 
     GreatSpire:         [OathSuit.Arcane,   [GreatSpire],       CardRestriction.Site, true],

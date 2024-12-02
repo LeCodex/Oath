@@ -1,10 +1,10 @@
-import { TravelAction, MakeDecisionAction, ChooseRegionAction, SearchPlayOrDiscardAction, ChooseCardsAction, TakeFavorFromBankAction, ChooseSitesAction, MoveWarbandsBetweenBoardAndSitesAction, RestAction, RecoverAction, TakeReliquaryRelicAction, CampaignEndAction } from "../../actions/actions";
-import { InvalidActionResolution, ModifiableAction } from "../../actions/base";
+import { TravelAction, MakeDecisionAction, ChooseRegionAction, SearchPlayOrDiscardAction, ChooseCardsAction, TakeFavorFromBankAction, ChooseSitesAction, MoveWarbandsBetweenBoardAndSitesAction, RestAction, RecoverAction, TakeReliquaryRelicAction, CampaignEndAction, StartBindingExchangeAction, TheGatheringOfferAction } from "../../actions/actions";
+import { InvalidActionResolution, ModifiableAction, ResolveCallbackAction } from "../../actions/base";
 import { Region } from "../../board";
 import { Denizen, Edifice, OathCard, Relic, Site, VisionBack, WorldCard } from "../../cards/cards";
 import { DiscardOptions } from "../../cards/decks";
 import { AttackDie, DieSymbol } from "../../dice";
-import { PayCostToTargetEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PayPowerCostEffect, BecomeCitizenEffect, DrawFromDeckEffect, FlipEdificeEffect, MoveResourcesToTargetEffect, DiscardCardEffect, GainSupplyEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, PeekAtCardEffect, MoveWorldCardToAdvisersEffect, MoveDenizenToSiteEffect, DiscardCardGroupEffect, PlayVisionEffect, ParentToTargetEffect, BurnResourcesEffect } from "../../actions/effects";
+import { PayCostToTargetEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PayPowerCostEffect, BecomeCitizenEffect, DrawFromDeckEffect, FlipEdificeEffect, MoveResourcesToTargetEffect, DiscardCardEffect, GainSupplyEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, PeekAtCardEffect, MoveWorldCardToAdvisersEffect, MoveDenizenToSiteEffect, DiscardCardGroupEffect, PlayVisionEffect, ParentToTargetEffect, BurnResourcesEffect, PutPawnAtSiteEffect } from "../../actions/effects";
 import { BannerKey, OathSuit } from "../../enums";
 import { OwnableObject, isOwnable } from "../../interfaces";
 import { OathPlayer } from "../../player";
@@ -599,6 +599,28 @@ export class GreatHerd extends WhenPlayed<Denizen> {
             },
             [[0, 1]]
         ).doNext();
+    }
+}
+
+export class TheGathering extends WhenPlayed<Denizen> {
+    name = "The Gathering";
+
+    whenPlayed(): void {
+        if (!this.sourceProxy.site) return;
+
+        for (const player of this.game.players) {
+            new MakeDecisionAction(
+                player, "Put your pawn at " + this.sourceProxy.site.name + "?",
+                () => new PutPawnAtSiteEffect(player, this.sourceProxy.site?.original!).doNext()
+            ).doNext();
+        }
+
+        new ResolveCallbackAction(this.game, () => {
+            const participants = this.gameProxy.players.filter(e => e.site === this.sourceProxy.site).map(e => e.original);
+            for (const player of participants) {
+                new StartBindingExchangeAction(player, TheGatheringOfferAction, participants).doNext();
+            }
+        });
     }
 }
 

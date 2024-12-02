@@ -2,7 +2,7 @@ import { OathAction, ModifiableAction, InvalidActionResolution, ChooseModifiers 
 import { Denizen, Edifice, OathCard, OwnableCard, Relic, Site, WorldCard } from "../cards/cards";
 import { DiscardOptions, SearchableDeck } from "../cards/decks";
 import { AttackDie, DefenseDie, DieSymbol, RollResult } from "../dice";
-import { MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, RollDiceEffect, DrawFromDeckEffect, PutPawnAtSiteEffect, DiscardCardEffect, MoveOwnWarbandsEffect, SetPeoplesFavorMobState, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, FlipEdificeEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect, CheckCapacityEffect, CampaignJoinDefenderAlliesEffect, MoveWorldCardToAdvisersEffect, DiscardCardGroupEffect, ParentToTargetEffect, PaySupplyEffect } from "./effects";
+import { MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, RollDiceEffect, DrawFromDeckEffect, PutPawnAtSiteEffect, DiscardCardEffect, MoveOwnWarbandsEffect, SetPeoplesFavorMobState, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, FlipEdificeEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect, CheckCapacityEffect, CampaignJoinDefenderAlliesEffect, MoveWorldCardToAdvisersEffect, DiscardCardGroupEffect, ParentToTargetEffect, PaySupplyEffect, TakeOwnableObjectEffect, ThingsExchangeOfferEffect, SiteExchangeOfferEffect } from "./effects";
 import { ALL_OATH_SUITS, OathPhase, OathSuit, OathType } from "../enums";
 import { OathGame } from "../game";
 import { OathTypeToOath } from "../oaths";
@@ -1361,9 +1361,10 @@ export class TakeResourceFromPlayerAction extends ChoosePlayersAction {
 export class StartBindingExchangeAction extends ChoosePlayersAction {
     constructor(player: OathPlayer, next: Constructor<MakeBindingExchangeOfferAction>, players?: Iterable<OathPlayer>) {
         super(
-            player, "Start a binding exchange with another player",
-            (targets: OathPlayer[]) => { if (targets.length) new next(this.player, targets[0], new next(targets[0], this.player)).doNext(); },
-            players && [players]
+            player, "You may start a binding exchange with another player",
+            (targets: OathPlayer[]) => { if (targets[0]) new next(this.player, targets[0], new next(targets[0], this.player)).doNext(); },
+            players && [players],
+            [[0, 1]]
         );
     }
 }
@@ -1460,7 +1461,8 @@ export class ConspiracyStealAction extends OathAction {
     }
 }
 
-export class MakeBindingExchangeOfferAction extends OathAction {
+
+export class MakeBindingExchangeOfferAction extends ModifiableAction {
     readonly selects: { favors: SelectNumber, secrets: SelectNumber };
     readonly parameters: { favors: number[], secrets: number[] };
     readonly message = "Choose what you want in the exchange";
@@ -1482,7 +1484,7 @@ export class MakeBindingExchangeOfferAction extends OathAction {
         return super.start();
     }
 
-    execute(): void {
+    modifiedExecution(): void {
         const favors = this.parameters.favors[0]!;
         const secrets = this.parameters.secrets[0]!;
 
@@ -1498,7 +1500,102 @@ export class MakeBindingExchangeOfferAction extends OathAction {
     }
 }
 
-export class CitizenshipOfferAction extends MakeBindingExchangeOfferAction {
+export class DeedWriterOfferAction extends MakeBindingExchangeOfferAction {
+    readonly selects: { favors: SelectNumber, secrets: SelectNumber, sites: SelectNOf<Site> };
+    readonly parameters: { favors: number[], secrets: number[], sites: Site[] };
+
+    effect: SiteExchangeOfferEffect;
+
+    constructor(player: OathPlayer, other: OathPlayer, next?: DeedWriterOfferAction) {
+        super(player, other, next);
+        this.effect = next?.effect || new SiteExchangeOfferEffect(other, player);
+    }
+
+    start(): boolean {
+        const choices = new Map<string, Site>();
+        for (const siteProxy of this.gameProxy.board.sites())
+            if (siteProxy.ruler === this.maskProxyManager.get(this.other))
+                choices.set(siteProxy.visualName(this.player), siteProxy.original);
+        this.selects.sites = new SelectNOf("Sites", choices);
+
+        return super.start();
+    }
+
+    modifiedExecution(): void {
+        const sites = new Set(this.parameters.sites);
+        if (this.next)
+            this.effect.sitesTaken = sites;
+        else
+            this.effect.sitesGiven = sites;
+
+        super.modifiedExecution();
+    }
+}
+
+export abstract class ThingsExchangeOfferAction<T extends OathGameObject> extends MakeBindingExchangeOfferAction {
+    readonly selects: { favors: SelectNumber, secrets: SelectNumber, things: SelectNOf<T> };
+    readonly parameters: { favors: number[], secrets: number[], things: T[] };
+
+    effect: ThingsExchangeOfferEffect<T>;
+
+    constructor(player: OathPlayer, other: OathPlayer, next?: ThingsExchangeOfferAction<T>) {
+        super(player, other, next);
+        this.effect = next?.effect || new ThingsExchangeOfferEffect<T>(other, player);
+    }
+
+    modifiedExecution(): void {
+        const things = new Set(this.parameters.things);
+        if (this.next)
+            this.effect.thingsTaken = things;
+        else
+            this.effect.thingsGiven = things;
+
+        super.modifiedExecution();
+    }
+}
+
+export class TinkersFairOfferAction extends ThingsExchangeOfferAction<Relic> {
+    start(): boolean {
+        const choices = new Map<string, Relic>();
+        for (const relic of this.other.relics) choices.set(relic.visualName(this.player), relic);
+        this.selects.things = new SelectNOf("Relics", choices);
+
+        return super.start();
+    }
+}
+
+export class FestivalDistrictOfferAction extends ThingsExchangeOfferAction<WorldCard> {
+    start(): boolean {
+        const choices = new Map<string, WorldCard>();
+        for (const adviser of this.other.advisers) choices.set(adviser.visualName(this.player), adviser);
+        this.selects.things = new SelectNOf("Advisers", choices);
+
+        return super.start();
+    }
+
+    modifiedExecution(): void {
+        super.modifiedExecution();
+        if (!this.next) new CheckCapacityEffect(this.player, [this.player, this.other]).doNext();
+    }
+}
+
+export class TheGatheringOfferAction extends ThingsExchangeOfferAction<Relic | WorldCard> {
+    start(): boolean {
+        const choices = new Map<string, Relic | WorldCard>();
+        for (const relic of this.other.relics) choices.set(relic.visualName(this.player), relic);
+        for (const adviser of this.other.advisers) choices.set(adviser.visualName(this.player), adviser);
+        this.selects.things = new SelectNOf("Relics and advisers", choices);
+
+        return super.start();
+    }
+
+    modifiedExecution(): void {
+        super.modifiedExecution();
+        if (!this.next) new CheckCapacityEffect(this.player, [this.player, this.other]).doNext();
+    }
+}
+
+export class CitizenshipOfferAction extends ThingsExchangeOfferAction<Relic | Banner> {
     readonly selects: { favors: SelectNumber, secrets: SelectNumber, reliquaryRelic: SelectNumber, things: SelectNOf<Relic | Banner> };
     readonly parameters: { favors: number[], secrets: number[], reliquaryRelic: number[], things: (Relic | Banner)[] };
 
@@ -1527,16 +1624,9 @@ export class CitizenshipOfferAction extends MakeBindingExchangeOfferAction {
         return super.start();
     }
 
-    execute(): void {
-        const things = new Set(this.parameters.things);
-        if (this.next) {
-            this.effect.thingsTaken = things;
-        } else {
-            this.effect.thingsGiven = things;
-            this.effect.reliquaryIndex = this.parameters.reliquaryRelic[0]!;
-        }
-
-        super.execute();
+    modifiedExecution(): void {
+        if (!this.next) this.effect.reliquaryIndex = this.parameters.reliquaryRelic[0]!;
+        super.modifiedExecution();
     }
 }
 

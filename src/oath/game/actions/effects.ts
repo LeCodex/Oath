@@ -8,10 +8,10 @@ import { Banner, FavorBank, PeoplesFavor } from "../banks";
 import { OwnableObject, WithPowers } from "../interfaces";
 import { OathGame } from "../game";
 import { OathGameObject } from "../gameObject";
-import { BuildOrRepairEdificeAction, ChooseNewCitizensAction, VowOathAction, RestAction, WakeAction, CampaignResult, SearchDiscardAction, SearchPlayOrDiscardAction, ChooseSuitsAction } from "./actions";
+import { BuildOrRepairEdificeAction, ChooseNewCitizensAction, VowOathAction, RestAction, WakeAction, CampaignResult, SearchDiscardAction, SearchPlayOrDiscardAction, ChooseSuitsAction, MoveWarbandsBetweenBoardAndSitesAction, MoveWarbandsAction, ChooseNumberAction } from "./actions";
 import { DiscardOptions } from "../cards/decks";
 import { CardDeck } from "../cards/decks";
-import { Constructor, isExtended, TreeNode } from "../utils";
+import { Constructor, inclusiveRange, isExtended, TreeNode } from "../utils";
 import { D6, RollResult, Die } from "../dice";
 import { Region } from "../board";
 import { denizenData, edificeFlipside } from "../cards/denizens";
@@ -1065,10 +1065,34 @@ export class BindingExchangeEffect extends PlayerEffect {
     }
 }
 
-export class CitizenshipOfferEffect extends BindingExchangeEffect {
-    reliquaryIndex: number;
-    thingsGiven = new Set<Relic | Banner>();
-    thingsTaken = new Set<Relic | Banner>();
+export class SiteExchangeOfferEffect extends BindingExchangeEffect {
+    sitesGiven = new Set<Site>();
+    sitesTaken = new Set<Site>();
+
+    resolve(): void {
+        super.resolve();
+
+        for (const site of this.sitesGiven) {
+            new MoveOwnWarbandsEffect(this.player, site, this.player).doNext();
+            new ChooseNumberAction(
+                this.other, "Move warbands to " + site.name, inclusiveRange(1, this.other.getWarbandsAmount(this.other.leader.key)),
+                (amount: number) => new MoveOwnWarbandsEffect(this.other, this.other, site, amount).doNext()
+            ).doNext();
+        }
+
+        for (const site of this.sitesTaken) {
+            new MoveOwnWarbandsEffect(this.other, site, this.other).doNext();
+            new ChooseNumberAction(
+                this.player, "Move warbands to " + site.name, inclusiveRange(1, this.player.getWarbandsAmount(this.player.leader.key)),
+                (amount: number) => new MoveOwnWarbandsEffect(this.player, this.player, site, amount).doNext()
+            ).doNext();
+        }
+    }
+}
+
+export class ThingsExchangeOfferEffect<T extends OathGameObject> extends BindingExchangeEffect {
+    thingsGiven = new Set<T>();
+    thingsTaken = new Set<T>();
 
     resolve(): void {
         super.resolve();
@@ -1078,6 +1102,14 @@ export class CitizenshipOfferEffect extends BindingExchangeEffect {
 
         for (const thing of this.thingsTaken)
             new ParentToTargetEffect(this.game, this.executor, [thing]).doNext();
+    }
+}
+
+export class CitizenshipOfferEffect extends ThingsExchangeOfferEffect<Relic | Banner> {
+    reliquaryIndex: number;
+
+    resolve(): void {
+        super.resolve();
 
         new TakeReliquaryRelicEffect(this.other, this.reliquaryIndex).doNext();
         new BecomeCitizenEffect(this.other).doNext();

@@ -1,4 +1,4 @@
-import { TradeAction, TakeResourceFromPlayerAction, TakeFavorFromBankAction, CampaignEndAction, MakeDecisionAction, CampaignAttackAction, RecoverAction, ChooseSuitsAction, ChooseCardsAction, MusterAction, SearchPlayOrDiscardAction, MayDiscardACardAction, SearchAction, SearchChooseAction, KillWarbandsOnTargetAction } from "../../actions/actions";
+import { TradeAction, TakeResourceFromPlayerAction, TakeFavorFromBankAction, CampaignEndAction, MakeDecisionAction, CampaignAttackAction, RecoverAction, ChooseSuitsAction, ChooseCardsAction, MusterAction, SearchPlayOrDiscardAction, MayDiscardACardAction, SearchAction, SearchChooseAction, KillWarbandsOnTargetAction, TinkersFairOfferAction, StartBindingExchangeAction, DeedWriterOfferAction } from "../../actions/actions";
 import { ModifiableAction, InvalidActionResolution } from "../../actions/base";
 import { Denizen, Edifice, Relic, WorldCard } from "../../cards/cards";
 import { DieSymbol } from "../../dice";
@@ -460,6 +460,22 @@ export class RelicBreaker extends ActivePower<Denizen> {
                 new ParentToTargetEffect(this.game, this.action.player, this.action.playerProxy.leader.original.bag.get(3)).doNext();
             }
         ).doNext();
+    }
+}
+
+export class TinkersFair extends ActivePower<Denizen> {
+    name = "Tinker's Fair";
+
+    usePower(): void {
+        new StartBindingExchangeAction(this.action.player, TinkersFairOfferAction).doNext();
+    }
+}
+
+export class DeedWriter extends ActivePower<Denizen> {
+    name = "Deed Writer";
+
+    usePower(): void {
+        new StartBindingExchangeAction(this.action.player, DeedWriterOfferAction).doNext();
     }
 }
 

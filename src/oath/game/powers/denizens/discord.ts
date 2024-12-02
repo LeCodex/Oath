@@ -1,4 +1,4 @@
-import { MakeDecisionAction, ChooseCardsAction, ChooseRegionAction, TakeFavorFromBankAction, TakeResourceFromPlayerAction, ChooseSuitsAction, SearchPlayOrDiscardAction, MusterAction, TravelAction, CampaignAction, KillWarbandsOnTargetAction, CampaignAttackAction, CampaignEndAction, RecoverAction, TakeReliquaryRelicAction, ChooseNumberAction } from "../../actions/actions";
+import { MakeDecisionAction, ChooseCardsAction, ChooseRegionAction, TakeFavorFromBankAction, TakeResourceFromPlayerAction, ChooseSuitsAction, SearchPlayOrDiscardAction, MusterAction, TravelAction, CampaignAction, KillWarbandsOnTargetAction, CampaignAttackAction, CampaignEndAction, RecoverAction, TakeReliquaryRelicAction, ChooseNumberAction, StartBindingExchangeAction, FestivalDistrictOfferAction } from "../../actions/actions";
 import { InvalidActionResolution, ModifiableAction } from "../../actions/base";
 import { FavorBank, PeoplesFavor } from "../../banks";
 import { Region } from "../../board";
@@ -582,6 +582,14 @@ export class VowOfRenewalRecover extends AccessedActionModifier<Denizen, Recover
     }
 }
 
+
+export class FestivalDistrict extends ActivePower<Denizen> {
+    name = "Festival District";
+
+    usePower(): void {
+        new StartBindingExchangeAction(this.action.player, FestivalDistrictOfferAction).doNext();
+    }
+}
 
 export class SqualidDistrict extends ActionModifier<Edifice, RollDiceEffect> {
     name = "Squalid District";
