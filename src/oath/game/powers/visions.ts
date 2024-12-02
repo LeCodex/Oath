@@ -8,6 +8,7 @@ import { ActionModifier, WhenPlayed } from "./powers";
 export class OathDefense extends ActionModifier<Oath, CampaignDefenseAction> {
     name = "Oathkeeper"
     modifiedAction = CampaignDefenseAction;
+    mustUse = true;
 
     canUse(): boolean {
         return this.activatorProxy === this.sourceProxy.parent;

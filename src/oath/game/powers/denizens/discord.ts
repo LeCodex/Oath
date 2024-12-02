@@ -1,4 +1,4 @@
-import { MakeDecisionAction, ChooseCardsAction, ChooseRegionAction, TakeFavorFromBankAction, TakeResourceFromPlayerAction, ChooseSuitsAction, SearchPlayOrDiscardAction, MusterAction, TravelAction, CampaignAction, KillWarbandsOnTargetAction, CampaignAttackAction, CampaignEndAction, RecoverAction, TakeReliquaryRelicAction } from "../../actions/actions";
+import { MakeDecisionAction, ChooseCardsAction, ChooseRegionAction, TakeFavorFromBankAction, TakeResourceFromPlayerAction, ChooseSuitsAction, SearchPlayOrDiscardAction, MusterAction, TravelAction, CampaignAction, KillWarbandsOnTargetAction, CampaignAttackAction, CampaignEndAction, RecoverAction, TakeReliquaryRelicAction, ChooseNumberAction } from "../../actions/actions";
 import { InvalidActionResolution, ModifiableAction } from "../../actions/base";
 import { FavorBank, PeoplesFavor } from "../../banks";
 import { Region } from "../../board";
@@ -429,6 +429,7 @@ export class FalseProphetWake extends WakePower<Denizen> {
 export class FalseProphetDiscard extends ActionModifier<Denizen, DiscardCardEffect<Vision>> {
     name = "False Prophet";
     modifiedAction = DiscardCardEffect;
+    mustUse = true;
 
     applyAfter(): void {
         new DrawFromDeckEffect(this.action.executor, this.action.discardOptions.discard, 1, this.action.discardOptions.onBottom).doNext(cards => {
@@ -544,13 +545,13 @@ export class Enchantress extends ActivePower<Denizen> {
     }
 }
 
-export class SneakAttack extends ActionModifier<Denizen, CampaignEndAction> {
+export class SneakAttack extends EnemyActionModifier<Denizen, CampaignEndAction> {
     name = "Sneak Attack";
     modifiedAction = CampaignEndAction;
 
     applyBefore(): void {
         const ruler = this.sourceProxy.ruler?.original;
-        if (!ruler || ruler === this.action.player) return;
+        if (!ruler) return;
 
         new MakeDecisionAction(
             ruler, "Campaign against " + this.action.player.name + "?",
@@ -562,6 +563,7 @@ export class SneakAttack extends ActionModifier<Denizen, CampaignEndAction> {
 export class VowOfRenewal extends ActionModifier<Denizen, BurnResourcesEffect> {
     name = "Vow of Renewal";
     modifiedAction = BurnResourcesEffect;
+    mustUse = true;
 
     applyAfter(): void {
         if (!this.sourceProxy.ruler) return;
@@ -572,6 +574,7 @@ export class VowOfRenewal extends ActionModifier<Denizen, BurnResourcesEffect> {
 export class VowOfRenewalRecover extends AccessedActionModifier<Denizen, RecoverAction> {
     name = "Vow of Renewal";
     modifiedAction = RecoverAction;
+    mustUse = true;
 
     applyBefore(): void {
         if (this.action.targetProxy === this.gameProxy.banners.get(BannerKey.PeoplesFavor))
@@ -583,19 +586,17 @@ export class VowOfRenewalRecover extends AccessedActionModifier<Denizen, Recover
 export class SqualidDistrict extends ActionModifier<Edifice, RollDiceEffect> {
     name = "Squalid District";
     modifiedAction = RollDiceEffect;
+    mustUse = true;
 
     canUse(): boolean {
-        return !!this.action.executorProxy && this.action.executorProxy === this.sourceProxy.ruler;
+        return !!this.sourceProxy.ruler && this.action.die === D6;
     }
 
     applyAfter(): void {
         const result = this.action.result;
-        if (this.action.die !== D6) return;
-        new MakeDecisionAction(
-            this.sourceProxy.ruler!.original, "Add +1 or -1 to " + result.value + "?",
-            () => result.dice.set(D6, new Map([[result.value + 1, 1]])),
-            () => result.dice.set(D6, new Map([[result.value - 1, 1]])),
-            ["+1", "-1"]
+        new ChooseNumberAction(
+            this.sourceProxy.ruler!.original, "Add to " + result.value, [1, 0, -1],
+            (value: number) => result.dice.set(D6, new Map([[result.value + value, 1]])),
         ).doNext();
     }
 }

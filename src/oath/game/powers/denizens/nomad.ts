@@ -334,6 +334,7 @@ export class VowOfKinshipWhenPlayed extends WhenPlayed<Denizen> {
 export class VowOfKinshipGain extends ActionModifier<Denizen, ParentToTargetEffect> {
     name = "Vow of Kinship";
     modifiedAction = ParentToTargetEffect;
+    mustUse = true;
 
     applyBefore(): void {
         const ruler = this.sourceProxy.ruler?.original;
@@ -354,6 +355,7 @@ export class VowOfKinshipGain extends ActionModifier<Denizen, ParentToTargetEffe
 export class VowOfKinshipGive extends ActionModifier<Denizen, MoveResourcesToTargetEffect> {
     name = "Vow of Kinship";
     modifiedAction = MoveResourcesToTargetEffect;
+    mustUse = true;
 
     applyBefore(): void {
         if (this.action.resource != Favor) return;
@@ -366,6 +368,7 @@ export class VowOfKinshipGive extends ActionModifier<Denizen, MoveResourcesToTar
 export class VowOfKinshipBurn extends ActionModifier<Denizen, BurnResourcesEffect> {
     name = "Vow of Kinship";
     modifiedAction = BurnResourcesEffect;
+    mustUse = true;
 
     applyBefore(): void {
         if (this.action.resource != Favor) return;
@@ -379,6 +382,7 @@ export class VowOfKinshipBurn extends ActionModifier<Denizen, BurnResourcesEffec
 export class SacredGround extends ActionModifier<Denizen, PlayVisionEffect> {
     name = "Sacred Ground";
     modifiedAction = PlayVisionEffect;
+    mustUse = true;
 
     applyBefore(): void {
         if (this.action.executorProxy.site !== this.sourceProxy.site)

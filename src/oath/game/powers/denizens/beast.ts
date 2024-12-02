@@ -154,6 +154,7 @@ export class Birdsong extends AccessedActionModifier<Denizen, TradeAction> {
 export class TheOldOak extends AccessedActionModifier<Denizen, TradeAction> {
     name = "The Old Oak";
     modifiedAction = TradeAction;
+    mustUse = true;
 
     applyBefore(): void {
         if (this.action.cardProxy === this.sourceProxy && !this.action.forFavor && [...this.action.playerProxy.advisers].some(e => e instanceof Denizen && e.suit === OathSuit.Beast))
@@ -179,6 +180,7 @@ export class Mushrooms extends AccessedActionModifier<Denizen, SearchAction> {
 export class MarshSpirit extends ActionModifier<Denizen, CampaignAttackAction> {
     name = "Marsh Spirit";
     modifiedAction = CampaignAttackAction;
+    mustUse = true;
 
     applyBefore(): void {
         for (const targetProxy of this.action.campaignResult.targets)

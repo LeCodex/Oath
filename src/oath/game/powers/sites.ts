@@ -12,6 +12,7 @@ import { ActionModifier, ActivePower } from "./powers";
 export abstract class HomelandSitePower extends ActionModifier<Site, PlayWorldCardEffect> {
     modifiedAction = PlayWorldCardEffect;
     abstract suit: OathSuit;
+    mustUse = true;
 
     applyAfter(): void {
         // TODO: "and if you have not discarded a <suit> card here during this turn"

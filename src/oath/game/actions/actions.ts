@@ -14,6 +14,7 @@ import { Constructor, inclusiveRange, isExtended, MaskProxyManager, minInGroup }
 import { SelectNOf, SelectBoolean, SelectNumber } from "./selects";
 import { CampaignActionTarget, RecoverActionTarget, WithPowers } from "../interfaces";
 import { Region } from "../board";
+import { OathGameObject } from "../gameObject";
 
 
 
@@ -1308,6 +1309,21 @@ export class PeoplesFavorWakeAction extends ChooseSuitsAction {
 
         if (this.banner.amount >= 6)
             new SetPeoplesFavorMobState(this.game, this.player, true).doNext();
+    }
+}
+
+
+export class ChooseRnWsAction extends ChooseTsAction<ResourcesAndWarbands> {
+    start() {
+        if (!this.choices) this.choices = [];
+
+        for (const [i, group] of this.choices.entries()) {
+            const choices = new Map<string, ResourcesAndWarbands>();
+            for (const target of group) choices.set(target.name, target);
+            this.selects["choices" + i] = new SelectNOf("Target", choices, { min: this.rangeMin(i), max: this.rangeMax(i) });
+        }
+
+        return super.start();
     }
 }
 

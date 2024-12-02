@@ -95,9 +95,9 @@ export class UnparentEffect extends OathEffect {
 export class PutResourcesOnTargetEffect extends OathEffect<number> {
     resource: typeof OathResource;
     amount: number;
-    target?: ResourcesAndWarbands;
+    target?: OathGameObject;
 
-    constructor(game: OathGame, player: OathPlayer | undefined, resource: typeof OathResource, amount: number, target?: ResourcesAndWarbands) {
+    constructor(game: OathGame, player: OathPlayer | undefined, resource: typeof OathResource, amount: number, target?: OathGameObject) {
         super(game, player);
         this.resource = resource;
         this.amount = Math.max(0, amount);
@@ -105,13 +105,18 @@ export class PutResourcesOnTargetEffect extends OathEffect<number> {
     }
 
     resolve(): void {
-        this.result = this.target?.putResources(this.resource, this.amount) ?? 0;
+        if (this.target) {
+            this.resource.putOn(this.target, this.amount)
+            this.result = this.target.byClass(this.resource).length;
+        } else {
+            this.result = 0;
+        }
     }
 
     serialize(): Record<string, any> {
         return {
             ...super.serialize(),
-            target: this.target?.name,
+            target: this.target?.id,
             resource: this.resource.name,
             amount: this.amount
         };

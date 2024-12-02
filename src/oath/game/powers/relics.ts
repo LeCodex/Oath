@@ -14,6 +14,7 @@ import { isExtended } from "../utils";
 export class GrandScepterSeize extends ActionModifier<GrandScepter, TakeOwnableObjectEffect> {
     name = "Lock the Grand Scepter";
     modifiedAction = TakeOwnableObjectEffect;
+    mustUse = true;
 
     canUse(): boolean {
         return this.action.target === this.source;
@@ -229,6 +230,7 @@ export class DragonskinDrum extends AccessedActionModifier<Relic, TravelAction> 
 export class BookOfRecords extends AccessedActionModifier<Relic, PlayDenizenAtSiteEffect> {
     name = "Book of Records";
     modifiedAction = PlayDenizenAtSiteEffect;
+    mustUse = true;
 
     applyBefore(): void {
         this.action.getting.set(Secret, this.action.getting.get(Favor) ?? 0);
@@ -239,6 +241,7 @@ export class BookOfRecords extends AccessedActionModifier<Relic, PlayDenizenAtSi
 export class RingOfDevotionMuster extends ActionModifier<Relic, MusterAction> {
     name = "Ring of Devotion";
     modifiedAction = MusterAction;
+    mustUse = true;
 
     applyBefore(): void {
         this.action.amount += 2;
@@ -247,6 +250,7 @@ export class RingOfDevotionMuster extends ActionModifier<Relic, MusterAction> {
 export class RingOfDevotionRestriction extends ActionModifier<Relic, MoveOwnWarbandsEffect> {
     name = "Ring of Devotion";
     modifiedAction = MoveOwnWarbandsEffect;
+    mustUse = true;
 
     applyBefore(): void {
         if (this.action.to instanceof Site)

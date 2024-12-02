@@ -254,7 +254,6 @@ export class Specialist extends AttackerBattlePlan<Denizen> {
 export class SpecialistRestriction extends ActionModifier<Denizen, CampaignDefenseAction> {
     name = "Specialist";
     modifiedAction = CampaignDefenseAction;
-    mustUse = true;
 
     applyBefore(): void {
         for (const modifier of this.action.modifiers)
@@ -315,7 +314,6 @@ export class RelicWrapper extends OathGameObject<Relic["key"]> implements Campai
 export class Curfew extends EnemyActionModifier<Denizen, TradeAction> {
     name = "Curfew";
     modifiedAction = TradeAction;
-    mustUse = true;
 
     canUse(): boolean {
         return super.canUse() && this.activatorProxy.site?.ruler === this.sourceProxy.ruler;
@@ -346,7 +344,6 @@ export class TollRoads extends EnemyActionModifier<Denizen, TravelAction> {
 export class ForcedLabor extends EnemyActionModifier<Denizen, SearchAction> {
     name = "Forced Labor";
     modifiedAction = SearchAction;
-    mustUse = true;
 
     canUse(): boolean {
         return super.canUse() && this.activatorProxy.site?.ruler === this.sourceProxy.ruler;
@@ -363,7 +360,6 @@ export class ForcedLabor extends EnemyActionModifier<Denizen, SearchAction> {
 export class SecretPolice extends EnemyActionModifier<Denizen, PlayVisionEffect> {
     name = "Secret Police";
     modifiedAction = PlayVisionEffect;
-    mustUse = true;
 
     canUse(): boolean {
         return super.canUse() && this.action.executorProxy.site?.ruler === this.sourceProxy.ruler;
@@ -574,8 +570,10 @@ export class Palanquin extends ActivePower<Denizen> {
 }
 
 
-export class SprawlingRampart extends DefenderBattlePlan<Edifice> {
+export class SprawlingRampart extends ActionModifier<Edifice, CampaignDefenseAction> {
     name = "Sprawling Rampart";
+    modifiedAction = CampaignDefenseAction;
+    mustUse = true;
 
     applyBefore(): void {
         for (const targetProxy of this.action.campaignResultProxy.targets) {

@@ -1,4 +1,4 @@
-import { CampaignAttackAction, CampaignDefenseAction, TakeFavorFromBankAction, TradeAction, TravelAction, MakeDecisionAction, RestAction, ChooseCardsAction, SearchPlayOrDiscardAction, ChoosePlayersAction, ChooseSitesAction, ChooseNumberAction, SearchAction, KillWarbandsOnTargetAction, MusterAction, RecoverAction, RecoverBannerPitchAction } from "../../actions/actions";
+import { CampaignAttackAction, CampaignDefenseAction, TakeFavorFromBankAction, TradeAction, TravelAction, MakeDecisionAction, RestAction, ChooseCardsAction, SearchPlayOrDiscardAction, ChoosePlayersAction, ChooseSitesAction, ChooseNumberAction, SearchAction, KillWarbandsOnTargetAction, MusterAction, RecoverAction, RecoverBannerPitchAction, ChooseTsAction, ChooseRnWsAction } from "../../actions/actions";
 import { InvalidActionResolution } from "../../actions/base";
 import { Conspiracy, Denizen, Edifice, Relic, Site, WorldCard } from "../../cards/cards";
 import { DiscardOptions } from "../../cards/decks";
@@ -6,7 +6,7 @@ import { AttackDie, DefenseDie, DieSymbol, RollResult } from "../../dice";
 import { RegionDiscardEffect, PutResourcesOnTargetEffect, RollDiceEffect, BecomeCitizenEffect, DiscardCardEffect, PeekAtCardEffect, MoveResourcesToTargetEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, MoveWorldCardToAdvisersEffect, ParentToTargetEffect, BurnResourcesEffect } from "../../actions/effects";
 import { BannerKey, OathSuit } from "../../enums";
 import { OathPlayer } from "../../player";
-import { Favor, OathResourceType, ResourceCost, Secret } from "../../resources";
+import { Favor, OathResourceType, ResourceCost, ResourcesAndWarbands, Secret } from "../../resources";
 import { ActionModifier, AttackerBattlePlan, DefenderBattlePlan, ActivePower, WhenPlayed, AccessedActionModifier, EnemyAttackerCampaignModifier, EnemyDefenderCampaignModifier } from "../powers";
 import { inclusiveRange } from "../../utils";
 import { WithPowers } from "../../interfaces";
@@ -217,25 +217,25 @@ export class TerrorSpells extends ActivePower<Denizen> {
     usePower(amount: number = 2): void {
         if (this.gameProxy.banners.get(BannerKey.DarkestSecret)?.owner !== this.action.playerProxy) return;
 
-        new MakeDecisionAction(
-            this.action.player, "Kill at site or on boards? (" + amount + " left)",
-            () => new ChooseSitesAction(
-                this.action.player, "Kill a warband (" + amount + " left)",
-                (sites: Site[]) => { 
-                    if (sites[0]) new KillWarbandsOnTargetAction(this.action.player, sites[0], 1).doNext();
-                    if (--amount) this.usePower(amount);
-                },
-                [this.action.playerProxy.site.region?.original.sites.filter(e => e.warbands.length) ?? []]
-            ).doNext(),
-            () => new ChoosePlayersAction(
-                this.action.player, "Kill a warband (" + amount + " left)",
-                (targets: OathPlayer[]) => {
-                    if (targets[0]) new KillWarbandsOnTargetAction(this.action.player, targets[0], 1).doNext();
-                    if (--amount) this.usePower(amount);
-                },
-                [this.gameProxy.players.filter(e => e.site.region === this.action.playerProxy.site.region && e.original.warbands.length > 0).map(e => e.original)]
-            ).doNext(),
-            ["At sites", "On boards"]
+        const targets: ResourcesAndWarbands[] = [];
+        for (const siteProxy of this.gameProxy.board.sites())
+            if (siteProxy.region === this.action.playerProxy.site.region && siteProxy.warbands.length > 0)
+                targets.push(siteProxy.original);
+        
+        for (const playerProxy of this.gameProxy.players)
+            if (playerProxy.site.region === this.action.playerProxy.site.region && playerProxy.warbands.length > 0)
+                targets.push(playerProxy.original);
+
+        new ChooseRnWsAction(
+            this.action.player, "Kill a warband (" + amount + " left)",
+            (targets: ResourcesAndWarbands[]) => {
+                if (targets[0]) {
+                    new KillWarbandsOnTargetAction(this.action.player, targets[0], 1).doNext();
+                    amount--;
+                }
+                if (amount) this.usePower(amount);
+            },
+            [targets]
         ).doNext();
     }
 }
@@ -351,6 +351,7 @@ export class SecretSignal extends AccessedActionModifier<Denizen, TradeAction> {
 export class InitiationRite extends AccessedActionModifier<Denizen, MusterAction> {
     name = "Initiation Rite";
     modifiedAction = MusterAction;
+    mustUse = true;
     
     applyBefore(): void {
         this.action.using = Secret;
@@ -508,6 +509,7 @@ export class Revelation extends WhenPlayed<Denizen> {
 export class VowOfSilence extends AccessedActionModifier<Denizen, ParentToTargetEffect> {
     name = "Vow of Silence";
     modifiedAction = ParentToTargetEffect;
+    mustUse = true;
 
     applyAfter(): void {
         for (const object of this.action.objects)
@@ -518,6 +520,7 @@ export class VowOfSilence extends AccessedActionModifier<Denizen, ParentToTarget
 export class VowOfSilenceRecover extends AccessedActionModifier<Denizen, RecoverAction> {
     name = "Vow of Silence";
     modifiedAction = RecoverAction;
+    mustUse = true;
 
     applyBefore(): void {
         if (this.action.targetProxy === this.gameProxy.banners.get(BannerKey.DarkestSecret))
@@ -527,6 +530,7 @@ export class VowOfSilenceRecover extends AccessedActionModifier<Denizen, Recover
 export class VowOfSilencePitch extends ActionModifier<Denizen, RecoverBannerPitchAction> {
     name = "Vow of Silence";
     modifiedAction = RecoverBannerPitchAction;
+    mustUse = true;
 
     applyAfter(): void {
         new PutResourcesOnTargetEffect(this.game, this.sourceProxy.ruler?.original, Secret, this.action.amount).doNext();
