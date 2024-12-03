@@ -324,7 +324,7 @@ export class OathGame extends TreeRoot<OathGame> {
             gameCount: this.chronicleNumber + 1,
             
             // TODO: Store overall state of Citizenships
-            playerCitizenship: {[1]: Citizenship.Exile, [2]: Citizenship.Exile, [3]: Citizenship.Exile, [4]: Citizenship.Exile, [5]: Citizenship.Exile},
+            playerCitizenship: { [1]: Citizenship.Exile, [2]: Citizenship.Exile, [3]: Citizenship.Exile, [4]: Citizenship.Exile, [5]: Citizenship.Exile },
             oath: this.oath.key,
             suitOrder: ALL_OATH_SUITS,
             sites: [...this.board.sites()].map(e => ({ name: e.name, facedown: e.facedown, cards: [...e.denizens, ...e.relics].map(e => ({ name: e.name })) })),
@@ -332,9 +332,9 @@ export class OathGame extends TreeRoot<OathGame> {
             dispossessed: Object.keys(this.dispossessed).map(e => ({ name: e })),
             relics: this.relicDeck.children.map(e => ({ name: e.name })),
         
-            prevPlayerCitizenship: {[1]: Citizenship.Exile, [2]: Citizenship.Exile, [3]: Citizenship.Exile, [4]: Citizenship.Exile, [5]: Citizenship.Exile},
+            prevPlayerCitizenship: { [1]: Citizenship.Exile, [2]: Citizenship.Exile, [3]: Citizenship.Exile, [4]: Citizenship.Exile, [5]: Citizenship.Exile },
             winner: winner
-        })
+        });
     }
 }
 

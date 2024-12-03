@@ -1075,7 +1075,7 @@ export class SiteExchangeOfferEffect extends BindingExchangeEffect {
         for (const site of this.sitesGiven) {
             new MoveOwnWarbandsEffect(this.player, site, this.player).doNext();
             new ChooseNumberAction(
-                this.other, "Move warbands to " + site.name, inclusiveRange(1, this.other.getWarbandsAmount(this.other.leader.key)),
+                this.other, "Move warbands to " + site.name, inclusiveRange(1 - site.getWarbandsAmount(this.other.key), this.other.getWarbandsAmount(this.other.leader.key)),
                 (amount: number) => new MoveOwnWarbandsEffect(this.other, this.other, site, amount).doNext()
             ).doNext();
         }
@@ -1083,7 +1083,7 @@ export class SiteExchangeOfferEffect extends BindingExchangeEffect {
         for (const site of this.sitesTaken) {
             new MoveOwnWarbandsEffect(this.other, site, this.other).doNext();
             new ChooseNumberAction(
-                this.player, "Move warbands to " + site.name, inclusiveRange(1, this.player.getWarbandsAmount(this.player.leader.key)),
+                this.player, "Move warbands to " + site.name, inclusiveRange(1 - site.getWarbandsAmount(this.other.key), this.player.getWarbandsAmount(this.player.leader.key)),
                 (amount: number) => new MoveOwnWarbandsEffect(this.player, this.player, site, amount).doNext()
             ).doNext();
         }
