@@ -161,7 +161,7 @@ export class OathGame extends TreeRoot<OathGame> {
             const fromBottom = this.worldDeck.drawSingleCard(true);
             if (fromBottom) region.discard.addChild(fromBottom);
         }
-        const topCradleSite = regions.byKey(RegionKey.Cradle)[0]?.byClass(Site)[0]!;
+        const topCradleSite = regions.byKey(RegionKey.Cradle)[0]!.byClass(Site)[0]!;
 
         const players = this.byClass(OathPlayer);
         for (const player of players) {
@@ -195,7 +195,7 @@ export class OathGame extends TreeRoot<OathGame> {
     }
 
     initialActions() {
-        const topCradleSite = this.board.children.byKey(RegionKey.Cradle)[0]?.byClass(Site)[0]!;
+        const topCradleSite = this.board.children.byKey(RegionKey.Cradle)[0]!.byClass(Site)[0]!;
         for (const player of this.players) {
             new DrawFromDeckEffect(player, this.worldDeck, 3, true).doNext(cards => {
                 if (player !== this.chancellor)

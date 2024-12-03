@@ -611,7 +611,7 @@ export class TheGathering extends WhenPlayed<Denizen> {
         for (const player of this.game.players) {
             new MakeDecisionAction(
                 player, "Put your pawn at " + this.sourceProxy.site.name + "?",
-                () => new PutPawnAtSiteEffect(player, this.sourceProxy.site?.original!).doNext()
+                () => new PutPawnAtSiteEffect(player, this.sourceProxy.site!.original).doNext()
             ).doNext();
         }
 
