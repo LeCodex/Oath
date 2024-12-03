@@ -3,6 +3,7 @@ import { OathAction, OathEffect, InvalidActionResolution } from "./base";
 import { PlayerColor } from "../enums";
 import { OathGame } from "../game";
 import { Constructor } from "../utils";
+import * as fs from 'fs';
 
 
 export class HistoryNode {
@@ -14,8 +15,17 @@ export class HistoryNode {
     serialize() {
         return (
             JSON.stringify(this.game) + "\n" +
-            this.events.map(e => JSON.stringify(e)).join("\n")
+            this.events.map(e => JSON.stringify(e.serialize())).join("\n")
         );
+    }
+
+    parse(data: string) {
+        const lines = data.split("\n");
+        this.game = JSON.parse(lines.shift()!)
+        for (const line of lines) {
+            const lineData = JSON.parse(line) as { name: keyof typeof eventsIndex, player: keyof typeof PlayerColor, data: any };
+            this.events.push(new eventsIndex[lineData.name](lineData.player, lineData.data))
+        }
     }
 }
 
@@ -25,6 +35,13 @@ export abstract class HistoryEvent {
     ) { }
 
     abstract replay(manager: OathActionManager): void;
+    
+    serialize(): Record<string, any> {
+        return {
+            name: this.constructor.name,
+            player: this.player
+        };
+    }
 };
 export class StartEvent extends HistoryEvent {
     constructor(
@@ -33,7 +50,14 @@ export class StartEvent extends HistoryEvent {
     ) { super(player); }
 
     replay(manager: OathActionManager) {
-        manager.startAction(this.actionName);
+        manager.startAction(this.actionName, false);
+    }
+
+    serialize(): Record<string, any> {
+        return {
+            ...super.serialize(),
+            data: this.actionName
+        };
     }
 }
 export class ContinueEvent extends HistoryEvent {
@@ -43,13 +67,24 @@ export class ContinueEvent extends HistoryEvent {
     ) { super(player); }
 
     replay(manager: OathActionManager) {
-        manager.continueAction(this.player, this.values);
+        manager.continueAction(this.player, this.values, false);
+    }
+
+    serialize(): Record<string, any> {
+        return {
+            ...super.serialize(),
+            data: this.values
+        };
     }
 }
-
+const eventsIndex = {
+    StartEvent,
+    ContinueEvent
+}
 
 export class OathActionManager {
     game: OathGame;
+    savePath = "src/oath/data/save.txt";
     actionsStack: OathAction[] = [];
     futureActionsList: OathAction[] = [];
     currentEffectsStack: OathEffect<any>[] = [];
@@ -74,7 +109,7 @@ export class OathActionManager {
 
     get gameState() {
         return {
-            game: this.game.serialize(),
+            game: this.game.serialize(true),
             stack: [...this.actionsStack]
         };
     }
@@ -98,7 +133,7 @@ export class OathActionManager {
         return returnData;
     }
 
-    startAction(actionName: string): object {
+    startAction(actionName: string, save: boolean = true): object {
         const action = this.startOptions[actionName];
         if (!action)
             throw new InvalidActionResolution("Invalid starting action name");
@@ -110,6 +145,7 @@ export class OathActionManager {
         try {
             const data = this.checkForNextAction();
             this.history.push(new HistoryNode(gameState.game, [new StartEvent(this.game.currentPlayer.id, actionName)]));
+            if (save) this.saveHistory();
             return data;
         } catch (e) {
             this.revertCurrentAction(gameState);
@@ -117,7 +153,7 @@ export class OathActionManager {
         }
     }
 
-    continueAction(playerColor: keyof typeof PlayerColor, values: Record<string, string[]>): object {
+    continueAction(playerColor: keyof typeof PlayerColor, values: Record<string, string[]>, save: boolean = true): object {
         const action = this.actionsStack[this.actionsStack.length - 1];
         if (!action) throw new InvalidActionResolution("No action to continue");
 
@@ -134,6 +170,7 @@ export class OathActionManager {
         try {
             const data = this.resolveTopAction();
             this.history[this.history.length - 1]?.events.push(new ContinueEvent(playerColor, values));
+            if (save) this.saveHistory();
             return data;
         } catch (e) {
             this.revertCurrentAction(gameState);
@@ -175,6 +212,21 @@ export class OathActionManager {
     }
 
     serializeHistory() {
-        return this.history.map(e => e.serialize()).join("\n");
+        return this.history.map(e => e.serialize()).join("\n\n");
+    }
+
+    saveHistory() {
+        const data = this.serializeHistory();
+        fs.writeFileSync(this.savePath, data);
+    }
+
+    parseHistory(data: string) {
+        data.split("\n\n").map(e => new HistoryNode(this.game).parse(e))
+    }
+
+    loadHistory() {
+        if (!fs.existsSync(this.savePath)) return;
+        const data = fs.readFileSync(this.savePath).toString();
+        this.parseHistory(data);
     }
 }

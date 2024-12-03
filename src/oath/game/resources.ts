@@ -40,9 +40,9 @@ export class Secret extends OathResource {
         this.prune();
     }
 
-    serialize(): Record<string, any> | undefined {
+    serialize(lite: boolean = false): Record<string, any> | undefined {
         return {
-            ...super.serialize(),
+            ...super.serialize(lite),
             flipped: this.flipped
         };
     }
@@ -71,9 +71,9 @@ export class OathWarband extends OathGameObjectLeaf<number> {
 
     get key() { return Number(this.id); }
 
-    serialize(): Record<string, any> | undefined {
+    serialize(lite: boolean = false): Record<string, any> | undefined {
         return {
-            ...super.serialize(),
+            ...super.serialize(lite),
             color: this.color
         };
     }
@@ -127,10 +127,10 @@ export abstract class ResourcesAndWarbands<T = any> extends OathGameObject<T> {
             new ParentToTargetEffect(this.game, player, this.getWarbands(player.key), player.bag).doNext();
     }
 
-    serialize(): Record<string, any> | undefined {
+    serialize(lite: boolean = false): Record<string, any> | undefined {
         return {
-            ...super.serialize(),
-            name: this.name
+            ...super.serialize(lite),
+            ...lite ? {} : { name: this.name }
         }
     }
 }
@@ -179,8 +179,8 @@ export class ResourceCost {
 
     serialize(): Record<string, any> {
         return {
-            placedResources: Object.fromEntries([...this.placedResources.entries()]),
-            burntResources: Object.fromEntries([...this.burntResources.entries()]),
+            placedResources: Object.fromEntries([...this.placedResources.entries()].map(([k, v]) => [k.name, v])),
+            burntResources: Object.fromEntries([...this.burntResources.entries()].map(([k, v]) => [k.name, v])),
         };
     }
 }

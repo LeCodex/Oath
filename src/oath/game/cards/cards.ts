@@ -56,18 +56,21 @@ export abstract class OathCard extends ResourcesAndWarbands<string> implements W
 
     abstract accessibleBy(player: OathPlayer): boolean;
 
-    serialize(): Record<string, any> | undefined {
-        return {
-            ...super.serialize(),
+    serialize(lite: boolean = false): Record<string, any> | undefined {
+        const obj = {
+            ...super.serialize(lite),
             facedown: this.facedown,
             seenBy: [...this.seenBy].map(e => e.key)
-        };
+        } as Record<string, any>;
+
+        if (obj.seenBy.length === 0) delete obj.seenBy;
+        return obj;
     }
 
     parse(obj: Record<string, any>, allowCreation?: boolean): void {
         super.parse(obj, allowCreation);
         this.facedown = obj.facedown;
-        this.seenBy = new Set(this.game.players.filter(e => obj.seenBy.includes(e.key)));
+        this.seenBy = new Set(obj.seenBy ? this.game.players.filter(e => obj.seenBy.includes(e.key)) : []);
     }
 }
 
@@ -151,12 +154,14 @@ export class Site extends OathCard implements CampaignActionTarget {
         new CampaignSeizeSiteAction(player, this).doNext();
     }
 
-    serialize(): Record<string, any> | undefined {
+    serialize(lite: boolean = false): Record<string, any> | undefined {
         return {
-            ...super.serialize(),
-            capacity: this.capacity,
-            recoverCost: this.recoverCost.serialize(),
-            recoverSuit: this.recoverSuit
+            ...super.serialize(lite),
+            ...lite ? {} : {
+                capacity: this.capacity,
+                recoverCost: this.recoverCost.serialize(),
+                recoverSuit: this.recoverSuit
+            }
         };
     }
 }
@@ -263,12 +268,14 @@ export class Denizen extends WorldCard implements AtSite {
             new ParentToTargetEffect(this.game, this.game.currentPlayer, favor, this.game.byClass(FavorBank).byKey(this.suit)[0]).doNext();
     }
 
-    serialize(): Record<string, any> {
+    serialize(lite: boolean = false): Record<string, any> {
         return {
-            ...super.serialize(),
-            suit: OathSuit[this._suit],
-            restriction: this.restriction,
-            locked: this.activelyLocked
+            ...super.serialize(lite),
+            ...lite ? {} : {
+                suit: OathSuit[this._suit],
+                restriction: this.restriction,
+                locked: this.activelyLocked
+            }
         };
     }
 }

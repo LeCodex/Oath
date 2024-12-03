@@ -325,18 +325,22 @@ export abstract class TreeNode<RootType extends TreeRoot<RootType>, KeyType = an
         return `${this.constructor.name}(${this.id})`;
     }
 
-    serialize(): Record<string, any> | undefined {
-        return {
-            type: this.type,
+    /** Serializes the node into an object. If `lite` is true, only the necessary properties are recorded. */
+    serialize(lite: boolean = false): Record<string, any> | undefined {
+        const obj = {
             class: this.constructor.name,
             id: this.id,
-            hidden: this.hidden,
-            children: this.children.map(e => e.serialize()).filter(e => e !== undefined)
-        };
+            children: this.children.map(e => e.serialize(lite)).filter(e => e !== undefined),
+            ...lite ? {} : {
+                type: this.type,
+                hidden: this.hidden,
+            }
+        } as Record<string, any>;
+        if (obj.children.length === 0) delete obj.children;
+        return obj;
     }
 
     parse(obj: Record<string, any>, allowCreation: boolean = false) {
-        if (obj.type !== this.type) throw TypeError(`Type parsing doesn't match: expected ${this.type}, got ${obj.type}`);
         if (obj.class !== this.constructor.name) throw TypeError(`Class parsing doesn't match: expected ${this.constructor.name}, got ${obj.class}`);
         if (obj.id !== this.id) throw TypeError(`Id parsing doesn't match: expected ${this.id}, got ${obj.id}`);
 
@@ -403,12 +407,6 @@ export abstract class TreeLeaf<RootType extends TreeRoot<RootType>, KeyType = an
 
     addChild<T extends TreeNode<RootType, any>>(child: T): T {
         throw TypeError("Cannot add children to leaf nodes");
-    }
-
-    serialize(): Record<string, any> | undefined {
-        const obj = super.serialize();
-        delete obj?.children;
-        return obj;
     }
 }
 

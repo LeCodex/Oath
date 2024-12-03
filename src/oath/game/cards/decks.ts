@@ -26,10 +26,10 @@ export abstract class CardDeck<T extends OathCard, U = any> extends Container<T,
         this.game.random.shuffleArray(this.children);
     }
 
-    serialize(): Record<string, any> | undefined {
+    serialize(lite: boolean = false): Record<string, any> | undefined {
         return {
-            ...super.serialize(),
-            name: this.name
+            ...super.serialize(lite),
+            ...lite ? {} : { name: this.name }
         };
     }
 }
@@ -51,10 +51,10 @@ export abstract class SearchableDeck<T = any> extends CardDeck<WorldCard, T> {
         super(id, WorldCard);
     }
 
-    serialize(): Record<string, any> | undefined {
+    serialize(lite: boolean = false): Record<string, any> | undefined {
         return {
-            ...super.serialize(),
-            searchCost: this.searchCost,
+            ...super.serialize(lite),
+            ...lite ? {} : { searchCost: this.searchCost }
         };
     }
 }
@@ -89,9 +89,9 @@ export class WorldDeck extends SearchableDeck<string> {
         return card;
     }
 
-    serialize(): Record<string, any> | undefined {
+    serialize(lite: boolean = false): Record<string, any> | undefined {
         return {
-            ...super.serialize(),
+            ...super.serialize(lite),
             visionsDrawn: this.visionsDrawn
         };
     }

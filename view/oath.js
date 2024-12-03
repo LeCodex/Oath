@@ -129,7 +129,7 @@ const renderObject = (parent, obj) => {
             break;
         
         case "bag":
-            if (obj.children.length) node = renderText("Bag:")
+            if (obj.children?.length) node = renderText("Bag:")
             break;
         case "reliquary":
             node = renderText("Reliquary:");
@@ -138,7 +138,7 @@ const renderObject = (parent, obj) => {
             node = renderText(obj.name);
             break;
         case "visionSlot":
-            if (obj.children.length) node = renderText("Vision:")
+            if (obj.children?.length) node = renderText("Vision:")
             break;
 
         case "oath":
@@ -155,7 +155,7 @@ const renderObject = (parent, obj) => {
 
     if (!node) return;
 
-    if (autoAppendChildren) {
+    if (autoAppendChildren && obj.children) {
         node.innerText += " " + byType(obj, "resource").map(e => e.class === "Favor" ? "🟡" : e.flipped ? "📖" : "📘").join("");
         node.innerText += " " + byType(obj, "warband").map(e => warbandsColors[e.color]).join("");
         const list = node.appendChild(document.createElement("ul"));
@@ -173,7 +173,7 @@ const renderCard = (card) => {
     if (card.type === "relic") cardNode.innerText += "🧰 "
     if (card.type === "site") cardNode.innerText += "🗺️ "
     cardNode.innerText += (card.facedown ? card.type === "vision" ? "👁️ " : "❔ " : "")
-    cardNode.innerText += (!card.facedown || card.seenBy.includes(game.order[game.turn]) ? (card.suit !== undefined ? suitColors[card.suit] + " " : "") + card.name : "");
+    cardNode.innerText += (!card.facedown || card.seenBy?.includes(game.order[game.turn]) ? (card.suit !== undefined ? suitColors[card.suit] + " " : "") + card.name : "");
     return cardNode;
 }
 
@@ -187,7 +187,7 @@ const renderDeck = (deck, name, separateVisions = false) => {
     const deckList = deckNode.appendChild(document.createElement("ul"));
     let facedownTotal = 0;
     for (const card of deck.children) {
-        if (card.facedown && !card.seenBy.includes(game.order[game.turn]) && !(separateVisions && card.type === "vision")) {
+        if (card.facedown && !card.seenBy?.includes(game.order[game.turn]) && !(separateVisions && card.type === "vision")) {
             facedownTotal++;
         } else {
             if (facedownTotal) deckList.appendChild(renderText(facedownTotal + (topCardVision ? " 👁️" : " ❔")));

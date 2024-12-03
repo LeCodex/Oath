@@ -50,8 +50,7 @@ export class OathGame extends TreeRoot<OathGame> {
     archive: Set<string>;
     dispossessed: Set<string>;
 
-    constructor(seed: string, playerCount: number) {
-        super();
+    setup(seed: string, playerCount: number) {    
         this.seed = seed;
         this.random = new PRNG();
         
@@ -190,7 +189,7 @@ export class OathGame extends TreeRoot<OathGame> {
         this.oath = new OathTypeToOath[OathType[gameData.oath] as keyof typeof OathType]();
         this.chancellor.addChild(this.oath).setup();
         
-        this.actionManager.history.push(new HistoryNode(this.serialize()));
+        this.actionManager.history.push(new HistoryNode(this.serialize(true)));
         this.initialActions();
     }
 
@@ -282,20 +281,22 @@ export class OathGame extends TreeRoot<OathGame> {
         ).doNext();
     }
 
-    serialize(): Record<string, any> {
+    serialize(lite: boolean = false): Record<string, any> {
         return {
-            ...super.serialize(),
+            ...super.serialize(lite),
             name: this.name,
             chronicleNumber: this.chronicleNumber,
-            oathkeeper: this.oathkeeper.key,
             isUsurper: this.isUsurper,
-            currentPlayer: this.currentPlayer.id,
             turn: this.turn,
             phase: this.phase,
             round: this.round,
             order: this.order,
             seed: this.seed,
             randomSeed: this.random.seed,
+            ...lite ? {} : {
+                currentPlayer: this.currentPlayer.id,
+                oathkeeper: this.oathkeeper.key,
+            }
         }
     }
 

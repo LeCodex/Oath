@@ -25,7 +25,6 @@ import { sitesData } from "../cards/sites";
 export class GainPowerEffect<T extends WithPowers> extends OathEffect {
     target: T;
     power: Constructor<OathPower<T>>;
-    resolved: boolean;
 
     constructor(game: OathGame, target: T, power: Constructor<OathPower<T>>) {
         super(game, undefined);
@@ -34,7 +33,6 @@ export class GainPowerEffect<T extends WithPowers> extends OathEffect {
     }
 
     resolve(): void {
-        this.resolved = !this.target.powers.has(this.power);
         this.target.powers.add(this.power);
     }
 }
@@ -42,7 +40,6 @@ export class GainPowerEffect<T extends WithPowers> extends OathEffect {
 export class LosePowerEffect<T extends WithPowers> extends OathEffect {
     target: T;
     power: Constructor<OathPower<T>>;
-    resolved: boolean;
 
     constructor(game: OathGame, target: T, power: Constructor<OathPower<T>>) {
         super(game, undefined);
@@ -51,7 +48,7 @@ export class LosePowerEffect<T extends WithPowers> extends OathEffect {
     }
 
     resolve(): void {
-        this.resolved = this.target.powers.delete(this.power);
+        this.target.powers.delete(this.power);
     }
 }
 
@@ -59,7 +56,6 @@ export class ParentToTargetEffect extends OathEffect {
     objects: Set<OathGameObject>;
     target?: OathGameObject;
     onTop: boolean;
-    oldParents: TreeNode<any>[];
 
     constructor(game: OathGame, player: OathPlayer | undefined, objects: Iterable<OathGameObject>, target?: OathGameObject, onTop: boolean = false) {
         super(game, player);
@@ -70,7 +66,6 @@ export class ParentToTargetEffect extends OathEffect {
 
     resolve(): void {
         const objectsArray = [...this.objects];
-        this.oldParents = objectsArray.map(e => e.parent);
         if (this.target)
             this.target.addChildren(objectsArray, this.onTop);
         else
@@ -558,7 +553,7 @@ export class PlayWorldCardToAdviserEffect extends PlayerEffect {
 
     resolve(): void {
         new ParentToTargetEffect(this.game, this.executor, [this.card]).doNext();
-        this.card.turnFaceup();
+        if (!this.facedown) this.card.turnFaceup();
     }
 }
 

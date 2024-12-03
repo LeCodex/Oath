@@ -1190,8 +1190,8 @@ export class ChooseResourceToTakeAction extends OathAction {
     }
 
     execute(): void {
-        const resource = this.parameters.resource[0]!;
-        if (resource === undefined) return;
+        const resource = this.parameters.resource[0];
+        if (!resource) return;
         new ParentToTargetEffect(this.game, this.player, [resource]).doNext();   
     }
 }

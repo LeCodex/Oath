@@ -132,12 +132,12 @@ export abstract class OathPlayer extends ResourcesAndWarbands<PlayerColor> imple
         new FlipSecretsEffect(this.game, this, Infinity, false).doNext();
     }
 
-    serialize(): Record<string, any> {
+    serialize(lite: boolean = false): Record<string, any> {
         return {
-            ...super.serialize(),
-            name: this.name,
+            ...super.serialize(lite),
             supply: this.supply,
             site: this.site?.id,
+            ...lite ? {} : { name: this.name },
         };
     }
 
@@ -219,9 +219,9 @@ export class Exile extends OathPlayer {
         new GainSupplyEffect(this, amount).doNext();
     }
 
-    serialize(): Record<string, any> {
+    serialize(lite: boolean = false): Record<string, any> {
         return {
-            ...super.serialize(),
+            ...super.serialize(lite),
             isCitizen: this.isCitizen
         };
     }
