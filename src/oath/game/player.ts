@@ -143,10 +143,9 @@ export abstract class OathPlayer extends ResourcesAndWarbands<PlayerColor> imple
 
     parse(obj: Record<string, any>, allowCreation?: boolean): void {
         super.parse(obj, allowCreation);
-        const site = this.game.search("Site", obj.site);
-        if (!site) throw TypeError(`Couldn't find Site with id ${obj.site}`);
         this.supply = obj.supply;
-        this.site = site as Site;
+        const site = this.game.search(Site, obj.site);
+        if (site) this.site = site;
     }
 }
 

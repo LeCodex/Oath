@@ -12,12 +12,10 @@ import { Container } from "./gameObject";
 export class FavorBank extends Container<Favor, OathSuit> {
     id: keyof typeof OathSuit;
     type = "favorBank";
-    name: string;
 
     constructor(id: keyof typeof OathSuit) {
         if (!isEnumKey(id, OathSuit)) throw TypeError(`${id} is not a valid suit`);
         super(id, Favor);
-        this.name = id + " Bank";
     }
 
     get key() { return OathSuit[this.id]; }
@@ -60,6 +58,13 @@ export abstract class Banner<T extends OathResource = OathResource> extends Cont
     }
 
     abstract handleRecovery(player: OathPlayer): void;
+
+    serialize(): Record<string, any> | undefined {
+        return {
+            ...super.serialize(),
+            name: this.name
+        };
+    }
 }
 
 export class PeoplesFavor extends Banner<Favor> {

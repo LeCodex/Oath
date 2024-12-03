@@ -383,7 +383,7 @@ export class MemoryOfHome extends ActivePower<Denizen> {
         new ChooseSuitsAction(
             this.action.player, "Move all favor from one bank to the Hearth bank",
             (suits: OathSuit[]) => {
-                if (!suits[0]) return;
+                if (suits[0] === undefined) return;
                 const from = this.game.favorBank(suits[0]);
                 const to = this.game.favorBank(OathSuit.Hearth);
                 if (!from || !to) return;

@@ -510,7 +510,7 @@ export class MemoryOfNature extends ActivePower<Denizen> {
         new ChooseSuitsAction(
             this.action.player, "Move a favor from one bank to the Beast bank (" + amount + " left)",
             (suits: OathSuit[]) => {
-                if (!suits[0]) return;
+                if (suits[0] === undefined) return;
                 const from = this.game.favorBank(suits[0]);
                 const to = this.game.favorBank(OathSuit.Beast);
                 if (!from || !to) return;

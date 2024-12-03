@@ -320,7 +320,7 @@ export class Riots extends WhenPlayed<Denizen> {
         new ChooseSuitsAction(
             this.action.executor, "Discard all other cards at site of the suit with the most",
             (suits: OathSuit[]) => {
-                if (!suits[0]) return;
+                if (suits[0] === undefined) return;
                 for (const siteProxy of this.gameProxy.board.sites())
                     for (const denizenProxy of siteProxy.denizens)
                         if (denizenProxy.suit === suits[0] && denizenProxy !== this.sourceProxy)

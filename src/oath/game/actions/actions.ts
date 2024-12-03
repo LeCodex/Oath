@@ -1277,7 +1277,7 @@ export class TakeFavorFromBankAction extends ChooseSuitsAction {
         super(
             player, "Take " + amount + " from a favor bank", 
             (suits: OathSuit[]) => {
-                if (!suits[0]) return;
+                if (suits[0] === undefined) return;
                 const resources = this.game.favorBank(suits[0])?.get(amount);
                 if (resources) new ParentToTargetEffect(this.game, this.player, resources).doNext();
             },
