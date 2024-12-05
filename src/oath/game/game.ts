@@ -28,18 +28,18 @@ export class OathGame extends TreeRoot<OathGame> {
 
     gameId: number;
     random: PRNG;
-    
+
     seed: string;
     name: string;
     chronicleNumber: number;
     oath: Oath;
     isUsurper = false;
-    
+
     turn = 0;
     phase = OathPhase.Act;
     round = 1;
     order: PlayerColor[] = [PlayerColor.Purple];
-    
+
     // References for quick access to static elements
     actionManager = new OathActionManager(this);
     chancellor: Chancellor;
@@ -52,21 +52,21 @@ export class OathGame extends TreeRoot<OathGame> {
     archive: Set<string>;
     dispossessed: Set<string>;
 
-    get setupData() { return [this.seed, this.players.length]; }
-
     constructor(gameId: number) {
         super();
         this.gameId = gameId;
     }
 
-    setup(seed: string, playerCount: number) {    
-        this.seed = seed;
+    get setupData(): [string, number] { return [this.seed, this.players.length]; }
+
+    setup(data: typeof this["setupData"]) {
+        this.seed = data[0];
         this.random = new PRNG();
-        
+
         this.worldDeck = this.addChild(new WorldDeck());
         this.relicDeck = this.addChild(new RelicDeck());
         for (let i = 0; i < 36; i++) this.addChild(new Favor());
-        
+
         const peoplesFavor = new PeoplesFavor();
         const darkestSecret = new DarkestSecret();
         this.banners.set(BannerKey.PeoplesFavor, this.addChild(peoplesFavor));
@@ -74,7 +74,7 @@ export class OathGame extends TreeRoot<OathGame> {
         Favor.putOn(peoplesFavor, 1);
         Secret.putOn(darkestSecret, 1);
 
-        const gameData = parseOathTTSSavefileString(seed);
+        const gameData = parseOathTTSSavefileString(this.seed);
         this.name = gameData.chronicleName;
         this.chronicleNumber = gameData.gameCount;
 
@@ -100,7 +100,7 @@ export class OathGame extends TreeRoot<OathGame> {
                 Faith: new Vision("Devotion"),
                 Conquest: new Vision("Supremacy")
             }[cardData.name];
-                
+
             if (card)
                 this.worldDeck.addChild(card, true);
             else
@@ -121,7 +121,7 @@ export class OathGame extends TreeRoot<OathGame> {
         for (let i = 0; i < 4; i++)
             this.chancellor.reliquary.addChild(new ReliquarySlot(String(i))).getRelic();
 
-        for (let i: PlayerColor = PlayerColor.Red; i < playerCount; i++) {
+        for (let i: PlayerColor = PlayerColor.Red; i < data[1]; i++) {
             const id = PlayerColor[i] as keyof typeof PlayerColor;
             const exile = this.addChild(new Exile(id));
             exile.visionSlot = exile.addChild(new VisionSlot(id));
@@ -157,13 +157,13 @@ export class OathGame extends TreeRoot<OathGame> {
                     site.addChild(new Relic(cardId));
                     continue;
                 }
-                
+
                 console.warn("Couldn't load " + cardId + " for " + siteId);
             }
 
             if (region.byClass(Site).length >= region.size) regionKey++;
         }
-        
+
         const regions = this.board.children;
         for (const region of regions) {
             const fromBottom = this.worldDeck.drawSingleCard(true);
@@ -175,7 +175,7 @@ export class OathGame extends TreeRoot<OathGame> {
         for (const player of players) {
             player.bag = player.addChild(new WarbandsSupply(player.id));
             for (let i = 0; i < player.bagAmount; i++) player.bag.addChild(new OathWarband().colorize(player.key));
-            
+
             player.putResources(Favor, player === this.chancellor ? 2 : 1);
             player.putResources(Secret, 1);
             player.leader.bag.moveChildrenTo(player, 3);
@@ -184,12 +184,12 @@ export class OathGame extends TreeRoot<OathGame> {
         this.grandScepter = new GrandScepter();
         this.chancellor.addChild(this.grandScepter).turnFaceup();
 
-        for (const site of this.board.sites()) 
+        for (const site of this.board.sites())
             if (site !== topCradleSite && site.byClass(Denizen).filter(e => e.suit !== OathSuit.None).length)
                 this.chancellor.bag.moveChildrenTo(site, 1);
         this.chancellor.bag.moveChildrenTo(topCradleSite, 3);
-        
-        const startingAmount = playerCount < 5 ? 3 : 4;
+
+        const startingAmount = this.players.length < 5 ? 3 : 4;
         for (let i = OathSuit.Discord; i <= OathSuit.Nomad; i++) {
             const bank = this.addChild(new FavorBank(OathSuit[i] as keyof typeof OathSuit));
             Favor.putOn(bank, startingAmount);
@@ -197,35 +197,34 @@ export class OathGame extends TreeRoot<OathGame> {
 
         this.oath = new OathTypeToOath[OathType[gameData.oath] as keyof typeof OathType]();
         this.chancellor.addChild(this.oath).setup();
-        
+
         this.initialActions();
     }
-
+    
     initialActions() {
         const topCradleSite = this.board.children.byKey(RegionKey.Cradle)[0]!.byClass(Site)[0]!;
         for (const player of this.players) {
             new DrawFromDeckEffect(player, this.worldDeck, 3, true).doNext(cards => {
                 if (player !== this.chancellor)
                     new ChooseSitesAction(
-                        player, "Put your pawn at a faceup site (Hand: " + cards.map(e => e.name).join(", ") + ")",
-                        (sites: Site[]) => { if (sites[0]) new PutPawnAtSiteEffect(player, sites[0]).doNext(); }
-                    ).doNext();
-                else
-                    new PutPawnAtSiteEffect(player, topCradleSite).doNext();
-                
+                player, "Put your pawn at a faceup site (Hand: " + cards.map(e => e.name).join(", ") + ")",
+                (sites: Site[]) => { if (sites[0]) new PutPawnAtSiteEffect(player, sites[0]).doNext(); }
+            ).doNext();
+            else
+                new PutPawnAtSiteEffect(player, topCradleSite).doNext();
+            
                 new SetupChooseAction(player, cards).doNext();
             });
         }
 
         new WakeAction(this.currentPlayer).doNext();
-
         this.actionManager.history.push(new HistoryNode(this.actionManager, this.serialize(true)));
     }
 
     get players() { return this.byClass(OathPlayer); }
     get currentPlayer() { return this.players.byKey(this.order[this.turn]!)[0]!; }
     get oathkeeper() { return this.oath.owner ?? this.chancellor; }
-    
+
     favorBank(suit: OathSuit) {
         return this.byClass(FavorBank).byKey(suit)[0];
     }
@@ -238,7 +237,7 @@ export class OathGame extends TreeRoot<OathGame> {
             const node = stack.pop()!;
             for (const child of node.children)
                 stack.push(child);
-            
+
             if (hasPowers(node) && node.active)
                 for (const power of node.powers)
                     if (isExtended(power, type)) powers.push([node, power]);
@@ -262,7 +261,7 @@ export class OathGame extends TreeRoot<OathGame> {
         if (this.turn !== by) throw new InvalidActionResolution(`Cannot begin an action outside your turn`);
         if (this.phase !== OathPhase.Act) throw new InvalidActionResolution(`Cannot begin an action outside the Act phase`);
         if (this.actionManager.actionsStack.length) throw new InvalidActionResolution("Cannot start an action while other actions are active");
-        
+
         return this.actionManager.startAction(actionName);
     }
 
@@ -322,7 +321,7 @@ export class OathGame extends TreeRoot<OathGame> {
         this.seed = obj.seed;
         this.random.seed = obj.randomSeed;
     }
- 
+
     updateSeed(winner: PlayerColor) {
         this.seed = serializeOathGame({
             version: {
@@ -330,10 +329,10 @@ export class OathGame extends TreeRoot<OathGame> {
                 minor: '3',
                 patch: '3'
             },
-            
+
             chronicleName: this.name,
             gameCount: this.chronicleNumber + 1,
-            
+
             // TODO: Store overall state of Citizenships
             playerCitizenship: { [1]: Citizenship.Exile, [2]: Citizenship.Exile, [3]: Citizenship.Exile, [4]: Citizenship.Exile, [5]: Citizenship.Exile },
             oath: this.oath.key,
@@ -342,7 +341,7 @@ export class OathGame extends TreeRoot<OathGame> {
             world: this.worldDeck.children.map(e => ({ name: e.name })),
             dispossessed: Object.keys(this.dispossessed).map(e => ({ name: e })),
             relics: this.relicDeck.children.map(e => ({ name: e.name })),
-            
+
             prevPlayerCitizenship: { [1]: Citizenship.Exile, [2]: Citizenship.Exile, [3]: Citizenship.Exile, [4]: Citizenship.Exile, [5]: Citizenship.Exile },
             winner: winner
         });
@@ -363,7 +362,7 @@ export class OathGame extends TreeRoot<OathGame> {
         const chunks = data.split('\n\n');
         const setupData = JSON.parse(chunks.shift()!);
         const game = new this(gameId);
-        game.setup(setupData[0], setupData[1]);
+        game.setup(setupData);
         game.actionManager.checkForNextAction();  // Flush the initial actions onto the stack
 
         for (const [i, nodeData] of chunks.entries()) {

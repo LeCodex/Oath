@@ -5,7 +5,13 @@ let gameId = undefined;
 let startOptions = undefined;
 
 const setup = async () => {
-    const seed = window.prompt("Please input a TTS seed");
+    const seed = window.prompt("Please input a TTS seed or game ID");
+    if (seed.length <= 3) {
+        gameId = Number(seed);
+        reload();
+        return;
+    }
+
     const response = await fetch("http://localhost:3000/oath/" + seed, { 
         method: "POST", 
         mode: "cors", 
@@ -86,6 +92,7 @@ const render = () => {
             actionNode.appendChild(renderButton(name, () => startAction(name)));
     }
     actionNode.appendChild(renderButton("Cancel", () => cancelAction()));
+    actionNode.appendChild(renderButton("Reload", () => reload()));
 }
 
 const renderObject = (parent, obj) => {
@@ -266,6 +273,15 @@ const continueAction = async () => {
 const cancelAction = async () => {
     const response = await fetch("http://localhost:3000/oath/" + gameId + "/" + game.turn + "/cancel", { 
         method: "POST", 
+        mode: "cors", 
+        headers: { 'Access-Control-Allow-Origin': '*' }
+    });
+    handleResponse(response);
+}
+
+const reload = async () => {
+    const response = await fetch("http://localhost:3000/oath/" + gameId + "/", { 
+        method: "GET", 
         mode: "cors", 
         headers: { 'Access-Control-Allow-Origin': '*' }
     });

@@ -34,7 +34,7 @@ export class OathService implements OnModuleInit {
 
         // TEMP: Forcefully set the number of players
         const game = new OathGame(id);
-        game.setup(seed, 4);
+        game.setup([seed, 4]);
         this.games.set(id, game);
         
         const obj = game.actionManager.checkForNextAction();
