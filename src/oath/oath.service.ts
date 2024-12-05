@@ -1,12 +1,29 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, OnModuleInit } from '@nestjs/common';
 import { OathGame } from './game/game';
 import { InvalidActionResolution } from "./game/actions/base";
 import { PlayerColor } from './game/enums';
+import * as fs from "fs";
 
 
 @Injectable()
-export class OathService {
+export class OathService implements OnModuleInit {
     games = new Map<number, OathGame>();
+
+    onModuleInit() {
+        console.log(`Loading games`);
+        if (!fs.existsSync("data/oath")) fs.mkdirSync("data/oath");
+        const dir = fs.readdirSync("data/oath");
+        for (const file of dir) {
+            // console.log(`Checking ${file}`);
+            const match = file.match(/save(\d+)\.txt/);
+            if (match) {
+                const id = Number(match[1]);
+                const game = OathGame.load(id, fs.readFileSync("data/oath/" + file).toString());
+                this.games.set(id, game);
+                console.log(`Loaded game ${id}`);
+            }
+        }
+    }
 
     public getGames(): number[] {
         return [...this.games.keys()];
@@ -16,7 +33,7 @@ export class OathService {
         const id = (this.games.size ? Math.max(...this.games.keys()) : 0) + 1;
 
         // TEMP: Forcefully set the number of players
-        const game = new OathGame();
+        const game = new OathGame(id);
         game.setup(seed, 4);
         this.games.set(id, game);
         

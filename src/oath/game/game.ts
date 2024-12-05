@@ -19,12 +19,14 @@ import { hasPowers, SourceType, WithPowers } from "./interfaces";
 import { Favor, OathWarband, Secret } from "./resources";
 import { Reliquary, ReliquarySlot } from "./reliquary";
 import classIndex from "./classIndex";
+import * as fs from "fs";
 
 
 export class OathGame extends TreeRoot<OathGame> {
     type = "root";
     classIndex = classIndex;
 
+    gameId: number;
     random: PRNG;
     
     seed: string;
@@ -49,6 +51,13 @@ export class OathGame extends TreeRoot<OathGame> {
 
     archive: Set<string>;
     dispossessed: Set<string>;
+
+    get setupData() { return [this.seed, this.players.length]; }
+
+    constructor(gameId: number) {
+        super();
+        this.gameId = gameId;
+    }
 
     setup(seed: string, playerCount: number) {    
         this.seed = seed;
@@ -189,7 +198,6 @@ export class OathGame extends TreeRoot<OathGame> {
         this.oath = new OathTypeToOath[OathType[gameData.oath] as keyof typeof OathType]();
         this.chancellor.addChild(this.oath).setup();
         
-        this.actionManager.history.push(new HistoryNode(this.serialize(true)));
         this.initialActions();
     }
 
@@ -210,6 +218,8 @@ export class OathGame extends TreeRoot<OathGame> {
         }
 
         new WakeAction(this.currentPlayer).doNext();
+
+        this.actionManager.history.push(new HistoryNode(this.actionManager, this.serialize(true)));
     }
 
     get players() { return this.byClass(OathPlayer); }
@@ -312,7 +322,7 @@ export class OathGame extends TreeRoot<OathGame> {
         this.seed = obj.seed;
         this.random.seed = obj.randomSeed;
     }
-
+ 
     updateSeed(winner: PlayerColor) {
         this.seed = serializeOathGame({
             version: {
@@ -320,7 +330,7 @@ export class OathGame extends TreeRoot<OathGame> {
                 minor: '3',
                 patch: '3'
             },
-        
+            
             chronicleName: this.name,
             gameCount: this.chronicleNumber + 1,
             
@@ -332,10 +342,37 @@ export class OathGame extends TreeRoot<OathGame> {
             world: this.worldDeck.children.map(e => ({ name: e.name })),
             dispossessed: Object.keys(this.dispossessed).map(e => ({ name: e })),
             relics: this.relicDeck.children.map(e => ({ name: e.name })),
-        
+            
             prevPlayerCitizenship: { [1]: Citizenship.Exile, [2]: Citizenship.Exile, [3]: Citizenship.Exile, [4]: Citizenship.Exile, [5]: Citizenship.Exile },
             winner: winner
         });
+    }
+
+    stringify() {
+        return JSON.stringify(this.setupData) + "\n\n" + this.actionManager.history.map(e => e.stringify()).join("\n\n");
+    }
+
+    get savePath() { return "data/oath/save" + this.gameId + ".txt"; }
+
+    save() {
+        const data = this.stringify();
+        fs.writeFileSync(this.savePath, data);
+    }
+
+    static load(gameId: number, data: string) {
+        const chunks = data.split('\n\n');
+        const setupData = JSON.parse(chunks.shift()!);
+        const game = new this(gameId);
+        game.setup(setupData[0], setupData[1]);
+        game.actionManager.checkForNextAction();  // Flush the initial actions onto the stack
+
+        for (const [i, nodeData] of chunks.entries()) {
+            // console.log(`Resolving chunk ${i}`);
+            const node = new HistoryNode(game.actionManager, game.serialize(true));
+            node.parse(nodeData);
+        }
+
+        return game;
     }
 }
 
