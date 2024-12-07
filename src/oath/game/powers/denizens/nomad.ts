@@ -478,9 +478,12 @@ export class SpellBreaker extends EnemyActionModifier<Denizen, PayPowerCostEffec
     name = "Spell Breaker";
     modifiedAction = PayPowerCostEffect;
 
+    canUse(): boolean {
+        return (this.action.power.cost.totalResources.get(Secret) ?? 0) > 0;
+    }
+
     applyBefore(): void {
-        if (this.action.power.cost.totalResources.get(Secret))
-            throw new InvalidActionResolution("Cannot use powers that cost Secrets under the Spell Breaker");
+        throw new InvalidActionResolution("Cannot use powers that cost Secrets under the Spell Breaker");
     }
 }
 

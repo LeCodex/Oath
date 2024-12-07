@@ -111,10 +111,11 @@ export class ChooseModifiers<T extends ModifiableAction> extends OathAction {
         for (const modifier of ignore) modifiers.delete(modifier);
 
         if (this.action.applyModifiers(modifiers)) {
-            if (this.next instanceof ModifiableAction)
+            if (this.next instanceof ModifiableAction) {
                 this.next.doNextWithoutModifiers();
-            else
+            } else {
                 this.next.doNext();
+            }
         }
     }
 }

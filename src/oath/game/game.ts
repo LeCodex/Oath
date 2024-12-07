@@ -265,10 +265,10 @@ export class OathGame extends TreeRoot<OathGame> {
         return this.actionManager.startAction(actionName);
     }
 
-    checkForOathkeeper(): OathAction | undefined {
+    checkForOathkeeper() {
         const candidates = this.oath.getOathkeeperCandidates();
         if (candidates.has(this.oathkeeper)) return;
-        if (candidates.size)
+        if (candidates.size) {
             new ChoosePlayersAction(
                 this.oathkeeper, "Choose the new Oathkeeper",
                 (targets: OathPlayer[]) => {
@@ -277,6 +277,7 @@ export class OathGame extends TreeRoot<OathGame> {
                     new SetNewOathkeeperEffect(targets[0]).doNext();
                 }
             ).doNext();
+        }
     }
 
     empireWins() {
