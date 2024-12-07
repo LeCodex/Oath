@@ -156,8 +156,9 @@ export class OathActionManager {
 
         const gameState = this.gameState;
         try {
+            const historyNode = new HistoryNode(this, gameState.game, [new StartEvent(this, this.game.currentPlayer.id, this.markEventAsOneWay, actionName)]);
             const data = this.checkForNextAction();
-            this.history.push(new HistoryNode(this, gameState.game, [new StartEvent(this, this.game.currentPlayer.id, this.markEventAsOneWay, actionName)]));
+            this.history.push(historyNode);
             if (save) this.game.save();
             return data;
         } catch (e) {
