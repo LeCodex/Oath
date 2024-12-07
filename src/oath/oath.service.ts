@@ -73,7 +73,16 @@ export class OathService implements OnModuleInit {
 
     public cancelAction(gameId: number, playerColor: keyof typeof PlayerColor): object {
         try {
-            return this._getGame(gameId).actionManager.cancelAction();
+            return this._getGame(gameId).actionManager.cancelAction(playerColor);
+        } catch (e) {
+            if (e instanceof InvalidActionResolution) throw new BadRequestException(e.message);
+            throw e;
+        }
+    }
+
+    public consentToRollback(gameId: number, playerColor: keyof typeof PlayerColor): object {
+        try {
+            return this._getGame(gameId).actionManager.consentToRollback(playerColor);
         } catch (e) {
             if (e instanceof InvalidActionResolution) throw new BadRequestException(e.message);
             throw e;

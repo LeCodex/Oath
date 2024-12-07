@@ -1,8 +1,5 @@
 let game = {};
-let action = undefined;
-let appliedEffects = undefined;
-let gameId = undefined;
-let startOptions = undefined;
+let action, appliedEffects, gameId, startOptions, rollbackConsent;
 
 const setup = async () => {
     const seed = window.prompt("Please input a TTS seed or game ID");
@@ -93,6 +90,17 @@ const render = () => {
     }
     actionNode.appendChild(renderButton("Cancel", () => cancelAction()));
     actionNode.appendChild(renderButton("Reload", () => reload()));
+
+
+    const rollbackNode = document.getElementById("rollback");
+    rollbackNode.innerHTML = "";
+    if (rollbackConsent) {
+        rollbackNode.innerText = "Rollback requires consent";
+        for (const [color, consent] of Object.entries(rollbackConsent)) {
+            if (consent) continue;
+            rollbackNode.appendChild(renderButton(color, () => consentToRollback(color)));
+        };
+    }
 }
 
 const renderObject = (parent, obj) => {
@@ -272,7 +280,16 @@ const continueAction = async () => {
 }
 
 const cancelAction = async () => {
-    const response = await fetch("http://localhost:3000/oath/" + gameId + "/" + game.turn + "/cancel", { 
+    const response = await fetch("http://localhost:3000/oath/" + gameId + "/" + (action?.player ?? game._currentPlayer) + "/cancel", { 
+        method: "POST", 
+        mode: "cors", 
+        headers: { 'Access-Control-Allow-Origin': '*' }
+    });
+    handleResponse(response);
+}
+
+const consentToRollback = async (color) => {
+    const response = await fetch("http://localhost:3000/oath/" + gameId + "/" + color + "/consent", { 
         method: "POST", 
         mode: "cors", 
         headers: { 'Access-Control-Allow-Origin': '*' }
@@ -298,6 +315,7 @@ const handleResponse = async (response) => {
     action = info.activeAction;
     appliedEffects = info.appliedEffects;
     startOptions = info.startOptions;
+    rollbackConsent = info.rollbackConsent;
     render();
     return info;
 }

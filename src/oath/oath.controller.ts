@@ -37,4 +37,10 @@ export class OathController {
     cancelAction(@Param('id', ParseIntPipe) gameId: number, @Param('player') playerColor: keyof typeof PlayerColor): object {
         return this.service.cancelAction(gameId, playerColor);
     }
+
+    @Post(":id/:player/consent")
+    @UsePipes(new ValidationPipe({ transform: true }))
+    consentToRollback(@Param('id', ParseIntPipe) gameId: number, @Param('player') playerColor: keyof typeof PlayerColor): object {
+        return this.service.consentToRollback(gameId, playerColor);
+    }
 }

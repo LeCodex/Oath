@@ -11,7 +11,7 @@ import { OathGameObject } from "../gameObject";
 import { BuildOrRepairEdificeAction, ChooseNewCitizensAction, VowOathAction, RestAction, WakeAction, CampaignResult, SearchDiscardAction, SearchPlayOrDiscardAction, ChooseSuitsAction, ChooseNumberAction } from "./actions";
 import { DiscardOptions } from "../cards/decks";
 import { CardDeck } from "../cards/decks";
-import { Constructor, inclusiveRange, isExtended, TreeNode } from "../utils";
+import { Constructor, inclusiveRange, isExtended } from "../utils";
 import { D6, RollResult, Die } from "../dice";
 import { Region } from "../board";
 import { denizenData, edificeFlipside } from "../cards/denizens";
@@ -405,6 +405,7 @@ export class PeekAtCardEffect extends PlayerEffect {
 
     resolve(): void {
         this.card.seenBy.add(this.executor);
+        this.game.actionManager.markEventAsOneWay = true;
     }
 }
 
@@ -418,6 +419,7 @@ export class RevealCardEffect extends OathEffect {
 
     resolve(): void {
         for (const player of this.game.players) this.card.seenBy.add(player);
+        this.game.actionManager.markEventAsOneWay = true;
     }
 }
 
@@ -741,6 +743,7 @@ export class RollDiceEffect extends OathEffect<RollResult> {
     }
 
     resolve(): void {
+        this.game.actionManager.markEventAsOneWay = true;
         this.result.roll(this.die, this.amount);
     }
 
