@@ -246,6 +246,8 @@ export class OathActionManager {
         this.actionsStack.length = 0;
         this.futureActionsList.length = 0;
         this.currentEffectsStack.length = 0;
+        this.rollbackConsent = undefined;
+        this.markEventAsOneWay = false;
         
         this.game.parse(node.game, true);
         if (this.history.length === 0) {
