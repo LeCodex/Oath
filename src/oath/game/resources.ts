@@ -40,14 +40,14 @@ export class Secret extends OathResource {
         this.prune();
     }
 
-    serialize(lite: boolean = false): Record<string, any> | undefined {
+    liteSerialize() {
         return {
-            ...super.serialize(lite),
+            ...super.liteSerialize(),
             flipped: this.flipped
         };
     }
 
-    parse(obj: Record<string, any>, allowCreation?: boolean): void {
+    parse(obj: ReturnType<this["liteSerialize"]>, allowCreation?: boolean): void {
         super.parse(obj, allowCreation);
         this.flipped = obj.flipped;
     }
@@ -71,14 +71,14 @@ export class OathWarband extends OathGameObjectLeaf<number> {
 
     get key() { return Number(this.id); }
 
-    serialize(lite: boolean = false): Record<string, any> | undefined {
+    liteSerialize() {
         return {
-            ...super.serialize(lite),
+            ...super.liteSerialize(),
             color: this.color
         };
     }
 
-    parse(obj: Record<string, any>, allowCreation?: boolean): void {
+    parse(obj: ReturnType<this["liteSerialize"]>, allowCreation?: boolean): void {
         super.parse(obj, allowCreation);
         this.color = obj.color;
     }
@@ -127,10 +127,10 @@ export abstract class ResourcesAndWarbands<T = any> extends OathGameObject<T> {
             new ParentToTargetEffect(this.game, player, this.getWarbands(player.key), player.bag).doNext();
     }
 
-    serialize(lite: boolean = false): Record<string, any> | undefined {
+    constSerialize(): Record<`_${string}`, any> {
         return {
-            ...super.serialize(lite),
-            ...lite ? {} : { name: this.name }
+            ...super.constSerialize(),
+            _name: this.name
         }
     }
 }

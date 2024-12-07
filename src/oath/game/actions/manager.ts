@@ -2,13 +2,13 @@ import { UsePowerAction, PlayFacedownAdviserAction, MoveWarbandsAction, RestActi
 import { OathAction, OathEffect, InvalidActionResolution } from "./base";
 import { PlayerColor } from "../enums";
 import { OathGame } from "../game";
-import { Constructor } from "../utils";
+import { Constructor, SerializedNode } from "../utils";
 
 
-export class HistoryNode {
+export class HistoryNode<T extends OathActionManager> {
     constructor(
-        public manager: OathActionManager,
-        public game: Record<string, any>,
+        public manager: T,
+        public game: SerializedNode<T["game"]>,
         public events: HistoryEvent[] = []
     ) { }
     
@@ -20,8 +20,8 @@ export class HistoryNode {
         const lines = data.split("\n");
         for (const [i, line] of lines.entries()) {
             // console.log(`   Resolving event ${i}: ${line}`);
-            const lineData = JSON.parse(line) as { name: keyof typeof eventsIndex, player: keyof typeof PlayerColor, data: any };
-            const event = new eventsIndex[lineData.name](this.manager, lineData.player, lineData.data);
+            const {name, player, data} = JSON.parse(line) as { name: keyof typeof eventsIndex, player: keyof typeof PlayerColor, data: any };
+            const event = new eventsIndex[name](this.manager, player, data);
             event.replay();
         }
     }
@@ -88,7 +88,7 @@ export class OathActionManager {
     actionsStack: OathAction[] = [];
     futureActionsList: OathAction[] = [];
     currentEffectsStack: OathEffect<any>[] = [];
-    history: HistoryNode[] = [];
+    history: HistoryNode<this>[] = [];
     startOptions: Record<string, Constructor<OathAction>> = {
         "Muster": MusterAction,
         "Trade": TradeAction,
@@ -109,7 +109,7 @@ export class OathActionManager {
 
     get gameState() {
         return {
-            game: this.game.serialize(true),
+            game: this.game.serialize(true) as SerializedNode<this["game"]>,
             stack: [...this.actionsStack]
         };
     }
@@ -205,12 +205,12 @@ export class OathActionManager {
         
         this.game.parse(node.game, true);
         if (this.history.length === 0) {
-            console.log("Replaying from start");
+            // console.log("Replaying from start");
             this.game.initialActions();
             this.checkForNextAction();  // Flush the initial actions onto the stack
         }
         for (const [i, event] of node.events.entries()) {
-            console.log(`Replaying event ${i}`);
+            // console.log(`Replaying event ${i}`);
             event.replay();
         }
         
@@ -218,9 +218,9 @@ export class OathActionManager {
         return this.checkForNextAction();
     }
 
-    revertCurrentAction(gameState: { game: Record<string, any>, stack: OathAction[] }): void {
-        this.game.parse(gameState.game, true);
-        this.actionsStack = gameState.stack;
+    revertCurrentAction({ game, stack }: this["gameState"]): void {
+        this.game.parse(game, true);
+        this.actionsStack = stack;
         this.currentEffectsStack.length = 0;
     }
 }

@@ -9,6 +9,7 @@ import { CampaignActionTarget } from "../../interfaces";
 import { OathPlayer } from "../../player";
 import { Favor, ResourceCost } from "../../resources";
 import { AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, RestPower, ActivePower, ActionModifier, AccessedActionModifier, EnemyActionModifier, EnemyAttackerCampaignModifier } from "../powers";
+import { SerializedNode } from "../../utils";
 
 
 export class LongbowsAttack extends AttackerBattlePlan<Denizen> {
@@ -304,10 +305,6 @@ export class RelicWrapper extends OathGameObject<Relic["key"]> implements Campai
 
     seize(player: OathPlayer): void {
         this.relic.seize(player);
-    }
-
-    serialize(): Record<string, any> | undefined {
-        return this.relic.serialize();
     }
 }
 

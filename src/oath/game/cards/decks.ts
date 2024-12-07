@@ -26,10 +26,10 @@ export abstract class CardDeck<T extends OathCard, U = any> extends Container<T,
         this.game.random.shuffleArray(this.children);
     }
 
-    serialize(lite: boolean = false): Record<string, any> | undefined {
+    constSerialize(): Record<`_${string}`, any> {
         return {
-            ...super.serialize(lite),
-            ...lite ? {} : { name: this.name }
+            ...super.constSerialize(),
+            _name: this.name
         };
     }
 }
@@ -51,10 +51,10 @@ export abstract class SearchableDeck<T = any> extends CardDeck<WorldCard, T> {
         super(id, WorldCard);
     }
 
-    serialize(lite: boolean = false): Record<string, any> | undefined {
+    constSerialize(): Record<`_${string}`, any> {
         return {
-            ...super.serialize(lite),
-            ...lite ? {} : { searchCost: this.searchCost }
+            ...super.constSerialize(),
+            _searchCost: this.searchCost
         };
     }
 }
@@ -89,14 +89,14 @@ export class WorldDeck extends SearchableDeck<string> {
         return card;
     }
 
-    serialize(lite: boolean = false): Record<string, any> | undefined {
+    liteSerialize() {
         return {
-            ...super.serialize(lite),
+            ...super.liteSerialize(),
             visionsDrawn: this.visionsDrawn
         };
     }
 
-    parse(obj: Record<string, any>, allowCreation?: boolean): void {
+    parse(obj: ReturnType<this["liteSerialize"]>, allowCreation?: boolean): void {
         super.parse(obj, allowCreation);
         this.visionsDrawn = obj.visionsDrawn;
     }

@@ -53,7 +53,7 @@ const render = () => {
     const infoNode = document.getElementById("info");
     infoNode.innerText = "[SUPPLY]";
     for (const obj of game.children) {
-        if (obj.type === "player" || obj.type === "board") continue;
+        if (obj._type === "player" || obj._type === "board") continue;
         renderObject(infoNode, obj);
     }
 
@@ -75,7 +75,7 @@ const render = () => {
     const actionNode = document.getElementById("action");
     actionNode.innerHTML = "";
     if (action) {
-        actionNode.innerText = "[" + action.message + "] (" + byType(game, "player").filter(e => e.id === action.player)[0].name + ")";
+        actionNode.innerText = "[" + action.message + "] (" + byType(game, "player").filter(e => e.id === action.player)[0]._name + ")";
         if (action.modifiers?.length) actionNode.appendChild(renderText("Modifiers: " + action.modifiers.join(", ")));
         for (const [k, select] of Object.entries(action.selects)) {
             const selectNode = actionNode.appendChild(renderText(select.name + ` (${select.min}-${select.max})`));
@@ -96,12 +96,12 @@ const render = () => {
 }
 
 const renderObject = (parent, obj) => {
-    if (obj.hidden) return;
+    if (obj._hidden) return;
 
     let node, autoAppendChildren = true;
-    switch (obj.type) {
+    switch (obj._type) {
         case "player":
-            node = renderText(obj.name + " (Supply: " + obj.supply + ")" + (obj.isCitizen ? " 💜" : "") + (game.currentPlayer == obj.id ? " 🔄" : ""));
+            node = renderText(obj._name + " (Supply: " + obj.supply + ")" + (obj.isCitizen ? " 💜" : "") + (game._currentPlayer == obj.id ? " 🔄" : ""));
             break;
         
         case "board":
@@ -127,11 +127,11 @@ const renderObject = (parent, obj) => {
             break;
         
         case "banner":
-            node = renderText("🏳️ " + obj.name + ":");
+            node = renderText("🏳️ " + obj._name + ":");
             break;
                 
         case "deck":
-            node = renderDeck(obj, obj.name, obj.class === "Discard");
+            node = renderDeck(obj, obj._name, obj.class === "Discard");
             autoAppendChildren = false;
             break;
         
@@ -142,7 +142,7 @@ const renderObject = (parent, obj) => {
             node = renderText("Reliquary:");
             break;
         case "reliquarySlot":
-            node = renderText(obj.name);
+            node = renderText(obj._name);
             break;
         case "visionSlot":
             if (obj.children?.length) node = renderText("Vision:")
@@ -157,7 +157,7 @@ const renderObject = (parent, obj) => {
             break;
         
         default:
-            node = renderText(`UNHANDLED ${obj.type} (${obj.id})`);
+            node = renderText(`UNHANDLED ${obj._type} (${obj.id})`);
     }
 
     if (!node) return;
@@ -177,10 +177,11 @@ const renderObject = (parent, obj) => {
 const renderCard = (card) => {
     const cardNode = document.createElement("li");
     cardNode.id = "card" + card.id;
-    if (card.type === "relic") cardNode.innerText += "🧰 "
-    if (card.type === "site") cardNode.innerText += "🗺️ "
-    cardNode.innerText += (card.facedown ? card.type === "vision" ? "👁️ " : "❔ " : "")
-    cardNode.innerText += (!card.facedown || card.seenBy?.includes(game.order[game.turn]) ? (card.suit !== undefined ? suitColors[card.suit] + " " : "") + card.name : "");
+    if (card._type === "relic") cardNode.innerText += "🧰 ";
+    if (card._type === "site") cardNode.innerText += "🗺️ ";
+    cardNode.innerText += (card.facedown ? card._type === "vision" ? "👁️ " : "❔ " : "");
+    cardNode.innerText += (card._locked ? "🔗" : "");
+    cardNode.innerText += (!card.facedown || card.seenBy?.includes(game.order[game.turn]) ? (card._suit !== undefined ? suitColors[card._suit] + " " : "") + card._name : "");
     return cardNode;
 }
 
@@ -188,13 +189,13 @@ const renderDeck = (deck, name, separateVisions = false) => {
     const deckNode = document.createElement("li");
     deckNode.id = name;
     deckNode.innerText = name + " (" + deck.children.length + ")";
-    if (deck.searchCost) deckNode.innerText += " : " + deck.searchCost + " Supply";
+    if (deck._searchCost !== undefined) deckNode.innerText += " : " + deck._searchCost + " Supply";
 
-    let topCardVision = deck.children[0]?.type === "vision";
+    let topCardVision = deck.children[0]?._type === "vision";
     const deckList = deckNode.appendChild(document.createElement("ul"));
     let facedownTotal = 0;
     for (const card of deck.children) {
-        if (card.facedown && !card.seenBy?.includes(game.order[game.turn]) && !(separateVisions && card.type === "vision")) {
+        if (card.facedown && !card.seenBy?.includes(game.order[game.turn]) && !(separateVisions && card._type === "vision")) {
             facedownTotal++;
         } else {
             if (facedownTotal) deckList.appendChild(renderText(facedownTotal + (topCardVision ? " 👁️" : " ❔")));
@@ -209,11 +210,11 @@ const renderDeck = (deck, name, separateVisions = false) => {
 }
 
 const byType = (obj, type) => {
-    return obj.children.filter(e => e.type === type);
+    return obj.children.filter(e => e._type === type);
 }
 
 const sortedChildren = (obj) => {
-    return obj.children.sort((a, b) => b.type.localeCompare(a.type));
+    return obj.children.sort((a, b) => b._type.localeCompare(a._type));
 }
 
 const renderText = (text) => {
@@ -244,7 +245,7 @@ const renderCheckbox = (key, text, checked=false) => {
 
 
 const startAction = async (actionName) => {
-    const response = await fetch("http://localhost:3000/oath/" + gameId + "/" + game.currentPlayer + "/start/" + actionName, { 
+    const response = await fetch("http://localhost:3000/oath/" + gameId + "/" + game._currentPlayer + "/start/" + actionName, { 
         method: "POST", 
         mode: "cors", 
         headers: { 'Access-Control-Allow-Origin': '*' }

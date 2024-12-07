@@ -59,11 +59,11 @@ export abstract class Banner<T extends OathResource = OathResource> extends Cont
 
     abstract handleRecovery(player: OathPlayer): void;
 
-    serialize(lite: boolean = false): Record<string, any> | undefined {
+    constSerialize(): Record<`_${string}`, any> {
         return {
-            ...super.serialize(lite),
-            ...lite ? {} : { name: this.name }
-        };
+            ...super.constSerialize(),
+            _name: this.name
+        }
     }
 }
 
@@ -97,14 +97,14 @@ export class PeoplesFavor extends Banner<Favor> {
         ).doNext();
     }
 
-    serialize(lite: boolean = false): Record<string, any> {
+    liteSerialize() {
         return {
-            ...super.serialize(lite),
+            ...super.liteSerialize(),
             isMob: this.isMob
         };
     }
 
-    parse(obj: Record<string, any>, allowCreation?: boolean): void {
+    parse(obj: ReturnType<this["liteSerialize"]>, allowCreation?: boolean): void {
         super.parse(obj, allowCreation);
         this.isMob = obj.isMob;
     }

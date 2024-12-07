@@ -325,28 +325,43 @@ export abstract class TreeNode<RootType extends TreeRoot<RootType>, KeyType = an
         return `${this.constructor.name}(${this.id})`;
     }
 
-    /** Serializes the node into an object. If `lite` is true, only the necessary properties are recorded. */
-    serialize(lite: boolean = false): Record<string, any> | undefined {
+    /** Serialize the node into a simple object. If `lite` is true, only the necessary properties are recorded. */
+    serialize(lite: boolean = false): SerializedNode<this> {
         const obj = {
-            class: this.constructor.name,
-            id: this.id,
+            ...this.liteSerialize(),
             children: this.children.map(e => e.serialize(lite)).filter(e => e !== undefined),
-            ...lite ? {} : {
-                type: this.type,
-                hidden: this.hidden,
-            }
-        } as Record<string, any>;
-        if (obj.children.length === 0) delete obj.children;
+            ...lite ? {} : this.constSerialize()
+        } as SerializedNode<this>;
+        if (obj.children?.length === 0) delete obj.children;
         return obj;
     }
 
-    parse(obj: Record<string, any>, allowCreation: boolean = false) {
+    /** Serialize the data necessary for parsing (what is returned in a lite serialization). */
+    liteSerialize() {
+        return {
+            class: this.constructor.name,
+            id: this.id
+        };
+    }
+
+    /** Serialize the data that isn't taken into account for parsing (what is excluded in a lite serialization) */
+    constSerialize(): Record<`_${string}`, any> {
+        return {
+            _type: this.type,
+            _hidden: this.hidden,
+        };
+    }
+
+    parse(obj: ReturnType<this["liteSerialize"]>, allowCreation: boolean = false) {
         if (obj.class !== this.constructor.name) throw TypeError(`Class parsing doesn't match: expected ${this.constructor.name}, got ${obj.class}`);
         if (obj.id !== this.id) throw TypeError(`Id parsing doesn't match: expected ${this.id}, got ${obj.id}`);
 
-        if (!obj.children) return;
+        // Ugly type casting, since recursive types with generic parameters cause "type serialization is too deep" errors,
+        // and I want the child classes to use ReturnType<this["liteSerialize"]>
+        let objWithChildren = obj as SerializedNode<this>;
+        if (!objWithChildren.children) return;
 
-        for (const [i, child] of obj.children.entries()) {
+        for (const [i, child] of objWithChildren.children.entries()) {
             let node = this.root.search(child.class, child.id);
             if (!node) {
                 console.warn(`Didn't find node of class ${child.class} and id ${child.id}`);
@@ -358,6 +373,8 @@ export abstract class TreeNode<RootType extends TreeRoot<RootType>, KeyType = an
         }
     }
 }
+
+export type SerializedNode<T> = T extends TreeNode<any> ? ReturnType<T["liteSerialize"]> & ReturnType<T["constSerialize"]> & { children?: SerializedNode<TreeNode<any>>[] } : never
 
 export abstract class TreeRoot<RootType extends TreeRoot<RootType>> extends TreeNode<RootType, "root"> {
     parent = this;

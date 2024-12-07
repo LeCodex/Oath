@@ -56,21 +56,20 @@ export abstract class OathCard extends ResourcesAndWarbands<string> implements W
 
     abstract accessibleBy(player: OathPlayer): boolean;
 
-    serialize(lite: boolean = false): Record<string, any> | undefined {
+    liteSerialize() {
         const obj = {
-            ...super.serialize(lite),
+            ...super.liteSerialize(),
             facedown: this.facedown,
-            seenBy: [...this.seenBy].map(e => e.key)
-        } as Record<string, any>;
-
-        if (obj.seenBy.length === 0) delete obj.seenBy;
+            seenBy: [...this.seenBy].map(e => e.key) as PlayerColor[] | undefined
+        };
+        if (obj.seenBy?.length === 0) delete obj.seenBy;
         return obj;
     }
 
-    parse(obj: Record<string, any>, allowCreation?: boolean): void {
+    parse(obj: ReturnType<this["liteSerialize"]>, allowCreation?: boolean): void {
         super.parse(obj, allowCreation);
         this.facedown = obj.facedown;
-        this.seenBy = new Set(obj.seenBy ? this.game.players.filter(e => obj.seenBy.includes(e.key)) : []);
+        this.seenBy = new Set(obj.seenBy ? this.game.players.filter(e => obj.seenBy?.includes(e.key)) : []);
     }
 }
 
@@ -154,14 +153,12 @@ export class Site extends OathCard implements CampaignActionTarget {
         new CampaignSeizeSiteAction(player, this).doNext();
     }
 
-    serialize(lite: boolean = false): Record<string, any> | undefined {
+    constSerialize(): Record<`_${string}`, any> {
         return {
-            ...super.serialize(lite),
-            ...lite ? {} : {
-                capacity: this.capacity,
-                recoverCost: this.recoverCost.serialize(),
-                recoverSuit: this.recoverSuit
-            }
+            ...super.constSerialize(),
+            _capacity: this.capacity,
+            _recoverCost: this.recoverCost.serialize(),
+            _recoverSuit: this.recoverSuit
         };
     }
 }
@@ -268,14 +265,12 @@ export class Denizen extends WorldCard implements AtSite {
             new ParentToTargetEffect(this.game, this.game.currentPlayer, favor, this.game.byClass(FavorBank).byKey(this.suit)[0]).doNext();
     }
 
-    serialize(lite: boolean = false): Record<string, any> {
+    constSerialize(): Record<`_${string}`, any> {
         return {
-            ...super.serialize(lite),
-            ...lite ? {} : {
-                suit: OathSuit[this._suit],
-                restriction: this.restriction,
-                locked: this.activelyLocked
-            }
+            ...super.constSerialize(),
+            _suit: OathSuit[this._suit],
+            _restriction: this.restriction,
+            _locked: this.activelyLocked
         };
     }
 }

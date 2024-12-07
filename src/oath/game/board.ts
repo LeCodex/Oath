@@ -36,10 +36,10 @@ export class OathBoard extends Container<Region, string> {
                 yield site; 
     }
 
-    serialize(lite: boolean = false): Record<string, any> {
+    constSerialize(): Record<`_${string}`, any> {
         return {
-            ...super.serialize(lite),
-            ...lite ? {} : { travelCosts: [...this.travelCosts.entries()].map(([k, v]) => [k, [...v.entries()]]) }
+            ...super.constSerialize(),
+            _travelCosts: [...this.travelCosts.entries()].map(([k, v]) => [k, [...v.entries()]])
         }
     }
 }

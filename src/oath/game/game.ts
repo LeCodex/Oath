@@ -59,8 +59,8 @@ export class OathGame extends TreeRoot<OathGame> {
 
     get setupData(): [string, number] { return [this.seed, this.players.length]; }
 
-    setup(data: typeof this["setupData"]) {
-        this.seed = data[0];
+    setup([seed, playerCount]: this["setupData"]) {
+        this.seed = seed;
         this.random = new PRNG();
 
         this.worldDeck = this.addChild(new WorldDeck());
@@ -82,8 +82,8 @@ export class OathGame extends TreeRoot<OathGame> {
         this.dispossessed = new Set();
 
         for (const cardData of gameData.dispossessed) {
-            const existing = this.archive.delete(cardData.name);
-            if (existing) this.dispossessed.add(cardData.name);
+            this.archive.delete(cardData.name);
+            this.dispossessed.add(cardData.name);
         }
 
         for (const cardData of gameData.world) {
@@ -121,7 +121,7 @@ export class OathGame extends TreeRoot<OathGame> {
         for (let i = 0; i < 4; i++)
             this.chancellor.reliquary.addChild(new ReliquarySlot(String(i))).getRelic();
 
-        for (let i: PlayerColor = PlayerColor.Red; i < data[1]; i++) {
+        for (let i: PlayerColor = PlayerColor.Red; i < playerCount; i++) {
             const id = PlayerColor[i] as keyof typeof PlayerColor;
             const exile = this.addChild(new Exile(id));
             exile.visionSlot = exile.addChild(new VisionSlot(id));
@@ -207,11 +207,11 @@ export class OathGame extends TreeRoot<OathGame> {
             new DrawFromDeckEffect(player, this.worldDeck, 3, true).doNext(cards => {
                 if (player !== this.chancellor)
                     new ChooseSitesAction(
-                player, "Put your pawn at a faceup site (Hand: " + cards.map(e => e.name).join(", ") + ")",
-                (sites: Site[]) => { if (sites[0]) new PutPawnAtSiteEffect(player, sites[0]).doNext(); }
-            ).doNext();
-            else
-                new PutPawnAtSiteEffect(player, topCradleSite).doNext();
+                        player, "Put your pawn at a faceup site (Hand: " + cards.map(e => e.name).join(", ") + ")",
+                        (sites: Site[]) => { if (sites[0]) new PutPawnAtSiteEffect(player, sites[0]).doNext(); }
+                    ).doNext();
+                else
+                    new PutPawnAtSiteEffect(player, topCradleSite).doNext();
             
                 new SetupChooseAction(player, cards).doNext();
             });
@@ -290,9 +290,9 @@ export class OathGame extends TreeRoot<OathGame> {
         ).doNext();
     }
 
-    serialize(lite: boolean = false): Record<string, any> {
+    liteSerialize() {
         return {
-            ...super.serialize(lite),
+            ...super.liteSerialize(),
             name: this.name,
             chronicleNumber: this.chronicleNumber,
             isUsurper: this.isUsurper,
@@ -302,14 +302,18 @@ export class OathGame extends TreeRoot<OathGame> {
             order: this.order,
             seed: this.seed,
             randomSeed: this.random.seed,
-            ...lite ? {} : {
-                currentPlayer: this.currentPlayer.id,
-                oathkeeper: this.oathkeeper.key,
-            }
+        };
+    } 
+    
+    constSerialize(): Record<`_${string}`, any> {
+        return {
+            ...super.constSerialize(),
+            _currentPlayer: this.currentPlayer.id,
+            _oathkeeper: this.oathkeeper.key,
         }
     }
 
-    parse(obj: Record<string, any>, allowCreation: boolean = false) {
+    parse(obj: ReturnType<this["liteSerialize"]>, allowCreation: boolean = false) {
         super.parse(obj, allowCreation);
         this.name = obj.name;
         this.chronicleNumber = obj.chronicleNumber;
@@ -374,4 +378,3 @@ export class OathGame extends TreeRoot<OathGame> {
         return game;
     }
 }
-

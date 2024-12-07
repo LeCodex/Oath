@@ -50,10 +50,10 @@ export class ReliquarySlot extends Container<Relic, number> implements WithPower
 
     get key() { return Number(this.id); }
 
-    serialize(lite: boolean = false): Record<string, any> | undefined {
+    constSerialize(): Record<`_${string}`, any> {
         return {
-            ...super.serialize(lite),
-            ...lite ? {} : { name: this.name }
+            ...super.constSerialize(),
+            _name: this.name
         };
     }
 }

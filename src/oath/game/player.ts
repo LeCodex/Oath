@@ -132,16 +132,15 @@ export abstract class OathPlayer extends ResourcesAndWarbands<PlayerColor> imple
         new FlipSecretsEffect(this.game, this, Infinity, false).doNext();
     }
 
-    serialize(lite: boolean = false): Record<string, any> {
+    liteSerialize() {
         return {
-            ...super.serialize(lite),
+            ...super.liteSerialize(),
             supply: this.supply,
-            site: this.site?.id,
-            ...lite ? {} : { name: this.name },
-        };
+            site: this.site?.id
+        }
     }
 
-    parse(obj: Record<string, any>, allowCreation?: boolean): void {
+    parse(obj: ReturnType<this["liteSerialize"]>, allowCreation?: boolean): void {
         super.parse(obj, allowCreation);
         this.supply = obj.supply;
         const site = this.game.search(Site, obj.site);
@@ -219,14 +218,14 @@ export class Exile extends OathPlayer {
         new GainSupplyEffect(this, amount).doNext();
     }
 
-    serialize(lite: boolean = false): Record<string, any> {
+    liteSerialize() {
         return {
-            ...super.serialize(lite),
+            ...super.liteSerialize(),
             isCitizen: this.isCitizen
         };
     }
 
-    parse(obj: Record<string, any>, allowCreation?: boolean): void {
+    parse(obj: ReturnType<this["liteSerialize"]>, allowCreation?: boolean): void {
         super.parse(obj, allowCreation);
         this.isCitizen = obj.isCitizen;
     }
