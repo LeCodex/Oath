@@ -486,7 +486,7 @@ export class Bewitch extends WhenPlayed<Denizen> {
 
     whenPlayed(): void {
         if (this.action.executorProxy.getAllResources(Secret) > this.gameProxy.chancellor.byClass(Secret).length)
-            new MakeDecisionAction(this.action.executor, "Become a Citizen?", () => new BecomeCitizenEffect(this.action.executor).doNext());
+            new MakeDecisionAction(this.action.executor, "Become a Citizen?", () => new BecomeCitizenEffect(this.action.executor).doNext()).doNext();
     }
 }
 
@@ -620,6 +620,6 @@ export class FallenSpire extends ActivePower<Edifice> {
                     value--;
                 }
             }
-        )
+        ).doNext();
     }
 }

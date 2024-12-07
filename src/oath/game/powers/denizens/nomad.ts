@@ -133,7 +133,7 @@ export class WildMountsReplace extends ActionModifier<Denizen, DiscardCardEffect
                 new ChooseCardsAction(
                     this.action.player, "Choose a Beast card to discard instead",
                     [ruledBeastCards],
-                    (cards: Denizen[]) => { if (cards[0]) new DiscardCardEffect(this.action.player, cards[0], this.action.discardOptions); }
+                    (cards: Denizen[]) => { if (cards[0]) new DiscardCardEffect(this.action.player, cards[0], this.action.discardOptions).doNext(); }
                 ).doNext();
             }
             return false;
@@ -220,7 +220,7 @@ export class Hospitality extends ActionModifier<Denizen, TravelAction> {
     applyAfter(): void {
         const adviserSuits = [...this.activatorProxy.advisers].filter(e => e instanceof Denizen).map(e => e.suit);
         const suits = [...this.action.siteProxy.denizens].map(e => e.suit).filter(e => adviserSuits.includes(e));
-        if (suits.length) new TakeFavorFromBankAction(this.activator, 1, suits);
+        if (suits.length) new TakeFavorFromBankAction(this.activator, 1, suits).doNext();
     }
 }
 
@@ -435,7 +435,7 @@ export class Convoys extends ActivePower<Denizen> {
                 const discardOptions = new DiscardOptions(discard);
                 new DiscardCardGroupEffect(this.action.player, region.discard.children, discardOptions).doNext();
             }
-        )
+        ).doNext();
     }
 }
 
@@ -454,7 +454,7 @@ export class Resettle extends ActivePower<Denizen> {
                         if (!sites[0]) return;
                         new MoveDenizenToSiteEffect(this.game, this.action.player, cards[0]!, sites[0]).doNext();
                     }
-                )
+                ).doNext();
             }
         ).doNext();
     }
@@ -519,7 +519,7 @@ export class AncientPact extends WhenPlayed<Denizen> {
             new ParentToTargetEffect(this.game, this.action.executor, [darkestSecretProxy.original], this.game.chancellor).doNext();
             new BecomeCitizenEffect(this.action.executor).doNext();
             new TakeReliquaryRelicAction(this.action.executor).doNext();
-        });
+        }).doNext();
     }
 }
 
@@ -623,7 +623,7 @@ export class TheGathering extends WhenPlayed<Denizen> {
             for (const player of participants) {
                 new StartBindingExchangeAction(player, TheGatheringOfferAction, participants).doNext();
             }
-        });
+        }).doNext();
     }
 }
 

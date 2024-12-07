@@ -556,7 +556,7 @@ export class SneakAttack extends EnemyActionModifier<Denizen, CampaignEndAction>
         new MakeDecisionAction(
             ruler, "Campaign against " + this.action.player.name + "?",
             () => { new CampaignAttackAction(ruler, this.action.player).doNext(); }
-        )
+        ).doNext();
     }
 }
 

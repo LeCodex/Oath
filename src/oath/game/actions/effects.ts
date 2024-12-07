@@ -1383,7 +1383,6 @@ export class FinishChronicleEffect extends PlayerEffect {
                 card.prune();
                 this.game.dispossessed.add(card.name);
             }
-
             effect.doNext(callback);
         }
 

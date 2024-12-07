@@ -93,10 +93,10 @@ export class StickyFireAttack extends AttackerBattlePlan<Relic> {
         const defender = this.action.campaignResult.defender;
         if (!defender) return;
 
-        this.action.campaignResult.onAttackWin( () => new MakeDecisionAction(this.action.player, "Use Sticky Fire?", () => { 
+        this.action.campaignResult.onAttackWin(() => new MakeDecisionAction(this.action.player, "Use Sticky Fire?", () => { 
             this.action.campaignResult.defenderKills(Infinity);
             new MoveResourcesToTargetEffect(this.game, this.action.player, Favor, 1, defender).doNext();
-        }));
+        }).doNext());
     }
 }
 export class StickyFireDefense extends DefenderBattlePlan<Relic> {
@@ -104,10 +104,10 @@ export class StickyFireDefense extends DefenderBattlePlan<Relic> {
 
     applyBefore(): void {
         const attacker = this.action.campaignResult.attacker;
-        this.action.campaignResult.onAttackWin( () => new MakeDecisionAction(this.action.player, "Use Sticky Fire?", () => { 
+        this.action.campaignResult.onAttackWin(() => new MakeDecisionAction(this.action.player, "Use Sticky Fire?", () => { 
             this.action.campaignResult.attackerKills(Infinity);
             new MoveResourcesToTargetEffect(this.game, this.action.player, Favor, 1, attacker).doNext();
-        }));
+        }).doNext());
     }
 }
 
@@ -115,7 +115,7 @@ export class CursedCauldronAttack extends AttackerBattlePlan<Relic> {
     name = "Cursed Cauldron";
 
     applyBefore(): void {
-        this.action.campaignResult.onAttackWin( () =>
+        this.action.campaignResult.onAttackWin(() =>
             new ParentToTargetEffect(this.game, this.activator, this.activatorProxy.leader.bag.original.get(this.action.campaignResult.loserLoss)).doNext()
         );
     }
@@ -124,7 +124,7 @@ export class CursedCauldronDefense extends DefenderBattlePlan<Relic> {
     name = "Cursed Cauldron";
 
     applyBefore(): void {
-        this.action.campaignResult.onAttackWin( () => 
+        this.action.campaignResult.onAttackWin(() => 
             new ParentToTargetEffect(this.game, this.activator, this.activatorProxy.leader.bag.original.get(this.action.campaignResult.loserLoss)).doNext()
         );
     }
@@ -137,7 +137,7 @@ export class ObsidianCageAttack extends AttackerBattlePlan<Relic> {
         const defender = this.action.campaignResult.defender;
         if (!defender) return;
 
-        this.action.campaignResult.onAttackWin( () => {
+        this.action.campaignResult.onAttackWin(() => {
             new ParentToTargetEffect(this.game, this.activator, defender.byClass(OathWarband), this.source).doNext();
         });
     }
@@ -147,7 +147,7 @@ export class ObsidianCageDefense extends DefenderBattlePlan<Relic> {
 
     applyBefore(): void {
         const attacker = this.action.campaignResult.attacker;
-        this.action.campaignResult.onAttackWin( () => {
+        this.action.campaignResult.onAttackWin(() => {
             new ParentToTargetEffect(this.game, this.activator, attacker.byClass(OathWarband), this.source).doNext();
         });
     }
@@ -280,7 +280,7 @@ export class DowsingSticks extends ActivePower<Relic> {
                 this.action.player, "Keep the relic?",
                 () => new TakeOwnableObjectEffect(this.game, this.action.player, relic).doNext(),
                 () => relic.putOnBottom(this.action.player)
-            );
+            ).doNext();
         });
     }
 }
@@ -385,7 +385,7 @@ export class Whistle extends ActivePower<Relic> {
                 new MoveResourcesToTargetEffect(this.game, this.action.player, Secret, 1, targets[0], this.source).doNext();
             },
             [this.gameProxy.players.filter(e => e.site !== this.action.playerProxy.site).map(e => e.original)]
-        )
+        ).doNext();
     }
 }
 

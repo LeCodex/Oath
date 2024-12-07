@@ -151,15 +151,15 @@ export class OathActionManager {
 
         this.markEventAsOneWay = false;
         this.currentEffectsStack.length = 0;
+        this.rollbackConsent = undefined;
         new action(this.game.currentPlayer).doNext();
         
+        const playerColor = this.game.currentPlayer.id;
         const gameState = this.gameState;
         try {
-            const historyNode = new HistoryNode(this, gameState.game, [new StartEvent(this, this.game.currentPlayer.id, this.markEventAsOneWay, actionName)]);
             const data = this.checkForNextAction();
-            this.history.push(historyNode);
+            this.history.push(new HistoryNode(this, gameState.game, [new StartEvent(this, playerColor, this.markEventAsOneWay, actionName)]));
             if (save) this.game.save();
-            this.rollbackConsent = undefined;
             return data;
         } catch (e) {
             this.revertCurrentAction(gameState);
@@ -183,6 +183,7 @@ export class OathActionManager {
 
         this.markEventAsOneWay = false;
         this.currentEffectsStack.length = 0;
+        this.rollbackConsent = undefined;
         const parsed = action.parse(values);
         action.applyParameters(parsed);
         
@@ -191,7 +192,6 @@ export class OathActionManager {
             const data = this.resolveTopAction();
             this.history[this.history.length - 1]?.events.push(new ContinueEvent(this, playerColor, this.markEventAsOneWay, values));
             if (save) this.game.save();
-            this.rollbackConsent = undefined;
             return data;
         } catch (e) {
             this.revertCurrentAction(gameState);

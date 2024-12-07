@@ -559,7 +559,7 @@ export class Palanquin extends ActivePower<Denizen> {
                         travelAction.noSupplyCost = true;
                         travelAction.doNext();
                     }
-                )
+                ).doNext();
             },
             [this.gameProxy.players.filter(e => e !== this.action.playerProxy && e.site.region === this.action.playerProxy.site.region).map(e => e.original)]
         ).doNext();
