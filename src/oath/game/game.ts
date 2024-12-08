@@ -275,7 +275,8 @@ export class OathGame extends TreeRoot<OathGame> {
                     if (!targets[0]) return;
                     new SetUsurperEffect(this, false).doNext();
                     new SetNewOathkeeperEffect(targets[0]).doNext();
-                }
+                },
+                [candidates]
             ).doNext();
         }
     }

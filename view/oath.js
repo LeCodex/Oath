@@ -171,7 +171,7 @@ const renderObject = (parent, obj) => {
     if (!node) return;
 
     if (autoAppendChildren && obj.children) {
-        node.innerText += " " + byType(obj, "resource").map(e => e.class === "Favor" ? "🟡" : e.flipped ? "📖" : "📘").join("");
+        node.innerText += " " + byType(obj, "resource").sort((a, b) => a.class.localeCompare(b.class)).map(e => e.class === "Favor" ? "🟡" : e.flipped ? "📖" : "📘").join("");
         node.innerText += " " + byType(obj, "warband").map(e => warbandsColors[e.color]).join("");
         const list = node.appendChild(document.createElement("ul"));
         for (const child of sortedChildren(obj)) {

@@ -77,18 +77,18 @@ export class PeoplesFavor extends Banner<Favor> {
     }
 
     handleRecovery(player: OathPlayer) {
+        let amount = this.amount;
         new SetPeoplesFavorMobState(this.game, player, false).doNext();
         new ChooseSuitsAction(
-            player, "Choose where to start returning the favor (" + this.amount + ")",
+            player, "Choose where to start returning the favor (" + amount + ")",
             (suits: OathSuit[]) => {
                 let suit = suits[0];
                 if (suit === undefined) return;
 
-                let amount = this.amount;
                 while (amount > 0) {
                     const bank = this.game.byClass(FavorBank).byKey(suit)[0];
                     if (bank) {
-                        new MoveResourcesToTargetEffect(this.game, player, bank.cls, 1, bank).doNext();
+                        new MoveResourcesToTargetEffect(this.game, player, bank.cls, 1, bank, this).doNext();
                         amount--;
                     }
                     if (++suit > OathSuit.Nomad) suit = OathSuit.Discord;

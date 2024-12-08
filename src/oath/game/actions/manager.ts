@@ -125,10 +125,10 @@ export class OathActionManager {
     get activePlayer() { return this.actionsStack[this.actionsStack.length - 1]?.player ?? this.game.currentPlayer; }
  
     checkForNextAction(): Record<string, any> {
+        if (!this.actionsStack.length && !this.futureActionsList.length) this.game.checkForOathkeeper();
+
         for (const action of this.futureActionsList) this.actionsStack.push(action);
         this.futureActionsList.length = 0;
-
-        if (!this.actionsStack.length) this.game.checkForOathkeeper();
         let action = this.actionsStack[this.actionsStack.length - 1];
 
         let continueNow = action?.start();
@@ -221,7 +221,7 @@ export class OathActionManager {
         }
         if (!lastNode || lastNode.events.length === 0) throw new InvalidActionResolution("Cannot roll back");
         let lastEvent = lastNode.events[lastNode.events.length - 1]!;
-        if (lastEvent.player !== this.activePlayer.id) {
+        if (lastEvent.player !== this.activePlayer.id || lastEvent.oneWay) {
             this.rollbackConsent = Object.fromEntries(this.game.players.map(e => [e.id, e.id === playerColor]));
             return this.checkForNextAction();
         }
