@@ -907,13 +907,13 @@ export class BecomeCitizenEffect extends PlayerEffect {
     resolve(): void {
         if (!(this.executor instanceof Exile) || this.executor.isCitizen) return;
         
-        const amount = this.executor.getWarbandsAmount(this.executor.key);
-        new ParentToTargetEffect(this.game, this.executor, this.executor.getWarbands(this.executor.key), this.executor.bag).doNext();
-        new ParentToTargetEffect(this.game, this.game.chancellor, this.game.chancellor.bag.get(amount), this.executor).doNext();
-        for (const site of this.game.board.sites()) {
-            const amount = site.getWarbandsAmount(this.executor.key);
-            new ParentToTargetEffect(this.game, this.executor, site.getWarbands(this.executor.key), this.executor.bag).doNext();
-            new ParentToTargetEffect(this.game, this.game.chancellor, this.game.chancellor.bag.get(amount), site).doNext();
+        const exileBag = this.executorProxy.leader.bag.original;
+        const exileKey = this.executorProxy.leader.key;
+        for (const source of [...this.game.board.sites(), this.executor]) {
+            const amount = source.getWarbandsAmount(exileKey);
+            if (!amount) continue;
+            new ParentToTargetEffect(this.game, this.executor, source.getWarbands(exileKey), exileBag).doNext();
+            new ParentToTargetEffect(this.game, this.game.chancellor, this.game.chancellor.bag.get(amount), source).doNext();
         }
 
         if (this.executor.vision) new DiscardCardEffect(this.executor, this.executor.vision).doNext();
@@ -930,7 +930,7 @@ export class BecomeExileEffect extends PlayerEffect {
         
         const amount = this.executor.getWarbandsAmount(PlayerColor.Purple);
         new ParentToTargetEffect(this.game, this.game.chancellor, this.executor.getWarbands(PlayerColor.Purple), this.game.chancellor.bag).doNext();
-        new ParentToTargetEffect(this.game, this.executor, this.executor.bag.get(amount), this.executor).doNext();
+        new ParentToTargetEffect(this.game, this.executor, this.executorProxy.leader.bag.original.get(amount), this.executor).doNext();
 
         if (this.game.currentPlayer === this.executor) new RestAction(this.executor).doNext();
     }
@@ -1230,7 +1230,7 @@ export class FinishChronicleEffect extends PlayerEffect {
         for (const regionProxy of this.gameProxy.board.children) {
             for (const siteProxy of regionProxy.sites) {
                 let keepSite = false;
-                if (!siteProxy.ruler?.isImperial && siteProxy.ruler !== this.executor) {
+                if (!siteProxy.ruler?.isImperial && siteProxy.ruler !== this.executorProxy) {
                     for (const denizenProxy of siteProxy.denizens) {
                         if (denizenProxy instanceof Edifice && denizenProxy.suit !== OathSuit.None) {
                             new FlipEdificeEffect(denizenProxy).doNext();

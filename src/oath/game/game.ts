@@ -1,7 +1,7 @@
 import { ChoosePlayersAction, SetupChooseAction, WakeAction, ChooseSitesAction } from "./actions/actions";
 import { InvalidActionResolution, ModifiableAction } from "./actions/base";
 import { HistoryNode, OathActionManager } from "./actions/manager";
-import { DrawFromDeckEffect, PutPawnAtSiteEffect, SetNewOathkeeperEffect, SetUsurperEffect, WinGameEffect } from "./actions/effects";
+import { BecomeCitizenEffect, DrawFromDeckEffect, PutPawnAtSiteEffect, SetNewOathkeeperEffect, SetUsurperEffect, WinGameEffect } from "./actions/effects";
 import { ActionModifier, OathPower } from "./powers/powers";
 import { OathBoard, Region } from "./board";
 import { Discard, RelicDeck, WorldDeck } from "./cards/decks";
@@ -14,7 +14,7 @@ import { Chancellor, Exile, OathPlayer, VisionSlot, WarbandsSupply } from "./pla
 import { Banner, DarkestSecret, FavorBank, PeoplesFavor } from "./banks";
 import { AbstractConstructor, Constructor, isExtended, PRNG, TreeNode, TreeRoot } from "./utils";
 import { parseOathTTSSavefileString, serializeOathGame } from "./parser";
-import { Citizenship } from "./parser/interfaces";
+import { Citizenship, PlayerCitizenship } from "./parser/interfaces";
 import { hasPowers, SourceType, WithPowers } from "./interfaces";
 import { Favor, OathWarband, Secret } from "./resources";
 import { Reliquary, ReliquarySlot } from "./reliquary";
@@ -51,6 +51,7 @@ export class OathGame extends TreeRoot<OathGame> {
 
     archive: Set<string>;
     dispossessed: Set<string>;
+    oldCitizenship: PlayerCitizenship;
 
     constructor(public gameId: number, public setupData: [string, number]) {
         super();
@@ -125,6 +126,7 @@ export class OathGame extends TreeRoot<OathGame> {
             exile.visionSlot = exile.addChild(new VisionSlot(id));
             this.order.push(i);
         }
+        this.oldCitizenship = gameData.playerCitizenship;
 
         this.board = this.addChild(new OathBoard());
         for (let i = RegionKey.Cradle; i <= RegionKey.Hinterland; i++) {
@@ -200,6 +202,11 @@ export class OathGame extends TreeRoot<OathGame> {
     }
     
     initialActions() {
+        for (const player of this.players) {
+            if (player.key === PlayerColor.Purple) continue;
+            if (this.oldCitizenship[player.key] === Citizenship.Citizen) new BecomeCitizenEffect(player).doNext();
+        }
+
         const topCradleSite = this.board.children.byKey(RegionKey.Cradle)[0]!.byClass(Site)[0]!;
         for (const player of this.players) {
             new DrawFromDeckEffect(player, this.worldDeck, 3, true).doNext(cards => {
@@ -335,6 +342,12 @@ export class OathGame extends TreeRoot<OathGame> {
     }
 
     updateSeed(winner: PlayerColor) {
+        const newCitizenship = { ...this.oldCitizenship };
+        for (const player of this.players) {
+            if (player.key === PlayerColor.Purple) continue;
+            newCitizenship[player.key] = player.isImperial ? Citizenship.Citizen : Citizenship.Exile
+        }
+
         this.seed = serializeOathGame({
             version: {
                 major: '3',
@@ -344,9 +357,8 @@ export class OathGame extends TreeRoot<OathGame> {
 
             chronicleName: this.name,
             gameCount: this.chronicleNumber + 1,
-
-            // TODO: Store overall state of Citizenships
-            playerCitizenship: { [1]: Citizenship.Exile, [2]: Citizenship.Exile, [3]: Citizenship.Exile, [4]: Citizenship.Exile, [5]: Citizenship.Exile },
+            
+            playerCitizenship: newCitizenship,
             oath: this.oath.oathType,
             suitOrder: ALL_OATH_SUITS,
             sites: [...this.board.sites()].map(e => ({ name: e.name, facedown: e.facedown, cards: [...e.denizens, ...times(3 - e.denizens.length - e.relics.length, constant({ name: "NONE" })), ...e.relics].map(e => ({ name: e.name })) })),
@@ -354,7 +366,7 @@ export class OathGame extends TreeRoot<OathGame> {
             dispossessed: [...this.dispossessed].map(e => ({ name: e })),
             relics: this.relicDeck.children.map(e => ({ name: e.name })),
 
-            prevPlayerCitizenship: { [1]: Citizenship.Exile, [2]: Citizenship.Exile, [3]: Citizenship.Exile, [4]: Citizenship.Exile, [5]: Citizenship.Exile },
+            prevPlayerCitizenship: this.oldCitizenship,
             winner: winner
         });
     }

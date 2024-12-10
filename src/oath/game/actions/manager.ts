@@ -17,6 +17,7 @@ export class HistoryNode<T extends OathActionManager> {
     }
 
     parse(data: string) {
+        if (data === "") return;
         const lines = data.split("\n");
         for (const [i, line] of lines.entries()) {
             // console.log(`   Resolving event ${i}: ${line}`);
