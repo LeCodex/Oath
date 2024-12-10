@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, OnModuleInit } from '@nestjs/common';
 import { OathGame } from './game/game';
+import { ActionManagerReturn } from './game/actions/manager';
 import { InvalidActionResolution } from "./game/actions/base";
 import { PlayerColor } from './game/enums';
 import * as fs from "fs";
@@ -33,13 +34,25 @@ export class OathService implements OnModuleInit {
         const id = (this.games.size ? Math.max(...this.games.keys()) : 0) + 1;
 
         // TEMP: Forcefully set the number of players
-        const game = new OathGame(id);
-        game.setup([seed, 4]);
+        const game = new OathGame(id, [seed, 4]);
         this.games.set(id, game);
         
-        const obj = game.actionManager.checkForNextAction();
+        game.actionManager.checkForNextAction()
+        const obj = game.actionManager.defer() as ActionManagerReturn & { id: number };
         obj.id = id;
         return obj;
+    }
+
+    private _wrapper(gameId: number, func: () => ActionManagerReturn) {
+        try {
+            const result = func();
+            if (result.over) this.games.delete(gameId);
+            return result;
+        } catch (e) {
+            // TODO: Use exception filters
+            if (e instanceof InvalidActionResolution) throw new BadRequestException(e.message);
+            throw e;
+        }
     }
 
     private _getGame(id: number): OathGame {
@@ -49,44 +62,23 @@ export class OathService implements OnModuleInit {
     }
 
     public beginAction(gameId: number, playerColor: keyof typeof PlayerColor, actionName: string): object {        
-        try {
-            return this._getGame(gameId).startAction(playerColor, actionName);
-        } catch (e) {
-            // TODO: Use exception filters
-            if (e instanceof InvalidActionResolution) throw new BadRequestException(e.message);
-            throw e;
-        }
+        return this._wrapper(gameId, () => this._getGame(gameId).startAction(playerColor, actionName));
     }
 
     public getCurrentState(gameId: number): object {
-        return this._getGame(gameId).actionManager.checkForNextAction();
+        return this._getGame(gameId).actionManager.defer();
     }
 
     public continueAction(gameId: number, playerColor: keyof typeof PlayerColor, values: Record<string, string[]>): object {
-        try {
-            return this._getGame(gameId).actionManager.continueAction(playerColor, values);
-        } catch (e) {
-            if (e instanceof InvalidActionResolution) throw new BadRequestException(e.message);
-            throw e;
-        }
+        return this._wrapper(gameId, () => this._getGame(gameId).actionManager.continueAction(playerColor, values));
     }
 
     public cancelAction(gameId: number, playerColor: keyof typeof PlayerColor): object {
-        try {
-            return this._getGame(gameId).actionManager.cancelAction(playerColor);
-        } catch (e) {
-            if (e instanceof InvalidActionResolution) throw new BadRequestException(e.message);
-            throw e;
-        }
+        return this._wrapper(gameId, () => this._getGame(gameId).actionManager.cancelAction(playerColor));
     }
 
     public consentToRollback(gameId: number, playerColor: keyof typeof PlayerColor): object {
-        try {
-            return this._getGame(gameId).actionManager.consentToRollback(playerColor);
-        } catch (e) {
-            if (e instanceof InvalidActionResolution) throw new BadRequestException(e.message);
-            throw e;
-        }
+        return this._wrapper(gameId, () => this._getGame(gameId).actionManager.consentToRollback(playerColor));
     }
 }
 

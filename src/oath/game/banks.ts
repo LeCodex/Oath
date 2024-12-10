@@ -10,7 +10,7 @@ import { Favor, OathResource, Secret } from "./resources";
 import { Container } from "./gameObject";
 
 export class FavorBank extends Container<Favor, OathSuit> {
-    id: keyof typeof OathSuit;
+    readonly id: keyof typeof OathSuit;
     type = "favorBank";
 
     constructor(id: keyof typeof OathSuit) {

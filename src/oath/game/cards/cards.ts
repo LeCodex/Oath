@@ -3,7 +3,7 @@ import { RecoverActionTarget, WithPowers, AtSite, CampaignActionTarget, OwnableO
 import { Region } from "../board";
 import { DiscardCardEffect, FlipSecretsEffect, MoveOwnWarbandsEffect, MoveResourcesToTargetEffect, ParentToTargetEffect, PayCostToBankEffect, RevealCardEffect, TakeOwnableObjectEffect } from "../actions/effects";
 import { CardRestriction, OathSuit, OathType, OathTypeVisionName, PlayerColor, RegionKey } from "../enums";
-import { Oath, OathTypeToOath } from "../oaths";
+import { Oath } from "../oaths";
 import { OathPlayer } from "../player";
 import { OathPower } from "../powers/powers";
 import { ConspiracyPower } from "../powers/visions";
@@ -287,15 +287,15 @@ export abstract class VisionBack extends WorldCard {
 }
 
 export class Vision extends VisionBack {
-    id: keyof typeof OathType;
+    readonly id: keyof typeof OathType;
     oath: Oath;
 
     constructor(id: keyof typeof OathType) {
         super(id, []);
-        this.oath = new OathTypeToOath[id]();
+        this.oath = new Oath().setType(OathType[id]);
     }
 
-    get key() { return `VisionOf${OathTypeVisionName[this.id]}`; }
+    get key() { return OathTypeVisionName[this.id]; }
 }
 
 export class Conspiracy extends VisionBack {

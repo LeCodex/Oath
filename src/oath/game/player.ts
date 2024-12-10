@@ -11,7 +11,7 @@ import { Reliquary } from "./reliquary";
 
 export class WarbandsSupply extends Container<OathWarband, PlayerColor> {
     type = "bag";
-    id: keyof typeof PlayerColor;
+    readonly id: keyof typeof PlayerColor;
     hidden = true;
 
     constructor(id: keyof typeof PlayerColor) {
@@ -24,7 +24,7 @@ export class WarbandsSupply extends Container<OathWarband, PlayerColor> {
 
 export abstract class OathPlayer extends ResourcesAndWarbands<PlayerColor> implements CampaignActionTarget, AtSite {
     type = "player";
-    id: keyof typeof PlayerColor;
+    readonly id: keyof typeof PlayerColor;
     bagAmount: number = 14;
     supply: number = 7;
     site: Site;
@@ -174,7 +174,7 @@ export class Chancellor extends OathPlayer {
 
 export class VisionSlot extends Container<Vision, PlayerColor> {
     type = "visionSlot";
-    id: keyof typeof PlayerColor;
+    readonly id: keyof typeof PlayerColor;
 
     constructor(id: keyof typeof PlayerColor) {
         super(id, Vision);

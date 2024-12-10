@@ -64,7 +64,8 @@ export enum CardRestriction {
 export enum OathPhase {
     Wake,
     Act,
-    Rest
+    Rest,
+    Over
 }
 
 export type Enum<E> = Record<keyof E, number | string> & { [k: number]: string };

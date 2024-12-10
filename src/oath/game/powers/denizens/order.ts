@@ -1,4 +1,4 @@
-import { TradeAction, TravelAction, SearchAction, SearchPlayOrDiscardAction, TakeFavorFromBankAction, CampaignKillWarbandsInForceAction, CampaignResult, MakeDecisionAction, CampaignAction, ActAsIfAtSiteAction, CampaignDefenseAction, ChooseSitesAction, ChoosePlayersAction, KillWarbandsOnTargetAction, MusterAction, MoveWarbandsBetweenBoardAndSitesAction } from "../../actions/actions";
+import { TradeAction, TravelAction, SearchAction, SearchPlayOrDiscardAction, TakeFavorFromBankAction, CampaignKillWarbandsInForceAction, CampaignResult, MakeDecisionAction, CampaignAction, ActAsIfAtSiteAction, CampaignDefenseAction, ChooseSitesAction, ChoosePlayersAction, KillWarbandsOnTargetAction, MusterAction, MoveWarbandsBetweenBoardAndSitesAction, CampaignAttackAction } from "../../actions/actions";
 import { InvalidActionResolution } from "../../actions/base";
 import { Denizen, Edifice, Relic, Site, Vision } from "../../cards/cards";
 import { DieSymbol } from "../../dice";
@@ -376,8 +376,9 @@ export class TomeGuardians extends EnemyActionModifier<Denizen, TakeOwnableObjec
             throw new InvalidActionResolution("Cannot take the Darkest Secret from the Tome Guardians.");
     }
 }
-export class TomeGuardiansAttack extends EnemyAttackerCampaignModifier<Denizen> {
+export class TomeGuardiansAttack extends EnemyActionModifier<Denizen, CampaignAttackAction> {
     name = "Tome Guardians";
+    modifiedAction = CampaignAttackAction;
 
     applyBefore(): void {
         for (const targetProxy of this.action.campaignResultProxy.targets)

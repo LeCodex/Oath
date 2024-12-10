@@ -1,5 +1,5 @@
 import { ChoosePlayersAction, SetupChooseAction, WakeAction, ChooseSitesAction } from "./actions/actions";
-import { InvalidActionResolution, ModifiableAction, OathAction } from "./actions/base";
+import { InvalidActionResolution, ModifiableAction } from "./actions/base";
 import { HistoryNode, OathActionManager } from "./actions/manager";
 import { DrawFromDeckEffect, PutPawnAtSiteEffect, SetNewOathkeeperEffect, SetUsurperEffect, WinGameEffect } from "./actions/effects";
 import { ActionModifier, OathPower } from "./powers/powers";
@@ -7,8 +7,8 @@ import { OathBoard, Region } from "./board";
 import { Discard, RelicDeck, WorldDeck } from "./cards/decks";
 import { denizenData, edificeFlipside } from "./cards/denizens";
 import { relicsData } from "./cards/relics";
-import { OathPhase, OathSuit, RegionKey, PlayerColor, ALL_OATH_SUITS, BannerKey, OathType } from "./enums";
-import { Oath, OathTypeToOath } from "./oaths";
+import { OathPhase, OathSuit, RegionKey, PlayerColor, ALL_OATH_SUITS, BannerKey } from "./enums";
+import { Oath } from "./oaths";
 import { Conspiracy, Denizen, Edifice, GrandScepter, Relic, Site, Vision, WorldCard } from "./cards/cards";
 import { Chancellor, Exile, OathPlayer, VisionSlot, WarbandsSupply } from "./player";
 import { Banner, DarkestSecret, FavorBank, PeoplesFavor } from "./banks";
@@ -19,6 +19,7 @@ import { hasPowers, SourceType, WithPowers } from "./interfaces";
 import { Favor, OathWarband, Secret } from "./resources";
 import { Reliquary, ReliquarySlot } from "./reliquary";
 import classIndex from "./classIndex";
+import { constant, times } from "lodash";
 import * as fs from "fs";
 
 
@@ -26,7 +27,6 @@ export class OathGame extends TreeRoot<OathGame> {
     type = "root";
     classIndex = classIndex;
 
-    gameId: number;
     random: PRNG;
 
     seed: string;
@@ -52,13 +52,11 @@ export class OathGame extends TreeRoot<OathGame> {
     archive: Set<string>;
     dispossessed: Set<string>;
 
-    constructor(gameId: number) {
+    constructor(public gameId: number, public setupData: [string, number]) {
         super();
-        this.gameId = gameId;
+        this.setup(setupData);
     }
-
-    get setupData(): [string, number] { return [this.seed, this.players.length]; }
-
+    
     setup([seed, playerCount]: this["setupData"]) {
         this.seed = seed;
         this.random = new PRNG();
@@ -195,7 +193,7 @@ export class OathGame extends TreeRoot<OathGame> {
             Favor.putOn(bank, startingAmount);
         }
 
-        this.oath = new OathTypeToOath[OathType[gameData.oath] as keyof typeof OathType]();
+        this.oath = new Oath().setType(gameData.oath);
         this.chancellor.addChild(this.oath).setup();
 
         this.initialActions();
@@ -256,13 +254,21 @@ export class OathGame extends TreeRoot<OathGame> {
         return instances;
     }
 
-    startAction(playerColor: keyof typeof PlayerColor, actionName: string): object {
+    startAction(playerColor: keyof typeof PlayerColor, actionName: string) {
         const by = PlayerColor[playerColor];
         if (this.turn !== by) throw new InvalidActionResolution(`Cannot begin an action outside your turn`);
         if (this.phase !== OathPhase.Act) throw new InvalidActionResolution(`Cannot begin an action outside the Act phase`);
         if (this.actionManager.actionsStack.length) throw new InvalidActionResolution("Cannot start an action while other actions are active");
 
         return this.actionManager.startAction(actionName);
+    }
+
+    stackEmpty() {
+        if (this.phase === OathPhase.Over) {
+            this.archiveSave();
+        } else {
+            this.checkForOathkeeper();
+        }
     }
 
     checkForOathkeeper() {
@@ -333,7 +339,7 @@ export class OathGame extends TreeRoot<OathGame> {
             version: {
                 major: '3',
                 minor: '3',
-                patch: '3'
+                patch: '1'
             },
 
             chronicleName: this.name,
@@ -341,11 +347,11 @@ export class OathGame extends TreeRoot<OathGame> {
 
             // TODO: Store overall state of Citizenships
             playerCitizenship: { [1]: Citizenship.Exile, [2]: Citizenship.Exile, [3]: Citizenship.Exile, [4]: Citizenship.Exile, [5]: Citizenship.Exile },
-            oath: this.oath.key,
+            oath: this.oath.oathType,
             suitOrder: ALL_OATH_SUITS,
-            sites: [...this.board.sites()].map(e => ({ name: e.name, facedown: e.facedown, cards: [...e.denizens, ...e.relics].map(e => ({ name: e.name })) })),
+            sites: [...this.board.sites()].map(e => ({ name: e.name, facedown: e.facedown, cards: [...e.denizens, ...times(3 - e.denizens.length - e.relics.length, constant({ name: "NONE" })), ...e.relics].map(e => ({ name: e.name })) })),
             world: this.worldDeck.children.map(e => ({ name: e.name })),
-            dispossessed: Object.keys(this.dispossessed).map(e => ({ name: e })),
+            dispossessed: [...this.dispossessed].map(e => ({ name: e })),
             relics: this.relicDeck.children.map(e => ({ name: e.name })),
 
             prevPlayerCitizenship: { [1]: Citizenship.Exile, [2]: Citizenship.Exile, [3]: Citizenship.Exile, [4]: Citizenship.Exile, [5]: Citizenship.Exile },
@@ -358,17 +364,23 @@ export class OathGame extends TreeRoot<OathGame> {
     }
 
     get savePath() { return "data/oath/save" + this.gameId + ".txt"; }
+    get archivePath() { return "data/oath/replay" + Date.now() + ".txt"; }
 
     save() {
         const data = this.stringify();
         fs.writeFileSync(this.savePath, data);
     }
 
+    archiveSave() {
+        const data = this.stringify() + "\n\n" + JSON.stringify([this.seed]);
+        fs.writeFileSync(this.archivePath, data);
+        fs.rmSync(this.savePath)
+    }
+
     static load(gameId: number, data: string) {
         const chunks = data.split('\n\n');
         const setupData = JSON.parse(chunks.shift()!);
-        const game = new this(gameId);
-        game.setup(setupData);
+        const game = new this(gameId, setupData);
         game.actionManager.checkForNextAction();  // Flush the initial actions onto the stack
 
         for (const [i, nodeData] of chunks.entries()) {

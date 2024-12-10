@@ -259,7 +259,7 @@ export class MaskedMap<K, V extends object> implements Map<K, V> {
 
 export abstract class TreeNode<RootType extends TreeRoot<RootType>, KeyType = any> extends WithOriginal {
     /** Different objects of the same class MUST have different ids. */
-    id: string;
+    readonly id: string;
     children = new NodeGroup<TreeNode<RootType>>();
     /** Use {@linkcode typedParent()} to get a strongly typed version of this. */
     parent: TreeNode<RootType>;
@@ -281,17 +281,22 @@ export abstract class TreeNode<RootType extends TreeRoot<RootType>, KeyType = an
         return this.root.addChild(this);
     }
 
-    prune() {
+    prune(deep: boolean = true) {
         this.parent?.children.delete(this);
         this.root?.removeFromLookup(this);
+        if (deep) for (const child of this.children) this.root?.removeFromLookup(child);
         (this.parent as any) = undefined;  // Pruned objects shouldn't be accessed anyways
+    }
+
+    parentTo<T extends TreeNode<RootType>>(parent: T, onTop: boolean = false) {
+        return parent.addChild(this, onTop);
     }
 
     addChild<T extends TreeNode<RootType>>(child: T, onTop: boolean = false) {
         if (child as TreeNode<RootType> === this)
             throw TypeError("Cannot parent an object to itself");
 
-        child.prune();
+        child.prune(false);
         if (onTop)
             this.children.unshift(child);
         else
@@ -300,14 +305,13 @@ export abstract class TreeNode<RootType extends TreeRoot<RootType>, KeyType = an
         // this.children.addToLookup(child);
         
         child.parent = this;
-        if (!this.root.lookup[child.constructor.name]) this.root.lookup[child.constructor.name] = {};
         this.root.addToLookup(child);
 
         return child;
     }
 
     addChildren<T extends TreeNode<RootType>>(children: T[], onTop: boolean = false) {
-        for (const child of children.reverse())
+        for (const child of [...children].reverse())
             this.addChild(child, onTop);
         return children;
     }
@@ -357,10 +361,11 @@ export abstract class TreeNode<RootType extends TreeRoot<RootType>, KeyType = an
         if (obj.id !== this.id) throw TypeError(`Id parsing doesn't match: expected ${this.id}, got ${obj.id}`);
 
         // Ugly type casting, since recursive types with generic parameters cause "type serialization is too deep" errors,
-        // and I want the child classes to use ReturnType<this["liteSerialize"]>
+        // and I want the child classes to use ReturnType<this["liteSerialize"]> and it causes issues with the recursivity
         let objWithChildren = obj as SerializedNode<this>;
         if (!objWithChildren.children) return;
 
+        const confirmedChildren = new Set<TreeNode<RootType>>();
         for (const [i, child] of objWithChildren.children.entries()) {
             let node = this.root.search(child.class, child.id);
             if (!node) {
@@ -369,8 +374,13 @@ export abstract class TreeNode<RootType extends TreeRoot<RootType>, KeyType = an
                 node = this.root.create(child.class, child);
             }
             if (node.parent !== this || node.parent.children.indexOf(node) !== i) this.addChild(node);
+            confirmedChildren.add(node);
             node.parse(child, allowCreation);
         }
+
+        for (const child of this.children)
+            if (!confirmedChildren.has(child))
+                child.prune();
     }
 }
 

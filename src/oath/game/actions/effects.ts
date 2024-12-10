@@ -1,6 +1,6 @@
 import { InvalidActionResolution, OathEffect, PlayerEffect } from "./base";
 import { Denizen, Edifice, OathCard, Relic, Site, Vision, VisionBack, WorldCard } from "../cards/cards";
-import { BannerKey, CardRestriction, OathPhase, OathSuit, PlayerColor } from "../enums";
+import { ALL_OATH_SUITS, BannerKey, CardRestriction, OathPhase, OathSuit, PlayerColor } from "../enums";
 import { Exile, OathPlayer } from "../player";
 import { OathPower, WhenPlayed } from "../powers/powers";
 import { Favor, OathResource, OathResourceType, ResourceCost, ResourcesAndWarbands, Secret } from "../resources";
@@ -11,7 +11,7 @@ import { OathGameObject } from "../gameObject";
 import { BuildOrRepairEdificeAction, ChooseNewCitizensAction, VowOathAction, RestAction, WakeAction, CampaignResult, SearchDiscardAction, SearchPlayOrDiscardAction, ChooseSuitsAction, ChooseNumberAction } from "./actions";
 import { DiscardOptions } from "../cards/decks";
 import { CardDeck } from "../cards/decks";
-import { Constructor, inclusiveRange, isExtended } from "../utils";
+import { Constructor, inclusiveRange, isExtended, maxInGroup } from "../utils";
 import { D6, RollResult, Die } from "../dice";
 import { Region } from "../board";
 import { denizenData, edificeFlipside } from "../cards/denizens";
@@ -904,11 +904,8 @@ export class NextTurnEffect extends OathEffect {
 }
 
 export class BecomeCitizenEffect extends PlayerEffect {
-    resolved = false;
-
     resolve(): void {
         if (!(this.executor instanceof Exile) || this.executor.isCitizen) return;
-        this.resolved = true;
         
         const amount = this.executor.getWarbandsAmount(this.executor.key);
         new ParentToTargetEffect(this.game, this.executor, this.executor.getWarbands(this.executor.key), this.executor.bag).doNext();
@@ -927,11 +924,8 @@ export class BecomeCitizenEffect extends PlayerEffect {
 }
 
 export class BecomeExileEffect extends PlayerEffect {
-    resolved = false;
-
     resolve(): void {
         if (!(this.executor instanceof Exile) || !this.executor.isCitizen) return;
-        this.resolved = true;
         this.executor.isCitizen = false;
         
         const amount = this.executor.getWarbandsAmount(PlayerColor.Purple);
@@ -1073,7 +1067,7 @@ export class SiteExchangeOfferEffect extends BindingExchangeEffect {
         for (const site of this.sitesGiven) {
             new MoveOwnWarbandsEffect(this.player, site, this.player).doNext();
             new ChooseNumberAction(
-                this.other, "Move warbands to " + site.name, inclusiveRange(1 - site.getWarbandsAmount(this.other.key), this.other.getWarbandsAmount(this.other.leader.key)),
+                this.other, "Move warbands to " + site.name, inclusiveRange(Math.max(0, 1 - site.getWarbandsAmount(this.other.leader.key)), this.other.getWarbandsAmount(this.other.leader.key)),
                 (amount: number) => new MoveOwnWarbandsEffect(this.other, this.other, site, amount).doNext()
             ).doNext();
         }
@@ -1081,7 +1075,7 @@ export class SiteExchangeOfferEffect extends BindingExchangeEffect {
         for (const site of this.sitesTaken) {
             new MoveOwnWarbandsEffect(this.other, site, this.other).doNext();
             new ChooseNumberAction(
-                this.player, "Move warbands to " + site.name, inclusiveRange(1 - site.getWarbandsAmount(this.other.key), this.player.getWarbandsAmount(this.player.leader.key)),
+                this.player, "Move warbands to " + site.name, inclusiveRange(Math.max(0, 1 - site.getWarbandsAmount(this.player.leader.key)), this.player.getWarbandsAmount(this.player.leader.key)),
                 (amount: number) => new MoveOwnWarbandsEffect(this.player, this.player, site, amount).doNext()
             ).doNext();
         }
@@ -1227,8 +1221,6 @@ export class FlipEdificeEffect extends OathEffect {
 }
 
 export class FinishChronicleEffect extends PlayerEffect {
-    oldRegions = new Map<Region, Site[]>();
-
     resolve(): void {
         const storedSites: Site[] = [];
         const pushedSites: Site[] = [];
@@ -1236,26 +1228,27 @@ export class FinishChronicleEffect extends PlayerEffect {
 
         // Discard and put aside sites
         for (const regionProxy of this.gameProxy.board.children) {
-            this.oldRegions.set(regionProxy, [...regionProxy.sites]);
-
             for (const siteProxy of regionProxy.sites) {
-                regionProxy.sites.splice(regionProxy.sites.indexOf(siteProxy), 1);
+                let keepSite = false;
                 if (!siteProxy.ruler?.isImperial && siteProxy.ruler !== this.executor) {
                     for (const denizenProxy of siteProxy.denizens) {
                         if (denizenProxy instanceof Edifice && denizenProxy.suit !== OathSuit.None) {
                             new FlipEdificeEffect(denizenProxy).doNext();
                             pushedSites.push(siteProxy.original);
+                            keepSite = true;
                         } else {
-                            new DiscardCardEffect(this.executor, denizenProxy.original, new DiscardOptions(regionProxy.discard.original, false, true)).doNext();
+                            regionProxy.discard.original.addChild(denizenProxy.original);
                         }
                     }
-                    siteProxy.original.prune();
+                    siteProxy.original.unparent();
                 } else {
                     storedSites.push(siteProxy.original);
+                    keepSite = true;
                 }
-                
+
                 sitesKeysSet.delete(siteProxy.id);
                 siteProxy.original.clear();
+                if (!keepSite) siteProxy.original.prune();
             }
         }
         const total = this.game.board.byClass(Region).reduce((a, e) => a + e.size, 0) - storedSites.length - pushedSites.length;
@@ -1273,10 +1266,9 @@ export class FinishChronicleEffect extends PlayerEffect {
             while (region.sites.length < region.size) {
                 const site = storedSites.shift()
                 if (!site) break;
-                region.sites.push(site);
+                region.addChild(site);
                 if (!site.facedown) hasFaceupSite = true;
             }
-
             if (!hasFaceupSite) region.sites[0]?.turnFaceup();
         }
 
@@ -1303,31 +1295,13 @@ export class FinishChronicleEffect extends PlayerEffect {
         }
 
         this.game.random.shuffleArray(futureReliquary);
-        while (futureReliquary.length) {
-            const relic = futureReliquary.pop();
-            if (relic) relicDeck.addChild(relic)
-        }
-        for (let i = 0; i < 4; i++) {
-            const relic = relicDeck.drawSingleCard();
-            if (relic) this.game.chancellor.reliquary.children[i]?.addChild(relic);
-        }
+        relicDeck.addChildren(futureReliquary, true);
 
-        let max = 0;
-        const suits = new Set<OathSuit>();
-        for (let i: OathSuit = 0; i < 6; i++) {
-            const count = this.executor.suitAdviserCount(i);
-            if (count >= max) {
-                max = count;
-                suits.clear();
-                suits.add(i);
-            } else if (count === max) {
-                suits.add(i);
-            }
-        }
         new ChooseSuitsAction(
             this.executor, "Choose a suit to add to the World Deck", 
-            (suits: OathSuit[]) => { if (suits[0]) this.addCardsToWorldDeck(suits[0]); },
-            [suits]
+            (suits: OathSuit[]) => { if (suits[0] !== undefined) this.addCardsToWorldDeck(suits[0]); },
+            [maxInGroup(ALL_OATH_SUITS, this.executor.suitAdviserCount.bind(this.executor))],
+            [[1]]
         ).doNext();
     }
 
@@ -1341,15 +1315,15 @@ export class FinishChronicleEffect extends PlayerEffect {
     }
 
     addCardsToWorldDeck(suit: OathSuit) {
+        // Add cards from Archive
         const worldDeck = this.game.worldDeck;
-        const worldDeckDiscardOptions = new DiscardOptions(worldDeck, false, true);
         for (let i = 3; i >= 1; i--) {
             const cardKeys = this.getRandomCardDataInArchive(suit);
             for (let j = 0; j < i; j++) {
                 const key = cardKeys.pop();
                 if (!key || !(key in this.game.archive)) break;
                 this.game.archive.delete(key);
-                new DiscardCardEffect(this.executor, new Denizen(key), worldDeckDiscardOptions).doNext();
+                worldDeck.addChild(new Denizen(key));
             }
 
             suit++;
@@ -1358,35 +1332,28 @@ export class FinishChronicleEffect extends PlayerEffect {
 
         // Remove cards to the Dispossessed
         const firstDiscard = this.game.board.children[0]!.discard;
-        const firstDiscardOptions = new DiscardOptions(firstDiscard, false, true);
         for (const player of this.game.players) {
-            const discardOptions = player === this.executor ? worldDeckDiscardOptions : firstDiscardOptions;
-            new DiscardCardGroupEffect(this.executor, player.advisers, discardOptions).doNext();
+            const deck = player === this.executor ? worldDeck : firstDiscard;
+            deck.addChildren(player.advisers);
         }
         for (const region of this.game.board.children) {
-            new DiscardCardGroupEffect(this.executor, region.discard.children, firstDiscardOptions).doNext();
+            firstDiscard.addChildren(region.discard.children);
         }
         
-        firstDiscard.shuffle(); // TODO: Put this in effect
+        firstDiscard.shuffle();
         for (let i = 0; i < 6; i++) {
-            const effect = new DrawFromDeckEffect(this.executor, firstDiscard, 1);
-            const callback = (cards: OathCard[]) => {
-                if (!cards[0]) return;
-                const card = cards[0];
-                
-                if (!(card instanceof Denizen)) {
-                    new DiscardCardEffect(this.executor, card, worldDeckDiscardOptions).doNext();
-                    effect.doNext(callback);
-                    return;
-                }
-
-                card.prune();
-                this.game.dispossessed.add(card.name);
+            const card = firstDiscard.drawSingleCard();
+            if (!card) break;   
+            if (!(card instanceof Denizen)) {
+                worldDeck.addChild(card);
+                i++;
+                continue;
             }
-            effect.doNext(callback);
+
+            new PutDenizenIntoDispossessedEffect(this.game, this.executor, card).doNext();
         }
 
-        new DiscardCardGroupEffect(this.executor, firstDiscard.children, worldDeckDiscardOptions).doNext(() => {
+        new DiscardCardGroupEffect(this.executor, firstDiscard.children, new DiscardOptions(worldDeck, false, true)).doNext(() => {
             worldDeck.shuffle();
 
             // Rebuild the World Deck
@@ -1408,10 +1375,11 @@ export class FinishChronicleEffect extends PlayerEffect {
             this.game.random.shuffleArray(middlePile);
     
             // Those effectively just reorder the cards
-            worldDeck.addChildren(middlePile);
-            worldDeck.addChildren(topPile);
+            worldDeck.addChildren(middlePile, true);
+            worldDeck.addChildren(topPile, true);
     
             this.game.updateSeed(this.executor.key);
         });
+        new ChangePhaseEffect(this.game, OathPhase.Over).doNext();
     }
 }

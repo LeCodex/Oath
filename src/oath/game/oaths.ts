@@ -1,49 +1,65 @@
 import { DarkestSecret, PeoplesFavor } from "./banks";
 import { GrandScepter } from "./cards/cards";
 import { OathType, isEnumKey } from "./enums";
-import { OathGameObject } from "./gameObject";
+import { OathGame } from "./game";
+import { OathGameObjectLeaf } from "./gameObject";
 import { OwnableObject, WithPowers } from "./interfaces";
 import { OathPlayer } from "./player";
 import { OathDefense } from "./powers/visions";
+import { maxInGroup } from "./utils";
 
 
-export abstract class Oath extends OathGameObject<OathType> implements OwnableObject, WithPowers {
+export const oathData: Record<OathType, [(game: OathGame) => void, (game: OathGame, player: OathPlayer) => number, (game: OathGame, player: OathPlayer) => number]> = {
+    [OathType.Supremacy]: [
+        (game) => { },
+        (game, player) => [...game.board.sites()].filter(e => e.ruler === player).length,
+        (game, player) => player.relics.length + player.banners.length
+    ],
+    [OathType.Protection]: [
+        (game) => { },
+        (game, player) => player.relics.length + player.banners.length,
+        (game, player) => player.byClass(PeoplesFavor).length > 0 ? 1 : 0
+    ],
+    [OathType.ThePeople]: [
+        (game) => { game.byClass(PeoplesFavor)[0]?.parentTo(game.chancellor); },
+        (game, player) => player.byClass(PeoplesFavor).length > 0 ? 1 : 0,
+        (game, player) => player.byClass(DarkestSecret).length > 0 ? 1 : 0
+    ],
+    [OathType.Devotion]: [
+        (game) => { game.byClass(DarkestSecret)[0]?.parentTo(game.chancellor); },
+        (game, player) => player.byClass(DarkestSecret).length > 0 ? 1 : 0,
+        (game, player) => player.byClass(GrandScepter).length > 0 ? 1 : 0
+    ],
+};
+
+export class Oath extends OathGameObjectLeaf<OathType> implements OwnableObject, WithPowers {
     type = "oath";
-    id: keyof typeof OathType;
+    oathType: OathType;
     active = true;
     powers = new Set([OathDefense]);
     
-    constructor(id: keyof typeof OathType) {
-        if (!isEnumKey(id, OathType)) throw TypeError(`${id} is not a valid oath type`);
-        super(id);
+    constructor() {
+        super("oath");
     }
     
-    get key() { return OathType[this.id]; }
+    get key() { return this.oathType; }
     get owner() { return this.typedParent(OathPlayer); }
+
+    setType(oathType: OathType) {
+        this.oathType = oathType;
+        return this;
+    }
     
-    abstract setup(): void;
-    abstract scoreForOathkeeper(player: OathPlayer): number;
-    abstract scoreForSuccessor(player: OathPlayer): number;
+    setup() { oathData[this.oathType][0]!(this.game); };
+    scoreForOathkeeper(player: OathPlayer) { return oathData[this.oathType][1]!(this.game, player); };
+    scoreForSuccessor(player: OathPlayer) { return oathData[this.oathType][2]!(this.game, player); };
     
     setOwner(player?: OathPlayer): void {
         player?.addChild(this);
     }
 
     getCandidates(evaluation: (player: OathPlayer) => number): Set<OathPlayer> {
-        let max = 0;
-        const candidates = new Set<OathPlayer>();
-        for (const player of this.game.byClass(OathPlayer)) {
-            const score = evaluation(player);
-            if (score > max) {
-                candidates.clear();
-                candidates.add(player);
-                max = score;
-            } else if (score === max) {
-                candidates.add(player);
-            }
-        }
-
-        return candidates;
+        return new Set(maxInGroup(this.game.players, evaluation));
     }
 
     getOathkeeperCandidates(): Set<OathPlayer> {
@@ -53,89 +69,16 @@ export abstract class Oath extends OathGameObject<OathType> implements OwnableOb
     getSuccessorCandidates(): Set<OathPlayer> {
         return this.getCandidates(this.scoreForSuccessor.bind(this));
     }
-}
 
-export class OathOfSupremacy extends Oath {
-    constructor() {
-        super("Supremacy");
+    liteSerialize() {
+        return {
+            ...super.liteSerialize(),
+            oath: this.oathType
+        };
     }
 
-    setup() {
-        // Chancellor already rules most sites
-    }
-
-    scoreForOathkeeper(player: OathPlayer): number {
-        let total = 0;
-        for (const site of this.game.board.sites())
-            if (site.ruler === player) total++;
-
-        return total;
-    }
-
-    scoreForSuccessor(player: OathPlayer): number {
-        return player.relics.length + player.banners.length;
+    parse(obj: ReturnType<this["liteSerialize"]>, allowCreation?: boolean): void {
+        super.parse(obj, allowCreation);
+        this.oathType = obj.oath;
     }
 }
-
-export class OathOfProtection extends Oath {
-    constructor() {
-        super("Protection");
-    }
-
-    setup() {
-        // Chancellor already has the Scepter
-    }
-
-    scoreForOathkeeper(player: OathPlayer): number {
-        return player.relics.length + player.banners.length;
-    }
-
-    scoreForSuccessor(player: OathPlayer): number {
-        return player.byClass(PeoplesFavor).length > 0 ? 1 : 0;
-    }
-}
-
-export class OathOfThePeople extends Oath {
-    constructor() {
-        super("ThePeople");
-    }
-
-    setup() {
-        const banner = this.game.byClass(PeoplesFavor)[0];
-        if (banner) this.game.chancellor.addChild(banner);
-    }
-
-    scoreForOathkeeper(player: OathPlayer): number {
-        return player.byClass(PeoplesFavor).length > 0 ? 1 : 0;
-    }
-
-    scoreForSuccessor(player: OathPlayer): number {
-        return player.byClass(DarkestSecret).length > 0 ? 1 : 0;
-    }
-}
-
-export class OathOfDevotion extends Oath {
-    constructor() {
-        super("Devotion");
-    }
-
-    setup() {
-        const banner = this.game.byClass(DarkestSecret)[0];
-        if (banner) this.game.chancellor.addChild(banner);
-    }
-
-    scoreForOathkeeper(player: OathPlayer): number {
-        return player.byClass(DarkestSecret).length > 0 ? 1 : 0;
-    }
-
-    scoreForSuccessor(player: OathPlayer): number {
-        return player.byClass(GrandScepter).length > 0 ? 1 : 0;
-    }
-}
-
-export const OathTypeToOath = {
-    "Supremacy": OathOfSupremacy,
-    "Protection": OathOfProtection,
-    "ThePeople": OathOfThePeople,
-    "Devotion": OathOfDevotion,
-};

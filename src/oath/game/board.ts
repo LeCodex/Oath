@@ -47,7 +47,7 @@ export class OathBoard extends Container<Region, string> {
 
 export class Region extends OathGameObject<RegionKey> {
     type = "region";
-    id: keyof typeof RegionKey;
+    readonly id: keyof typeof RegionKey;
     size: number;
     discard: Discard;
 

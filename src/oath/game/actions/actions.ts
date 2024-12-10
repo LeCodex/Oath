@@ -5,7 +5,7 @@ import { AttackDie, DefenseDie, DieSymbol, RollResult } from "../dice";
 import { MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, RollDiceEffect, DrawFromDeckEffect, PutPawnAtSiteEffect, DiscardCardEffect, MoveOwnWarbandsEffect, SetPeoplesFavorMobState, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, FlipEdificeEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect, CheckCapacityEffect, CampaignJoinDefenderAlliesEffect, MoveWorldCardToAdvisersEffect, DiscardCardGroupEffect, ParentToTargetEffect, PaySupplyEffect, ThingsExchangeOfferEffect, SiteExchangeOfferEffect } from "./effects";
 import { ALL_OATH_SUITS, OathPhase, OathSuit, OathType } from "../enums";
 import { OathGame } from "../game";
-import { OathTypeToOath } from "../oaths";
+import { oathData } from "../oaths";
 import { Exile, OathPlayer } from "../player";
 import { ActionModifier, ActivePower, CapacityModifier } from "../powers/powers";
 import { Favor, OathResource, OathResourceType, ResourceCost, ResourcesAndWarbands, Secret } from "../resources";
@@ -1708,7 +1708,7 @@ export class VowOathAction extends OathAction {
 
     execute(): void {
         const oathType = this.parameters.oath[0]!;
-        this.game.oath = new OathTypeToOath[OathType[oathType] as keyof typeof OathType]();
+        this.game.oath.setType(oathType);
     }
 }
 

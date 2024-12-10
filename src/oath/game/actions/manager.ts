@@ -1,6 +1,6 @@
 import { UsePowerAction, PlayFacedownAdviserAction, MoveWarbandsAction, RestAction, MusterAction, TradeAction, TravelAction, RecoverAction, SearchAction, CampaignAction } from "./actions";
 import { OathAction, OathEffect, InvalidActionResolution } from "./base";
-import { PlayerColor } from "../enums";
+import { OathPhase, PlayerColor } from "../enums";
 import { OathGame } from "../game";
 import { Constructor, SerializedNode } from "../utils";
 
@@ -20,18 +20,20 @@ export class HistoryNode<T extends OathActionManager> {
         const lines = data.split("\n");
         for (const [i, line] of lines.entries()) {
             // console.log(`   Resolving event ${i}: ${line}`);
-            const {name, player, oneWay, data} = JSON.parse(line) as ReturnType<HistoryEvent["serialize"]>;
-            const event = new eventsIndex[name](this.manager, player, oneWay, data);
+            const { name, player, data } = JSON.parse(line) as ReturnType<HistoryEvent["serialize"]>;
+            // This is a "dummy" event that just replays the actions. The replay takes care of adding the actual events back
+            const event = new eventsIndex[name](this.manager, player, data);
             event.replay();
         }
     }
 }
 
 export abstract class HistoryEvent {
+    oneWay: boolean = false;
+    
     constructor(
         public manager: OathActionManager,
         public player: keyof typeof PlayerColor,
-        public oneWay: boolean,
     ) { }
 
     abstract replay(): void;
@@ -40,7 +42,6 @@ export abstract class HistoryEvent {
         return {
             name: this.constructor.name as keyof typeof eventsIndex,
             player: this.player,
-            oneWay: this.oneWay,
             data: undefined as any
         };
     }
@@ -49,12 +50,11 @@ export class StartEvent extends HistoryEvent {
     constructor(
         manager: OathActionManager,
         player: keyof typeof PlayerColor,
-        oneWay: boolean,
         public actionName: string
-    ) { super(manager, player, oneWay); }
+    ) { super(manager, player); }
 
     replay() {
-        this.manager.startAction(this.actionName, false);
+        this.manager.startAction(this.actionName);
     }
 
     serialize() {
@@ -68,12 +68,11 @@ export class ContinueEvent extends HistoryEvent {
     constructor(
         manager: OathActionManager,
         player: keyof typeof PlayerColor,
-        oneWay: boolean,
         public values: Record<string, string[]>
-    ) { super(manager, player, oneWay); }
+    ) { super(manager, player); }
 
     replay() {
-        this.manager.continueAction(this.player, this.values, false);
+        this.manager.continueAction(this.player, this.values);
     }
 
     serialize() {
@@ -87,6 +86,16 @@ const eventsIndex = {
     StartEvent,
     ContinueEvent
 }
+
+
+export type ActionManagerReturn = {
+    activeAction?: Record<string, any>,
+    startOptions?: string[],
+    appliedEffects: Record<string, any>[],
+    rollbackConsent?: Record<string, boolean>,
+    game: Record<string, any>,
+    over: boolean
+};
 
 export class OathActionManager {
     game: OathGame;
@@ -124,27 +133,32 @@ export class OathActionManager {
     }
     get activePlayer() { return this.actionsStack[this.actionsStack.length - 1]?.player ?? this.game.currentPlayer; }
  
-    checkForNextAction(): Record<string, any> {
-        if (!this.actionsStack.length && !this.futureActionsList.length) this.game.checkForOathkeeper();
+    checkForNextAction() {
+        if (!this.actionsStack.length && !this.futureActionsList.length) this.game.stackEmpty();
 
         for (const action of this.futureActionsList) this.actionsStack.push(action);
         this.futureActionsList.length = 0;
         let action = this.actionsStack[this.actionsStack.length - 1];
 
         let continueNow = action?.start();
-        if (continueNow) return this.resolveTopAction();
+        if (continueNow) this.resolveTopAction();
+    }
 
-        const returnData = {
+    defer(): ActionManagerReturn {
+        if (this.game.phase !== OathPhase.Over) this.game.save();
+
+        let action = this.actionsStack[this.actionsStack.length - 1];
+        return {
             activeAction: action?.serialize(),
             startOptions: !action ? Object.keys(this.startOptions) : undefined,
             appliedEffects: this.currentEffectsStack.map(e => e.serialize()).filter(e => e !== undefined),
             rollbackConsent: this.rollbackConsent,
-            game: this.game.serialize()
+            game: this.game.serialize(),
+            over: this.game.phase === OathPhase.Over
         };
-        return returnData;
     }
 
-    startAction(actionName: string, save: boolean = true): object {
+    startAction(actionName: string) {
         const action = this.startOptions[actionName];
         if (!action)
             throw new InvalidActionResolution("Invalid starting action name");
@@ -153,15 +167,17 @@ export class OathActionManager {
         this.currentEffectsStack.length = 0;
         this.rollbackConsent = undefined;
         new action(this.game.currentPlayer).doNext();
-        
+
         const playerColor = this.game.currentPlayer.id;
         const gameState = this.gameState;
+        const event = new StartEvent(this, playerColor, actionName);
+        this.history.push(new HistoryNode(this, gameState.game, [event]));
         try {
-            const data = this.checkForNextAction();
-            this.history.push(new HistoryNode(this, gameState.game, [new StartEvent(this, playerColor, this.markEventAsOneWay, actionName)]));
-            if (save) this.game.save();
-            return data;
+            this.checkForNextAction();
+            event.oneWay = this.markEventAsOneWay;
+            return this.defer();
         } catch (e) {
+            this.history.pop();
             this.revertCurrentAction(gameState);
             throw e;
         }
@@ -174,7 +190,7 @@ export class OathActionManager {
         return player;
     }
 
-    continueAction(playerColor: keyof typeof PlayerColor, values: Record<string, string[]>, save: boolean = true): object {
+    continueAction(playerColor: keyof typeof PlayerColor, values: Record<string, string[]>) {
         const action = this.actionsStack[this.actionsStack.length - 1];
         if (!action) throw new InvalidActionResolution("No action to continue");
 
@@ -188,18 +204,21 @@ export class OathActionManager {
         action.applyParameters(parsed);
         
         const gameState = this.gameState;
+        const event = new ContinueEvent(this, playerColor, values);
+        const events = this.history[this.history.length - 1]?.events;
+        events?.push(event);
         try {
-            const data = this.resolveTopAction();
-            this.history[this.history.length - 1]?.events.push(new ContinueEvent(this, playerColor, this.markEventAsOneWay, values));
-            if (save) this.game.save();
-            return data;
+            this.resolveTopAction();
+            event.oneWay = this.markEventAsOneWay;
+            return this.defer();
         } catch (e) {
+            events?.pop();
             this.revertCurrentAction(gameState);
             throw e;
         }
     }
 
-    resolveTopAction(): object {
+    resolveTopAction() {
         const action = this.game.actionManager.actionsStack.pop();
         if (!action) {
             this.game.actionManager.currentEffectsStack.pop();
@@ -210,7 +229,7 @@ export class OathActionManager {
         return this.checkForNextAction();
     }
 
-    cancelAction(playerColor: keyof typeof PlayerColor): object {
+    cancelAction(playerColor: keyof typeof PlayerColor) {
         const player = this.getPlayerFromId(playerColor);
         if (this.activePlayer !== player) throw new InvalidActionResolution(`Rollback can only be done by ${this.activePlayer.name}, not ${player.name}`);
 
@@ -223,22 +242,22 @@ export class OathActionManager {
         let lastEvent = lastNode.events[lastNode.events.length - 1]!;
         if (lastEvent.player !== this.activePlayer.id || lastEvent.oneWay) {
             this.rollbackConsent = Object.fromEntries(this.game.players.map(e => [e.id, e.id === playerColor]));
-            return this.checkForNextAction();
+            return this.defer();
         }
 
         return this.authorizeCancel();
     }
     
-    consentToRollback(playerColor: keyof typeof PlayerColor): object {
+    consentToRollback(playerColor: keyof typeof PlayerColor) {
         const player = this.getPlayerFromId(playerColor);
         if (!this.rollbackConsent || !(playerColor in this.rollbackConsent)) throw new InvalidActionResolution(`No rollback consent needed from ${player.name}`);
 
         this.rollbackConsent[playerColor] = true;
-        for (const consent of Object.values(this.rollbackConsent)) if (!consent) return this.checkForNextAction();
+        for (const consent of Object.values(this.rollbackConsent)) if (!consent) return this.defer();
         return this.authorizeCancel();
     }
 
-    authorizeCancel(): object {
+    authorizeCancel() {
         while (this.history[this.history.length - 1]?.events.length === 0) this.history.pop();
         const node = this.history.pop()!;  // Replays will put everything back into the history
 
@@ -260,8 +279,8 @@ export class OathActionManager {
             event.replay();
         }
         
-        this.game.save();
-        return this.checkForNextAction();
+        this.checkForNextAction();
+        return this.defer();
     }
 
     revertCurrentAction({ game, stack }: this["gameState"]): void {

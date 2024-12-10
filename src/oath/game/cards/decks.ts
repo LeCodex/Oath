@@ -103,7 +103,7 @@ export class WorldDeck extends SearchableDeck<string> {
 }
 
 export class Discard extends SearchableDeck<RegionKey> {
-    id: keyof typeof RegionKey;
+    readonly id: keyof typeof RegionKey;
     name: string;
     
     constructor(id: keyof typeof RegionKey) {

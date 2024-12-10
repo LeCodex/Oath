@@ -1,5 +1,5 @@
 let game = {};
-let action, appliedEffects, gameId, startOptions, rollbackConsent;
+let action, appliedEffects, gameId, startOptions, rollbackConsent, over;
 
 const setup = async () => {
     const seed = window.prompt("Please input a TTS seed or game ID");
@@ -20,7 +20,7 @@ const setup = async () => {
     window.alert(`Created game ${gameId}`);
 }
 
-const oathNames = { Supremacy: "Supremacy", ThePeople: "the People", Devotion: "Devotion", Protection: "Protection" };
+const oathNames = ["Supremacy", "the People", "Devotion", "Protection"];
 const visionNames = { Supremacy: "Conquest", ThePeople: "Revolution", Devotion: "Faith", Protection: "Sanctuary" };
 const pawnColors = { Purple: "💜", Red: "❤️", Blue: "💙", Yellow: "💛", white: "🤍", Black: "🖤" };
 const warbandsColors = ["🟪", "🟥", "🟦", "🟨", "⬜", "⬛"];
@@ -68,33 +68,36 @@ const render = () => {
         }
     }
 
-
     const actionNode = document.getElementById("action");
     actionNode.innerHTML = "";
-    if (action) {
-        actionNode.innerText = "[" + action.message + "] (" + byType(game, "player").filter(e => e.id === action.player)[0]._name + ")";
-        if (action.modifiers?.length) actionNode.appendChild(renderText("Modifiers: " + action.modifiers.join(", ")));
-        for (const [k, select] of Object.entries(action.selects)) {
-            const selectNode = actionNode.appendChild(renderText(select.name + ` (${select.min}-${select.max})`));
-            selectNode.id = "select" + k;
-            
-            const selectList = selectNode.appendChild(document.createElement("ul"));
-            for (const [i, choice] of select.choices.entries())
-                selectList.append(...renderCheckbox(k + i, choice, select.defaults.includes(choice)));
+    if (!over) {
+        if (action) {
+            actionNode.innerText = "[" + action.message + "] (" + byType(game, "player").filter(e => e.id === action.player)[0]._name + ")";
+            if (action.modifiers?.length) actionNode.appendChild(renderText("Modifiers: " + action.modifiers.join(", ")));
+            for (const [k, select] of Object.entries(action.selects)) {
+                const selectNode = actionNode.appendChild(renderText(select.name + ` (${select.min}-${select.max})`));
+                selectNode.id = "select" + k;
+                
+                const selectList = selectNode.appendChild(document.createElement("ul"));
+                for (const [i, choice] of select.choices.entries())
+                    selectList.append(...renderCheckbox(k + i, choice, select.defaults.includes(choice)));
+            }
+            actionNode.appendChild(renderButton("Submit", () => continueAction()));
+        } else {
+            actionNode.innerText = "[Start action]";
+            for (const name of startOptions)
+                actionNode.appendChild(renderButton(name, () => startAction(name)));
         }
-        actionNode.appendChild(renderButton("Submit", () => continueAction()));
+        actionNode.appendChild(renderButton("Cancel", () => cancelAction()));
+        actionNode.appendChild(renderButton("Reload", () => reload()));
     } else {
-        actionNode.innerText = "[Start action]";
-        for (const name of startOptions)
-            actionNode.appendChild(renderButton(name, () => startAction(name)));
+        actionNode.innerText = "Game over!";
     }
-    actionNode.appendChild(renderButton("Cancel", () => cancelAction()));
-    actionNode.appendChild(renderButton("Reload", () => reload()));
 
 
     const rollbackNode = document.getElementById("rollback");
     rollbackNode.innerHTML = "";
-    if (rollbackConsent) {
+    if (!over && rollbackConsent) {
         rollbackNode.innerText = "Rollback requires consent";
         for (const [color, consent] of Object.entries(rollbackConsent)) {
             if (consent) continue;
@@ -157,7 +160,7 @@ const renderObject = (parent, obj) => {
             break;
 
         case "oath":
-            node = renderText((game.isUsurper ? "🥇" : "🏅") + " Oath of " + oathNames[obj.id]);
+            node = renderText((game.isUsurper ? "🥇" : "🏅") + " Oath of " + oathNames[obj.oath]);
             break;
         
         case "resource":
@@ -196,8 +199,9 @@ const renderCard = (card) => {
 const renderDeck = (deck, name, separateVisions = false) => {
     const deckNode = document.createElement("li");
     deckNode.id = name;
-    deckNode.innerText = name + " (" + deck.children.length + ")";
+    deckNode.innerText = name + " (" + (deck.children?.length ?? 0) + ")";
     if (deck._searchCost !== undefined) deckNode.innerText += " : " + deck._searchCost + " Supply";
+    if (!deck.children) return deckNode;
 
     let topCardVision = deck.children[0]?._type === "vision";
     const deckList = deckNode.appendChild(document.createElement("ul"));
@@ -316,6 +320,7 @@ const handleResponse = async (response) => {
     appliedEffects = info.appliedEffects;
     startOptions = info.startOptions;
     rollbackConsent = info.rollbackConsent;
+    over = info.over;
     render();
     return info;
 }
