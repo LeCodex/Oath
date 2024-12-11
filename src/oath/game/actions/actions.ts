@@ -5,7 +5,6 @@ import { AttackDie, DefenseDie, DieSymbol, RollResult } from "../dice";
 import { MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, RollDiceEffect, DrawFromDeckEffect, PutPawnAtSiteEffect, DiscardCardEffect, MoveOwnWarbandsEffect, SetPeoplesFavorMobState, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, FlipEdificeEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect, CheckCapacityEffect, CampaignJoinDefenderAlliesEffect, MoveWorldCardToAdvisersEffect, DiscardCardGroupEffect, ParentToTargetEffect, PaySupplyEffect, ThingsExchangeOfferEffect, SiteExchangeOfferEffect } from "./effects";
 import { ALL_OATH_SUITS, OathPhase, OathSuit, OathType } from "../enums";
 import { OathGame } from "../game";
-import { oathData } from "../oaths";
 import { Exile, OathPlayer } from "../player";
 import { ActionModifier, ActivePower, CapacityModifier } from "../powers/powers";
 import { Favor, OathResource, OathResourceType, ResourceCost, ResourcesAndWarbands, Secret } from "../resources";
@@ -1733,16 +1732,21 @@ export class ChooseNewCitizensAction extends OathAction {
         
         for (const citizen of citizens)
             new MakeDecisionAction(citizen, "Become a Citizen?", () => new BecomeCitizenEffect(citizen).doNext()).doNext();
+
+        for (const site of this.game.board.sites())
+            for (const player of this.game.players)
+                if (!player.isImperial)
+                    new ParentToTargetEffect(this.game, player, site.getWarbands(player.leader.key), player.leader.bag).doNext()
     }
 }
 
 export class BuildOrRepairEdificeAction extends OathAction {
-    readonly selects: { card: SelectNOf<Denizen | undefined> };
-    readonly parameters: { card: (Denizen | undefined)[] };
+    readonly selects: { card: SelectNOf<Denizen> };
+    readonly parameters: { card: Denizen[] };
     readonly message = "Build or repair an edifice";
 
     start(): boolean {
-        const choices = new Map<string, Denizen | undefined>();
+        const choices = new Map<string, Denizen>();
         for (const site of this.game.board.sites())
             if (site.ruler?.isImperial)
                 for (const denizen of site.denizens)

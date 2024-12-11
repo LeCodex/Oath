@@ -1,6 +1,6 @@
 import { DarkestSecret, PeoplesFavor } from "./banks";
 import { GrandScepter } from "./cards/cards";
-import { OathType, isEnumKey } from "./enums";
+import { OathType } from "./enums";
 import { OathGame } from "./game";
 import { OathGameObjectLeaf } from "./gameObject";
 import { OwnableObject, WithPowers } from "./interfaces";
@@ -9,26 +9,26 @@ import { OathDefense } from "./powers/visions";
 import { maxInGroup } from "./utils";
 
 
-export const oathData: Record<OathType, [(game: OathGame) => void, (game: OathGame, player: OathPlayer) => number, (game: OathGame, player: OathPlayer) => number]> = {
+export const oathData: Record<OathType, [(game: OathGame) => void, (player: OathPlayer) => number, (player: OathPlayer) => number]> = {
     [OathType.Supremacy]: [
-        (game) => { },
-        (game, player) => [...game.board.sites()].filter(e => e.ruler === player).length,
-        (game, player) => player.relics.length + player.banners.length
+        () => {},
+        (player) => [...player.game.board.sites()].filter(e => e.ruler === player).length,
+        (player) => player.relics.length + player.banners.length
     ],
     [OathType.Protection]: [
-        (game) => { },
-        (game, player) => player.relics.length + player.banners.length,
-        (game, player) => player.byClass(PeoplesFavor).length > 0 ? 1 : 0
+        () => {},
+        (player) => player.relics.length + player.banners.length,
+        (player) => player.byClass(PeoplesFavor).length > 0 ? 1 : 0
     ],
     [OathType.ThePeople]: [
         (game) => { game.byClass(PeoplesFavor)[0]?.parentTo(game.chancellor); },
-        (game, player) => player.byClass(PeoplesFavor).length > 0 ? 1 : 0,
-        (game, player) => player.byClass(DarkestSecret).length > 0 ? 1 : 0
+        (player) => player.byClass(PeoplesFavor).length > 0 ? 1 : 0,
+        (player) => player.byClass(DarkestSecret).length > 0 ? 1 : 0
     ],
     [OathType.Devotion]: [
         (game) => { game.byClass(DarkestSecret)[0]?.parentTo(game.chancellor); },
-        (game, player) => player.byClass(DarkestSecret).length > 0 ? 1 : 0,
-        (game, player) => player.byClass(GrandScepter).length > 0 ? 1 : 0
+        (player) => player.byClass(DarkestSecret).length > 0 ? 1 : 0,
+        (player) => player.byClass(GrandScepter).length > 0 ? 1 : 0
     ],
 };
 
@@ -51,8 +51,6 @@ export class Oath extends OathGameObjectLeaf<OathType> implements OwnableObject,
     }
     
     setup() { oathData[this.oathType][0]!(this.game); };
-    scoreForOathkeeper(player: OathPlayer) { return oathData[this.oathType][1]!(this.game, player); };
-    scoreForSuccessor(player: OathPlayer) { return oathData[this.oathType][2]!(this.game, player); };
     
     setOwner(player?: OathPlayer): void {
         player?.addChild(this);
@@ -63,11 +61,11 @@ export class Oath extends OathGameObjectLeaf<OathType> implements OwnableObject,
     }
 
     getOathkeeperCandidates(): Set<OathPlayer> {
-        return this.getCandidates(this.scoreForOathkeeper.bind(this));
+        return this.getCandidates(oathData[this.oathType][1]);
     }
 
     getSuccessorCandidates(): Set<OathPlayer> {
-        return this.getCandidates(this.scoreForSuccessor.bind(this));
+        return this.getCandidates(oathData[this.oathType][2]);
     }
 
     liteSerialize() {

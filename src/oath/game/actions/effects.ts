@@ -1153,7 +1153,6 @@ export class WinGameEffect extends PlayerEffect {
 
 export class BuildEdificeFromDenizenEffect extends OathEffect {
     denizen: Denizen;
-    site: Site;
     edifice: Edifice;
 
     constructor(denizen: Denizen) {
@@ -1163,19 +1162,20 @@ export class BuildEdificeFromDenizenEffect extends OathEffect {
 
     resolve(): void {
         if (!this.denizen.site) throw new InvalidActionResolution("Card is not at a site");
-        this.site = this.denizen.site;
+        const site = this.denizen.site;
             
         for (const key of Object.keys(edificeFlipside)) {
             const data = denizenData[key]!;
             const suit = data[0];
             if (suit === this.denizen.suit) {
-                this.edifice = new Edifice(key),
-                new ParentToTargetEffect(this.game, this.executor, [this.edifice], this.site).doNext();
+                this.edifice = new Edifice(key);
+                this.edifice.turnFaceup();
+                new ParentToTargetEffect(this.game, this.executor, [this.edifice], site).doNext();
                 new ParentToTargetEffect(this.game, this.executor, this.denizen.children, this.edifice).doNext();
                 break;
             }
         }
-        new ParentToTargetEffect(this.game, this.executor, [this.denizen], this.site.region?.discard).doNext();
+        new ParentToTargetEffect(this.game, this.executor, [this.denizen], site.region?.discard).doNext();
     }
 
     serialize(): Record<string, any> {
