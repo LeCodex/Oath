@@ -1,6 +1,6 @@
 import { CampaignSeizeSiteAction, RecoverAction } from "../actions/actions";
 import { RecoverActionTarget, WithPowers, AtSite, CampaignActionTarget, OwnableObject } from "../interfaces";
-import { Region } from "../board";
+import { Region } from "../map";
 import { DiscardCardEffect, FlipSecretsEffect, MoveOwnWarbandsEffect, MoveResourcesToTargetEffect, ParentToTargetEffect, PayCostToBankEffect, RevealCardEffect, TakeOwnableObjectEffect } from "../actions/effects";
 import { CardRestriction, OathSuit, OathType, OathTypeVisionName, PlayerColor, RegionKey } from "../enums";
 import { Oath } from "../oaths";
@@ -149,7 +149,7 @@ export class Site extends OathCard implements CampaignActionTarget {
     }
 
     seize(player: OathPlayer) {
-        if (this.ruler) new MoveOwnWarbandsEffect(this.ruler.leader, this, this.ruler).doNext();
+        if (this.ruler) new MoveOwnWarbandsEffect(this.ruler.leader, this, this.ruler.board).doNext();
         new CampaignSeizeSiteAction(player, this).doNext();
     }
 
@@ -182,7 +182,7 @@ export abstract class OwnableCard extends OathCard implements OwnableObject  {
 export class Relic extends OwnableCard implements RecoverActionTarget, CampaignActionTarget, AtSite {
     type = "relic";
     defense: number;
-    get force() { return this.owner; }
+    get force() { return this.owner?.board; }
 
     constructor(id: keyof typeof relicsData) {
         const data = relicsData[id];
@@ -252,7 +252,7 @@ export class Denizen extends WorldCard implements AtSite {
     set suit(_suit: OathSuit) { this._suit = _suit; }
     get activelyLocked() { return this.locked && !this.facedown; }
     get facedownName(): string { return super.facedownName + "denizen" + (this.site ? " at " + this.site.name : ""); }
-    get discard(): Discard | undefined { return super.discard || this.site && this.game.board.nextRegion(this.site.region)?.discard; }
+    get discard(): Discard | undefined { return super.discard || this.site && this.game.map.nextRegion(this.site.region)?.discard; }
 
     accessibleBy(player: OathPlayer): boolean {
         return super.accessibleBy(player) || player.leader === this.site?.ruler || this.site === player.site;

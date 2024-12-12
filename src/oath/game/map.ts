@@ -4,8 +4,8 @@ import { RegionKey, RegionSize, isEnumKey } from "./enums";
 import { Container, OathGameObject } from "./gameObject";
 
 
-export class OathBoard extends Container<Region, string> {
-    type = "board";
+export class OathMap extends Container<Region, string> {
+    type = "map";
     travelCosts = new Map<RegionKey, Map<RegionKey, number>>([
         [RegionKey.Cradle, new Map([[RegionKey.Cradle, 1], [RegionKey.Provinces, 2], [RegionKey.Hinterland, 4]])],
         [RegionKey.Provinces, new Map([[RegionKey.Cradle, 2], [RegionKey.Provinces, 2], [RegionKey.Hinterland, 2]])],
@@ -18,7 +18,7 @@ export class OathBoard extends Container<Region, string> {
     ]);
 
     constructor() {
-        super("board", Region);
+        super("map", Region);
     }
 
     get key() { return this.id; }
@@ -33,7 +33,7 @@ export class OathBoard extends Container<Region, string> {
     *sites() {
         for (const region of this.children)
             for (const site of region.byClass(Site))
-                yield site; 
+                yield site;
     }
 
     constSerialize(): Record<`_${string}`, any> {

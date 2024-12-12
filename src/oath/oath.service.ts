@@ -4,6 +4,7 @@ import { ActionManagerReturn } from './game/actions/manager';
 import { InvalidActionResolution } from "./game/actions/base";
 import { PlayerColor } from './game/enums';
 import * as fs from "fs";
+import { range } from 'lodash';
 
 
 @Injectable()
@@ -34,7 +35,7 @@ export class OathService implements OnModuleInit {
         const id = (this.games.size ? Math.max(...this.games.keys()) : 0) + 1;
 
         // TEMP: Forcefully set the number of players
-        const game = new OathGame(id, [seed, 4]);
+        const game = new OathGame(id, [seed, range(4).map(e => "Player" + e)]);
         this.games.set(id, game);
         
         game.actionManager.checkForNextAction()

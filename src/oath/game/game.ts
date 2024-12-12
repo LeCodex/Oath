@@ -1,16 +1,16 @@
-import { ChoosePlayersAction, SetupChooseAction, WakeAction, ChooseSitesAction } from "./actions/actions";
-import { InvalidActionResolution, ModifiableAction } from "./actions/base";
+import { ChoosePlayersAction, SetupChooseAdviserAction, WakeAction, ChooseSitesAction, ChooseTsAction, SetupChoosePlayerBoardAction } from "./actions/actions";
+import { InvalidActionResolution, ModifiableAction, ResolveCallbackEffect } from "./actions/base";
 import { HistoryNode, OathActionManager } from "./actions/manager";
 import { BecomeCitizenEffect, DrawFromDeckEffect, PutPawnAtSiteEffect, SetNewOathkeeperEffect, SetUsurperEffect, WinGameEffect } from "./actions/effects";
 import { ActionModifier, OathPower } from "./powers/powers";
-import { OathBoard, Region } from "./board";
+import { OathMap, Region } from "./map";
 import { Discard, RelicDeck, WorldDeck } from "./cards/decks";
 import { denizenData, edificeFlipside } from "./cards/denizens";
 import { relicsData } from "./cards/relics";
 import { OathPhase, OathSuit, RegionKey, PlayerColor, ALL_OATH_SUITS, BannerKey } from "./enums";
 import { Oath } from "./oaths";
 import { Conspiracy, Denizen, Edifice, GrandScepter, Relic, Site, Vision, WorldCard } from "./cards/cards";
-import { Chancellor, Exile, OathPlayer, VisionSlot, WarbandsSupply } from "./player";
+import { ExileBoard, OathPlayer, WarbandsSupply } from "./player";
 import { Banner, DarkestSecret, FavorBank, PeoplesFavor } from "./banks";
 import { AbstractConstructor, Constructor, isExtended, PRNG, TreeNode, TreeRoot } from "./utils";
 import { parseOathTTSSavefileString, serializeOathGame } from "./parser";
@@ -38,14 +38,15 @@ export class OathGame extends TreeRoot<OathGame> {
     turn = 0;
     phase = OathPhase.Act;
     round = 1;
-    order: PlayerColor[] = [PlayerColor.Purple];
+    order: number[] = [];
 
     // References for quick access to static elements
     actionManager = new OathActionManager(this);
-    chancellor: Chancellor;
+    chancellor: OathPlayer;
+    reliquary: Reliquary;
     worldDeck: WorldDeck;
     relicDeck: RelicDeck;
-    board: OathBoard;
+    map: OathMap;
     grandScepter: GrandScepter;
     banners = new Map<BannerKey, Banner>;
 
@@ -53,12 +54,12 @@ export class OathGame extends TreeRoot<OathGame> {
     dispossessed: Set<string>;
     oldCitizenship: PlayerCitizenship;
 
-    constructor(public gameId: number, public setupData: [string, number]) {
+    constructor(public gameId: number, public setupData: [string, string[]]) {
         super();
         this.setup(setupData);
     }
     
-    setup([seed, playerCount]: this["setupData"]) {
+    setup([seed, playerNames]: this["setupData"]) {
         this.seed = seed;
         this.random = new PRNG();
 
@@ -115,23 +116,19 @@ export class OathGame extends TreeRoot<OathGame> {
             this.relicDeck.addChild(new Relic(cardData.name), true);
         }
 
-        this.chancellor = this.addChild(new Chancellor());
-        this.chancellor.reliquary = this.chancellor.addChild(new Reliquary());
-        for (let i = 0; i < 4; i++)
-            this.chancellor.reliquary.addChild(new ReliquarySlot(String(i))).getRelic();
-
-        for (let i: PlayerColor = PlayerColor.Red; i < playerCount; i++) {
-            const id = PlayerColor[i] as keyof typeof PlayerColor;
-            const exile = this.addChild(new Exile(id));
-            exile.visionSlot = exile.addChild(new VisionSlot(id));
-            this.order.push(i);
+        for (const [i, name] of playerNames.entries()) {
+            const player = this.addChild(new OathPlayer(String(i)));
+            player.name = name;
         }
         this.oldCitizenship = gameData.playerCitizenship;
 
-        this.board = this.addChild(new OathBoard());
+        this.reliquary = this.addChild(new Reliquary());
+        for (let i = 0; i < 4; i++) this.reliquary.addChild(new ReliquarySlot(String(i))).getRelic();
+
+        this.map = this.addChild(new OathMap());
         for (let i = RegionKey.Cradle; i <= RegionKey.Hinterland; i++) {
             const id = RegionKey[i] as keyof typeof RegionKey;
-            const region = this.board.addChild(new Region(id));
+            const region = this.map.addChild(new Region(id));
             region.discard = this.addChild(new Discard(id));
         }
 
@@ -140,7 +137,7 @@ export class OathGame extends TreeRoot<OathGame> {
         for (const siteData of gameData.sites) {
             const siteId = siteData.name;
             siteKeys.push(siteId);
-            const region = this.board.byClass(Region).byKey(regionKey)[0]!;
+            const region = this.map.byClass(Region).byKey(regionKey)[0]!;
             const site = region.addChild(new Site(siteId));
             site.facedown = siteData.facedown;
             if (!site.facedown) site.setupResources();
@@ -164,79 +161,87 @@ export class OathGame extends TreeRoot<OathGame> {
             if (region.byClass(Site).length >= region.size) regionKey++;
         }
 
-        const regions = this.board.children;
+        const regions = this.map.children;
         for (const region of regions) {
             const fromBottom = this.worldDeck.drawSingleCard(true);
             if (fromBottom) region.discard.addChild(fromBottom);
         }
-        const topCradleSite = regions.byKey(RegionKey.Cradle)[0]!.byClass(Site)[0]!;
-
-        const players = this.byClass(OathPlayer);
-        for (const player of players) {
-            player.bag = player.addChild(new WarbandsSupply(player.id));
-            for (let i = 0; i < player.bagAmount; i++) player.bag.addChild(new OathWarband().colorize(player.key));
-
-            player.putResources(Favor, player === this.chancellor ? 2 : 1);
-            player.putResources(Secret, 1);
-            player.leader.bag.moveChildrenTo(player, 3);
-        }
-
-        this.grandScepter = new GrandScepter();
-        this.chancellor.addChild(this.grandScepter).turnFaceup();
-
-        for (const site of this.board.sites())
-            if (site !== topCradleSite && site.byClass(Denizen).filter(e => e.suit !== OathSuit.None).length)
-                this.chancellor.bag.moveChildrenTo(site, 1);
-        this.chancellor.bag.moveChildrenTo(topCradleSite, 3);
-
+        
         const startingAmount = this.players.length < 5 ? 3 : 4;
         for (let i = OathSuit.Discord; i <= OathSuit.Nomad; i++) {
             const bank = this.addChild(new FavorBank(OathSuit[i] as keyof typeof OathSuit));
             Favor.putOn(bank, startingAmount);
         }
-
+        
+        this.grandScepter = new GrandScepter();
         this.oath = new Oath().setType(gameData.oath);
-        this.chancellor.addChild(this.oath).setup();
 
         this.initialActions();
     }
     
     initialActions() {
         for (const player of this.players) {
-            if (player.key === PlayerColor.Purple) continue;
-            if (this.oldCitizenship[player.key] === Citizenship.Citizen) new BecomeCitizenEffect(player).doNext();
+            new SetupChoosePlayerBoardAction(player).doNext();
         }
 
-        const topCradleSite = this.board.children.byKey(RegionKey.Cradle)[0]!.byClass(Site)[0]!;
-        for (const player of this.players) {
-            new DrawFromDeckEffect(player, this.worldDeck, 3, true).doNext(cards => {
-                if (player !== this.chancellor)
-                    new ChooseSitesAction(
-                        player, "Put your pawn at a faceup site (Hand: " + cards.map(e => e.name).join(", ") + ")",
-                        (sites: Site[]) => { if (sites[0]) new PutPawnAtSiteEffect(player, sites[0]).doNext(); }
-                    ).doNext();
-                else
-                    new PutPawnAtSiteEffect(player, topCradleSite).doNext();
+        new ResolveCallbackEffect(this, () => {
+            if (!this.chancellor) throw new InvalidActionResolution("The Chancellor is in every game and demands your respect!");
             
-                new SetupChooseAction(player, cards).doNext();
-            });
-        }
+            this.order = [];
+            for (const player of this.players) {
+                player.bag = player.addChild(new WarbandsSupply(player.board.id));
+                for (let i = 0; i < player.board.bagAmount; i++) player.bag.addChild(new OathWarband().colorize(player.board.key));
+                if (player !== this.chancellor) this.order.push(player.key);
+            }
+            this.random.shuffleArray(this.order);
+            this.order.unshift(this.chancellor.key);
+            
+            for (const player of this.players) {
+                player.board.putResources(Favor, player === this.chancellor ? 2 : 1);
+                player.board.putResources(Secret, 1);
+                player.leader.bag.moveChildrenTo(player.board, 3);
+                new DrawFromDeckEffect(player, this.worldDeck, 3, true).doNext(cards => {
+                    if (player !== this.chancellor)
+                        new ChooseSitesAction(
+                            player, "Put your pawn at a faceup site (Hand: " + cards.map(e => e.name).join(", ") + ")",
+                            (sites: Site[]) => { if (sites[0]) new PutPawnAtSiteEffect(player, sites[0]).doNext(); }
+                        ).doNext();
+                    else
+                        new PutPawnAtSiteEffect(player, topCradleSite).doNext();
+                
+                    new SetupChooseAdviserAction(player, cards).doNext();
+                });
+            }
 
-        new WakeAction(this.currentPlayer).doNext();
+            const topCradleSite = this.map.children.byKey(RegionKey.Cradle)[0]!.byClass(Site)[0]!;
+            this.chancellor.bag.moveChildrenTo(topCradleSite, 3);
+            for (const site of this.map.sites())
+                if (site !== topCradleSite && site.byClass(Denizen).filter(e => e.suit !== OathSuit.None).length)
+                    this.chancellor.bag.moveChildrenTo(site, 1);
+
+            this.chancellor.addChild(this.grandScepter).turnFaceup();
+            this.chancellor.addChild(this.oath).setup();
+            this.chancellor.addChild(this.reliquary);
+
+            new WakeAction(this.currentPlayer).doNext();
+        }).doNext();  
+
         this.actionManager.history.push(new HistoryNode(this.actionManager, this.serialize(true)));
     }
 
-    get players() { return this.byClass(OathPlayer); }
-    get currentPlayer() { return this.players.byKey(this.order[this.turn]!)[0]!; }
+    get players() {
+        const unordered = this.byClass(OathPlayer);
+        return this.order ? unordered.sort((a, b) => this.order.indexOf(a.key) - this.order.indexOf(b.key)) : unordered;
+    }
+    private get currentId() { return this.order[this.turn]; }
+    get currentPlayer() { return this.currentId !== undefined ? this.players.byKey(this.currentId)[0]! : this.players[0]!; }
     get oathkeeper() { return this.oath.owner ?? this.chancellor; }
 
     favorBank(suit: OathSuit) {
         return this.byClass(FavorBank).byKey(suit)[0];
     }
 
-    getPowers<T extends OathPower<WithPowers>>(type: AbstractConstructor<T>): [SourceType<T>, Constructor<T>][] {
-        const powers: [any, Constructor<T>][] = [];
-
+    *getPowers<T extends OathPower<WithPowers>>(type: AbstractConstructor<T>): Generator<[SourceType<T>, Constructor<T>]> {
         let stack: TreeNode<any>[] = [...this.children];
         while (stack.length) {
             const node = stack.pop()!;
@@ -245,10 +250,9 @@ export class OathGame extends TreeRoot<OathGame> {
 
             if (hasPowers(node) && node.active)
                 for (const power of node.powers)
-                    if (isExtended(power, type)) powers.push([node, power]);
+                    if (isExtended(power, type))
+                        yield [node as SourceType<T>, power];
         }
-
-        return powers;
     }
 
     gatherModifiers<T extends ModifiableAction>(action: T, activator: OathPlayer): Set<ActionModifier<WithPowers, T>> {
@@ -301,7 +305,7 @@ export class OathGame extends TreeRoot<OathGame> {
         new ChoosePlayersAction(
             this.chancellor, "Choose a Successor",
             (targets: OathPlayer[]) => { if (targets[0]) new WinGameEffect(targets[0]).doNext(); },
-            [[...candidates].filter(e => e instanceof Exile && e.isCitizen)]
+            [[...candidates].filter(e => e.board instanceof ExileBoard && e.isImperial)]
         ).doNext();
     }
 
@@ -324,7 +328,7 @@ export class OathGame extends TreeRoot<OathGame> {
         return {
             ...super.constSerialize(),
             _currentPlayer: this.currentPlayer.id,
-            _oathkeeper: this.oathkeeper.key,
+            _oathkeeper: this.oathkeeper?.key,
         }
     }
 
@@ -344,8 +348,8 @@ export class OathGame extends TreeRoot<OathGame> {
     updateSeed(winner: PlayerColor) {
         const newCitizenship = { ...this.oldCitizenship };
         for (const player of this.players) {
-            if (player.key === PlayerColor.Purple) continue;
-            newCitizenship[player.key] = player.isImperial ? Citizenship.Citizen : Citizenship.Exile
+            if (player.board.key === PlayerColor.Purple) continue;
+            newCitizenship[player.board.key] = player.isImperial ? Citizenship.Citizen : Citizenship.Exile
         }
 
         this.seed = serializeOathGame({
@@ -361,7 +365,7 @@ export class OathGame extends TreeRoot<OathGame> {
             playerCitizenship: newCitizenship,
             oath: this.oath.oathType,
             suitOrder: ALL_OATH_SUITS,
-            sites: [...this.board.sites()].map(e => ({ name: e.name, facedown: e.facedown, cards: [...e.denizens, ...times(3 - e.denizens.length - e.relics.length, constant({ name: "NONE" })), ...e.relics].map(e => ({ name: e.name })) })),
+            sites: [...this.map.sites()].map(e => ({ name: e.name, facedown: e.facedown, cards: [...e.denizens, ...times(3 - e.denizens.length - e.relics.length, constant({ name: "NONE" })), ...e.relics].map(e => ({ name: e.name })) })),
             world: this.worldDeck.children.map(e => ({ name: e.name })),
             dispossessed: [...this.dispossessed].map(e => ({ name: e })),
             relics: this.relicDeck.children.map(e => ({ name: e.name })),

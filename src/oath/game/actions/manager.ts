@@ -1,6 +1,6 @@
 import { UsePowerAction, PlayFacedownAdviserAction, MoveWarbandsAction, RestAction, MusterAction, TradeAction, TravelAction, RecoverAction, SearchAction, CampaignAction } from "./actions";
 import { OathAction, OathEffect, InvalidActionResolution } from "./base";
-import { OathPhase, PlayerColor } from "../enums";
+import { OathPhase } from "../enums";
 import { OathGame } from "../game";
 import { Constructor, SerializedNode } from "../utils";
 
@@ -34,7 +34,7 @@ export abstract class HistoryEvent {
     
     constructor(
         public manager: OathActionManager,
-        public player: keyof typeof PlayerColor,
+        public player: string,
     ) { }
 
     abstract replay(): void;
@@ -50,7 +50,7 @@ export abstract class HistoryEvent {
 export class StartEvent extends HistoryEvent {
     constructor(
         manager: OathActionManager,
-        player: keyof typeof PlayerColor,
+        player: string,
         public actionName: string
     ) { super(manager, player); }
 
@@ -68,7 +68,7 @@ export class StartEvent extends HistoryEvent {
 export class ContinueEvent extends HistoryEvent {
     constructor(
         manager: OathActionManager,
-        player: keyof typeof PlayerColor,
+        player: string,
         public values: Record<string, string[]>
     ) { super(manager, player); }
 
@@ -169,9 +169,9 @@ export class OathActionManager {
         this.rollbackConsent = undefined;
         new action(this.game.currentPlayer).doNext();
 
-        const playerColor = this.game.currentPlayer.id;
+        const playerId = this.game.currentPlayer.id;
         const gameState = this.gameState;
-        const event = new StartEvent(this, playerColor, actionName);
+        const event = new StartEvent(this, playerId, actionName);
         this.history.push(new HistoryNode(this, gameState.game, [event]));
         try {
             this.checkForNextAction();
@@ -184,18 +184,17 @@ export class OathActionManager {
         }
     }
 
-    getPlayerFromId(playerColor: keyof typeof PlayerColor) {
-        const by = PlayerColor[playerColor];
-        const player = this.game.players.byKey(by)[0];
-        if (!player) throw new InvalidActionResolution(`Invalid player id ${playerColor}`);
+    getPlayerFromId(playerId: string) {
+        const player = this.game.players.by("id", playerId)[0];
+        if (!player) throw new InvalidActionResolution(`Invalid player id ${playerId}`);
         return player;
     }
 
-    continueAction(playerColor: keyof typeof PlayerColor, values: Record<string, string[]>) {
+    continueAction(playerId: string, values: Record<string, string[]>) {
         const action = this.actionsStack[this.actionsStack.length - 1];
         if (!action) throw new InvalidActionResolution("No action to continue");
 
-        const player = this.getPlayerFromId(playerColor);
+        const player = this.getPlayerFromId(playerId);
         if (action.player !== player) throw new InvalidActionResolution(`Action must be resolved by ${action.player.name}, not ${player.name}`);
 
         this.markEventAsOneWay = false;
@@ -205,7 +204,7 @@ export class OathActionManager {
         action.applyParameters(parsed);
         
         const gameState = this.gameState;
-        const event = new ContinueEvent(this, playerColor, values);
+        const event = new ContinueEvent(this, playerId, values);
         const events = this.history[this.history.length - 1]?.events;
         events?.push(event);
         try {
@@ -230,8 +229,8 @@ export class OathActionManager {
         return this.checkForNextAction();
     }
 
-    cancelAction(playerColor: keyof typeof PlayerColor) {
-        const player = this.getPlayerFromId(playerColor);
+    cancelAction(playerId: string) {
+        const player = this.getPlayerFromId(playerId);
         if (this.activePlayer !== player) throw new InvalidActionResolution(`Rollback can only be done by ${this.activePlayer.name}, not ${player.name}`);
 
         let last = this.history.length - 1, lastNode = this.history[last];
@@ -242,18 +241,18 @@ export class OathActionManager {
         if (!lastNode || lastNode.events.length === 0) throw new InvalidActionResolution("Cannot roll back");
         let lastEvent = lastNode.events[lastNode.events.length - 1]!;
         if (lastEvent.player !== this.activePlayer.id || lastEvent.oneWay) {
-            this.rollbackConsent = Object.fromEntries(this.game.players.map(e => [e.id, e.id === playerColor]));
+            this.rollbackConsent = Object.fromEntries(this.game.players.map(e => [e.id, e.id === playerId]));
             return this.defer();
         }
 
         return this.authorizeCancel();
     }
     
-    consentToRollback(playerColor: keyof typeof PlayerColor) {
-        const player = this.getPlayerFromId(playerColor);
-        if (!this.rollbackConsent || !(playerColor in this.rollbackConsent)) throw new InvalidActionResolution(`No rollback consent needed from ${player.name}`);
+    consentToRollback(playerId: string) {
+        const player = this.getPlayerFromId(playerId);
+        if (!this.rollbackConsent || !(playerId in this.rollbackConsent)) throw new InvalidActionResolution(`No rollback consent needed from ${player.name}`);
 
-        this.rollbackConsent[playerColor] = true;
+        this.rollbackConsent[playerId] = true;
         for (const consent of Object.values(this.rollbackConsent)) if (!consent) return this.defer();
         return this.authorizeCancel();
     }

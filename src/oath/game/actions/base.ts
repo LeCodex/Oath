@@ -166,9 +166,9 @@ export abstract class ModifiableAction extends OathAction {
 
     execute() {
         for (const modifier of this.modifiers) modifier.applyBefore();
-        new ResolveCallbackAction(this.game, () => this.modifiedExecution()).doNext(); // This allows actions to be slotted before the actual resolution of the action
+        new ResolveCallbackEffect(this.game, () => this.modifiedExecution()).doNext(); // This allows actions to be slotted before the actual resolution of the action
         for (const modifier of this.modifiers) modifier.applyAfter();
-        new ResolveCallbackAction(this.game, () => { for (const modifier of this.modifiers) modifier.applyAtEnd(); }).doNext();
+        new ResolveCallbackEffect(this.game, () => { for (const modifier of this.modifiers) modifier.applyAtEnd(); }).doNext();
     }
 
     abstract modifiedExecution(): void;
@@ -178,20 +178,6 @@ export abstract class ModifiableAction extends OathAction {
             ...super.serialize(),
             modifiers: this.modifiers.map(e => e.serialize())
         };
-    }
-}
-
-export class ResolveCallbackAction extends OathAction {
-    readonly message = "";
-    callback: () => void;
-
-    constructor(game: OathGame, callback: () => void) {
-        super(game.currentPlayer);
-        this.callback = callback;
-    }
-
-    execute(): void {
-        this.callback();
     }
 }
 
@@ -223,7 +209,7 @@ export abstract class OathEffect<T = never> extends ModifiableAction {
 
     execute(): void {
         super.execute();
-        new ResolveCallbackAction(this.game, () => { if (this.callback) this.callback(this.result); }).doNext();
+        new ResolveCallbackEffect(this.game, () => { if (this.callback) this.callback(this.result); }).doNext();
     }
 
     modifiedExecution(): void {
@@ -252,5 +238,19 @@ export abstract class PlayerEffect<T = never> extends OathEffect<T> {
 
     constructor(player: OathPlayer) {
         super(player.game, player);
+    }
+}
+
+export class ResolveCallbackEffect extends OathAction {
+    readonly message = "";
+    callback: () => void;
+
+    constructor(game: OathGame, callback: () => void) {
+        super(game.currentPlayer);
+        this.callback = callback;
+    }
+
+    execute(): void {
+        this.callback();
     }
 }

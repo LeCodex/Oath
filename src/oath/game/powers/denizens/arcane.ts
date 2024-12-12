@@ -5,7 +5,7 @@ import { DiscardOptions } from "../../cards/decks";
 import { AttackDie, DefenseDie, DieSymbol, RollResult } from "../../dice";
 import { RegionDiscardEffect, PutResourcesOnTargetEffect, RollDiceEffect, BecomeCitizenEffect, DiscardCardEffect, PeekAtCardEffect, MoveResourcesToTargetEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, MoveWorldCardToAdvisersEffect, ParentToTargetEffect, BurnResourcesEffect } from "../../actions/effects";
 import { BannerKey, OathSuit } from "../../enums";
-import { OathPlayer } from "../../player";
+import { ExileBoard, OathPlayer } from "../../player";
 import { Favor, OathResourceType, ResourceCost, ResourcesAndWarbands, Secret } from "../../resources";
 import { ActionModifier, AttackerBattlePlan, DefenderBattlePlan, ActivePower, WhenPlayed, AccessedActionModifier, EnemyAttackerCampaignModifier, EnemyDefenderCampaignModifier } from "../powers";
 import { inclusiveRange } from "../../utils";
@@ -218,13 +218,13 @@ export class TerrorSpells extends ActivePower<Denizen> {
         if (this.gameProxy.banners.get(BannerKey.DarkestSecret)?.owner !== this.action.playerProxy) return;
 
         const targets: ResourcesAndWarbands[] = [];
-        for (const siteProxy of this.gameProxy.board.sites())
+        for (const siteProxy of this.gameProxy.map.sites())
             if (siteProxy.region === this.action.playerProxy.site.region && siteProxy.warbands.length > 0)
                 targets.push(siteProxy.original);
         
         for (const playerProxy of this.gameProxy.players)
-            if (playerProxy.site.region === this.action.playerProxy.site.region && playerProxy.warbands.length > 0)
-                targets.push(playerProxy.original);
+            if (playerProxy.site.region === this.action.playerProxy.site.region && playerProxy.board.warbands.length > 0)
+                targets.push(playerProxy.board.original);
 
         new ChooseRnWsAction(
             this.action.player, "Kill a warband (" + amount + " left)",
@@ -274,9 +274,9 @@ export class BloodPact extends ActivePower<Denizen> {
     usePower(): void {
         const leader = this.action.playerProxy.leader.original;
         new ChooseNumberAction(
-            this.action.player, "Sacrifice pairs of warbands to get secrets", inclusiveRange(1, Math.floor(this.action.player.getWarbandsAmount(leader.key) / 2)),
+            this.action.player, "Sacrifice pairs of warbands to get secrets", inclusiveRange(1, Math.floor(this.action.player.board.getWarbandsAmount(leader.key) / 2)),
             (value: number) => {
-                new ParentToTargetEffect(this.game, this.action.player, this.action.player.getWarbands(leader.key, 2 * value), leader.bag).doNext();
+                new ParentToTargetEffect(this.game, this.action.player, this.action.player.board.getWarbands(leader.key, 2 * value), leader.bag).doNext();
                 new PutResourcesOnTargetEffect(this.game, this.action.player, Secret, value).doNext();
             }
         ).doNext();
@@ -383,7 +383,7 @@ export class Observatory extends AccessedActionModifier<Denizen, SearchAction> {
     
     applyAtStart(): void {
         if (this.action.playerProxy.site === this.sourceProxy.site)
-            for (const region of Object.values(this.game.board.children))
+            for (const region of Object.values(this.game.map.children))
                 this.action.selects.deck.choices.set(region.name, region.discard);
     }
 }
@@ -485,7 +485,8 @@ export class Bewitch extends WhenPlayed<Denizen> {
     name = "Bewitch";
 
     whenPlayed(): void {
-        if (this.action.executorProxy.getAllResources(Secret) > this.gameProxy.chancellor.byClass(Secret).length)
+        if (!(this.action.playerProxy.board instanceof ExileBoard)) return;
+        if (this.action.executorProxy.board.getAllResources(Secret) > this.gameProxy.chancellor.byClass(Secret).length)
             new MakeDecisionAction(this.action.executor, "Become a Citizen?", () => new BecomeCitizenEffect(this.action.executor).doNext()).doNext();
     }
 }

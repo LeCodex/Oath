@@ -5,7 +5,7 @@ import { DieSymbol } from "../../dice";
 import { BecomeCitizenEffect, DiscardCardEffect, DrawFromDeckEffect, FinishChronicleEffect, GainSupplyEffect, MoveDenizenToSiteEffect, MoveResourcesToTargetEffect, MoveWorldCardToAdvisersEffect, ParentToTargetEffect, PlayWorldCardEffect, RegionDiscardEffect, TakeOwnableObjectEffect } from "../../actions/effects";
 import { OathSuit } from "../../enums";
 import { WithPowers } from "../../interfaces";
-import { OathPlayer } from "../../player";
+import { ExileBoard, OathPlayer } from "../../player";
 import { Favor, OathWarband, ResourceCost, Secret } from "../../resources";
 import { AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, RestPower, ActivePower, EnemyAttackerCampaignModifier, EnemyDefenderCampaignModifier, AccessedActionModifier, ActionModifier, EnemyActionModifier } from "../powers";
 
@@ -60,7 +60,7 @@ export class WalledGarden extends DefenderBattlePlan<Denizen> {
     applyBefore(): void {
         for (const target of this.action.campaignResult.targets) {
             if (target !== this.source.site) return;
-            for (const siteProxy of this.gameProxy.board.sites())
+            for (const siteProxy of this.gameProxy.map.sites())
                 for (const denizenProxy of siteProxy.denizens)
                     if (denizenProxy.suit === OathSuit.Beast)
                         this.action.campaignResult.defPool++;
@@ -83,7 +83,7 @@ export class ErrandBoy extends AccessedActionModifier<Denizen, SearchAction> {
     cost = new ResourceCost([[Favor, 1]]);
 
     applyAtStart(): void {
-        for (const regionProxy of Object.values(this.gameProxy.board.children))
+        for (const regionProxy of Object.values(this.gameProxy.map.children))
             this.action.selects.deck.choices.set(regionProxy.name, regionProxy.discard.original);
     }
 }
@@ -113,7 +113,7 @@ export class NewGrowth extends AccessedActionModifier<Denizen, SearchPlayOrDisca
         if (!(this.action.cardProxy instanceof Denizen)) return;
         if (this.action.cardProxy.suit !== OathSuit.Beast && this.action.cardProxy.suit !== OathSuit.Hearth) return;
 
-        for (const site of this.game.board.sites())
+        for (const site of this.game.map.sites())
             if (!site.facedown)
                 this.action.selects.choice.choices.set(site.visualName(this.action.player), site);
     }
@@ -214,7 +214,7 @@ export class GraspingVines extends EnemyActionModifier<Denizen, TravelAction> {
 
     applyBefore(): void {
         if (this.action.maskProxyManager.get(this.action.travelling).site == this.sourceProxy.site)
-            new KillWarbandsOnTargetAction(this.action.travelling, this.action.travelling, 1).doNext();
+            new KillWarbandsOnTargetAction(this.action.travelling, this.action.travelling.board, 1).doNext();
     }
 }
 
@@ -262,7 +262,7 @@ export class AnimalHost extends WhenPlayed<Denizen> {
 
     whenPlayed(): void {
         let amount = 0;
-        for (const siteProxy of this.gameProxy.board.sites())
+        for (const siteProxy of this.gameProxy.map.sites())
             for (const denizenProxy of siteProxy.denizens)
                 if (denizenProxy.suit === OathSuit.Beast)
                     amount++;
@@ -295,7 +295,7 @@ export class VowOfUnionAttack extends AccessedActionModifier<Denizen, CampaignAt
     mustUse = true;
 
     applyBefore(): void {
-        for (const siteProxy of this.gameProxy.board.sites())
+        for (const siteProxy of this.gameProxy.map.sites())
             if (siteProxy.ruler === this.sourceProxy.ruler?.leader)
                 this.action.campaignResult.atkForce.add(siteProxy.original);
     }
@@ -335,7 +335,7 @@ export class SmallFriends extends AccessedActionModifier<Denizen, TradeAction> {
 
     applyWhenApplied(): boolean {
         const sites = new Set<Site>();
-        for (const siteProxy of this.gameProxy.board.sites())
+        for (const siteProxy of this.gameProxy.map.sites())
             if (siteProxy !== this.activatorProxy.site)
                 for (const denizenProxy of siteProxy.denizens)
                     if (denizenProxy.suit === OathSuit.Beast)
@@ -393,6 +393,7 @@ export class LongLostHeir extends WhenPlayed<Denizen> {
     name = "Long-Lost Heir";
 
     whenPlayed(): void {
+        if (!(this.action.playerProxy.board instanceof ExileBoard)) return;
         new MakeDecisionAction(this.action.executor, "Become a Citizen?", () => new BecomeCitizenEffect(this.action.executor).doNext());
     }
 }
@@ -406,7 +407,7 @@ export class WildAllies extends ActivePower<Denizen> {
         campaignAction.noSupplyCost = true;
 
         const sites = new Set<Site>();
-        for (const siteProxy of this.gameProxy.board.sites()) {
+        for (const siteProxy of this.gameProxy.map.sites()) {
             for (const denizenProxy of siteProxy.denizens) {
                 if (denizenProxy.suit === OathSuit.Beast) {
                     sites.add(siteProxy.original);
@@ -426,7 +427,7 @@ export class Wolves extends ActivePower<Denizen> {
     usePower(): void {
         new ChoosePlayersAction(
             this.action.player, "Kill a warband",
-            (targets: OathPlayer[]) => { if (targets[0]) new KillWarbandsOnTargetAction(this.action.player, targets[0], 1).doNext(); },
+            (targets: OathPlayer[]) => { if (targets[0]) new KillWarbandsOnTargetAction(this.action.player, targets[0].board, 1).doNext(); },
             [this.game.players]
         ).doNext();
     }
@@ -485,7 +486,7 @@ export class SecondChance extends ActivePower<Denizen> {
             this.action.player, "Kill a warband",
             (targets: OathPlayer[]) => {
                 if (!targets[0]) return;
-                new KillWarbandsOnTargetAction(this.action.player, targets[0], 1).doNext();
+                new KillWarbandsOnTargetAction(this.action.player, targets[0].board, 1).doNext();
                 new ParentToTargetEffect(this.game, this.action.player, this.action.playerProxy.leader.original.bag.get(1)).doNext();
             },
             [players]
@@ -499,7 +500,7 @@ export class MemoryOfNature extends ActivePower<Denizen> {
 
     usePower(): void {
         let amount = 0;
-        for (const siteProxy of this.gameProxy.board.sites())
+        for (const siteProxy of this.gameProxy.map.sites())
             for (const denizenProxy of siteProxy.denizens)
                 if (denizenProxy.suit === OathSuit.Beast) amount++;
 
@@ -528,7 +529,7 @@ export class RovingTerror extends ActivePower<Denizen> {
     usePower(): void {
         new ChooseCardsAction(
             this.action.player, "Replace another card at a site",
-            [[...this.gameProxy.board.sites()].reduce((a, e) => [...a, ...e.denizens], []).filter(e => !e.activelyLocked && e !== this.sourceProxy).map(e => e.original)],
+            [[...this.gameProxy.map.sites()].reduce((a, e) => [...a, ...e.denizens], []).filter(e => !e.activelyLocked && e !== this.sourceProxy).map(e => e.original)],
             (cards: Denizen[]) => {
                 if (!cards[0]) return;
                 const site = cards[0].site;
@@ -547,7 +548,7 @@ export class ForestTemple extends ActionModifier<Edifice, FinishChronicleEffect>
     mustUse = true;
 
     applyBefore(): void {
-        for (const siteProxy of this.gameProxy.board.sites()) {
+        for (const siteProxy of this.gameProxy.map.sites()) {
             for (const denizenProxy of siteProxy.denizens) {
                 if (denizenProxy.suit === OathSuit.Beast) {
                     siteProxy.addChild(new OathWarband().colorize(this.action.executor.key));

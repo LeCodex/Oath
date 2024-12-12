@@ -8,6 +8,7 @@ import { WithPowers } from "../../interfaces";
 import { Favor, ResourceCost, Secret } from "../../resources";
 import { maxInGroup, minInGroup } from "../../utils";
 import { DefenderBattlePlan, AccessedActionModifier, ActivePower, WhenPlayed, EnemyActionModifier, AttackerBattlePlan, ActionModifier, EnemyDefenderCampaignModifier } from "../powers";
+import { ExileBoard } from "../../player";
 
 
 export class TravelingDoctorAttack extends AttackerBattlePlan<Denizen> {
@@ -119,8 +120,8 @@ export class AwaitedReturn extends AccessedActionModifier<Denizen, TradeAction> 
     modifiedAction = TradeAction;
 
     applyBefore(): void {
-        if (this.activator.warbands.length) {
-            new KillWarbandsOnTargetAction(this.activator, this.activator, 1).doNext();
+        if (this.activator.board.warbands.length) {
+            new KillWarbandsOnTargetAction(this.activator, this.activator.board, 1).doNext();
             this.action.noSupplyCost = true;
         }
     }
@@ -351,6 +352,8 @@ export class BallotBox extends ActivePower<Denizen> {
     name = "Ballot Box";
 
     usePower(): void {
+        if (!(this.action.playerProxy.board instanceof ExileBoard)) return;
+        
         const peoplesFavorProxy = this.gameProxy.banners.get(BannerKey.PeoplesFavor);
         if (peoplesFavorProxy?.owner !== this.action.playerProxy) return;
         new MakeDecisionAction(this.action.player, "Become a Citizen?", () => new BecomeCitizenEffect(this.action.player).doNext());
@@ -419,7 +422,7 @@ export class ARoundOfAle extends ActivePower<Denizen> {
     cost = new ResourceCost([[Favor, 1]]);
 
     usePower(): void {
-        this.action.player.returnResources();
+        this.action.player.board.returnResources();
         const bank = this.game.favorBank(OathSuit.Hearth);
         if (bank) new ParentToTargetEffect(this.game, this.action.player, bank.get(1), this.source).doNext();
     }

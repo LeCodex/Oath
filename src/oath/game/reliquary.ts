@@ -4,6 +4,7 @@ import { OathPower } from "./powers/powers";
 import { Container } from "./gameObject";
 import { Constructor } from "./utils";
 import { Brutal, Decadent, Careless, Greedy } from "./powers/reliquary";
+import { OathPlayer } from "./player";
 
 
 export class Reliquary extends Container<ReliquarySlot, string> {
@@ -14,6 +15,7 @@ export class Reliquary extends Container<ReliquarySlot, string> {
     }
 
     get key() { return this.id; }
+    get hidden() { return !this.typedParent(OathPlayer); }
 
     putRelic(relic: Relic | undefined, index: number): Relic | undefined {
         const oldRelic = this.getRelic(index);

@@ -93,7 +93,7 @@ export class CoastalSite extends AtSiteActionModifier<TravelAction> {
     modifiedAction = TravelAction;
 
     canUse(): boolean {
-        for (const siteProxy of this.gameProxy.board.sites())
+        for (const siteProxy of this.gameProxy.map.sites())
             if (!siteProxy.facedown && siteProxy !== this.sourceProxy)
                 for (const power of siteProxy.powers)
                     if (power === CoastalSite)

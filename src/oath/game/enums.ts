@@ -7,6 +7,8 @@ export enum PlayerColor {
     Brown
 }
 
+export const ALL_PLAYER_COLORS = [PlayerColor.Purple, PlayerColor.Red, PlayerColor.Blue, PlayerColor.Yellow, PlayerColor.White, PlayerColor.Brown];
+
 export enum OathSuit {
     Discord,
     Arcane,

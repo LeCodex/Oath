@@ -6,7 +6,7 @@ import { PayCostToTargetEffect, MoveResourcesToTargetEffect, GainSupplyEffect, B
 import { BannerKey, OathSuit } from "../../enums";
 import { OathGameObject } from "../../gameObject";
 import { CampaignActionTarget } from "../../interfaces";
-import { OathPlayer } from "../../player";
+import { ExileBoard, OathPlayer } from "../../player";
 import { Favor, ResourceCost } from "../../resources";
 import { AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, RestPower, ActivePower, ActionModifier, AccessedActionModifier, EnemyActionModifier, EnemyAttackerCampaignModifier } from "../powers";
 import { SerializedNode } from "../../utils";
@@ -115,6 +115,7 @@ export class MartialCultureAttack extends AttackerBattlePlan<Denizen> {
     name = "Martial Culture";
 
     applyBefore(): void {
+        if (!(this.action.playerProxy.board instanceof ExileBoard)) return;
         if (!this.action.campaignResult.defender?.isImperial)
             this.action.campaignResult.onAttackWin(() => new MakeDecisionAction(this.activator, "Become a Citizen?", () => new BecomeCitizenEffect(this.activator).doNext()));
     }
@@ -123,6 +124,7 @@ export class MartialCultureDefense extends DefenderBattlePlan<Denizen> {
     name = "Martial Culture";
 
     applyBefore(): void {
+        if (!(this.action.playerProxy.board instanceof ExileBoard)) return;
         if (!this.action.campaignResult.defender?.isImperial)
             this.action.campaignResult.onDefenseWin(() => new MakeDecisionAction(this.activator, "Become a Citizen?", () => new BecomeCitizenEffect(this.activator).doNext()));
     }
@@ -215,7 +217,7 @@ export class BearTraps extends DefenderBattlePlan<Denizen> {
 
     applyBefore(): void {
         this.action.campaignResult.atkPool--;
-        new KillWarbandsOnTargetAction(this.action.player, this.action.campaignResult.attacker, 1).doNext();
+        new KillWarbandsOnTargetAction(this.action.player, this.action.campaignResult.attacker.board, 1).doNext();
     }
 }
 
@@ -267,9 +269,9 @@ export class RelicHunter extends AttackerBattlePlan<Denizen> {
     name = "Relic Hunter";
 
     applyAtStart(): void {
-        for (const [name, choice] of this.action.selects.targets.choices) {
+        for (const [name, choice] of this.action.selects.targetProxies.choices) {
             if (choice instanceof Relic && choice.site) {
-                this.action.selects.targets.choices.set(name, new RelicWrapper(choice));
+                this.action.selects.targetProxies.choices.set(name, new RelicWrapper(choice));
             }
         }
     }
@@ -318,7 +320,7 @@ export class Curfew extends EnemyActionModifier<Denizen, TradeAction> {
 
     applyBefore(): void {
         const cost = new ResourceCost([[Favor, 1]]);
-        new PayCostToTargetEffect(this.game, this.activator, cost, this.sourceProxy.ruler?.original).doNext(success => {
+        new PayCostToTargetEffect(this.game, this.activator, cost, this.sourceProxy.ruler?.board.original).doNext(success => {
             if (!success) throw cost.cannotPayError;
         });
     }
@@ -331,7 +333,7 @@ export class TollRoads extends EnemyActionModifier<Denizen, TravelAction> {
     applyBefore(): void {
         if (this.action.siteProxy.ruler === this.sourceProxy.ruler) {
             const cost = new ResourceCost([[Favor, 1]]);
-            new PayCostToTargetEffect(this.game, this.activator, cost, this.sourceProxy.ruler?.original).doNext(success => {
+            new PayCostToTargetEffect(this.game, this.activator, cost, this.sourceProxy.ruler?.board.original).doNext(success => {
                 if (!success) throw cost.cannotPayError;
             });
         }
@@ -348,7 +350,7 @@ export class ForcedLabor extends EnemyActionModifier<Denizen, SearchAction> {
 
     applyBefore(): void {
         const cost = new ResourceCost([[Favor, 1]]);
-        new PayCostToTargetEffect(this.game, this.activator, cost, this.sourceProxy.ruler?.original).doNext(success => {
+        new PayCostToTargetEffect(this.game, this.activator, cost, this.sourceProxy.ruler?.board.original).doNext(success => {
             if (!success) throw cost.cannotPayError;
         });
     }
@@ -403,7 +405,7 @@ export class CouncilSeat extends AccessedActionModifier<Denizen, BecomeExileEffe
     museUse = true;
 
     applyBefore(): void {
-        throw new InvalidActionResolution("Cannot be exiled with the Council Seat");
+        throw new InvalidActionResolution("Cannot exile the player with the Council Seat");
     }
 }
 
@@ -469,7 +471,7 @@ export class Garrison extends WhenPlayed<Denizen> {
     whenPlayed(): void {
         const sites = new Set<Site>();
         const leader = this.action.executorProxy.leader.original;
-        for (const siteProxy of this.gameProxy.board.sites()) {
+        for (const siteProxy of this.gameProxy.map.sites()) {
             if (siteProxy.ruler === this.action.executorProxy.leader) {
                 new ParentToTargetEffect(this.game, this.action.executor, this.action.executorProxy.leader.original.bag.get(1), siteProxy.original).doNext();
                 sites.add(siteProxy.original);
@@ -478,9 +480,9 @@ export class Garrison extends WhenPlayed<Denizen> {
         
         new ChooseSitesAction(
             this.action.executor, "Place a warband on each site you rule",
-            (sites: Site[]) => { for (const site of sites) new MoveOwnWarbandsEffect(leader, this.action.executor, site).doNext() },
+            (sites: Site[]) => { for (const site of sites) new MoveOwnWarbandsEffect(leader, this.action.executor.board, site).doNext() },
             [sites],
-            [[Math.min(sites.size, this.action.executor.getWarbandsAmount(leader.key))]]
+            [[Math.min(sites.size, this.action.executor.board.getWarbandsAmount(leader.key))]]
         ).doNext();
     }
 }
@@ -512,7 +514,7 @@ export class Captains extends ActivePower<Denizen> {
         campaignAction.noSupplyCost = true;
 
         const sites = new Set<Site>();
-        for (const siteProxy of this.gameProxy.board.sites())
+        for (const siteProxy of this.gameProxy.map.sites())
             if (siteProxy.ruler === this.action.playerProxy.leader)
                 sites.add(siteProxy.original);
         

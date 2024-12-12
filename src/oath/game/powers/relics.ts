@@ -3,7 +3,7 @@ import { InvalidActionResolution, ModifiableAction } from "../actions/base";
 import { Denizen, GrandScepter, OathCard, Relic, Site } from "../cards/cards";
 import { TakeOwnableObjectEffect, PlayDenizenAtSiteEffect, MoveOwnWarbandsEffect, PeekAtCardEffect, SetGrandScepterLockEffect, GainSupplyEffect, DrawFromDeckEffect, RevealCardEffect, PayCostToTargetEffect, BecomeExileEffect, MoveResourcesToTargetEffect, MoveDenizenToSiteEffect, MoveWorldCardToAdvisersEffect, ParentToTargetEffect } from "../actions/effects";
 import { BannerKey, PlayerColor } from "../enums";
-import { OathPlayer, Exile } from "../player";
+import { OathPlayer, ExileBoard } from "../player";
 import { OwnableObject, isOwnable } from "../interfaces";
 import { Favor, OathWarband, ResourceCost, Secret } from "../resources";
 import { AccessedActionModifier, EnemyActionModifier, AttackerBattlePlan, DefenderBattlePlan, ActionModifier, ActivePower, RestPower, BattlePlan, EnemyAttackerCampaignModifier } from "./powers";
@@ -40,7 +40,7 @@ export class GrandScepterPeek extends GrandScepterActive {
     name = "Peek at the Reliquary";
 
     usePower(): void {
-        for (const slotProxy of this.gameProxy.chancellor.reliquary.children) 
+        for (const slotProxy of this.gameProxy.reliquary.children) 
             if (slotProxy.children[0])
                 new PeekAtCardEffect(this.action.player, slotProxy.children[0].original).doNext(); 
     }
@@ -49,7 +49,7 @@ export class GrandScepterGrantCitizenship extends GrandScepterActive {
     name = "Grant Citizenship";
 
     usePower(): void {
-        const players = this.gameProxy.players.filter(e => e instanceof Exile && !e.isCitizen).map(e => e.original);
+        const players = this.gameProxy.players.filter(e => e.board instanceof ExileBoard && !e.isImperial).map(e => e.original);
         new StartBindingExchangeAction(this.action.player, CitizenshipOfferAction, players).doNext();
     }
 }
@@ -57,10 +57,10 @@ export class GrandScepterExileCitizen extends GrandScepterActive {
     name = "Exile a Citizen";
 
     usePower(): void {
-        const players = [];
-        for (const citizen of this.game.players)
-            if (citizen instanceof Exile && citizen.isCitizen)
-                players.push(citizen);
+        const citizens = [];
+        for (const player of this.game.players)
+            if (player.board instanceof ExileBoard && player.isImperial)
+                citizens.push(player);
 
         new ChoosePlayersAction(
             this.action.player, "Exile a Citizen",
@@ -76,12 +76,12 @@ export class GrandScepterExileCitizen extends GrandScepterActive {
                 if (target === peoplesFavor?.owner) amount++;
                 
                 const cost = new ResourceCost([[Favor, amount]]);
-                new PayCostToTargetEffect(this.game, this.action.player, cost, target).doNext(success => {
+                new PayCostToTargetEffect(this.game, this.action.player, cost, target.board).doNext(success => {
                     if (!success) throw cost.cannotPayError;
                     new BecomeExileEffect(target).doNext();
                 });
             },
-            [players]
+            [citizens]
         ).doNext();
     }
 }
@@ -331,7 +331,7 @@ export class IvoryEye extends ActivePower<Relic> {
 
     usePower(): void {
         const cards = new Set<OathCard>();
-        for (const site of this.game.board.sites()) {
+        for (const site of this.game.map.sites()) {
             if (site.facedown) cards.add(site);
             for (const relic of site.relics) cards.add(relic);
         }
@@ -358,7 +358,7 @@ export class BrassHorse extends ActivePower<Relic> {
         
         const sites = new Set<Site>();
         if (cardProxy instanceof Denizen)
-            for (const siteProxy of this.gameProxy.board.sites())
+            for (const siteProxy of this.gameProxy.map.sites())
                 if (siteProxy !== this.action.playerProxy.site)
                     for (const denizenProxy of siteProxy.denizens)
                         if (denizenProxy.suit === cardProxy.suit)
@@ -420,7 +420,7 @@ export class BanditCrown extends ActionModifier<Relic, ModifiableAction> {
         const rulerProxy = this.sourceProxy.ruler;
         if (!rulerProxy) return true;
 
-        for (const siteProxy of this.gameProxy.board.sites()) {
+        for (const siteProxy of this.gameProxy.map.sites()) {
             if (siteProxy.ruler && siteProxy.ruler !== rulerProxy.leader) continue;
             const originalFn = siteProxy.getWarbandsAmount.bind(rulerProxy);
             siteProxy.getWarbandsAmount = (color: PlayerColor | undefined) => {
@@ -441,7 +441,7 @@ export class GrandMask extends ActionModifier<Relic, ModifiableAction> {
         if (rulerProxy !== this.gameProxy.currentPlayer) return true;
 
         const overrideRule = new Set();
-        for (const siteProxy of this.gameProxy.board.sites()) {
+        for (const siteProxy of this.gameProxy.map.sites()) {
             if (!siteProxy.ruler?.isImperial) continue;
             for (const denizenProxy of siteProxy.denizens) {
                 let isBattlePlan = false;

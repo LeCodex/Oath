@@ -1,12 +1,12 @@
 import { MakeDecisionAction, ChooseCardsAction, ChooseRegionAction, TakeFavorFromBankAction, TakeResourceFromPlayerAction, ChooseSuitsAction, SearchPlayOrDiscardAction, MusterAction, TravelAction, CampaignAction, KillWarbandsOnTargetAction, CampaignAttackAction, CampaignEndAction, RecoverAction, TakeReliquaryRelicAction, ChooseNumberAction, StartBindingExchangeAction, FestivalDistrictOfferAction } from "../../actions/actions";
 import { InvalidActionResolution, ModifiableAction } from "../../actions/base";
 import { FavorBank, PeoplesFavor } from "../../banks";
-import { Region } from "../../board";
+import { Region } from "../../map";
 import { Denizen, Edifice, OathCard, Relic, Site, Vision, WorldCard } from "../../cards/cards";
 import { D6, DefenseDie } from "../../dice";
 import { TakeOwnableObjectEffect, PutResourcesOnTargetEffect, MoveResourcesToTargetEffect, SetNewOathkeeperEffect, RollDiceEffect, DiscardCardEffect, BecomeCitizenEffect, PayCostToTargetEffect, PeekAtCardEffect, WinGameEffect, DrawFromDeckEffect, MoveWorldCardToAdvisersEffect, ParentToTargetEffect, BurnResourcesEffect } from "../../actions/effects";
 import { BannerKey, OathSuit } from "../../enums";
-import { Exile, OathPlayer } from "../../player";
+import { ExileBoard, OathPlayer } from "../../player";
 import { Favor, ResourceCost, Secret } from "../../resources";
 import { WhenPlayed, CapacityModifier, ActivePower, RestPower, AttackerBattlePlan, DefenderBattlePlan, ActionModifier, AccessedActionModifier, WakePower, EnemyActionModifier, EnemyAttackerCampaignModifier, EnemyDefenderCampaignModifier } from "../powers";
 import { minInGroup } from "../../utils";
@@ -303,7 +303,7 @@ export class Riots extends WhenPlayed<Denizen> {
         if (!peoplesFavorProxy?.isMob) return;
 
         const suitCounts = new Map<OathSuit, number>();
-        for (const siteProxy of this.gameProxy.board.sites())
+        for (const siteProxy of this.gameProxy.map.sites())
             for (const denizenProxy of siteProxy.denizens)
                 suitCounts.set(denizenProxy.suit, (suitCounts.get(denizenProxy.suit) ?? 0) + 1);
         
@@ -321,7 +321,7 @@ export class Riots extends WhenPlayed<Denizen> {
             this.action.executor, "Discard all other cards at site of the suit with the most",
             (suits: OathSuit[]) => {
                 if (suits[0] === undefined) return;
-                for (const siteProxy of this.gameProxy.board.sites())
+                for (const siteProxy of this.gameProxy.map.sites())
                     for (const denizenProxy of siteProxy.denizens)
                         if (denizenProxy.suit === suits[0] && denizenProxy !== this.sourceProxy)
                             new DiscardCardEffect(this.action.executor, denizenProxy.original).doNext();
@@ -373,7 +373,7 @@ export class BanditChiefWhenPlayed extends WhenPlayed<Denizen> {
     name = "Bandit Chief";
 
     whenPlayed(): void {
-        for (const site of this.game.board.sites())
+        for (const site of this.game.map.sites())
             new KillWarbandsOnTargetAction(this.action.executor, site, 1).doNext();
     }
 }
@@ -383,7 +383,7 @@ export class BanditChief extends ActionModifier<Denizen, ModifiableAction> {
     mustUse = true;
 
     applyWhenApplied(): boolean {
-        for (const siteProxy of this.gameProxy.board.sites())
+        for (const siteProxy of this.gameProxy.map.sites())
             siteProxy.bandits += 2;
 
         return true;
@@ -398,8 +398,8 @@ export class FalseProphet extends WhenPlayed<Denizen> {
 
         const visions = new Set<Vision>();
         for (const player of this.game.players)
-            if (player instanceof Exile && player.vision)  // RAW, it doesn't say "another player has revealed"
-                visions.add(player.vision);
+            if (player.board instanceof ExileBoard && player.board.vision)  // RAW, it doesn't say "another player has revealed"
+                visions.add(player.board.vision);
 
         new ChooseCardsAction(
             this.action.executor, "Place a warband on a revealed Vision", [visions],
@@ -414,8 +414,8 @@ export class FalseProphetWake extends WakePower<Denizen> {
         if (this.action.playerProxy?.isImperial) return true;
 
         for (const player of this.game.players) {
-            if (player instanceof Exile && player.vision && player.vision.getWarbandsAmount(this.action.player.key) > 0) {
-                const candidates = player.vision.oath.getOathkeeperCandidates();
+            if (player.board instanceof ExileBoard && player.board.vision && player.board.vision.getWarbandsAmount(this.action.player.key) > 0) {
+                const candidates = player.board.vision.oath.getOathkeeperCandidates();
                 if (candidates.size === 1 && candidates.has(this.action.player)) {
                     new WinGameEffect(this.action.player).doNext();
                     return false;
@@ -444,6 +444,7 @@ export class RoyalAmbitions extends WhenPlayed<Denizen> {
     name = "Royal Ambitions";
 
     whenPlayed(): void {
+        if (!(this.action.playerProxy.board instanceof ExileBoard)) return;
         if (this.action.executorProxy.ruledSites > this.gameProxy.chancellor.ruledSites)
             new MakeDecisionAction(this.action.executor, "Become a Citizen?", () => {
                 new BecomeCitizenEffect(this.action.executor).doNext(); 
@@ -481,7 +482,7 @@ export class BoilingLake extends EnemyActionModifier<Denizen, TravelAction> {
 
     applyBefore(): void {
         if (this.action.siteProxy == this.sourceProxy.site)
-            new KillWarbandsOnTargetAction(this.action.player, this.action.player, 2).doNext();
+            new KillWarbandsOnTargetAction(this.action.player, this.action.player.board, 2).doNext();
     }
 }
 

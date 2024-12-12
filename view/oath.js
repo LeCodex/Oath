@@ -22,7 +22,7 @@ const setup = async () => {
 
 const oathNames = ["Supremacy", "the People", "Devotion", "Protection"];
 const visionNames = { Supremacy: "Conquest", ThePeople: "Revolution", Devotion: "Faith", Protection: "Sanctuary" };
-const pawnColors = { Purple: "💜", Red: "❤️", Blue: "💙", Yellow: "💛", white: "🤍", Black: "🖤" };
+const pawnColors = { Purple: "💜", Red: "❤️", Blue: "💙", Yellow: "💛", White: "🤍", Black: "🖤" };
 const warbandsColors = ["🟪", "🟥", "🟦", "🟨", "⬜", "⬛"];
 const suitColors = { None: "🚫", Discord: "🔴", Arcane: "🟣", Order: "🔵", Hearth: "🟠", Beast: "🟤", Nomad: "🟢" };
 const render = () => {
@@ -33,24 +33,26 @@ const render = () => {
     seedNode.innerHTML = game.seed;
 
 
-    const boardNode = document.getElementById("board");
+    const boardNode = document.getElementById("map");
     boardNode.innerHTML = "";
-    for (const board of byType(game, "board")) {
+    for (const board of byType(game, "map")) {
         renderObject(boardNode, board);
     }
 
 
     const playersNode = document.getElementById("players");
     playersNode.innerHTML = "";
-    for (const player of byType(game, "player")) {
-        renderObject(playersNode, player);
+    const players = byType(game, "player");
+    for (const index of game.order) {
+        const player = players[index];
+        if (player) renderObject(playersNode, player);
     }
 
 
     const infoNode = document.getElementById("info");
     infoNode.innerText = "[SUPPLY]";
     for (const obj of game.children) {
-        if (obj._type === "player" || obj._type === "board") continue;
+        if (obj._type === "player" || obj._type === "map") continue;
         renderObject(infoNode, obj);
     }
 
@@ -112,11 +114,20 @@ const renderObject = (parent, obj) => {
     let node, autoAppendChildren = true;
     switch (obj._type) {
         case "player":
-            node = renderText(obj._name + " (Supply: " + obj.supply + ")" + (obj.isCitizen ? " 💜" : "") + (game._currentPlayer == obj.id ? " 🔄" : ""));
+            const board = byType(obj, "board")[0];
+            if (board) {
+                node = renderText(pawnColors[board.id] + (board.isCitizen ? "💜" : "") + " " + obj._name + " (" + board._name + ") (Supply: " + obj.supply + ")");
+                node.innerText += (game._currentPlayer == obj.id ? " 🔄" : "");
+                renderResourcesAndWarbands(node, board);
+            } else {
+                node = renderText(obj._name);
+            }
+            break;
+        case "board":
             break;
         
-        case "board":
-            node = renderText("[BOARD]");
+        case "map":
+            node = renderText("[MAP]");
             break;
         case "region":
             node = renderText(obj.id);
@@ -130,7 +141,7 @@ const renderObject = (parent, obj) => {
         
         case "site":
             node = renderCard(obj);
-            node.innerText += " " + byType(game, "player").filter(e => e.site == obj.id).map(e => pawnColors[e.id]).join("");
+            node.innerText += " " + byType(game, "player").filter(e => e.site === obj.id).map(e => pawnColors[byType(e, "board")[0].id]).join("");
             break;
         
         case "favorBank":
@@ -174,8 +185,7 @@ const renderObject = (parent, obj) => {
     if (!node) return;
 
     if (autoAppendChildren && obj.children) {
-        node.innerText += " " + byType(obj, "resource").sort((a, b) => a.class.localeCompare(b.class)).map(e => e.class === "Favor" ? "🟡" : e.flipped ? "📖" : "📘").join("");
-        node.innerText += " " + byType(obj, "warband").map(e => warbandsColors[e.color]).join("");
+        renderResourcesAndWarbands(node, obj);
         const list = node.appendChild(document.createElement("ul"));
         for (const child of sortedChildren(obj)) {
             renderObject(list, child);
@@ -219,6 +229,11 @@ const renderDeck = (deck, name, separateVisions = false) => {
     if (facedownTotal) deckList.appendChild(renderText(facedownTotal + (topCardVision ? " 👁️" : " ❔")));
 
     return deckNode;
+}
+
+const renderResourcesAndWarbands = (node, obj) => {
+    node.innerText += " " + byType(obj, "resource").sort((a, b) => a.class.localeCompare(b.class)).map(e => e.class === "Favor" ? "🟡" : e.flipped ? "📖" : "📘").join("");
+    node.innerText += " " + byType(obj, "warband").map(e => warbandsColors[e.color]).join("");
 }
 
 const byType = (obj, type) => {

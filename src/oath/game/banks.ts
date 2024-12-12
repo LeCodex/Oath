@@ -31,7 +31,7 @@ export abstract class Banner<T extends OathResource = OathResource> extends Cont
     get key() { return this.id; }
     get owner() { return this.typedParent(OathPlayer); }
     get defense() { return this.amount; }
-    get force() { return this.owner; }
+    get force() { return this.owner?.board; }
 
     setOwner(player?: OathPlayer): void {
         player?.addChild(this);

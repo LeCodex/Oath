@@ -1,17 +1,17 @@
 import { DarkestSecret, FavorBank, PeoplesFavor } from "./banks";
-import { OathBoard, Region } from "./board";
+import { OathMap, Region } from "./map";
 import { Conspiracy, Denizen, Edifice, GrandScepter, Relic, Site, Vision } from "./cards/cards";
 import { Discard, RelicDeck, WorldDeck } from "./cards/decks";
 import { Oath } from "./oaths";
-import { Exile, Chancellor } from "./player";
 import { Reliquary, ReliquarySlot } from "./reliquary";
 import { Favor, OathWarband, Secret } from "./resources";
+import { ChancellorBoard, ExileBoard } from "./player";
 
 const index = {
     FavorBank,
     PeoplesFavor,
     DarkestSecret,
-    OathBoard,
+    OathMap,
     Region,
     Relic,
     GrandScepter,
@@ -24,8 +24,8 @@ const index = {
     RelicDeck,
     Discard,
     Oath,
-    Exile,
-    Chancellor,
+    ExileBoard,
+    ChancellorBoard,
     Reliquary,
     ReliquarySlot,
     Favor,

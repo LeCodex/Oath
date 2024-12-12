@@ -1,13 +1,13 @@
 import { TravelAction, MakeDecisionAction, ChooseRegionAction, SearchPlayOrDiscardAction, ChooseCardsAction, TakeFavorFromBankAction, ChooseSitesAction, MoveWarbandsBetweenBoardAndSitesAction, RestAction, RecoverAction, TakeReliquaryRelicAction, CampaignEndAction, StartBindingExchangeAction, TheGatheringOfferAction } from "../../actions/actions";
-import { InvalidActionResolution, ModifiableAction, ResolveCallbackAction } from "../../actions/base";
-import { Region } from "../../board";
+import { InvalidActionResolution, ModifiableAction, ResolveCallbackEffect } from "../../actions/base";
+import { Region } from "../../map";
 import { Denizen, Edifice, OathCard, Relic, Site, VisionBack, WorldCard } from "../../cards/cards";
 import { DiscardOptions } from "../../cards/decks";
 import { AttackDie, DieSymbol } from "../../dice";
 import { PayCostToTargetEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PayPowerCostEffect, BecomeCitizenEffect, DrawFromDeckEffect, FlipEdificeEffect, MoveResourcesToTargetEffect, DiscardCardEffect, GainSupplyEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, PeekAtCardEffect, MoveWorldCardToAdvisersEffect, MoveDenizenToSiteEffect, DiscardCardGroupEffect, PlayVisionEffect, ParentToTargetEffect, BurnResourcesEffect, PutPawnAtSiteEffect } from "../../actions/effects";
 import { BannerKey, OathSuit } from "../../enums";
 import { OwnableObject, isOwnable } from "../../interfaces";
-import { OathPlayer } from "../../player";
+import { ExileBoard, OathPlayer } from "../../player";
 import { Favor, ResourceCost, Secret } from "../../resources";
 import { ActivePower, CapacityModifier, AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, EnemyAttackerCampaignModifier, EnemyActionModifier, ActionModifier, gainPowerUntilActionResolves, BattlePlan } from "../powers";
 
@@ -120,7 +120,7 @@ export class WildMountsReplace extends ActionModifier<Denizen, DiscardCardEffect
                 WildMountsReplace.firstDiscardDone = true;
 
                 const ruledBeastCards: Denizen[] = [];
-                for (const siteProxy of this.gameProxy.board.sites())
+                for (const siteProxy of this.gameProxy.map.sites())
                     if (siteProxy.ruler === this.action.playerProxy)
                         for (const denizenProxy of siteProxy.denizens)
                             if (denizenProxy.suit === OathSuit.Beast)
@@ -202,7 +202,7 @@ export class WayStation extends ActionModifier<Denizen, TravelAction> {
         if (!this.sourceProxy.site) return;
         if (this.action.siteProxy === this.sourceProxy.site) {
             if (!this.activatorProxy.rules(this.sourceProxy)) {
-                new PayCostToTargetEffect(this.game, this.activator, new ResourceCost([[Favor, 1]]), this.sourceProxy.ruler?.original).doNext(success => {
+                new PayCostToTargetEffect(this.game, this.activator, new ResourceCost([[Favor, 1]]), this.sourceProxy.ruler?.board.original).doNext(success => {
                     if (!success) return;
                     this.action.noSupplyCost = true;
                 });
@@ -254,7 +254,7 @@ export class AFastSteed extends ActionModifier<Denizen, TravelAction> {
     cost = new ResourceCost([[Favor, 1]]);
 
     applyBefore(): void {
-        if (this.activatorProxy.warbands.length <= 3)
+        if (this.activatorProxy.board.warbands.length <= 3)
             this.action.noSupplyCost = true;
     }
 }
@@ -305,7 +305,7 @@ export class AncientBloodline extends EnemyActionModifier<Denizen, ModifiableAct
     modifiedAction = ModifiableAction;
 
     applyBefore(): void {
-        for (const siteProxy of this.gameProxy.board.sites()) {
+        for (const siteProxy of this.gameProxy.map.sites()) {
             if (siteProxy.ruler !== this.activatorProxy) continue;
             for (const denizenProxy of siteProxy.denizens)
                 denizenProxy.locked = true;
@@ -414,7 +414,7 @@ export class AncientBinding extends ActivePower<Denizen> {
                 new MoveResourcesToTargetEffect(this.game, player, Secret, Infinity, undefined, relic).doNext();
         }
 
-        for (const site of this.game.board.sites())
+        for (const site of this.game.map.sites())
             for (const denizen of site.denizens)
                 if (denizen !== this.source)
                     new MoveResourcesToTargetEffect(this.game, this.action.player, Secret, Infinity, undefined, denizen).doNext();
@@ -511,6 +511,8 @@ export class AncientPact extends WhenPlayed<Denizen> {
     name = "Ancient Pact";
 
     whenPlayed(): void {
+        if (!(this.action.playerProxy.board instanceof ExileBoard)) return;
+
         const darkestSecretProxy = this.gameProxy.banners.get(BannerKey.DarkestSecret);
         if (!darkestSecretProxy) return;
         if (darkestSecretProxy?.owner !== this.action.executorProxy) return;
@@ -585,7 +587,7 @@ export class GreatHerd extends WhenPlayed<Denizen> {
 
     whenPlayed(): void {
         const cards = new Set<Denizen>();
-        for (const siteProxy of this.gameProxy.board.sites()) {
+        for (const siteProxy of this.gameProxy.map.sites()) {
             if (siteProxy !== this.action.executorProxy.site) continue;
             for (const denizenProxy of siteProxy.denizens)
                 if (denizenProxy.suit === OathSuit.Nomad && !denizenProxy.activelyLocked)
@@ -618,7 +620,7 @@ export class TheGathering extends WhenPlayed<Denizen> {
             ).doNext();
         }
 
-        new ResolveCallbackAction(this.game, () => {
+        new ResolveCallbackEffect(this.game, () => {
             const participants = this.gameProxy.players.filter(e => e.site === this.sourceProxy.site).map(e => e.original);
             for (const player of participants) {
                 new StartBindingExchangeAction(player, TheGatheringOfferAction, participants).doNext();

@@ -266,7 +266,7 @@ export abstract class TreeNode<RootType extends TreeRoot<RootType>, KeyType = an
     /** Used for serialization. General cateogrization. */
     abstract type: string;
     /** Used for serialization. If clients should skip rendering this object. */
-    hidden: boolean = false;
+    get hidden(): boolean { return false; }
 
     constructor(id: string) {
         super();
@@ -284,7 +284,7 @@ export abstract class TreeNode<RootType extends TreeRoot<RootType>, KeyType = an
     prune(deep: boolean = true) {
         this.parent?.children.delete(this);
         this.root?.removeFromLookup(this);
-        if (deep) for (const child of this.children) this.root?.removeFromLookup(child);
+        if (deep) for (const child of this.children) child.prune();
         (this.parent as any) = undefined;  // Pruned objects shouldn't be accessed anyways
     }
 
@@ -363,7 +363,10 @@ export abstract class TreeNode<RootType extends TreeRoot<RootType>, KeyType = an
         // Ugly type casting, since recursive types with generic parameters cause "type serialization is too deep" errors,
         // and I want the child classes to use ReturnType<this["liteSerialize"]> and it causes issues with the recursivity
         let objWithChildren = obj as SerializedNode<this>;
-        if (!objWithChildren.children) return;
+        if (!objWithChildren.children) {
+            for (const child of this.children) child.prune();
+            return;
+        }
 
         const confirmedChildren = new Set<TreeNode<RootType>>();
         for (const [i, child] of objWithChildren.children.entries()) {

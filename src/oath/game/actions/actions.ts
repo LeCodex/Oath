@@ -3,24 +3,57 @@ import { Denizen, Edifice, OathCard, OwnableCard, Relic, Site, WorldCard } from 
 import { DiscardOptions, SearchableDeck } from "../cards/decks";
 import { AttackDie, DefenseDie, DieSymbol, RollResult } from "../dice";
 import { MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, RollDiceEffect, DrawFromDeckEffect, PutPawnAtSiteEffect, DiscardCardEffect, MoveOwnWarbandsEffect, SetPeoplesFavorMobState, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, FlipEdificeEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect, CheckCapacityEffect, CampaignJoinDefenderAlliesEffect, MoveWorldCardToAdvisersEffect, DiscardCardGroupEffect, ParentToTargetEffect, PaySupplyEffect, ThingsExchangeOfferEffect, SiteExchangeOfferEffect } from "./effects";
-import { ALL_OATH_SUITS, OathPhase, OathSuit, OathType } from "../enums";
+import { ALL_OATH_SUITS, ALL_PLAYER_COLORS, OathPhase, OathSuit, OathType, PlayerColor, RegionKey } from "../enums";
 import { OathGame } from "../game";
-import { Exile, OathPlayer } from "../player";
+import { ChancellorBoard, ExileBoard, OathPlayer, PlayerBoard, VisionSlot } from "../player";
 import { ActionModifier, ActivePower, CapacityModifier } from "../powers/powers";
 import { Favor, OathResource, OathResourceType, ResourceCost, ResourcesAndWarbands, Secret } from "../resources";
 import { Banner, FavorBank, PeoplesFavor } from "../banks";
 import { Constructor, inclusiveRange, isExtended, MaskProxyManager, minInGroup } from "../utils";
 import { SelectNOf, SelectBoolean, SelectNumber } from "./selects";
 import { CampaignActionTarget, RecoverActionTarget, WithPowers } from "../interfaces";
-import { Region } from "../board";
+import { Region } from "../map";
 import { OathGameObject } from "../gameObject";
+import { Citizenship } from "../parser/interfaces";
+import { HistoryNode } from "./manager";
 
 
 
 ////////////////////////////////////////////
 //                 SETUP                  //
 ////////////////////////////////////////////
-export class SetupChooseAction extends OathAction {
+export class SetupChoosePlayerBoardAction extends OathAction {
+    readonly selects: { color: SelectNOf<PlayerColor> };
+    readonly parameters: { color: PlayerColor[] };
+    readonly message = "Choose a board to start with";
+
+    start(): boolean {
+        const colors = new Set(ALL_PLAYER_COLORS);
+        for (const player of this.game.players)
+            if (player.board)
+                colors.delete(player.board.key);
+        const choices = [...colors].map<[string, PlayerColor]>(e => [PlayerColor[e] + (e !== PlayerColor.Purple && this.game.oldCitizenship[e] === Citizenship.Citizen ? " (Citizen)" : ""), e]);
+        this.selects.color = new SelectNOf("Color", choices, { min: 1 });
+
+        return super.start();
+    }
+
+    execute(): void {
+        const color = this.parameters.color[0]!;
+        const id = PlayerColor[color] as keyof typeof PlayerColor;
+
+        if (color === PlayerColor.Purple) {
+            this.player.board = this.player.addChild(new ChancellorBoard());
+            this.game.chancellor = this.player;
+        } else {
+            const board = this.player.board = this.player.addChild(new ExileBoard(id));
+            board.visionSlot = board.addChild(new VisionSlot(id));
+            board.isCitizen = this.game.oldCitizenship[color] === Citizenship.Citizen;
+        }
+    }
+}
+
+export class SetupChooseAdviserAction extends OathAction {
     readonly selects: { card: SelectNOf<WorldCard> };
     readonly parameters: { card: Denizen[] };
     readonly message = "Choose a card to start with";
@@ -169,7 +202,7 @@ export class TravelAction extends MajorAction {
     start() {
         this.player = this.choosing;
         const choices = new Map<string, Site>();
-        for (const siteProxy of this.gameProxy.board.sites())
+        for (const siteProxy of this.gameProxy.map.sites())
             if (siteProxy !== this.playerProxy.site && this.restriction(siteProxy))
                 choices.set(siteProxy.visualName(this.player), siteProxy);
         this.selects.site = new SelectNOf("Site", choices, { min: 1 });
@@ -183,7 +216,7 @@ export class TravelAction extends MajorAction {
         const fromRegionKey = this.playerProxy.site.region?.key;
         const toRegionKey = this.siteProxy.region?.key;
         if (fromRegionKey !== undefined && toRegionKey !== undefined)
-            this.supplyCost = this.gameProxy.board.travelCosts.get(fromRegionKey)?.get(toRegionKey) ?? 2;
+            this.supplyCost = this.gameProxy.map.travelCosts.get(fromRegionKey)?.get(toRegionKey) ?? 2;
         else
             this.supplyCost = 2;
         
@@ -519,8 +552,8 @@ export class CampaignAction extends MajorAction {
 }
 
 export class CampaignAttackAction extends ModifiableAction {
-    readonly selects: { targets: SelectNOf<CampaignActionTarget>, pool: SelectNumber };
-    readonly parameters: { targets: CampaignActionTarget[], pool: number[] };
+    readonly selects: { targetProxies: SelectNOf<CampaignActionTarget>, pool: SelectNumber };
+    readonly parameters: { targetProxies: CampaignActionTarget[], pool: number[] };
     readonly next: CampaignDefenseAction;
     readonly message = "Choose targets and attack pool";
 
@@ -539,7 +572,7 @@ export class CampaignAttackAction extends ModifiableAction {
 
     start() {
         const choices = new Map<string, CampaignActionTarget>();
-        for (const siteProxy of this.gameProxy.board.sites()) { 
+        for (const siteProxy of this.gameProxy.map.sites()) { 
             if (!siteProxy.facedown && siteProxy.ruler === this.defenderProxy?.leader) {
                 if (this.playerProxy.site === siteProxy) {
                     this.campaignResult.targets.add(siteProxy.original);
@@ -554,9 +587,9 @@ export class CampaignAttackAction extends ModifiableAction {
             for (const relicProxy of this.defenderProxy.relics) choices.set(relicProxy.visualName(this.player), relicProxy)
             for (const bannerProxy of this.defenderProxy.banners) choices.set(bannerProxy.name, bannerProxy);
         }
-        this.selects.targets = new SelectNOf("Target(s)", choices, { min: 1 - this.campaignResult.targets.size, max: choices.size });
+        this.selects.targetProxies = new SelectNOf("Target(s)", choices, { min: 1 - this.campaignResult.targets.size, max: choices.size });
 
-        this.selects.pool = new SelectNumber("Attack pool", inclusiveRange(this.playerProxy.warbands.length));
+        this.selects.pool = new SelectNumber("Attack pool", inclusiveRange(this.playerProxy.board.warbands.length));
         
         return super.start();
     }
@@ -565,7 +598,7 @@ export class CampaignAttackAction extends ModifiableAction {
     get campaignResultProxy() { return this.next.campaignResultProxy; }
 
     execute() {
-        for (const targetProxy of this.parameters.targets) this.campaignResult.targets.add(targetProxy.original);
+        for (const targetProxy of this.parameters.targetProxies) this.campaignResult.targets.add(targetProxy.original);
         this.campaignResult.atkPool = this.parameters.pool[0]!;
         this.campaignResult.defPool = 0;
 
@@ -600,19 +633,19 @@ export class CampaignAttackAction extends ModifiableAction {
 
         for (const ally of this.campaignResult.defenderAllies) {
             if (ally.site === this.player.site) {
-                this.campaignResult.defForce.add(ally);
+                this.campaignResult.defForce.add(ally.board);
                 continue;
             }
             
             for (const target of this.campaignResult.targets) {
                 if (target instanceof Site && ally.site === target) {
-                    this.campaignResult.defForce.add(ally);
+                    this.campaignResult.defForce.add(ally.board);
                     continue;
                 }
             }
         }
         
-        this.campaignResult.atkForce = new Set([this.player]);
+        this.campaignResult.atkForce = new Set([this.player.board]);
 
         if (this.campaignResult.defender) {
             this.next.doNext();
@@ -744,10 +777,10 @@ export class CampaignResult {
 
     checkForImperialInfighting(maskProxyManager: MaskProxyManager) {
         if (maskProxyManager.get(this.defender)?.isImperial) {
-            if (this.attacker instanceof Exile)  // Citizen attacks: revoke Citizen priviledges
-                maskProxyManager.get(this.attacker).isCitizen = false;
-            else if (this.defender instanceof Exile)  // Chancellor attacks: revoke defender's Citizen priviledges
-                maskProxyManager.get(this.defender).isCitizen = false;
+            if (this.attacker.board instanceof ExileBoard)  // Citizen attacks: revoke Citizen priviledges
+                maskProxyManager.get(this.attacker.board).isCitizen = false;
+            else if (this.defender?.board instanceof ExileBoard)  // Chancellor attacks: revoke defender's Citizen priviledges
+                maskProxyManager.get(this.defender.board).isCitizen = false;
         }
     }
     
@@ -891,12 +924,12 @@ export class CampaignSeizeSiteAction extends OathAction {
     }
 
     start() {
-        this.selects.amount = new SelectNumber("Amount", inclusiveRange(this.player.getWarbandsAmount(this.player.leader.original.key)));
+        this.selects.amount = new SelectNumber("Amount", inclusiveRange(this.player.board.getWarbandsAmount(this.player.leader.original.key)));
         return super.start();
     }
 
     execute() {
-        new MoveOwnWarbandsEffect(this.player.leader, this.player, this.site, this.parameters.amount[0]!).doNext();
+        new MoveOwnWarbandsEffect(this.player.leader, this.player.board, this.site, this.parameters.amount[0]!).doNext();
     }
 }
 
@@ -911,8 +944,8 @@ export class WakeAction extends ModifiableAction {
             else
                 new SetUsurperEffect(this.game, true).doNext();
         
-        if (this.playerProxy instanceof Exile && this.playerProxy.vision && this.gameProxy.worldDeck.visionsDrawn >= 3) {
-            const candidates = this.playerProxy.vision.oath.getOathkeeperCandidates();
+        if (this.playerProxy.board instanceof ExileBoard && this.playerProxy.board.vision && this.gameProxy.worldDeck.visionsDrawn >= 3) {
+            const candidates = this.playerProxy.board.vision.oath.getOathkeeperCandidates();
             if (candidates.size === 1 && candidates.has(this.playerProxy))
                 return new WinGameEffect(this.player).doNext();
         }
@@ -932,7 +965,7 @@ export class RestAction extends ModifiableAction {
 
     modifiedExecution(): void {
         new ChangePhaseEffect(this.game, OathPhase.Rest).doNext();
-        this.player.rest();
+        this.player.board.rest();
     }
 }
 
@@ -1000,23 +1033,23 @@ export class PlayFacedownAdviserAction extends ModifiableAction {
 
 
 export class MoveWarbandsAction extends ModifiableAction {
-    readonly selects: { target: SelectNOf<Site | OathPlayer>, amount: SelectNumber, giving: SelectBoolean };
-    readonly parameters: { target: (Site | OathPlayer)[], amount: number[], giving: boolean[] };
+    readonly selects: { targetProxy: SelectNOf<Site | PlayerBoard>, amount: SelectNumber, giving: SelectBoolean };
+    readonly parameters: { targetProxy: (Site | PlayerBoard)[], amount: number[], giving: boolean[] };
     readonly message = "Give or take warbands";
 
-    targetProxy: Site | OathPlayer;
+    targetProxy: Site | PlayerBoard;
     amount: number;
     giving: boolean;
 
     start(): boolean {
-        const choices = new Map<string, Site | OathPlayer>();
+        const choices = new Map<string, Site | PlayerBoard>();
         const siteProxy = this.playerProxy.site;
-        let max = this.player.getWarbandsAmount(this.playerProxy.leader.original.key);
+        let max = this.player.board.getWarbandsAmount(this.playerProxy.leader.original.key);
         if (this.playerProxy.isImperial) {
             for (const playerProxy of this.gameProxy.players) {
                 if (playerProxy !== this.playerProxy && playerProxy.isImperial && playerProxy.site === siteProxy) {
-                    choices.set(playerProxy.name, playerProxy);
-                    max = Math.max(max, playerProxy.original.getWarbandsAmount(playerProxy.leader.original.key));
+                    choices.set(playerProxy.name, playerProxy.board);
+                    max = Math.max(max, playerProxy.board.original.getWarbandsAmount(playerProxy.leader.original.key));
                 }
             }
         }
@@ -1025,7 +1058,7 @@ export class MoveWarbandsAction extends ModifiableAction {
             choices.set(siteProxy.name, siteProxy);
             max = Math.max(max, siteAmount - 1);
         }
-        this.selects.target = new SelectNOf("Target", choices, { min: 1 });
+        this.selects.targetProxy = new SelectNOf("Target", choices, { min: 1 });
 
         this.selects.amount = new SelectNumber("Amount", inclusiveRange(max));
 
@@ -1035,22 +1068,22 @@ export class MoveWarbandsAction extends ModifiableAction {
     }
 
     execute(): void {
-        this.targetProxy = this.parameters.target[0]!;
+        this.targetProxy = this.parameters.targetProxy[0]!;
         this.amount = this.parameters.amount[0]!;
         this.giving = this.parameters.giving[0]!;
         super.execute();
     }
 
     modifiedExecution(): void {
-        const from = this.giving ? this.player : this.targetProxy.original;
-        const to = this.giving ? this.targetProxy.original : this.player;
+        const from = this.giving ? this.player.board : this.targetProxy.original;
+        const to = this.giving ? this.targetProxy.original : this.player.board;
 
         if (from instanceof Site && from.getWarbandsAmount(this.playerProxy.leader.original.key) - this.amount < 1)
             throw new InvalidActionResolution("Cannot take the last warband off a site.");
 
         const effect = new MoveOwnWarbandsEffect(this.playerProxy.leader.original, from, to, this.amount);
-        if (this.targetProxy instanceof OathPlayer || this.targetProxy.ruler && this.targetProxy.ruler !== this.playerProxy) {
-            const askTo = this.targetProxy instanceof OathPlayer ? this.targetProxy : this.targetProxy.ruler;
+        if (this.targetProxy instanceof PlayerBoard || this.targetProxy.ruler && this.targetProxy.ruler !== this.playerProxy) {
+            const askTo = this.targetProxy instanceof PlayerBoard ? this.targetProxy.owner : this.targetProxy.ruler;
             if (askTo) new MakeDecisionAction(askTo.original, `Allow ${this.amount} warbands to move from ${from.name} to ${to.name}?`, () => effect.doNext()).doNext();
         } else {
             effect.doNext();
@@ -1159,7 +1192,7 @@ export class TakeReliquaryRelicAction extends ChooseNumberAction {
     constructor(player: OathPlayer) {
         super(
             player, "Take a Reliquary relic",
-            player.game.chancellor.reliquary.children.filter(e => e.children[0]).map((_, i) => i),
+            player.game.reliquary.children.filter(e => e.children[0]).map((_, i) => i),
             (index: number) => {
                 new TakeReliquaryRelicEffect(player, index).doNext();
             }
@@ -1214,7 +1247,7 @@ export class ChooseRegionAction extends OathAction {
     }
 
     start() {
-        if (!this.regions) this.regions = new Set(Object.values(this.game.board.children).filter(e => e !== this.player.site.region));
+        if (!this.regions) this.regions = new Set(Object.values(this.game.map.children).filter(e => e !== this.player.site.region));
 
         const choices = new Map<string, Region | undefined>();
         if (this.none) choices.set(this.none, undefined);
@@ -1371,7 +1404,7 @@ export class StartBindingExchangeAction extends ChoosePlayersAction {
 
 export class ChooseSitesAction extends ChooseTsAction<Site> {
     start() {
-        if (!this.choices) this.choices = [new Set([...this.game.board.sites()].filter(e => !e.facedown && e !== this.player.site))];
+        if (!this.choices) this.choices = [new Set([...this.game.map.sites()].filter(e => !e.facedown && e !== this.player.site))];
 
         for (const [i, group] of this.choices.entries()) {
             const choices = new Map<string, Site>();
@@ -1408,7 +1441,7 @@ export class MoveWarbandsBetweenBoardAndSitesAction extends ChooseSitesAction {
                 action.doNext();
                 this.doNext();
             },
-            [[...playerProxy.game.board.sites()].filter(e => e.ruler === playerProxy).map(e => e.original)],
+            [[...playerProxy.game.map.sites()].filter(e => e.ruler === playerProxy).map(e => e.original)],
             [[0, 1]]
         );
     }
@@ -1512,7 +1545,7 @@ export class DeedWriterOfferAction extends MakeBindingExchangeOfferAction {
 
     start(): boolean {
         const choices = new Map<string, Site>();
-        for (const siteProxy of this.gameProxy.board.sites())
+        for (const siteProxy of this.gameProxy.map.sites())
             if (siteProxy.ruler === this.maskProxyManager.get(this.other))
                 choices.set(siteProxy.visualName(this.player), siteProxy.original);
         this.selects.sites = new SelectNOf("Sites", choices);
@@ -1608,7 +1641,7 @@ export class CitizenshipOfferAction extends ThingsExchangeOfferAction<Relic | Ba
     start(): boolean {
         if (!this.next) {
             const values = [];
-            for (const [i, slot] of this.game.chancellor.reliquary.children.entries())
+            for (const [i, slot] of this.game.reliquary.children.entries())
                 if (slot.children[0])
                     values.push(i);
             
@@ -1637,7 +1670,7 @@ export class SkeletonKeyAction extends OathAction {
 
     start(): boolean {
         const values = [];
-        for (const [i, slot] of this.game.chancellor.reliquary.children.entries())
+        for (const [i, slot] of this.game.reliquary.children.entries())
             if (slot.children[0])
                 values.push(i);
         
@@ -1647,7 +1680,7 @@ export class SkeletonKeyAction extends OathAction {
 
     execute(): void {
         const index = this.parameters.index[0]!;
-        const relic = this.game.chancellor.reliquary.children[index]!.children[0];
+        const relic = this.game.reliquary.children[index]!.children[0];
         if (relic) new PeekAtCardEffect(this.player, relic).doNext();
         new MakeDecisionAction(this.player, "Take the relic?", () => new TakeReliquaryRelicEffect(this.player, index).doNext()).doNext();
     }
@@ -1667,7 +1700,7 @@ export class BrackenAction extends OathAction {
     }
 
     start(): boolean {
-        const regions = new Set(Object.values(this.game.board.children));
+        const regions = new Set(Object.values(this.game.map.children));
         const choices = new Map<string, Region>();
         for (const region of regions) choices.set(region.name, region);
         this.selects.region = new SelectNOf("Region", choices, { min: 1 });
@@ -1693,8 +1726,8 @@ export class VowOathAction extends OathAction {
 
     start(): boolean {
         const choices = new Map<string, OathType>();
-        if (this.player instanceof Exile && this.player.vision) {
-            const oathType = this.player.vision.oath.key;
+        if (this.player.board instanceof ExileBoard && this.player.board.vision) {
+            const oathType = this.player.board.vision.oath.key;
             choices.set(OathType[oathType], oathType);
         } else {
             for (let i: OathType = 0; i < 4; i++)
@@ -1727,13 +1760,13 @@ export class ChooseNewCitizensAction extends OathAction {
     execute(): void {
         const citizens = this.parameters.players;
         for (const player of this.game.players)
-            if (player instanceof Exile && player.isCitizen)
+            if (player.board instanceof ExileBoard && player.board.isCitizen)
                 new BecomeExileEffect(player).doNext();
         
         for (const citizen of citizens)
             new MakeDecisionAction(citizen, "Become a Citizen?", () => new BecomeCitizenEffect(citizen).doNext()).doNext();
 
-        for (const site of this.game.board.sites())
+        for (const site of this.game.map.sites())
             for (const player of this.game.players)
                 if (!player.isImperial)
                     new ParentToTargetEffect(this.game, player, site.getWarbands(player.leader.key), player.leader.bag).doNext()
@@ -1748,7 +1781,7 @@ export class BuildOrRepairEdificeAction extends OathAction {
     start(): boolean {
         const choices = new Map<string, Denizen>();
         const bannedSuits = new Set<OathSuit>();
-        for (const site of this.game.board.sites())
+        for (const site of this.game.map.sites())
             if (site.ruler?.isImperial)
                 for (const denizen of site.denizens)
                     if (!(denizen instanceof Edifice) || denizen.suit === OathSuit.None)
