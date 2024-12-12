@@ -1747,13 +1747,20 @@ export class BuildOrRepairEdificeAction extends OathAction {
 
     start(): boolean {
         const choices = new Map<string, Denizen>();
+        const bannedSuits = new Set<OathSuit>();
         for (const site of this.game.board.sites())
             if (site.ruler?.isImperial)
                 for (const denizen of site.denizens)
-                    if (!(denizen instanceof Edifice && denizen.suit !== OathSuit.None))
+                    if (!(denizen instanceof Edifice) || denizen.suit === OathSuit.None)
                         choices.set(denizen.name, denizen);
-        this.selects.card = new SelectNOf("Card", choices);
+                    else
+                        bannedSuits.add(denizen.suit);
         
+        for (const [key, denizen] of choices.entries())
+            if (bannedSuits.has(denizen.suit))
+                choices.delete(key);
+        
+        this.selects.card = new SelectNOf("Card", choices);
         return super.start();
     }
 
