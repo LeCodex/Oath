@@ -12,7 +12,7 @@ import { Oath } from "./oaths";
 import { Conspiracy, Denizen, Edifice, GrandScepter, Relic, Site, Vision, WorldCard } from "./cards/cards";
 import { ExileBoard, OathPlayer, WarbandsSupply } from "./player";
 import { Banner, DarkestSecret, FavorBank, PeoplesFavor } from "./banks";
-import { AbstractConstructor, Constructor, isExtended, PRNG, TreeNode, TreeRoot } from "./utils";
+import { AbstractConstructor, Constructor, isExtended, MurmurHash3, PRNG, TreeNode, TreeRoot } from "./utils";
 import { parseOathTTSSavefileString, serializeOathGame } from "./parser";
 import { Citizenship, PlayerCitizenship } from "./parser/interfaces";
 import { hasPowers, SourceType, WithPowers } from "./interfaces";
@@ -61,7 +61,7 @@ export class OathGame extends TreeRoot<OathGame> {
     
     setup([seed, playerNames]: this["setupData"]) {
         this.seed = seed;
-        this.random = new PRNG();
+        this.random = new PRNG(MurmurHash3(this.seed));
 
         this.worldDeck = this.addChild(new WorldDeck());
         this.relicDeck = this.addChild(new RelicDeck());

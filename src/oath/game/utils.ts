@@ -5,6 +5,19 @@ export type Constructor<T> = new (...args: any) => T;
 export const isExtended = <T>(constructor: Constructor<any>, type: AbstractConstructor<T>): constructor is Constructor<T> => { return constructor.prototype instanceof type };
 export const instanceOf = <T>(obj: any, type: AbstractConstructor<T>): obj is T => { return obj instanceof type };
 
+export function MurmurHash3(str: string) {
+    let hash = 1779033703 ^ str.length
+    for (let i = 0; i < str.length; i++) {
+        let bitwise_xor_from_character = hash ^ str.charCodeAt(i);
+        hash = Math.imul(bitwise_xor_from_character, 3432918353);
+        hash = hash << 13 | hash >>> 19;
+    }
+    
+    hash = Math.imul(hash ^ (hash >>> 16), 2246822507);
+    hash = Math.imul(hash ^ (hash >>> 13), 3266489909);
+    return (hash ^= hash >>> 16) >>> 0;
+}
+
 export class PRNG {
     public seed: number;
 
