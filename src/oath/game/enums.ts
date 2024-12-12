@@ -4,10 +4,10 @@ export enum PlayerColor {
     Blue,
     Yellow,
     White,
-    Brown
+    Black
 }
 
-export const ALL_PLAYER_COLORS = [PlayerColor.Purple, PlayerColor.Red, PlayerColor.Blue, PlayerColor.Yellow, PlayerColor.White, PlayerColor.Brown];
+export const ALL_PLAYER_COLORS = [PlayerColor.Purple, PlayerColor.Red, PlayerColor.Blue, PlayerColor.Yellow, PlayerColor.White, PlayerColor.Black];
 
 export enum OathSuit {
     Discord,

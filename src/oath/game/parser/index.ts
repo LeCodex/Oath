@@ -82,13 +82,13 @@ const Indices: Record<SavefileDataType, (offset: number) => ({ start: number, en
 
 function parseCitizenshipByte(byte: number): PlayerCitizenship {
   const citizenships: PlayerCitizenship = {
-    [PlayerColor.Brown]:  Citizenship.Exile,
+    [PlayerColor.Black]:  Citizenship.Exile,
     [PlayerColor.Yellow]: Citizenship.Exile,
     [PlayerColor.White]:  Citizenship.Exile,
     [PlayerColor.Blue]:   Citizenship.Exile,
     [PlayerColor.Red]:    Citizenship.Exile
   };
-  if(byte & colorMask(PlayerColor.Brown)) citizenships[PlayerColor.Brown] = Citizenship.Citizen;
+  if(byte & colorMask(PlayerColor.Black)) citizenships[PlayerColor.Black] = Citizenship.Citizen;
   if(byte & colorMask(PlayerColor.Yellow)) citizenships[PlayerColor.Yellow] = Citizenship.Citizen;
   if(byte & colorMask(PlayerColor.White)) citizenships[PlayerColor.White] = Citizenship.Citizen;
   if(byte & colorMask(PlayerColor.Blue)) citizenships[PlayerColor.Blue] = Citizenship.Citizen;
@@ -99,7 +99,7 @@ function parseCitizenshipByte(byte: number): PlayerCitizenship {
 
 function parseColorByte(byte: number): PlayerColor {
   if(byte & colorMask(PlayerColor.Purple)) return PlayerColor.Purple;
-  if(byte & colorMask(PlayerColor.Brown)) return PlayerColor.Brown;
+  if(byte & colorMask(PlayerColor.Black)) return PlayerColor.Black;
   if(byte & colorMask(PlayerColor.Yellow)) return PlayerColor.Yellow;
   if(byte & colorMask(PlayerColor.White)) return PlayerColor.White;
   if(byte & colorMask(PlayerColor.Blue)) return PlayerColor.Blue;
@@ -110,7 +110,7 @@ function parseColorByte(byte: number): PlayerColor {
 function colorMask(color: PlayerColor): number {
   return {
     [PlayerColor.Purple]: 0x20,
-    [PlayerColor.Brown]: 0x10,
+    [PlayerColor.Black]: 0x10,
     [PlayerColor.Yellow]: 0x08,
     [PlayerColor.White]: 0x04,
     [PlayerColor.Blue]: 0x02,
@@ -120,7 +120,7 @@ function colorMask(color: PlayerColor): number {
 
 function genCitizenshipByte(citizenship: PlayerCitizenship): number {
   let byte = 0x00;
-  if(citizenship[PlayerColor.Brown] === Citizenship.Citizen) byte |= colorMask(PlayerColor.Brown);
+  if(citizenship[PlayerColor.Black] === Citizenship.Citizen) byte |= colorMask(PlayerColor.Black);
   if(citizenship[PlayerColor.Yellow] === Citizenship.Citizen) byte |= colorMask(PlayerColor.Yellow);
   if(citizenship[PlayerColor.White] === Citizenship.Citizen) byte |= colorMask(PlayerColor.White);
   if(citizenship[PlayerColor.Blue] === Citizenship.Citizen) byte |= colorMask(PlayerColor.Blue);
