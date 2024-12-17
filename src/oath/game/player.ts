@@ -104,7 +104,7 @@ export class OathPlayer extends OathGameObject<number> implements CampaignAction
     parse(obj: ReturnType<this["liteSerialize"]>, allowCreation?: boolean): void {
         super.parse(obj, allowCreation);
         this.supply = obj.supply;
-        const site = this.game.search(Site, obj.site);
+        const site = this.game.search<Site>("site", obj.site);
         this.site = site!;  // It can be undefined at the start of the game. It's bad, but it's controlled
         if (!obj.board) this.board = undefined as any;  // Same thing
     }

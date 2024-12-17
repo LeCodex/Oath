@@ -271,12 +271,12 @@ export class MaskedMap<K, V extends object> implements Map<K, V> {
 
 
 export abstract class TreeNode<RootType extends TreeRoot<RootType>, KeyType = any> extends WithOriginal {
-    /** Different objects of the same class MUST have different ids. */
+    /** Different objects of the same type MUST have different ids. */
     readonly id: string;
     children = new NodeGroup<TreeNode<RootType>>();
     /** Use {@linkcode typedParent()} to get a strongly typed version of this. */
     parent: TreeNode<RootType>;
-    /** Used for serialization. General categorization. */
+    /** Used for serialization and lookup. General categorization, above classes. */
     abstract type: string;
     /** Used for serialization. Printing name. */
     abstract name: string;
@@ -404,7 +404,7 @@ export abstract class TreeNode<RootType extends TreeRoot<RootType>, KeyType = an
     }
 }
 
-export type SerializedNode<T> = T extends TreeNode<any> ? ReturnType<T["liteSerialize"]> & ReturnType<T["constSerialize"]> & { children?: SerializedNode<TreeNode<any>>[] } : never
+export type SerializedNode<T extends TreeNode<any>> = ReturnType<T["liteSerialize"]> & ReturnType<T["constSerialize"]> & { children?: SerializedNode<TreeNode<any>>[] }
 
 export abstract class TreeRoot<RootType extends TreeRoot<RootType>> extends TreeNode<RootType, "root"> {
     parent = this;
@@ -425,22 +425,21 @@ export abstract class TreeRoot<RootType extends TreeRoot<RootType>> extends Tree
     }
 
     addToLookup(node: TreeNode<RootType>) {
-        let classGroup = this.lookup[node.constructor.name];
-        if (!classGroup) classGroup = this.lookup[node.constructor.name] = {};
-        if (classGroup[node.id]) throw TypeError(`Object of class ${node.constructor.name} and id ${node.id} already exists`);
-        classGroup[node.id] = node;
+        let typeGroup = this.lookup[node.type] = this.lookup[node.type] ?? {};
+        if (typeGroup[node.id]) throw TypeError(`Object of type ${node.type} and id ${node.id} already exists`);
+        typeGroup[node.id] = node;
     }
 
     removeFromLookup(node: TreeNode<RootType>) {
-        let classGroup = this.lookup[node.constructor.name];
-        if (!classGroup) return;
-        delete classGroup[node.id];
+        const typeGroup = this.lookup[node.type];
+        if (!typeGroup) return;
+        delete typeGroup[node.id];
     }
 
-    search<T extends TreeNode<RootType>>(cls: AbstractConstructor<T> | string, id: T["key"]): T | undefined {
-        const classGroup = this.root.lookup[typeof cls === "string" ? cls : cls.name];
-        if (!classGroup) return undefined;
-        return classGroup[id] as T;
+    search<T extends TreeNode<RootType>>(type: T["type"], id: T["key"]): T | undefined {
+        const typeGroup = this.root.lookup[type];
+        if (!typeGroup) return undefined;
+        return typeGroup[id] as T;
     }
 
     create(cls: string, obj: Record<string, any>): TreeNode<RootType> {

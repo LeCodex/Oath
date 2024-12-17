@@ -226,12 +226,11 @@ export class GrandScepter extends Relic {
 }
 
 export abstract class WorldCard extends OwnableCard {
-    type = "worldCard";
-
     get discard(): Discard | undefined { return this.owner?.discard; }
 }
 
 export class Denizen extends WorldCard implements AtSite {
+    type = "denizen";
     restriction: CardRestriction;
     locked: boolean;
     powers: Set<Constructor<OathPower<Denizen>>>;

@@ -48,7 +48,7 @@ const render = () => {
 
     const infoNode = document.getElementById("info");
     infoNode.innerText = "[SUPPLY]";
-    for (const obj of game.children) {
+    for (const obj of sortedChildren(game)) {
         if (obj._type === "player" || obj._type === "map") continue;
         renderObject(infoNode, obj);
     }
@@ -122,7 +122,7 @@ const renderObject = (parent, obj) => {
             break;
         
         case "relic":
-        case "worldCard":
+        case "denizen":
         case "vision":
             node = renderCard(obj);
             break;
@@ -215,8 +215,9 @@ const byType = (obj, type) => {
     return obj.children.filter(e => e._type === type);
 }
 
+const typeOrder = ["oath", "denizen", "relic", "banner", "reliquary", "bank", "deck"];
 const sortedChildren = (obj) => {
-    return obj.children.sort((a, b) => b._type.localeCompare(a._type));
+    return obj.children.sort((a, b) => typeOrder.indexOf(a._type) - typeOrder.indexOf(b._type));
 }
 
 const renderText = (text) => {
