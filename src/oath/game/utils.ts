@@ -276,8 +276,10 @@ export abstract class TreeNode<RootType extends TreeRoot<RootType>, KeyType = an
     children = new NodeGroup<TreeNode<RootType>>();
     /** Use {@linkcode typedParent()} to get a strongly typed version of this. */
     parent: TreeNode<RootType>;
-    /** Used for serialization. General cateogrization. */
+    /** Used for serialization. General categorization. */
     abstract type: string;
+    /** Used for serialization. Printing name. */
+    abstract name: string;
     /** Used for serialization. If clients should skip rendering this object. */
     get hidden(): boolean { return false; }
 
@@ -288,6 +290,7 @@ export abstract class TreeNode<RootType extends TreeRoot<RootType>, KeyType = an
 
     /** All objects in the tree share the same root, and same root type. */
     get root(): RootType { return this.parent?.root; }
+    /** Typed id. */
     abstract get key(): KeyType;
 
     unparent() {
@@ -365,6 +368,7 @@ export abstract class TreeNode<RootType extends TreeRoot<RootType>, KeyType = an
     constSerialize(): Record<`_${string}`, any> {
         return {
             _type: this.type,
+            _name: this.name,
             _hidden: this.hidden,
         };
     }

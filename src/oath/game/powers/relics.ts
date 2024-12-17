@@ -5,7 +5,7 @@ import { TakeOwnableObjectEffect, PlayDenizenAtSiteEffect, MoveOwnWarbandsEffect
 import { BannerKey, PlayerColor } from "../enums";
 import { OathPlayer, ExileBoard } from "../player";
 import { OwnableObject, isOwnable } from "../interfaces";
-import { Favor, OathWarband, ResourceCost, Secret } from "../resources";
+import { Favor, Warband, ResourceCost, Secret } from "../resources";
 import { AccessedActionModifier, EnemyActionModifier, AttackerBattlePlan, DefenderBattlePlan, ActionModifier, ActivePower, RestPower, BattlePlan, EnemyAttackerCampaignModifier } from "./powers";
 import { DiscardOptions } from "../cards/decks";
 import { isExtended } from "../utils";
@@ -138,7 +138,7 @@ export class ObsidianCageAttack extends AttackerBattlePlan<Relic> {
         if (!defender) return;
 
         this.action.campaignResult.onAttackWin(() => {
-            new ParentToTargetEffect(this.game, this.activator, defender.byClass(OathWarband), this.source).doNext();
+            new ParentToTargetEffect(this.game, this.activator, defender.byClass(Warband), this.source).doNext();
         });
     }
 }
@@ -148,7 +148,7 @@ export class ObsidianCageDefense extends DefenderBattlePlan<Relic> {
     applyBefore(): void {
         const attacker = this.action.campaignResult.attacker;
         this.action.campaignResult.onAttackWin(() => {
-            new ParentToTargetEffect(this.game, this.activator, attacker.byClass(OathWarband), this.source).doNext();
+            new ParentToTargetEffect(this.game, this.activator, attacker.byClass(Warband), this.source).doNext();
         });
     }
 }

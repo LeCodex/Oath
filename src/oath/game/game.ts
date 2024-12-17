@@ -16,7 +16,7 @@ import { AbstractConstructor, Constructor, isExtended, MurmurHash3, PRNG, TreeNo
 import { parseOathTTSSavefileString, serializeOathGame } from "./parser";
 import { Citizenship, PlayerCitizenship } from "./parser/interfaces";
 import { hasPowers, SourceType, WithPowers } from "./interfaces";
-import { Favor, OathWarband, Secret } from "./resources";
+import { Favor, Warband, Secret } from "./resources";
 import { Reliquary, ReliquarySlot } from "./reliquary";
 import classIndex from "./classIndex";
 import { constant, times } from "lodash";
@@ -190,7 +190,7 @@ export class OathGame extends TreeRoot<OathGame> {
             this.order = [];
             for (const player of this.players) {
                 player.bag = player.addChild(new WarbandsSupply(player.board.id));
-                for (let i = 0; i < player.board.bagAmount; i++) player.bag.addChild(new OathWarband().colorize(player.board.key));
+                for (let i = 0; i < player.board.bagAmount; i++) player.bag.addChild(new Warband().colorize(player.board.key));
                 if (player !== this.chancellor) this.order.push(player.key);
             }
             this.random.shuffleArray(this.order);

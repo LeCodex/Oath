@@ -6,7 +6,7 @@ import { BecomeCitizenEffect, DiscardCardEffect, DrawFromDeckEffect, FinishChron
 import { OathSuit } from "../../enums";
 import { WithPowers } from "../../interfaces";
 import { ExileBoard, OathPlayer } from "../../player";
-import { Favor, OathWarband, ResourceCost, Secret } from "../../resources";
+import { Favor, Warband, ResourceCost, Secret } from "../../resources";
 import { AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, RestPower, ActivePower, EnemyAttackerCampaignModifier, EnemyDefenderCampaignModifier, AccessedActionModifier, ActionModifier, EnemyActionModifier } from "../powers";
 
 
@@ -83,8 +83,8 @@ export class ErrandBoy extends AccessedActionModifier<Denizen, SearchAction> {
     cost = new ResourceCost([[Favor, 1]]);
 
     applyAtStart(): void {
-        for (const regionProxy of Object.values(this.gameProxy.map.children))
-            this.action.selects.deck.choices.set(regionProxy.name, regionProxy.discard.original);
+        for (const regionProxy of this.gameProxy.map.children)
+            this.action.selects.deckProxy.choices.set(regionProxy.name, regionProxy.discard.original);
     }
 }
 
@@ -551,7 +551,7 @@ export class ForestTemple extends ActionModifier<Edifice, FinishChronicleEffect>
         for (const siteProxy of this.gameProxy.map.sites()) {
             for (const denizenProxy of siteProxy.denizens) {
                 if (denizenProxy.suit === OathSuit.Beast) {
-                    siteProxy.addChild(new OathWarband().colorize(this.action.executor.key));
+                    siteProxy.addChild(new Warband().colorize(this.action.executor.key));
                     break;
                 }
             }

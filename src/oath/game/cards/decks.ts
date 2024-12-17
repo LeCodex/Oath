@@ -5,7 +5,6 @@ import { WorldCard, VisionBack, OathCard, Relic } from "./cards";
 
 export abstract class CardDeck<T extends OathCard, U = any> extends Container<T, U> {
     type = "deck";
-    abstract name: string;
 
     draw(amount: number, fromBottom: boolean = false, skip: number = 0): T[] {
         // Why such an involved process instead of just using splice? To make sure the draws are in correct order for reverting
@@ -25,17 +24,10 @@ export abstract class CardDeck<T extends OathCard, U = any> extends Container<T,
     shuffle() {
         this.game.random.shuffleArray(this.children);
     }
-
-    constSerialize(): Record<`_${string}`, any> {
-        return {
-            ...super.constSerialize(),
-            _name: this.name
-        };
-    }
 }
 
 export class RelicDeck extends CardDeck<Relic, string> {
-    name = "Relic Deck";
+    name = "RelicDeck";
 
     constructor() {
         super("relicDeck", Relic);
@@ -60,7 +52,7 @@ export abstract class SearchableDeck<T = any> extends CardDeck<WorldCard, T> {
 }
 
 export class WorldDeck extends SearchableDeck<string> {
-    name = "World Deck";
+    name = "WorldDeck";
     visionsDrawn: number = 0;
     get searchCost() { return this.visionsDrawn < 3 ? this.visionsDrawn < 1 ? 2 : 3 : 4; }
 
@@ -104,14 +96,13 @@ export class WorldDeck extends SearchableDeck<string> {
 
 export class Discard extends SearchableDeck<RegionKey> {
     readonly id: keyof typeof RegionKey;
-    name: string;
     
     constructor(id: keyof typeof RegionKey) {
         if (!isEnumKey(id, RegionKey)) throw TypeError(`${id} is not a valid region id`)
         super(id);
-        this.name = id + " Discard";
     }
 
+    get name() { return `${this.id}Discard` }
     get key() { return RegionKey[this.id]; }
 }
 

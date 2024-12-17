@@ -8,8 +8,7 @@ import { OathGameObject } from "../../gameObject";
 import { CampaignActionTarget } from "../../interfaces";
 import { ExileBoard, OathPlayer } from "../../player";
 import { Favor, ResourceCost } from "../../resources";
-import { AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, RestPower, ActivePower, ActionModifier, AccessedActionModifier, EnemyActionModifier, EnemyAttackerCampaignModifier } from "../powers";
-import { SerializedNode } from "../../utils";
+import { AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, RestPower, ActivePower, ActionModifier, AccessedActionModifier, EnemyActionModifier } from "../powers";
 
 
 export class LongbowsAttack extends AttackerBattlePlan<Denizen> {
@@ -269,9 +268,11 @@ export class RelicHunter extends AttackerBattlePlan<Denizen> {
     name = "Relic Hunter";
 
     applyAtStart(): void {
-        for (const [name, choice] of this.action.selects.targetProxies.choices) {
-            if (choice instanceof Relic && choice.site) {
-                this.action.selects.targetProxies.choices.set(name, new RelicWrapper(choice));
+        for (const choiceProxy of this.action.selects.targetProxies.choices.values()) {
+            if (choiceProxy instanceof Site) {
+                const relicProxy = choiceProxy.relics[0];
+                if (!relicProxy) continue;
+                this.action.selects.targetProxies.choices.set(relicProxy.visualName(this.action.player), new RelicWrapper(relicProxy));
             }
         }
     }
@@ -279,14 +280,7 @@ export class RelicHunter extends AttackerBattlePlan<Denizen> {
     applyBefore(): void {
         for (const target of this.action.campaignResult.targets) {
             if (target instanceof RelicWrapper) {
-                let targetedSite = false;
-                for (const target2 of this.action.campaignResult.targets) {
-                    if (target.relic.site === target2) {
-                        targetedSite = true;
-                        break;
-                    }
-                }
-
+                const targetedSite = [...this.action.campaignResult.targets].some(e => target.relic.site === e);
                 if (!targetedSite) throw new InvalidActionResolution("Must target the site to also target the relic");
             }
         }
@@ -303,6 +297,7 @@ export class RelicWrapper extends OathGameObject<Relic["key"]> implements Campai
         this.relic = relic;
     }
 
+    get name() { return this.relic.name; }
     get key() { return this.relic.key; }
 
     seize(player: OathPlayer): void {
@@ -416,7 +411,7 @@ export class Pressgangs extends AccessedActionModifier<Denizen, MusterAction> {
     applyAtStart(): void {
         // TODO: This doesn't take other modifiers into account. There is none like that, but if you had something similar to Map Library for mustering, this wouldn't work with it
         for (const denizenProxy of this.action.playerProxy.site.denizens)
-            this.action.selects.card.choices.set(denizenProxy.visualName(this.action.player), denizenProxy.original);
+            this.action.selects.cardProxy.choices.set(denizenProxy.visualName(this.action.player), denizenProxy.original);
     }
 }
 

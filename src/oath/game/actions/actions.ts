@@ -10,12 +10,11 @@ import { ActionModifier, ActivePower, CapacityModifier } from "../powers/powers"
 import { Favor, OathResource, OathResourceType, ResourceCost, ResourcesAndWarbands, Secret } from "../resources";
 import { Banner, FavorBank, PeoplesFavor } from "../banks";
 import { Constructor, inclusiveRange, isExtended, MaskProxyManager, minInGroup } from "../utils";
-import { SelectNOf, SelectBoolean, SelectNumber } from "./selects";
+import { SelectNOf, SelectBoolean, SelectNumber, SelectWithName, SelectCard } from "./selects";
 import { CampaignActionTarget, RecoverActionTarget, WithPowers } from "../interfaces";
 import { Region } from "../map";
 import { OathGameObject } from "../gameObject";
 import { Citizenship } from "../parser/interfaces";
-import { HistoryNode } from "./manager";
 
 
 
@@ -54,7 +53,7 @@ export class SetupChoosePlayerBoardAction extends OathAction {
 }
 
 export class SetupChooseAdviserAction extends OathAction {
-    readonly selects: { card: SelectNOf<WorldCard> };
+    readonly selects: { card: SelectCard<WorldCard> };
     readonly parameters: { card: Denizen[] };
     readonly message = "Choose a card to start with";
 
@@ -66,7 +65,7 @@ export class SetupChooseAdviserAction extends OathAction {
     }
 
     start(): boolean {
-        this.selects.card = new SelectNOf("Card", this.cards.map(e => [e.name, e]), { min: 1 });
+        this.selects.card = new SelectCard("Card", this.player, this.cards, { min: 1 });
         return super.start();
     }
 
@@ -103,8 +102,8 @@ export abstract class MajorAction extends ModifiableAction {
 }
 
 export class MusterAction extends MajorAction {
-    readonly selects: { card: SelectNOf<Denizen> };
-    readonly parameters: { card: Denizen[] };
+    readonly selects: { cardProxy: SelectCard<Denizen> };
+    readonly parameters: { cardProxy: Denizen[] };
     readonly message = "Put a favor on a card to muster";
     supplyCost = 1;
 
@@ -114,15 +113,12 @@ export class MusterAction extends MajorAction {
     getting = 2;
 
     start() {
-        const choices = new Map<string, Denizen>();
-        for (const denizenProxy of this.playerProxy.site.denizens)
-            if (denizenProxy.suit !== OathSuit.None && denizenProxy.empty) choices.set(denizenProxy.name, denizenProxy);
-        this.selects.card = new SelectNOf("Card", choices, { min: 1 });
+        this.selects.cardProxy = new SelectCard("Card", this.player, this.playerProxy.site.denizens.filter(e => e.suit !== OathSuit.None && e.empty), { min: 1 });
         return super.start();
     }
 
     execute() {
-        this.cardProxy = this.parameters.card[0]!;
+        this.cardProxy = this.parameters.cardProxy[0]!;
         super.execute();
     }
 
@@ -137,8 +133,8 @@ export class MusterAction extends MajorAction {
 
 
 export class TradeAction extends MajorAction {
-    readonly selects: { card: SelectNOf<Denizen>, forFavor: SelectBoolean };
-    readonly parameters: { card: Denizen[], forFavor: boolean[] };
+    readonly selects: { cardProxy: SelectCard<Denizen>, forFavor: SelectBoolean };
+    readonly parameters: { cardProxy: Denizen[], forFavor: boolean[] };
     readonly message = "Put resources on a card to trade";
     supplyCost = 1;
 
@@ -148,17 +144,13 @@ export class TradeAction extends MajorAction {
     getting: Map<OathResourceType, number>;
 
     start() {
-        const choices = new Map<string, Denizen>();
-        for (const denizenProxy of this.playerProxy.site.denizens)
-            if (denizenProxy.suit !== OathSuit.None && denizenProxy.empty)
-                choices.set(denizenProxy.name, denizenProxy);
-        this.selects.card = new SelectNOf("Card", choices, { min: 1 });
+        this.selects.cardProxy = new SelectCard("Card", this.player, this.playerProxy.site.denizens.filter(e => e.suit !== OathSuit.None && e.empty), { min: 1 });
         this.selects.forFavor = new SelectBoolean("Type", ["For favors", "For secrets"]);
         return super.start();
     }
 
     execute() {
-        this.cardProxy = this.parameters.card[0]!;
+        this.cardProxy = this.parameters.cardProxy[0]!;
         this.forFavor = this.parameters.forFavor[0]!;
         this.paying = new ResourceCost([[this.forFavor ? Secret : Favor, this.forFavor ? 1 : 2]]);
         this.getting = new Map([[this.forFavor ? Favor : Secret, this.forFavor ? 1 : 0]]);
@@ -181,8 +173,8 @@ export class TradeAction extends MajorAction {
 
 
 export class TravelAction extends MajorAction {
-    readonly selects: { site: SelectNOf<Site> };
-    readonly parameters: { site: Site[] };
+    readonly selects: { siteProxy: SelectCard<Site> };
+    readonly parameters: { siteProxy: Site[] };
     readonly message: string = "Choose a site to travel to";
     readonly autocompleteSelects: boolean;
 
@@ -194,24 +186,20 @@ export class TravelAction extends MajorAction {
     constructor(travelling: OathPlayer, choosing: OathPlayer = travelling, restriction?: (s: Site) => boolean) {
         super(travelling);
         this.autocompleteSelects = !!restriction;
-        this.restriction = restriction || ((_: Site) => true);
+        this.restriction = restriction ?? ((_: Site) => true);
         this.choosing = choosing;
         this.travelling = travelling;
     }
 
     start() {
         this.player = this.choosing;
-        const choices = new Map<string, Site>();
-        for (const siteProxy of this.gameProxy.map.sites())
-            if (siteProxy !== this.playerProxy.site && this.restriction(siteProxy))
-                choices.set(siteProxy.visualName(this.player), siteProxy);
-        this.selects.site = new SelectNOf("Site", choices, { min: 1 });
+        this.selects.siteProxy = new SelectCard("Site", this.player, [...this.gameProxy.map.sites()].filter(e => e !== this.playerProxy.site && this.restriction(e)), { min: 1 });
         return super.start();
     }
 
     execute() {
         this.player = this.travelling;
-        this.siteProxy = this.parameters.site[0]!;
+        this.siteProxy = this.parameters.siteProxy[0]!;
 
         const fromRegionKey = this.playerProxy.site.region?.key;
         const toRegionKey = this.siteProxy.region?.key;
@@ -230,23 +218,20 @@ export class TravelAction extends MajorAction {
 
 
 export class RecoverAction extends MajorAction {
-    readonly selects: { target: SelectNOf<RecoverActionTarget> };
-    readonly parameters: { target: RecoverActionTarget[] };
+    readonly selects: { targetProxy: SelectWithName<OathGameObject & RecoverActionTarget> };
+    readonly parameters: { targetProxy: RecoverActionTarget[] };
     readonly message = "Choose a target to recover";
     supplyCost = 1;
 
     targetProxy: RecoverActionTarget;
 
     start() {
-        const choices = new Map<string, RecoverActionTarget>();
-        for (const relicProxy of this.playerProxy.site.relics) if (relicProxy.canRecover(this)) choices.set(relicProxy.visualName(this.player), relicProxy);
-        for (const bannerProxy of this.gameProxy.banners.values()) if (bannerProxy.canRecover(this)) choices.set(bannerProxy.name, bannerProxy);
-        this.selects.target = new SelectNOf("Target", choices, { min: 1 });
+        this.selects.targetProxy = new SelectWithName("Target", [...this.playerProxy.site.relics, ...this.gameProxy.banners.values()].filter(e => e.canRecover(this)), { min: 1 });
         return super.start();
     }
 
     execute() {
-        this.targetProxy = this.parameters.target[0]!;
+        this.targetProxy = this.parameters.targetProxy[0]!;
         super.execute();
     }
 
@@ -281,8 +266,8 @@ export class RecoverBannerPitchAction extends ModifiableAction {
 
 
 export class SearchAction extends MajorAction {
-    readonly selects: { deck: SelectNOf<SearchableDeck> };
-    readonly parameters: { deck: SearchableDeck[] };
+    readonly selects: { deckProxy: SelectWithName<SearchableDeck> };
+    readonly parameters: { deckProxy: SearchableDeck[] };
     readonly message = "Draw 3 cards from a deck";
 
     deckProxy: SearchableDeck;
@@ -292,16 +277,15 @@ export class SearchAction extends MajorAction {
     discardOptions = this.player.discardOptions;
 
     start() {
-        const choices = new Map<string, SearchableDeck>();
-        choices.set("World Deck", this.gameProxy.worldDeck);
+        const choices: SearchableDeck[] = [this.gameProxy.worldDeck];
         const region = this.playerProxy.site.region;
-        if (region) choices.set(region.name, region.discard);
-        this.selects.deck = new SelectNOf("Deck", choices, { min: 1 });
+        if (region) choices.push(region.discard);
+        this.selects.deckProxy = new SelectWithName("Deck", choices, { min: 1 });
         return super.start();
     }
 
     execute() {
-        this.deckProxy = this.parameters.deck[0]!;
+        this.deckProxy = this.parameters.deckProxy[0]!;
         this.supplyCost = this.deckProxy.searchCost;
         super.execute();
     }
@@ -315,7 +299,7 @@ export class SearchAction extends MajorAction {
 }
 
 export class SearchChooseAction extends ModifiableAction {
-    readonly selects: { cards: SelectNOf<WorldCard> }
+    readonly selects: { cards: SelectCard<WorldCard> }
     readonly parameters: { cards: WorldCard[] }
     readonly message = "Choose which card(s) to keep";
 
@@ -334,9 +318,7 @@ export class SearchChooseAction extends ModifiableAction {
     }
 
     start() {
-        const cardsChoice = new Map<string, WorldCard>();
-        for (const card of this.cards) cardsChoice.set(card.name, card);
-        this.selects.cards = new SelectNOf("Card(s)", cardsChoice, { min: 1, max: this.playingAmount });
+        this.selects.cards = new SelectCard("Card(s)", this.player, this.cards, { min: 1, max: this.playingAmount });
         return super.start();
     }
 
@@ -360,7 +342,7 @@ export class SearchChooseAction extends ModifiableAction {
 }
 
 export class SearchDiscardAction extends ModifiableAction {
-    readonly selects: { cards: SelectNOf<WorldCard> }
+    readonly selects: { cards: SelectCard<WorldCard> }
     readonly parameters: { cards: WorldCard[] };
     readonly autocompleteSelects = false;
     readonly message = "Choose the order of the discards";
@@ -378,9 +360,7 @@ export class SearchDiscardAction extends ModifiableAction {
     }
 
     start() {
-        const choices = new Map<string, WorldCard>();
-        for (const card of this.cards) choices.set(card.name, card);
-        this.selects.cards = new SelectNOf("Card(s)", choices, { min: this.amount });
+        this.selects.cards = new SelectCard("Card(s)", this.player, this.cards, { min: this.amount });
         return super.start();
     }
 
@@ -487,7 +467,7 @@ export class SearchPlayOrDiscardAction extends ModifiableAction {
 }
 
 export class MayDiscardACardAction extends OathAction {
-    readonly selects: { card: SelectNOf<Denizen> };
+    readonly selects: { card: SelectCard<Denizen> };
     readonly parameters: { card: Denizen[] };
     readonly message = "You may discard a card";
 
@@ -509,9 +489,7 @@ export class MayDiscardACardAction extends OathAction {
     }
 
     start() {
-        const choices = new Map<string, Denizen>();
-        for (const card of this.cards) choices.set(card.visualName(this.player), card);
-        this.selects.card = new SelectNOf("Card", choices, { min: 0, max: 1 });
+        this.selects.card = new SelectCard("Card", this.player, this.cards, { min: 0, max: 1 });
         return super.start();
     }
 
@@ -1006,23 +984,22 @@ export class UsePowerAction extends ModifiableAction {
 
 
 export class PlayFacedownAdviserAction extends ModifiableAction {
-    readonly selects: { cards: SelectNOf<WorldCard> }
-    readonly parameters: { cards: WorldCard[] }
+    readonly selects: { cardProxies: SelectCard<WorldCard> }
+    readonly parameters: { cardProxies: WorldCard[] }
     readonly message = "Choose an adviser to play";
 
     cardProxies: Set<WorldCard>;
     playing: WorldCard;
 
     start() {
-        this.cardProxies = new Set([...this.playerProxy.advisers].filter(e => e.facedown));
-        const cardsChoice = new Map<string, WorldCard>();
-        for (const cardProxy of this.cardProxies) cardsChoice.set(cardProxy.name, cardProxy);
-        this.selects.cards = new SelectNOf("Adviser", cardsChoice, { min: 1 });
+        const cardProxiesArray = [...this.playerProxy.advisers].filter(e => e.facedown)
+        this.cardProxies = new Set(cardProxiesArray);
+        this.selects.cardProxies = new SelectCard("Adviser", this.player, cardProxiesArray, { min: 1 });
         return super.start();
     }
 
     execute(): void {
-        this.playing = this.parameters.cards[0]!.original;
+        this.playing = this.parameters.cardProxies[0]!.original;
         super.execute();
     }
 
@@ -1033,7 +1010,7 @@ export class PlayFacedownAdviserAction extends ModifiableAction {
 
 
 export class MoveWarbandsAction extends ModifiableAction {
-    readonly selects: { targetProxy: SelectNOf<Site | PlayerBoard>, amount: SelectNumber, giving: SelectBoolean };
+    readonly selects: { targetProxy: SelectWithName<Site | PlayerBoard>, amount: SelectNumber, giving: SelectBoolean };
     readonly parameters: { targetProxy: (Site | PlayerBoard)[], amount: number[], giving: boolean[] };
     readonly message = "Give or take warbands";
 
@@ -1042,28 +1019,25 @@ export class MoveWarbandsAction extends ModifiableAction {
     giving: boolean;
 
     start(): boolean {
-        const choices = new Map<string, Site | PlayerBoard>();
+        const choices = new Set<Site | PlayerBoard>();
         const siteProxy = this.playerProxy.site;
         let max = this.player.board.getWarbandsAmount(this.playerProxy.leader.original.key);
         if (this.playerProxy.isImperial) {
             for (const playerProxy of this.gameProxy.players) {
                 if (playerProxy !== this.playerProxy && playerProxy.isImperial && playerProxy.site === siteProxy) {
-                    choices.set(playerProxy.name, playerProxy.board);
+                    choices.add(playerProxy.board);
                     max = Math.max(max, playerProxy.board.original.getWarbandsAmount(playerProxy.leader.original.key));
                 }
             }
         }
         const siteAmount = siteProxy.original.getWarbandsAmount(this.playerProxy.leader.original.key);
         if (siteAmount > 0) {
-            choices.set(siteProxy.name, siteProxy);
+            choices.add(siteProxy);
             max = Math.max(max, siteAmount - 1);
         }
-        this.selects.targetProxy = new SelectNOf("Target", choices, { min: 1 });
-
+        this.selects.targetProxy = new SelectWithName("Target", choices, { min: 1 });
         this.selects.amount = new SelectNumber("Amount", inclusiveRange(max));
-
         this.selects.giving = new SelectBoolean("Direction", ["Giving", "Taking"]);
-
         return super.start();
     }
 
@@ -1202,7 +1176,7 @@ export class TakeReliquaryRelicAction extends ChooseNumberAction {
 
 
 export class ChooseResourceToTakeAction extends OathAction {
-    readonly selects: { resource: SelectNOf<OathResource> };
+    readonly selects: { resource: SelectWithName<OathResource> };
     readonly parameters: { resource: OathResource[] };
     readonly message = "Take a resource";
 
@@ -1214,10 +1188,7 @@ export class ChooseResourceToTakeAction extends OathAction {
     }
 
     start() {
-        const choices = new Map<string, OathResource>();
-        for (const resource of this.source.resources)
-            choices.set(resource.constructor.name, resource);
-        this.selects.resource = new SelectNOf("Resource", choices, { min: 1 });
+        this.selects.resource = new SelectWithName("Resource", this.source.resources, { min: 1 });
         return super.start();
     }
 
@@ -1247,7 +1218,7 @@ export class ChooseRegionAction extends OathAction {
     }
 
     start() {
-        if (!this.regions) this.regions = new Set(Object.values(this.game.map.children).filter(e => e !== this.player.site.region));
+        if (!this.regions) this.regions = new Set(this.game.map.children.filter(e => e !== this.player.site.region));
 
         const choices = new Map<string, Region | undefined>();
         if (this.none) choices.set(this.none, undefined);
@@ -1405,12 +1376,8 @@ export class StartBindingExchangeAction extends ChoosePlayersAction {
 export class ChooseSitesAction extends ChooseTsAction<Site> {
     start() {
         if (!this.choices) this.choices = [new Set([...this.game.map.sites()].filter(e => !e.facedown && e !== this.player.site))];
-
-        for (const [i, group] of this.choices.entries()) {
-            const choices = new Map<string, Site>();
-            for (const site of group) choices.set(site.visualName(this.player), site);
-            this.selects["choices" + i] = new SelectNOf("Site", choices, { min: this.rangeMin(i), max: this.rangeMax(i) });
-        }
+        for (const [i, group] of this.choices.entries())
+            this.selects["choices" + i] = new SelectCard("Site", this.player, group, { min: this.rangeMin(i), max: this.rangeMax(i) });
 
         return super.start();
     }
@@ -1456,12 +1423,8 @@ export class ChooseCardsAction<T extends OathCard> extends ChooseTsAction<T> {
     }
 
     start() {
-        for (const [i, group] of this.choices.entries()) {
-            const choices = new Map<string, T>();
-            for (const card of group) choices.set(card.visualName(this.player), card);
-            this.selects["choices" + i] = new SelectNOf("Card", choices, { min: this.rangeMin(i), max: this.rangeMax(i) });
-        }
-
+        for (const [i, group] of this.choices.entries())
+            this.selects["choices" + i] = new SelectCard("Card", this.player, group, { min: this.rangeMin(i), max: this.rangeMax(i) });
         return super.start();
     }
 }
@@ -1533,7 +1496,7 @@ export class MakeBindingExchangeOfferAction extends ModifiableAction {
 }
 
 export class DeedWriterOfferAction extends MakeBindingExchangeOfferAction {
-    readonly selects: { favors: SelectNumber, secrets: SelectNumber, sites: SelectNOf<Site> };
+    readonly selects: { favors: SelectNumber, secrets: SelectNumber, sites: SelectCard<Site> };
     readonly parameters: { favors: number[], secrets: number[], sites: Site[] };
 
     effect: SiteExchangeOfferEffect;
@@ -1544,12 +1507,7 @@ export class DeedWriterOfferAction extends MakeBindingExchangeOfferAction {
     }
 
     start(): boolean {
-        const choices = new Map<string, Site>();
-        for (const siteProxy of this.gameProxy.map.sites())
-            if (siteProxy.ruler === this.maskProxyManager.get(this.other))
-                choices.set(siteProxy.visualName(this.player), siteProxy.original);
-        this.selects.sites = new SelectNOf("Sites", choices);
-
+        this.selects.sites = new SelectCard("Sites", this.player, this.gameProxy.map.sites());
         return super.start();
     }
 
@@ -1565,7 +1523,7 @@ export class DeedWriterOfferAction extends MakeBindingExchangeOfferAction {
 }
 
 export abstract class ThingsExchangeOfferAction<T extends OathGameObject> extends MakeBindingExchangeOfferAction {
-    readonly selects: { favors: SelectNumber, secrets: SelectNumber, things: SelectNOf<T> };
+    readonly selects: { favors: SelectNumber, secrets: SelectNumber, things: SelectWithName<T> };
     readonly parameters: { favors: number[], secrets: number[], things: T[] };
 
     effect: ThingsExchangeOfferEffect<T>;
@@ -1588,20 +1546,14 @@ export abstract class ThingsExchangeOfferAction<T extends OathGameObject> extend
 
 export class TinkersFairOfferAction extends ThingsExchangeOfferAction<Relic> {
     start(): boolean {
-        const choices = new Map<string, Relic>();
-        for (const relic of this.other.relics) choices.set(relic.visualName(this.player), relic);
-        this.selects.things = new SelectNOf("Relics", choices);
-
+        this.selects.things = new SelectCard("Relics", this.player, this.other.relics);
         return super.start();
     }
 }
 
 export class FestivalDistrictOfferAction extends ThingsExchangeOfferAction<WorldCard> {
     start(): boolean {
-        const choices = new Map<string, WorldCard>();
-        for (const adviser of this.other.advisers) choices.set(adviser.visualName(this.player), adviser);
-        this.selects.things = new SelectNOf("Advisers", choices);
-
+        this.selects.things = new SelectCard("Advisers", this.player, this.other.advisers);
         return super.start();
     }
 
@@ -1613,11 +1565,7 @@ export class FestivalDistrictOfferAction extends ThingsExchangeOfferAction<World
 
 export class TheGatheringOfferAction extends ThingsExchangeOfferAction<Relic | WorldCard> {
     start(): boolean {
-        const choices = new Map<string, Relic | WorldCard>();
-        for (const relic of this.other.relics) choices.set(relic.visualName(this.player), relic);
-        for (const adviser of this.other.advisers) choices.set(adviser.visualName(this.player), adviser);
-        this.selects.things = new SelectNOf("Relics and advisers", choices);
-
+        this.selects.things = new SelectCard("Relics and advisers", this.player, [...this.other.relics, ...this.other.advisers]);
         return super.start();
     }
 
@@ -1688,7 +1636,7 @@ export class SkeletonKeyAction extends OathAction {
 
 
 export class BrackenAction extends OathAction {
-    readonly selects: { region: SelectNOf<Region>, onTop: SelectBoolean };
+    readonly selects: { region: SelectWithName<Region>, onTop: SelectBoolean };
     readonly parameters: { region: Region[], onTop: boolean[] };
     readonly message = "Choose where you'll discard";
 
@@ -1700,10 +1648,7 @@ export class BrackenAction extends OathAction {
     }
 
     start(): boolean {
-        const regions = new Set(Object.values(this.game.map.children));
-        const choices = new Map<string, Region>();
-        for (const region of regions) choices.set(region.name, region);
-        this.selects.region = new SelectNOf("Region", choices, { min: 1 });
+        this.selects.region = new SelectWithName("Region", this.game.map.children, { min: 1 });
         this.selects.onTop = new SelectBoolean("Position", ["Bottom", "Top"])
         return super.start();
     }
@@ -1745,15 +1690,12 @@ export class VowOathAction extends OathAction {
 }
 
 export class ChooseNewCitizensAction extends OathAction {
-    readonly selects: { players: SelectNOf<OathPlayer> };
+    readonly selects: { players: SelectWithName<OathPlayer> };
     readonly parameters: { players: OathPlayer[] };
     readonly message = "Propose Citizenship to other Exiles";
 
     start() {
-        const choices = new Map<string, OathPlayer>();
-        const players = new Set(this.game.players.filter(e => !e.isImperial && e !== this.player));
-        for (const player of players) choices.set(player.name, player);
-        this.selects.players = new SelectNOf("Exile(s)", choices);
+        this.selects.players = new SelectWithName("Exile(s)", this.game.players.filter(e => !e.isImperial && e !== this.player));
         return super.start();
     }
 
@@ -1774,26 +1716,24 @@ export class ChooseNewCitizensAction extends OathAction {
 }
 
 export class BuildOrRepairEdificeAction extends OathAction {
-    readonly selects: { card: SelectNOf<Denizen> };
+    readonly selects: { card: SelectCard<Denizen> };
     readonly parameters: { card: Denizen[] };
     readonly message = "Build or repair an edifice";
 
     start(): boolean {
-        const choices = new Map<string, Denizen>();
+        const choices = new Set<Denizen>();
         const bannedSuits = new Set<OathSuit>();
-        for (const site of this.game.map.sites())
-            if (site.ruler?.isImperial)
-                for (const denizen of site.denizens)
-                    if (!(denizen instanceof Edifice) || denizen.suit === OathSuit.None)
-                        choices.set(denizen.name, denizen);
-                    else
-                        bannedSuits.add(denizen.suit);
+        for (const site of this.game.map.sites()) {
+            if (!site.ruler?.isImperial) continue;
+            for (const denizen of site.denizens) {
+                const isEdifice = denizen instanceof Edifice;
+                if ((denizen.suit === OathSuit.None) !== isEdifice) continue;
+                choices.add(denizen);
+                if (isEdifice) bannedSuits.add(denizen.suit);
+            }
+        }
         
-        for (const [key, denizen] of choices.entries())
-            if (bannedSuits.has(denizen.suit))
-                choices.delete(key);
-        
-        this.selects.card = new SelectNOf("Card", choices);
+        this.selects.card = new SelectCard("Card", this.player, [...choices].filter(e => !bannedSuits.has(e.suit)));
         return super.start();
     }
 

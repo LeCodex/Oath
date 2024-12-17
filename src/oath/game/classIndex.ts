@@ -4,7 +4,7 @@ import { Conspiracy, Denizen, Edifice, GrandScepter, Relic, Site, Vision } from 
 import { Discard, RelicDeck, WorldDeck } from "./cards/decks";
 import { Oath } from "./oaths";
 import { Reliquary, ReliquarySlot } from "./reliquary";
-import { Favor, OathWarband, Secret } from "./resources";
+import { Favor, Warband, Secret } from "./resources";
 import { ChancellorBoard, ExileBoard } from "./player";
 
 const index = {
@@ -30,6 +30,6 @@ const index = {
     ReliquarySlot,
     Favor,
     Secret,
-    OathWarband
+    Warband
 }
 export default index; 

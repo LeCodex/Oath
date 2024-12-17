@@ -1,8 +1,14 @@
+import { OathCard } from "../cards/cards";
+import { OathPlayer } from "../player";
 import { InvalidActionResolution } from "./base";
 
 
-type SelectParams = { min?: number, max?: number, exact?: boolean, defaults?: Iterable<string> };
-
+type SelectParams = {
+    min?: number,
+    max?: number,
+    exact?: boolean,
+    defaults?: Iterable<string>
+};
 
 export class SelectNOf<T> {
     name: string;
@@ -69,6 +75,22 @@ export class SelectNumber extends SelectNOf<number> {
     constructor(name: string, values: Iterable<number>, params: SelectParams = {}) {
         const choices = new Map<string, number>();
         for (const i of values) choices.set(i.toString(), i);
+        super(name, choices, params);
+    }
+}
+
+export class SelectWithName<T extends { name: string }> extends SelectNOf<T> {
+    constructor(name: string, values: Iterable<T>, params: SelectParams = {}) {
+        const choices = new Map<string, T>();
+        for (const node of values) choices.set(node.name, node);
+        super(name, choices, params);
+    }
+}
+
+export class SelectCard<T extends OathCard> extends SelectNOf<T> {
+    constructor(name: string, player: OathPlayer, values: Iterable<T>, params: SelectParams = {}) {
+        const choices = new Map<string, T>();
+        for (const card of values) choices.set(card.visualName(player), card);
         super(name, choices, params);
     }
 }

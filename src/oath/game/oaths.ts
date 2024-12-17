@@ -43,6 +43,7 @@ export class Oath extends OathGameObjectLeaf<OathType> implements OwnableObject,
     }
     
     get key() { return this.oathType; }
+    get name() { return OathType[this.oathType] + "Oath"; }
     get owner() { return this.typedParent(OathPlayer); }
 
     setType(oathType: OathType) {

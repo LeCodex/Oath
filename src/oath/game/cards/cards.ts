@@ -21,7 +21,7 @@ export abstract class OathCard extends ResourcesAndWarbands<string> implements W
     seenBy: Set<OathPlayer> = new Set();
     powers: Set<Constructor<OathPower<OathCard>>>;
 
-    get name() { return this.key; }
+    get name() { return this.id; }
     get key() { return this.id; }
     get active(): boolean { return !this.facedown; }
 
@@ -168,7 +168,7 @@ export abstract class OwnableCard extends OathCard implements OwnableObject  {
     protected _ruler() { return this.owner; }
     get ruler() { return this._ruler(); }
     set ruler(_ruler: OathPlayer | undefined) { this._ruler = () => _ruler; }
-    get facedownName(): string { return (this.owner ? this.owner.name + "'s facedown" : "facedown") + " "; }
+    get facedownName(): string { return `${this.owner ? this.owner.name + "'s facedown" : "Facedown"} `; }
 
     setOwner(player?: OathPlayer): void {
         player?.addChild(this);
@@ -295,6 +295,7 @@ export class Vision extends VisionBack {
         this.oath = new Oath().setType(OathType[id]);
     }
 
+    get name() { return `VisionOf${this.key}` }
     get key() { return OathTypeVisionName[this.id]; }
 }
 

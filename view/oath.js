@@ -119,18 +119,9 @@ const renderObject = (parent, obj) => {
                 node = renderText(pawnColors[board.id] + (board.isCitizen ? "💜" : "") + " " + obj._name + " (" + board._name + ") (Supply: " + obj.supply + ")");
                 node.innerText += (game._currentPlayer == obj.id ? " 🔄" : "");
                 renderResourcesAndWarbands(node, board);
-            } else {
-                node = renderText(obj._name);
+                break;
             }
-            break;
         case "board":
-            break;
-        
-        case "map":
-            node = renderText("[MAP]");
-            break;
-        case "region":
-            node = renderText(obj.id);
             break;
         
         case "relic":
@@ -156,19 +147,6 @@ const renderObject = (parent, obj) => {
             node = renderDeck(obj, obj._name, obj.class === "Discard");
             autoAppendChildren = false;
             break;
-        
-        case "bag":
-            if (obj.children?.length) node = renderText("Bag:")
-            break;
-        case "reliquary":
-            node = renderText("Reliquary:");
-            break;
-        case "reliquarySlot":
-            node = renderText(obj._name);
-            break;
-        case "visionSlot":
-            if (obj.children?.length) node = renderText("Vision:")
-            break;
 
         case "oath":
             node = renderText((game.isUsurper ? "🥇" : "🏅") + " Oath of " + oathNames[obj.oath]);
@@ -179,7 +157,7 @@ const renderObject = (parent, obj) => {
             break;
         
         default:
-            node = renderText(`UNHANDLED ${obj._type} (${obj.id})`);
+            node = renderText(obj._name);
     }
 
     if (!node) return;

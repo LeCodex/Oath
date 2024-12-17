@@ -29,7 +29,7 @@ export enum OathType {
     Protection
 }
 
-export const OathTypeVisionName: Record<keyof typeof OathType, string> = {
+export const OathTypeVisionName = {
     "Supremacy": "Conquest",
     "Protection": "Sanctuary",
     "ThePeople": "Rebellion",

@@ -383,8 +383,8 @@ export class Observatory extends AccessedActionModifier<Denizen, SearchAction> {
     
     applyAtStart(): void {
         if (this.action.playerProxy.site === this.sourceProxy.site)
-            for (const region of Object.values(this.game.map.children))
-                this.action.selects.deck.choices.set(region.name, region.discard);
+            for (const region of this.game.map.children)
+                this.action.selects.deckProxy.choices.set(region.name, region.discard);
     }
 }
 
@@ -417,7 +417,7 @@ export class MapLibrary extends AccessedActionModifier<Denizen, TradeAction> {
         if (this.action.playerProxy.site === this.sourceProxy.site && this.sourceProxy.site.region)
             for (const siteProxy of this.sourceProxy.site.region.sites)
                 for (const denizenProxy of siteProxy.denizens)
-                    this.action.selects.card.choices.set(denizenProxy.name, denizenProxy);
+                    this.action.selects.cardProxy.choices.set(denizenProxy.name, denizenProxy);
     }
 }
 

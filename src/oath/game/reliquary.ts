@@ -9,6 +9,7 @@ import { OathPlayer } from "./player";
 
 export class Reliquary extends Container<ReliquarySlot, string> {
     type = "reliquary";
+    name = "Reliquary";
 
     constructor() {
         super("reliquary", ReliquarySlot);
@@ -51,11 +52,4 @@ export class ReliquarySlot extends Container<Relic, number> implements WithPower
     }
 
     get key() { return Number(this.id); }
-
-    constSerialize(): Record<`_${string}`, any> {
-        return {
-            ...super.constSerialize(),
-            _name: this.name
-        };
-    }
 }

@@ -1,7 +1,7 @@
 import { BurnResourcesEffect, ParentToTargetEffect } from "./actions/effects";
 import { OathGameObject, OathGameObjectLeaf } from "./gameObject";
 import { InvalidActionResolution } from "./actions/base";
-import { PlayerColor } from "./enums";
+import { isEnumKey, PlayerColor } from "./enums";
 import { AbstractConstructor } from "./utils";
 
 
@@ -20,10 +20,12 @@ export abstract class OathResource extends OathGameObjectLeaf<number> {
 }
 
 export class Favor extends OathResource {
+    name = "Favor";
+
     static putOn(target: OathGameObject, amount: number): void {
         target.addChildren(target.game.byClass(this).max(amount));
     }
-    
+
     burn(): void {
         this.unparent();
     }
@@ -40,6 +42,8 @@ export class Secret extends OathResource {
         this.prune();
     }
 
+    get name() { return `${this.flipped ? "Flipped" : ""}Secret`; }
+
     liteSerialize() {
         return {
             ...super.liteSerialize(),
@@ -55,8 +59,7 @@ export class Secret extends OathResource {
 
 export type OathResourceType<T extends OathResource = OathResource> = AbstractConstructor<T>;
 
-
-export class OathWarband extends OathGameObjectLeaf<number> {
+export class Warband extends OathGameObjectLeaf<number> {
     type = "warband";
     color: PlayerColor;
 
@@ -69,6 +72,7 @@ export class OathWarband extends OathGameObjectLeaf<number> {
         return this;
     }
 
+    get name() { return `${isEnumKey(this.color, PlayerColor) ? PlayerColor[this.color] : "Uncolored"} Warband`; }
     get key() { return Number(this.id); }
 
     liteSerialize() {
@@ -86,10 +90,8 @@ export class OathWarband extends OathGameObjectLeaf<number> {
 
 
 export abstract class ResourcesAndWarbands<T = any> extends OathGameObject<T> {
-    abstract name: string;
-
     get empty() { return this.resources.length === 0; }
-    get warbands() { return this.byClass(OathWarband); }
+    get warbands() { return this.byClass(Warband); }
     get resources() { return this.byClass(OathResource); }
 
     putResources(type: typeof OathResource, amount: number): number {
@@ -125,13 +127,6 @@ export abstract class ResourcesAndWarbands<T = any> extends OathGameObject<T> {
 
         for (const player of this.game.players)
             new ParentToTargetEffect(this.game, player, this.getWarbands(player.key), player.bag).doNext();
-    }
-
-    constSerialize(): Record<`_${string}`, any> {
-        return {
-            ...super.constSerialize(),
-            _name: this.name
-        }
     }
 }
 

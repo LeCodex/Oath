@@ -18,12 +18,12 @@ export class FavorBank extends Container<Favor, OathSuit> {
         super(id, Favor);
     }
 
+    get name() { return `${this.id}Bank`; }
     get key() { return OathSuit[this.id]; }
 }
 
 export abstract class Banner<T extends OathResource = OathResource> extends Container<T, string> implements RecoverActionTarget, CampaignActionTarget, WithPowers, OwnableObject {
     type = "banner";
-    name: string;
     powers: Set<Constructor<OathPower<Banner<T>>>>;
     active = true;
     min = 1;
@@ -58,13 +58,6 @@ export abstract class Banner<T extends OathResource = OathResource> extends Cont
     }
 
     abstract handleRecovery(player: OathPlayer): void;
-
-    constSerialize(): Record<`_${string}`, any> {
-        return {
-            ...super.constSerialize(),
-            _name: this.name
-        }
-    }
 }
 
 export class PeoplesFavor extends Banner<Favor> {

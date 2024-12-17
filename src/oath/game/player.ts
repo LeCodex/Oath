@@ -4,20 +4,21 @@ import { Denizen, OwnableCard, Relic, Site, Vision, WorldCard } from "./cards/ca
 import { Discard, DiscardOptions } from "./cards/decks";
 import { BurnResourcesEffect, FlipSecretsEffect, GainSupplyEffect } from "./actions/effects";
 import { ALL_OATH_SUITS, isEnumKey, OathSuit, PlayerColor } from "./enums";
-import { OathWarband, ResourcesAndWarbands, Favor, OathResourceType } from "./resources";
+import { Warband, ResourcesAndWarbands, Favor, OathResourceType } from "./resources";
 import { Container, OathGameObject } from "./gameObject";
 import { Banner } from "./banks";
 
-export class WarbandsSupply extends Container<OathWarband, PlayerColor> {
+export class WarbandsSupply extends Container<Warband, PlayerColor> {
     type = "bag";
     readonly id: keyof typeof PlayerColor;
     get hidden() { return true; }
 
     constructor(id: keyof typeof PlayerColor) {
         if (!isEnumKey(id, PlayerColor)) throw TypeError(`${id} is not a valid player color`);
-        super(id, OathWarband);
+        super(id, Warband);
     }
 
+    get name() { return `${this.id}WarbandsSupply`; }
     get key() { return PlayerColor[this.id]; }
 }
 
@@ -97,13 +98,6 @@ export class OathPlayer extends OathGameObject<number> implements CampaignAction
             supply: this.supply,
             site: this.site?.id,
             board: this.board?.id
-        };
-    }
-
-    constSerialize(): Record<`_${string}`, any> {
-        return {
-            ...super.constSerialize(),
-            _name: this.name
         };
     }
 
@@ -206,19 +200,20 @@ export class VisionSlot extends Container<Vision, PlayerColor> {
         super(id, Vision);
     }
 
+    get hidden() { return this.children.length === 0; }
+    get name() { return `${this.id}VisionSlot`; }
     get key() { return PlayerColor[this.id]; }
 }
 
 export class ExileBoard extends PlayerBoard {
-    name: string;
     isCitizen: boolean;
     visionSlot: VisionSlot;
 
     constructor(id: keyof typeof PlayerColor) {
         super(id);
-        this.name = id + "Exile";
     }
 
+    get name() { return `${this.id}Exile`; }
     get isImperial() { return this.isCitizen; }
     get vision() { return this.visionSlot.children[0]; }
 
