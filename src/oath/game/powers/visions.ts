@@ -6,9 +6,9 @@ import { ActionModifier, WhenPlayed } from "./powers";
 
 
 export class OathDefense extends ActionModifier<Oath, CampaignDefenseAction> {
-    name = "Oathkeeper"
     modifiedAction = CampaignDefenseAction;
     mustUse = true;
+    get name() { return "Oathkeeper"; }
 
     canUse(): boolean {
         return this.activatorProxy === this.sourceProxy.parent;
@@ -22,8 +22,6 @@ export class OathDefense extends ActionModifier<Oath, CampaignDefenseAction> {
 
 // NOTE: Visions are directly integrated in the WakeAction
 export class ConspiracyPower extends WhenPlayed<Conspiracy> {
-    name = "Conspiracy";
-
     whenPlayed(): void {
         const targets: OathPlayer[] = [];
         for (const playerProxy of this.gameProxy.players) {

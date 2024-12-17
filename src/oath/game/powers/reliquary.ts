@@ -15,7 +15,6 @@ export abstract class ReliquaryModifier<T extends ModifiableAction> extends Acti
 }
 
 export class Brutal extends ReliquaryModifier<CampaignAttackAction> {
-    name = "Brutal";
     modifiedAction = CampaignAttackAction;
 
     applyBefore() {
@@ -25,7 +24,6 @@ export class Brutal extends ReliquaryModifier<CampaignAttackAction> {
 }
 
 export class Greedy extends ReliquaryModifier<SearchAction> {
-    name = "Greedy";
     modifiedAction = SearchAction;
 
     applyBefore(): void {
@@ -38,7 +36,6 @@ export class Greedy extends ReliquaryModifier<SearchAction> {
 }
 
 export class Careless extends ReliquaryModifier<TradeAction> {
-    name = "Careless";
     modifiedAction = TradeAction;
 
     applyBefore(): void {
@@ -48,7 +45,6 @@ export class Careless extends ReliquaryModifier<TradeAction> {
 }
 
 export class Decadent extends ReliquaryModifier<TravelAction> {
-    name = "Decadent";
     modifiedAction = TravelAction;
 
     applyBefore(): void {

@@ -13,7 +13,6 @@ import { minInGroup } from "../../utils";
 
 
 export class MercenariesAttack extends AttackerBattlePlan<Denizen> {
-    name = "Mercenaries";
     cost = new ResourceCost([[Favor, 1]]);
 
     applyBefore(): void {
@@ -22,7 +21,6 @@ export class MercenariesAttack extends AttackerBattlePlan<Denizen> {
     }
 }
 export class MercenariesDefense extends DefenderBattlePlan<Denizen> {
-    name = "Mercenaries";
     cost = new ResourceCost([[Favor, 1]]);
 
     applyBefore(): void {
@@ -32,7 +30,6 @@ export class MercenariesDefense extends DefenderBattlePlan<Denizen> {
 }
 
 export class CrackedSageAttack extends AttackerBattlePlan<Denizen> {
-    name = "Cracked Sage";
     cost = new ResourceCost([[Secret, 1]], [[Favor, 1]]);
 
     applyBefore(): void {
@@ -45,7 +42,6 @@ export class CrackedSageAttack extends AttackerBattlePlan<Denizen> {
     }
 }
 export class CrackedSageDefense extends DefenderBattlePlan<Denizen> {
-    name = "Cracked Sage";
     cost = new ResourceCost([[Secret, 1]], [[Favor, 1]]);
 
     applyBefore(): void {
@@ -58,7 +54,6 @@ export class CrackedSageDefense extends DefenderBattlePlan<Denizen> {
 }
 
 export class DisgracedCaptain extends AttackerBattlePlan<Denizen> {
-    name = "Disgraced Captain";
     cost = new ResourceCost([[Favor, 1]], [[Favor, 1]]);
 
     applyBefore(): void {
@@ -74,8 +69,6 @@ export class DisgracedCaptain extends AttackerBattlePlan<Denizen> {
 }
 
 export class BookBurning extends AttackerBattlePlan<Denizen> {
-    name = "Book Burning";
-
     applyBefore(): void {
         this.action.campaignResult.onSuccessful(true, () => {
             const defender = this.action.campaignResult.defender;
@@ -86,7 +79,6 @@ export class BookBurning extends AttackerBattlePlan<Denizen> {
 }
 
 export class Slander extends AttackerBattlePlan<Denizen> {
-    name = "Slander";
     cost = new ResourceCost([[Favor, 1]]);
 
     applyBefore(): void {
@@ -99,7 +91,6 @@ export class Slander extends AttackerBattlePlan<Denizen> {
 }
 
 export class SecondWind extends AttackerBattlePlan<Denizen> {
-    name = "Second Wind";
     cost = new ResourceCost([[Secret, 1]], [[Favor, 1]]);
 
     applyBefore(): void {
@@ -126,7 +117,6 @@ export class SecondWind extends AttackerBattlePlan<Denizen> {
 }
 
 export class Zealots extends AttackerBattlePlan<Denizen> {
-    name = "Zealots";
     cost = new ResourceCost([[Favor, 1]]);
 
     applyAtEnd(): void {
@@ -136,7 +126,6 @@ export class Zealots extends AttackerBattlePlan<Denizen> {
 }
 
 export class RelicThief extends EnemyActionModifier<Denizen, TakeOwnableObjectEffect> {
-    name = "Relic Thief";
     modifiedAction = TakeOwnableObjectEffect;
 
     applyAfter(): void {
@@ -161,8 +150,6 @@ export class RelicThief extends EnemyActionModifier<Denizen, TakeOwnableObjectEf
 }
 
 export class KeyToTheCity extends WhenPlayed<Denizen> {
-    name = "Key to the City";
-
     whenPlayed(): void {
         if (!this.source.site || !this.sourceProxy.site) return;
         if (this.sourceProxy.site.ruler?.site === this.sourceProxy.site) return;
@@ -175,7 +162,7 @@ export class KeyToTheCity extends WhenPlayed<Denizen> {
 }
 
 export class OnlyTwoAdvisers extends CapacityModifier<Denizen> {
-    name = "Only Two Advisers";
+    get name() { return "Only Two Advisers"; }
 
     canUse(player: OathPlayer, site?: Site): boolean {
         return player === this.source.ruler && !site;
@@ -187,7 +174,6 @@ export class OnlyTwoAdvisers extends CapacityModifier<Denizen> {
 }
 
 export class Assassin extends ActivePower<Denizen> {
-    name = "Assassin";
     cost = new ResourceCost([[Favor, 1]]);
 
     usePower(): void {
@@ -207,16 +193,12 @@ export class Assassin extends ActivePower<Denizen> {
 }
 
 export class Insomnia extends RestPower<Denizen> {
-    name = "Insomnia";
-
     applyAfter(): void {
         new PutResourcesOnTargetEffect(this.game, this.activator, Secret, 1).doNext();
     }
 }
 
 export class SilverTongue extends RestPower<Denizen> {
-    name = "Silver Tongue";
-
     applyAfter(): void {
         const suits: Set<OathSuit> = new Set();
         for (const denizenProxy of this.activatorProxy.site.denizens) suits.add(denizenProxy.suit);
@@ -225,7 +207,6 @@ export class SilverTongue extends RestPower<Denizen> {
 }
 
 export class SleightOfHand extends ActivePower<Denizen> {
-    name = "Sleight of Hand";
     cost = new ResourceCost([[Favor, 1]]);
 
     usePower(): void {
@@ -235,8 +216,6 @@ export class SleightOfHand extends ActivePower<Denizen> {
 }
 
 export class Naysayers extends RestPower<Denizen> {
-    name = "Naysayers";
-
     applyAfter(): void {
         if (!this.game.oathkeeper.isImperial)
             new MoveResourcesToTargetEffect(this.game, this.activator, Favor, 1, this.activator, this.game.chancellor).doNext();
@@ -244,7 +223,6 @@ export class Naysayers extends RestPower<Denizen> {
 }
 
 export class ChaosCult extends EnemyActionModifier<Denizen, SetNewOathkeeperEffect> {
-    name = "Chaos Cult";
     modifiedAction = SetNewOathkeeperEffect;
 
     applyAfter(): void {
@@ -253,7 +231,6 @@ export class ChaosCult extends EnemyActionModifier<Denizen, SetNewOathkeeperEffe
 }
 
 export class GamblingHall extends ActivePower<Denizen> {
-    name = "Gambling Hall";
     cost = new ResourceCost([[Favor, 2]]);
 
     usePower(): void {
@@ -264,7 +241,6 @@ export class GamblingHall extends ActivePower<Denizen> {
 }
 
 export class Scryer extends ActivePower<Denizen> {
-    name = "Scryer";
     cost = new ResourceCost([[Secret, 1]]);
 
     usePower(): void {
@@ -276,8 +252,6 @@ export class Scryer extends ActivePower<Denizen> {
 }
 
 export class Charlatan extends WhenPlayed<Denizen> {
-    name = "Charlatan";
-
     whenPlayed(): void {
         const banner = this.game.banners.get(BannerKey.DarkestSecret);
         if (banner) new BurnResourcesEffect(this.game, this.action.executor, Secret, banner.amount - 1, banner).doNext();
@@ -285,8 +259,6 @@ export class Charlatan extends WhenPlayed<Denizen> {
 }
 
 export class Dissent extends WhenPlayed<Denizen> {
-    name = "Dissent";
-
     whenPlayed(): void {
         const peoplesFavorProxy = this.gameProxy.banners.get(BannerKey.PeoplesFavor);
         for (const playerProxy of this.gameProxy.players)
@@ -296,8 +268,6 @@ export class Dissent extends WhenPlayed<Denizen> {
 }
 
 export class Riots extends WhenPlayed<Denizen> {
-    name = "Riots";
-
     whenPlayed(): void {
         const peoplesFavorProxy = this.gameProxy.banners.get(BannerKey.PeoplesFavor) as PeoplesFavor;
         if (!peoplesFavorProxy?.isMob) return;
@@ -332,8 +302,6 @@ export class Riots extends WhenPlayed<Denizen> {
 }
 
 export class Blackmail extends WhenPlayed<Denizen> {
-    name = "Blackmail";
-
     whenPlayed(): void {
         const relics = new Set<Relic>();
         for (const playerProxy of this.gameProxy.players) {
@@ -362,23 +330,18 @@ export class Blackmail extends WhenPlayed<Denizen> {
 }
 
 export class ASmallFavor extends WhenPlayed<Denizen> {
-    name = "ASmallFavor";
-
     whenPlayed(): void {
         new ParentToTargetEffect(this.game, this.action.executor, this.action.executorProxy.leader.original.bag.get(4)).doNext();
     }
 }
 
 export class BanditChiefWhenPlayed extends WhenPlayed<Denizen> {
-    name = "Bandit Chief";
-
     whenPlayed(): void {
         for (const site of this.game.map.sites())
             new KillWarbandsOnTargetAction(this.action.executor, site, 1).doNext();
     }
 }
 export class BanditChief extends ActionModifier<Denizen, ModifiableAction> {
-    name = "Bandit Chief";
     modifiedAction = ModifiableAction;
     mustUse = true;
 
@@ -391,8 +354,6 @@ export class BanditChief extends ActionModifier<Denizen, ModifiableAction> {
 }
 
 export class FalseProphet extends WhenPlayed<Denizen> {
-    name = "False Prophet";
-
     whenPlayed(): void {
         if (this.action.executorProxy?.isImperial) return;
 
@@ -408,8 +369,6 @@ export class FalseProphet extends WhenPlayed<Denizen> {
     }
 }
 export class FalseProphetWake extends WakePower<Denizen> {
-    name = "False Prophet";
-
     applyWhenApplied(): boolean {
         if (this.action.playerProxy?.isImperial) return true;
 
@@ -427,7 +386,6 @@ export class FalseProphetWake extends WakePower<Denizen> {
     }
 }
 export class FalseProphetDiscard extends ActionModifier<Denizen, DiscardCardEffect<Vision>> {
-    name = "False Prophet";
     modifiedAction = DiscardCardEffect;
     mustUse = true;
 
@@ -441,8 +399,6 @@ export class FalseProphetDiscard extends ActionModifier<Denizen, DiscardCardEffe
 }
 
 export class RoyalAmbitions extends WhenPlayed<Denizen> {
-    name = "Royal Ambitions";
-
     whenPlayed(): void {
         if (!(this.action.playerProxy.board instanceof ExileBoard)) return;
         if (this.action.executorProxy.ruledSites > this.gameProxy.chancellor.ruledSites)
@@ -454,8 +410,6 @@ export class RoyalAmbitions extends WhenPlayed<Denizen> {
 }
 
 export class SaltTheEarth extends CapacityModifier<Denizen> {
-    name = "Salt the Earth";
-
     canUse(player: OathPlayer, site?: Site): boolean {
         return site === this.source.site;
     }
@@ -466,7 +420,6 @@ export class SaltTheEarth extends CapacityModifier<Denizen> {
 }
 
 export class Downtrodden extends AccessedActionModifier<Denizen, MusterAction> {
-    name = "Downtrodden";
     modifiedAction = MusterAction;
 
     applyBefore(): void {
@@ -477,7 +430,6 @@ export class Downtrodden extends AccessedActionModifier<Denizen, MusterAction> {
 }
 
 export class BoilingLake extends EnemyActionModifier<Denizen, TravelAction> {
-    name = "Boiling Lake";
     modifiedAction = TravelAction;
 
     applyBefore(): void {
@@ -487,7 +439,6 @@ export class BoilingLake extends EnemyActionModifier<Denizen, TravelAction> {
 }
 
 export class Gossip extends EnemyActionModifier<Denizen, SearchPlayOrDiscardAction> {
-    name = "Gossip";
     modifiedAction = SearchPlayOrDiscardAction;
 
     applyBefore(): void {
@@ -497,8 +448,6 @@ export class Gossip extends EnemyActionModifier<Denizen, SearchPlayOrDiscardActi
 }
 
 export class BeastTamerAttack extends EnemyAttackerCampaignModifier<Denizen> {
-    name = "Beast Tamer";
-
     applyBefore(): void {
         for (const modifier of this.action.modifiers)
             if (
@@ -509,8 +458,6 @@ export class BeastTamerAttack extends EnemyAttackerCampaignModifier<Denizen> {
     }
 }
 export class BeastTamerDefense extends EnemyDefenderCampaignModifier<Denizen> {
-    name = "Beast Tamer";
-
     applyBefore(): void {
         for (const modifier of this.action.modifiers)
             if (
@@ -522,7 +469,6 @@ export class BeastTamerDefense extends EnemyDefenderCampaignModifier<Denizen> {
 }
 
 export class Enchantress extends ActivePower<Denizen> {
-    name = "Enchantress";
     cost = new ResourceCost([], [[Secret, 1]]);
 
     usePower(): void {
@@ -547,7 +493,6 @@ export class Enchantress extends ActivePower<Denizen> {
 }
 
 export class SneakAttack extends EnemyActionModifier<Denizen, CampaignEndAction> {
-    name = "Sneak Attack";
     modifiedAction = CampaignEndAction;
 
     applyBefore(): void {
@@ -562,7 +507,6 @@ export class SneakAttack extends EnemyActionModifier<Denizen, CampaignEndAction>
 }
 
 export class VowOfRenewal extends ActionModifier<Denizen, BurnResourcesEffect> {
-    name = "Vow of Renewal";
     modifiedAction = BurnResourcesEffect;
     mustUse = true;
 
@@ -573,7 +517,6 @@ export class VowOfRenewal extends ActionModifier<Denizen, BurnResourcesEffect> {
     }
 }
 export class VowOfRenewalRecover extends AccessedActionModifier<Denizen, RecoverAction> {
-    name = "Vow of Renewal";
     modifiedAction = RecoverAction;
     mustUse = true;
 
@@ -585,15 +528,12 @@ export class VowOfRenewalRecover extends AccessedActionModifier<Denizen, Recover
 
 
 export class FestivalDistrict extends ActivePower<Denizen> {
-    name = "Festival District";
-
     usePower(): void {
         new StartBindingExchangeAction(this.action.player, FestivalDistrictOfferAction).doNext();
     }
 }
 
 export class SqualidDistrict extends ActionModifier<Edifice, RollDiceEffect> {
-    name = "Squalid District";
     modifiedAction = RollDiceEffect;
     mustUse = true;
 

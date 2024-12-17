@@ -11,7 +11,6 @@ import { AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, RestPower, ActivePo
 
 
 export class NatureWorshipAttack extends AttackerBattlePlan<Denizen> {
-    name = "Nature Worship";
     cost = new ResourceCost([[Secret, 1]]);
 
     applyBefore(): void {
@@ -19,7 +18,6 @@ export class NatureWorshipAttack extends AttackerBattlePlan<Denizen> {
     }
 }
 export class NatureWorshipDefense extends DefenderBattlePlan<Denizen> {
-    name = "Nature Worship";
     cost = new ResourceCost([[Secret, 1]]);
 
     applyBefore(): void {
@@ -28,7 +26,6 @@ export class NatureWorshipDefense extends DefenderBattlePlan<Denizen> {
 }
 
 export class WarTortoiseAttack extends AttackerBattlePlan<Denizen> {
-    name = "War Tortoise";
     cost = new ResourceCost([[Favor, 1]]);
 
     applyBefore(): void {
@@ -36,7 +33,6 @@ export class WarTortoiseAttack extends AttackerBattlePlan<Denizen> {
     }
 }
 export class WarTortoiseDefense extends DefenderBattlePlan<Denizen> {
-    name = "War Tortoise";
     cost = new ResourceCost([[Favor, 1]]);
 
     applyBefore(): void {
@@ -45,7 +41,6 @@ export class WarTortoiseDefense extends DefenderBattlePlan<Denizen> {
 }
 
 export class Rangers extends AttackerBattlePlan<Denizen> {
-    name = "Rangers";
     cost = new ResourceCost([[Favor, 1]]);
 
     applyBefore(): void {
@@ -55,8 +50,6 @@ export class Rangers extends AttackerBattlePlan<Denizen> {
 }
 
 export class WalledGarden extends DefenderBattlePlan<Denizen> {
-    name = "Walled Garden";
-
     applyBefore(): void {
         for (const target of this.action.campaignResult.targets) {
             if (target !== this.source.site) return;
@@ -69,7 +62,6 @@ export class WalledGarden extends DefenderBattlePlan<Denizen> {
 }
 
 export class Bracken extends AccessedActionModifier<Denizen, SearchAction> {
-    name = "Bracken";
     modifiedAction = SearchAction;
 
     applyBefore(): void {
@@ -78,7 +70,6 @@ export class Bracken extends AccessedActionModifier<Denizen, SearchAction> {
 }
 
 export class ErrandBoy extends AccessedActionModifier<Denizen, SearchAction> {
-    name = "Errand Boy";
     modifiedAction = SearchAction;
     cost = new ResourceCost([[Favor, 1]]);
 
@@ -89,7 +80,6 @@ export class ErrandBoy extends AccessedActionModifier<Denizen, SearchAction> {
 }
 
 export class ForestPaths extends AccessedActionModifier<Denizen, TravelAction> {
-    name = "Forest Paths";
     modifiedAction = TravelAction;
     cost = new ResourceCost([[Favor, 1]]);
 
@@ -106,7 +96,6 @@ export class ForestPaths extends AccessedActionModifier<Denizen, TravelAction> {
 }
 
 export class NewGrowth extends AccessedActionModifier<Denizen, SearchPlayOrDiscardAction> {
-    name = "New Growth";
     modifiedAction = SearchPlayOrDiscardAction;
 
     applyAtStart(): void {
@@ -120,7 +109,6 @@ export class NewGrowth extends AccessedActionModifier<Denizen, SearchPlayOrDisca
 }
 
 export class WildCry extends AccessedActionModifier<Denizen, PlayWorldCardEffect> {
-    name = "Wild Cry";
     modifiedAction = PlayWorldCardEffect;
 
     applyBefore(): void {
@@ -132,7 +120,6 @@ export class WildCry extends AccessedActionModifier<Denizen, PlayWorldCardEffect
 }
 
 export class AnimalPlaymates extends AccessedActionModifier<Denizen, MusterAction> {
-    name = "Animal Playmates";
     modifiedAction = MusterAction;
 
     applyBefore(): void {
@@ -142,7 +129,6 @@ export class AnimalPlaymates extends AccessedActionModifier<Denizen, MusterActio
 }
 
 export class Birdsong extends AccessedActionModifier<Denizen, TradeAction> {
-    name = "Birdsong";
     modifiedAction = TradeAction;
 
     applyBefore(): void {
@@ -152,7 +138,6 @@ export class Birdsong extends AccessedActionModifier<Denizen, TradeAction> {
 }
 
 export class TheOldOak extends AccessedActionModifier<Denizen, TradeAction> {
-    name = "The Old Oak";
     modifiedAction = TradeAction;
     mustUse = true;
 
@@ -163,7 +148,6 @@ export class TheOldOak extends AccessedActionModifier<Denizen, TradeAction> {
 }
 
 export class Mushrooms extends AccessedActionModifier<Denizen, SearchAction> {
-    name = "Mushrooms";
     modifiedAction = SearchAction;
     cost = new ResourceCost([[Secret, 1]]);
 
@@ -178,7 +162,6 @@ export class Mushrooms extends AccessedActionModifier<Denizen, SearchAction> {
 }
 
 export class MarshSpirit extends ActionModifier<Denizen, CampaignAttackAction> {
-    name = "Marsh Spirit";
     modifiedAction = CampaignAttackAction;
     mustUse = true;
 
@@ -190,7 +173,6 @@ export class MarshSpirit extends ActionModifier<Denizen, CampaignAttackAction> {
 }
 
 export class ForestCouncilTrade extends EnemyActionModifier<Denizen, TradeAction> {
-    name = "Forest Council";
     modifiedAction = TradeAction;
 
     applyBefore(): void {
@@ -199,7 +181,6 @@ export class ForestCouncilTrade extends EnemyActionModifier<Denizen, TradeAction
     }
 }
 export class ForestCouncilMuster extends EnemyActionModifier<Denizen, MusterAction> {
-    name = "Forest Council";
     modifiedAction = MusterAction;
 
     applyBefore(): void {
@@ -209,7 +190,6 @@ export class ForestCouncilMuster extends EnemyActionModifier<Denizen, MusterActi
 }
 
 export class GraspingVines extends EnemyActionModifier<Denizen, TravelAction> {
-    name = "Grasping Vines";
     modifiedAction = TravelAction;
 
     applyBefore(): void {
@@ -219,8 +199,6 @@ export class GraspingVines extends EnemyActionModifier<Denizen, TravelAction> {
 }
 
 export class InsectSwarmAttack extends EnemyAttackerCampaignModifier<Denizen> {
-    name = "Insect Swarm";
-
     canUse(): boolean {
         return this.action.campaignResult.defender === this.sourceProxy.ruler?.original;
     }
@@ -234,8 +212,6 @@ export class InsectSwarmAttack extends EnemyAttackerCampaignModifier<Denizen> {
     }
 }
 export class InsectSwarmDefense extends EnemyDefenderCampaignModifier<Denizen> {
-    name = "Insect Swarm";
-
     canUse(): boolean {
         return this.action.campaignResult.attacker === this.sourceProxy.ruler?.original;
     }
@@ -250,16 +226,12 @@ export class InsectSwarmDefense extends EnemyDefenderCampaignModifier<Denizen> {
 }
 
 export class ThreateningRoar extends WhenPlayed<Denizen> {
-    name = "Threatening Roar";
-
     whenPlayed(): void {
         new RegionDiscardEffect(this.action.executor, [OathSuit.Beast, OathSuit.Nomad], this.source).doNext();
     }
 }
 
 export class AnimalHost extends WhenPlayed<Denizen> {
-    name = "Animal Host";
-
     whenPlayed(): void {
         let amount = 0;
         for (const siteProxy of this.gameProxy.map.sites())
@@ -272,7 +244,6 @@ export class AnimalHost extends WhenPlayed<Denizen> {
 }
 
 export class VowOfPoverty extends AccessedActionModifier<Denizen, TradeAction> {
-    name = "Vow of Poverty";
     modifiedAction = TradeAction;
     mustUse = true;
 
@@ -281,8 +252,6 @@ export class VowOfPoverty extends AccessedActionModifier<Denizen, TradeAction> {
     }
 }
 export class VowOfPovertyRest extends RestPower<Denizen> {
-    name = "Vow of Poverty";
-
     applyAfter(): void {
         if (this.activatorProxy.byClass(Favor).length === 0)
             new TakeFavorFromBankAction(this.activator, 2).doNext();
@@ -290,7 +259,6 @@ export class VowOfPovertyRest extends RestPower<Denizen> {
 }
 
 export class VowOfUnionAttack extends AccessedActionModifier<Denizen, CampaignAttackAction> {
-    name = "Vow of Union";
     modifiedAction = CampaignAttackAction;
     mustUse = true;
 
@@ -301,7 +269,6 @@ export class VowOfUnionAttack extends AccessedActionModifier<Denizen, CampaignAt
     }
 }
 export class VowOfUnionTravel extends AccessedActionModifier<Denizen, TravelAction> {
-    name = "Vow of Union";
     modifiedAction = TravelAction;
     mustUse = true;
 
@@ -312,7 +279,6 @@ export class VowOfUnionTravel extends AccessedActionModifier<Denizen, TravelActi
 }
 
 export class VowOfBeastkin extends AccessedActionModifier<Denizen, MusterAction> {
-    name = "Vow of Beastkin";
     modifiedAction = MusterAction;
     mustUse = true;
 
@@ -325,7 +291,6 @@ export class VowOfBeastkin extends AccessedActionModifier<Denizen, MusterAction>
 }
 
 export class SmallFriends extends AccessedActionModifier<Denizen, TradeAction> {
-    name = "Small Friends";
     modifiedAction = TradeAction;
 
     applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, TradeAction>>): Iterable<ActionModifier<WithPowers, TradeAction>> {
@@ -350,8 +315,6 @@ export class SmallFriends extends AccessedActionModifier<Denizen, TradeAction> {
 }
 
 export class GiantPython extends EnemyAttackerCampaignModifier<Denizen> {
-    name = "Giant Python";
-
     applyBefore(): void {
         if (this.action.campaignResult.defPool % 2 == 1)
             throw new InvalidActionResolution("Must declare an even number of defense die against the Giant Python");
@@ -359,8 +322,6 @@ export class GiantPython extends EnemyAttackerCampaignModifier<Denizen> {
 }
 
 export class TrueNamesAttack extends EnemyAttackerCampaignModifier<Denizen> {
-    name = "True Names";
-
     applyBefore(): void {
         if (!this.sourceProxy.ruler) return;
         const suits = [...this.sourceProxy.ruler?.advisers].filter(e => e instanceof Denizen).map(e => e.suit);
@@ -374,8 +335,6 @@ export class TrueNamesAttack extends EnemyAttackerCampaignModifier<Denizen> {
     }
 }
 export class TrueNamesDefense extends EnemyDefenderCampaignModifier<Denizen> {
-    name = "True Names";
-
     applyBefore(): void {
         if (!this.sourceProxy.ruler) return;
         const suits = [...this.sourceProxy.ruler?.advisers].filter(e => e instanceof Denizen).map(e => e.suit);
@@ -390,8 +349,6 @@ export class TrueNamesDefense extends EnemyDefenderCampaignModifier<Denizen> {
 }
 
 export class LongLostHeir extends WhenPlayed<Denizen> {
-    name = "Long-Lost Heir";
-
     whenPlayed(): void {
         if (!(this.action.playerProxy.board instanceof ExileBoard)) return;
         new MakeDecisionAction(this.action.executor, "Become a Citizen?", () => new BecomeCitizenEffect(this.action.executor).doNext());
@@ -399,7 +356,6 @@ export class LongLostHeir extends WhenPlayed<Denizen> {
 }
 
 export class WildAllies extends ActivePower<Denizen> {
-    name = "Wild Allies";
     cost = new ResourceCost([[Secret, 1]]);
 
     usePower(): void {
@@ -421,7 +377,6 @@ export class WildAllies extends ActivePower<Denizen> {
 }
 
 export class Wolves extends ActivePower<Denizen> {
-    name = "Wolves";
     cost = new ResourceCost([[Secret, 1]]);
 
     usePower(): void {
@@ -434,7 +389,6 @@ export class Wolves extends ActivePower<Denizen> {
 }
 
 export class PiedPiper extends ActivePower<Denizen> {
-    name = "Pied Piper";
     cost = new ResourceCost([[Secret, 1]]);
 
     usePower(): void {
@@ -450,7 +404,6 @@ export class PiedPiper extends ActivePower<Denizen> {
 }
 
 export class FaeMerchant extends ActivePower<Denizen> {
-    name = "Fae Merchant";
     cost = new ResourceCost([[Secret, 1]]);
 
     usePower(): void {
@@ -468,7 +421,6 @@ export class FaeMerchant extends ActivePower<Denizen> {
 }
 
 export class SecondChance extends ActivePower<Denizen> {
-    name = "SecondChance";
     cost = new ResourceCost([[Secret, 1]]);
 
     usePower(): void {
@@ -495,7 +447,6 @@ export class SecondChance extends ActivePower<Denizen> {
 }
 
 export class MemoryOfNature extends ActivePower<Denizen> {
-    name = "Memory Of Nature";
     cost = new ResourceCost([[Secret, 1]]);
 
     usePower(): void {
@@ -523,7 +474,6 @@ export class MemoryOfNature extends ActivePower<Denizen> {
 }
 
 export class RovingTerror extends ActivePower<Denizen> {
-    name = "Roving Terror";
     cost = new ResourceCost([[Secret, 1]]);
 
     usePower(): void {
@@ -543,7 +493,6 @@ export class RovingTerror extends ActivePower<Denizen> {
 
 
 export class ForestTemple extends ActionModifier<Edifice, FinishChronicleEffect> {
-    name = "Forest Temple";
     modifiedAction = FinishChronicleEffect;
     mustUse = true;
 
@@ -560,7 +509,6 @@ export class ForestTemple extends ActionModifier<Edifice, FinishChronicleEffect>
 }
 
 export class RuinedTemple extends EnemyActionModifier<Edifice, PlayWorldCardEffect> {
-    name = "Ruined Temple";
     modifiedAction = PlayWorldCardEffect;
 
     applyBefore(): void {

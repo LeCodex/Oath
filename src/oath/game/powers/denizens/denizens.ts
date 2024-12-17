@@ -5,7 +5,7 @@ import { CapacityModifier } from "../powers";
 
 // ------------------ GENERAL ------------------- //
 export class IgnoresCapacity extends CapacityModifier<Denizen> {
-    name = "Ignores Capacity";
+    get name() { return "Ignores Capacity"; }
 
     canUse(player: OathPlayer, site?: Site): boolean {
         return player === this.source.ruler;

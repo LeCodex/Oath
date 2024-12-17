@@ -11,7 +11,6 @@ export abstract class BannerActionModifier<T extends Banner, U extends Modifiabl
 }
 
 export class PeoplesFavorSearch extends BannerActionModifier<PeoplesFavor, SearchPlayOrDiscardAction> {
-    name = "People's Favor";
     modifiedAction = SearchPlayOrDiscardAction;
     mustUse = true; // Not strictly true, but it involves a choice either way, so it's better to always include it
 
@@ -28,7 +27,6 @@ export class PeoplesFavorSearch extends BannerActionModifier<PeoplesFavor, Searc
 }
 
 export class PeoplesFavorWake extends BannerActionModifier<PeoplesFavor, WakeAction> {
-    name = "People's Favor";
     modifiedAction = WakeAction;
     mustUse = true;
 
@@ -42,7 +40,6 @@ export class PeoplesFavorWake extends BannerActionModifier<PeoplesFavor, WakeAct
 
 
 export class DarkestSecretPower extends BannerActionModifier<DarkestSecret, SearchAction> {
-    name = "Darkest Secret";
     modifiedAction = SearchAction;
     mustUse = true;
 

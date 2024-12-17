@@ -1,5 +1,5 @@
 import { CampaignSeizeSiteAction, RecoverAction } from "../actions/actions";
-import { RecoverActionTarget, WithPowers, AtSite, CampaignActionTarget, OwnableObject } from "../interfaces";
+import { RecoverActionTarget, WithPowers, AtSite, CampaignActionTarget, OwnableObject, HiddenInformation } from "../interfaces";
 import { Region } from "../map";
 import { DiscardCardEffect, FlipSecretsEffect, MoveOwnWarbandsEffect, MoveResourcesToTargetEffect, ParentToTargetEffect, PayCostToBankEffect, RevealCardEffect, TakeOwnableObjectEffect } from "../actions/effects";
 import { CardRestriction, OathSuit, OathType, OathTypeVisionName, PlayerColor, RegionKey } from "../enums";
@@ -16,7 +16,7 @@ import { sitesData } from "./sites";
 import { relicsData } from "./relics";
 
 
-export abstract class OathCard extends ResourcesAndWarbands<string> implements WithPowers {
+export abstract class OathCard extends ResourcesAndWarbands<string> implements HiddenInformation, WithPowers {
     facedown: boolean = true;
     seenBy: Set<OathPlayer> = new Set();
     powers: Set<Constructor<OathPower<OathCard>>>;

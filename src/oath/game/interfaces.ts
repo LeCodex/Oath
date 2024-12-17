@@ -28,6 +28,17 @@ export function isAtSite(obj: object): obj is AtSite {
 }
 
 
+export interface HiddenInformation {
+    facedown: boolean;
+    seenBy: Set<OathPlayer>;
+    visualName(player: OathPlayer): string;
+}
+
+export function hasHiddenInformation(obj: object): obj is HiddenInformation {
+    return "visualName" in obj; 
+}
+
+
 export interface OwnableObject extends OathGameObject {
     owner?: OathPlayer;
     setOwner(player?: OathPlayer): void;

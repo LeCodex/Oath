@@ -13,16 +13,12 @@ import { ActivePower, CapacityModifier, AttackerBattlePlan, DefenderBattlePlan, 
 
 
 export class HorseArchersAttack extends AttackerBattlePlan<Denizen> {
-    name = "Horse Archers";
-
     applyBefore(): void {
         this.action.campaignResult.atkPool += 3;
         this.action.campaignResult.discardAtEnd(this.source);
     }
 }
 export class HorseArchersDefense extends DefenderBattlePlan<Denizen> {
-    name = "Horse Archers";
-
     applyBefore(): void {
         this.action.campaignResult.atkPool -= 3;
         this.action.campaignResult.discardAtEnd(this.source);
@@ -30,16 +26,12 @@ export class HorseArchersDefense extends DefenderBattlePlan<Denizen> {
 }
 
 export class RivalKhanAttack extends AttackerBattlePlan<Denizen> {
-    name = "Rival Khan";
-
     applyBefore(): void {
         if (this.action.campaignResult.defender?.suitAdviserCount(OathSuit.Nomad)) this.action.campaignResult.atkPool += 4;
         this.action.campaignResult.discardAtEnd(this.source);
     }
 }
 export class RivalKhanDefense extends DefenderBattlePlan<Denizen> {
-    name = "Rival Khan";
-
     applyBefore(): void {
         if (this.action.campaignResult.attacker?.suitAdviserCount(OathSuit.Nomad)) this.action.campaignResult.atkPool -= 4;
         this.action.campaignResult.discardAtEnd(this.source);
@@ -47,16 +39,12 @@ export class RivalKhanDefense extends DefenderBattlePlan<Denizen> {
 }
 
 export class GreatCrusadeAttack extends AttackerBattlePlan<Denizen> {
-    name = "Great Crusade";
-
     applyBefore(): void {
         this.action.campaignResult.atkPool += this.activator.suitRuledCount(OathSuit.Nomad);
         this.action.campaignResult.discardAtEnd(this.source);
     }
 }
 export class GreatCrusadeDefense extends DefenderBattlePlan<Denizen> {
-    name = "Great Crusade";
-
     applyBefore(): void {
         this.action.campaignResult.atkPool -= this.activator.suitRuledCount(OathSuit.Nomad);
         this.action.campaignResult.discardAtEnd(this.source);
@@ -64,7 +52,6 @@ export class GreatCrusadeDefense extends DefenderBattlePlan<Denizen> {
 }
 
 export class MountainGiantAttack extends AttackerBattlePlan<Denizen> {
-    name = "Mountain Giant";
     cost = new ResourceCost([[Secret, 1]]);
 
     applyBefore(): void {
@@ -80,8 +67,6 @@ export class MountainGiantAttack extends AttackerBattlePlan<Denizen> {
     }
 }
 export class MountainGiantDefense extends DefenderBattlePlan<Denizen> {
-    name = "Mountain Giant";
-
     applyBefore(): void {
         new MakeDecisionAction(
             this.activator, "±1, or ±3 and discard at end?",
@@ -96,15 +81,12 @@ export class MountainGiantDefense extends DefenderBattlePlan<Denizen> {
 }
 
 export class WildMounts extends AttackerBattlePlan<Denizen> {
-    name = "Wild Mounts";
-
     applyBefore(): void {
         gainPowerUntilActionResolves(this.source, WildMountsReplace, CampaignEndAction);
         WildMountsReplace.firstDiscardDone = false;
     }
 }
 export class WildMountsReplace extends ActionModifier<Denizen, DiscardCardEffect<OathCard>> {
-    name = "Wild Mounts";
     modifiedAction = DiscardCardEffect;
 
     static firstDiscardDone = false;
@@ -143,22 +125,17 @@ export class WildMountsReplace extends ActionModifier<Denizen, DiscardCardEffect
 }
 
 export class RainBoots extends AttackerBattlePlan<Denizen> {
-    name = "Rain Boots";
-
     applyBefore(): void {
         this.action.campaignResult.defRoll.ignore.add(DieSymbol.Shield)
     }
 }
 
 export class Lancers extends AttackerBattlePlan<Denizen> {
-    name = "Lancers";
-
     applyBefore(): void {
         this.action.next.next.applyModifiers([new LancersEnd(this.source, this.action.next.next, this.activator)]);
     }
 }
 export class LancersEnd extends ActionModifier<Denizen, CampaignEndAction> {
-    name = "Lancers";
     modifiedAction = CampaignEndAction;
 
     applyBefore(): void {
@@ -169,8 +146,6 @@ export class LancersEnd extends ActionModifier<Denizen, CampaignEndAction> {
 }
 
 export class StormCaller extends DefenderBattlePlan<Denizen> {
-    name = "Storm Caller";
-
     applyBefore(): void {
         this.action.campaignResult.defPool += 2;
         this.action.campaignResult.discardAtEnd(this.source);
@@ -178,8 +153,6 @@ export class StormCaller extends DefenderBattlePlan<Denizen> {
 }
 
 export class MountedPatrol extends DefenderBattlePlan<Denizen> {
-    name = "Mounted Patrol";
-
     applyBefore(): void {
         this.action.campaignResult.atkPool = Math.floor(this.action.campaignResult.atkPool / 2);
         this.action.campaignResult.discardAtEnd(this.source);
@@ -187,15 +160,12 @@ export class MountedPatrol extends DefenderBattlePlan<Denizen> {
 }
 
 export class WarningSignals extends DefenderBattlePlan<Denizen> {
-    name = "Warning Signals";
-
     applyBefore(): void {
         new MoveWarbandsBetweenBoardAndSitesAction(this.action.playerProxy).doNext();
     }
 }
 
 export class WayStation extends ActionModifier<Denizen, TravelAction> {
-    name = "Way Station";
     modifiedAction = TravelAction;
 
     applyBefore(): void {
@@ -214,7 +184,6 @@ export class WayStation extends ActionModifier<Denizen, TravelAction> {
 }
 
 export class Hospitality extends ActionModifier<Denizen, TravelAction> {
-    name = "Hospitality";
     modifiedAction = TravelAction;
 
     applyAfter(): void {
@@ -225,7 +194,6 @@ export class Hospitality extends ActionModifier<Denizen, TravelAction> {
 }
 
 export class Tents extends ActionModifier<Denizen, TravelAction> {
-    name = "Tents";
     modifiedAction = TravelAction;
     cost = new ResourceCost([[Favor, 1]]);
 
@@ -236,7 +204,6 @@ export class Tents extends ActionModifier<Denizen, TravelAction> {
 }
 
 export class SpecialEnvoy extends ActionModifier<Denizen, TravelAction> {
-    name = "Special Envoy";
     modifiedAction = TravelAction;
 
     applyBefore(): void {
@@ -249,7 +216,6 @@ export class SpecialEnvoy extends ActionModifier<Denizen, TravelAction> {
 }
 
 export class AFastSteed extends ActionModifier<Denizen, TravelAction> {
-    name = "A Fast Steed";
     modifiedAction = TravelAction;
     cost = new ResourceCost([[Favor, 1]]);
 
@@ -260,7 +226,6 @@ export class AFastSteed extends ActionModifier<Denizen, TravelAction> {
 }
 
 export class RelicWorship extends ActionModifier<Denizen, RecoverAction> {
-    name = "Relic Worship";
     modifiedAction = RecoverAction;
     cost = new ResourceCost([[Favor, 1]]);
 
@@ -279,7 +244,6 @@ function lostTongueCheckOwnable(sourceProxy: Denizen, targetProxy: OwnableObject
         throw new InvalidActionResolution(`Cannot target or take objects from ${sourceProxy.ruler.name} without understanding the Lost Tongue.`);
 }
 export class LostTongue extends EnemyActionModifier<Denizen, TakeOwnableObjectEffect> {
-    name = "Lost Tongue";
     modifiedAction = TakeOwnableObjectEffect;
 
     applyBefore(): void {
@@ -288,8 +252,6 @@ export class LostTongue extends EnemyActionModifier<Denizen, TakeOwnableObjectEf
     }
 }
 export class LostTongueCampaign extends EnemyAttackerCampaignModifier<Denizen> {
-    name = "Lost Tongue";
-
     applyBefore(): void {
         for (const target of this.action.campaignResult.targets) {
             if (isOwnable(target)) {
@@ -301,7 +263,6 @@ export class LostTongueCampaign extends EnemyAttackerCampaignModifier<Denizen> {
 }
 
 export class AncientBloodline extends EnemyActionModifier<Denizen, ModifiableAction> {
-    name = "Ancient Bloodline";
     modifiedAction = ModifiableAction;
 
     applyBefore(): void {
@@ -314,7 +275,6 @@ export class AncientBloodline extends EnemyActionModifier<Denizen, ModifiableAct
 }
 // TODO: Allow relics to be locked too
 export class AncientBloodlineRelics extends EnemyActionModifier<Denizen, ParentToTargetEffect> {
-    name = "Ancient Bloodline";
     modifiedAction = ParentToTargetEffect;
 
     applyBefore(): void {
@@ -325,14 +285,11 @@ export class AncientBloodlineRelics extends EnemyActionModifier<Denizen, ParentT
 }
 
 export class VowOfKinshipWhenPlayed extends WhenPlayed<Denizen> {
-    name = "Vow of Kinship";
-
     whenPlayed(): void {
         new ParentToTargetEffect(this.game, this.action.executor, this.action.executor.byClass(Favor).max(Infinity), this.game.favorBank(OathSuit.Nomad)).doNext();
     }
 }
 export class VowOfKinshipGain extends ActionModifier<Denizen, ParentToTargetEffect> {
-    name = "Vow of Kinship";
     modifiedAction = ParentToTargetEffect;
     mustUse = true;
 
@@ -353,7 +310,6 @@ export class VowOfKinshipGain extends ActionModifier<Denizen, ParentToTargetEffe
     }
 }
 export class VowOfKinshipGive extends ActionModifier<Denizen, MoveResourcesToTargetEffect> {
-    name = "Vow of Kinship";
     modifiedAction = MoveResourcesToTargetEffect;
     mustUse = true;
 
@@ -366,7 +322,6 @@ export class VowOfKinshipGive extends ActionModifier<Denizen, MoveResourcesToTar
     }
 }
 export class VowOfKinshipBurn extends ActionModifier<Denizen, BurnResourcesEffect> {
-    name = "Vow of Kinship";
     modifiedAction = BurnResourcesEffect;
     mustUse = true;
 
@@ -380,7 +335,6 @@ export class VowOfKinshipBurn extends ActionModifier<Denizen, BurnResourcesEffec
 }
 
 export class SacredGround extends ActionModifier<Denizen, PlayVisionEffect> {
-    name = "Sacred Ground";
     modifiedAction = PlayVisionEffect;
     mustUse = true;
 
@@ -391,7 +345,6 @@ export class SacredGround extends ActionModifier<Denizen, PlayVisionEffect> {
 }
 
 export class Elders extends ActivePower<Denizen> {
-    name = "Elders";
     cost = new ResourceCost([[Favor, 2]]);
 
     usePower(): void {
@@ -400,7 +353,6 @@ export class Elders extends ActivePower<Denizen> {
 }
 
 export class AncientBinding extends ActivePower<Denizen> {
-    name = "Ancient Binding";
     cost = new ResourceCost([[Secret, 1]], [[Secret, 1]]);
 
     usePower(): void {
@@ -422,7 +374,6 @@ export class AncientBinding extends ActivePower<Denizen> {
 }
 
 export class Convoys extends ActivePower<Denizen> {
-    name = "Convoys";
     cost = new ResourceCost([[Favor, 1]]);
 
     usePower(): void {
@@ -440,8 +391,6 @@ export class Convoys extends ActivePower<Denizen> {
 }
 
 export class Resettle extends ActivePower<Denizen> {
-    name = "Resettle";
-
     usePower(): void {
         new ChooseCardsAction(
             this.action.player, "Choose a Nomad adviser",
@@ -461,7 +410,6 @@ export class Resettle extends ActivePower<Denizen> {
 }
 
 export class Oracle extends ActivePower<Denizen> {
-    name = "Oracle";
     cost = new ResourceCost([[Secret, 2]]);
 
     usePower(): void {
@@ -475,7 +423,6 @@ export class Oracle extends ActivePower<Denizen> {
 }
 
 export class SpellBreaker extends EnemyActionModifier<Denizen, PayPowerCostEffect> {
-    name = "Spell Breaker";
     modifiedAction = PayPowerCostEffect;
 
     canUse(): boolean {
@@ -488,8 +435,6 @@ export class SpellBreaker extends EnemyActionModifier<Denizen, PayPowerCostEffec
 }
 
 export class FamilyWagon extends CapacityModifier<Denizen> {
-    name = "Family Wagon";
-
     canUse(player: OathPlayer, site?: Site): boolean {
         return player === this.source.ruler && !site;
     }
@@ -508,8 +453,6 @@ export class FamilyWagon extends CapacityModifier<Denizen> {
 }
 
 export class AncientPact extends WhenPlayed<Denizen> {
-    name = "Ancient Pact";
-
     whenPlayed(): void {
         if (!(this.action.playerProxy.board instanceof ExileBoard)) return;
 
@@ -526,16 +469,12 @@ export class AncientPact extends WhenPlayed<Denizen> {
 }
 
 export class FaithfulFriend extends WhenPlayed<Denizen> {
-    name = "Faithful Friend";
-
     whenPlayed(): void {
         new GainSupplyEffect(this.action.executor, 4).doNext();
     }
 }
 
 export class Pilgrimage extends WhenPlayed<Denizen> {
-    name = "Pilgrimage";
-
     whenPlayed(): void {
         const discard = this.action.executorProxy.site.region?.discard.original;
         if (!discard) return;
@@ -558,8 +497,6 @@ export class Pilgrimage extends WhenPlayed<Denizen> {
 }
 
 export class TwinBrother extends WhenPlayed<Denizen> {
-    name = "Twin Brother";
-
     whenPlayed(): void {
         const cards = new Set<Denizen>();
         for (const playerProxy of this.gameProxy.players) {
@@ -583,8 +520,6 @@ export class TwinBrother extends WhenPlayed<Denizen> {
 }
 
 export class GreatHerd extends WhenPlayed<Denizen> {
-    name = "Great Herd";
-
     whenPlayed(): void {
         const cards = new Set<Denizen>();
         for (const siteProxy of this.gameProxy.map.sites()) {
@@ -608,8 +543,6 @@ export class GreatHerd extends WhenPlayed<Denizen> {
 }
 
 export class TheGathering extends WhenPlayed<Denizen> {
-    name = "The Gathering";
-
     whenPlayed(): void {
         if (!this.sourceProxy.site) return;
 
@@ -631,7 +564,6 @@ export class TheGathering extends WhenPlayed<Denizen> {
 
 
 export class AncientForge extends ActivePower<Edifice> {
-    name = "Ancient Forge";
     cost = new ResourceCost([[Favor, 2]], [[Secret, 1]]);
     
     usePower(): void {
@@ -649,7 +581,6 @@ export class AncientForge extends ActivePower<Edifice> {
 }
 
 export class BrokenForge extends ActivePower<Edifice> {
-    name = "Broken Forge";
     cost = new ResourceCost([[Favor, 2], [Secret, 2]]);
 
     usePower(): void {

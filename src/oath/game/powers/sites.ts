@@ -24,7 +24,6 @@ export abstract class HomelandSitePower extends ActionModifier<Site, PlayWorldCa
 }
 
 export class Wastes extends HomelandSitePower {
-    name = "Wastes";
     suit = OathSuit.Discord;
 
     giveReward(playerProxy: OathPlayer): void {
@@ -35,7 +34,6 @@ export class Wastes extends HomelandSitePower {
 }
 
 export class StandingStones extends HomelandSitePower {
-    name = "Standing Stones";
     suit = OathSuit.Arcane;
 
     giveReward(playerProxy: OathPlayer): void {
@@ -44,7 +42,6 @@ export class StandingStones extends HomelandSitePower {
 }
 
 export class AncientCity extends HomelandSitePower {
-    name = "Ancient City";
     suit = OathSuit.Order;
 
     giveReward(playerProxy: OathPlayer): void {
@@ -53,7 +50,6 @@ export class AncientCity extends HomelandSitePower {
 }
 
 export class FertileValley extends HomelandSitePower {
-    name = "Fertile Valley";
     suit = OathSuit.Hearth;
 
     giveReward(playerProxy: OathPlayer): void {
@@ -63,7 +59,6 @@ export class FertileValley extends HomelandSitePower {
 }
 
 export class Steppe extends HomelandSitePower {
-    name = "Steppe";
     suit = OathSuit.Nomad;
 
     giveReward(playerProxy: OathPlayer): void {
@@ -72,7 +67,6 @@ export class Steppe extends HomelandSitePower {
 }
 
 export class DeepWoods extends HomelandSitePower {
-    name = "Deep Woods";
     suit = OathSuit.Beast;
 
     giveReward(playerProxy: OathPlayer): void {
@@ -89,7 +83,6 @@ export abstract class AtSiteActionModifier<T extends ModifiableAction> extends A
 }
 
 export class CoastalSite extends AtSiteActionModifier<TravelAction> {
-    name = "Coastal Site";
     modifiedAction = TravelAction;
 
     canUse(): boolean {
@@ -121,7 +114,6 @@ export class CoastalSite extends AtSiteActionModifier<TravelAction> {
 }
 
 export class CharmingValley extends AtSiteActionModifier<TravelAction> {
-    name = "Charming Valley";
     modifiedAction = TravelAction;
     mustUse = true;
 
@@ -131,7 +123,6 @@ export class CharmingValley extends AtSiteActionModifier<TravelAction> {
 }
 
 export class BuriedGiant extends AtSiteActionModifier<TravelAction> {
-    name = "Buried Giant";
     modifiedAction = TravelAction;
 
     applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, TravelAction>>): Iterable<ActionModifier<WithPowers, TravelAction>> {
@@ -151,7 +142,6 @@ export class BuriedGiant extends AtSiteActionModifier<TravelAction> {
 }
 
 export class ShroudedWood extends AtSiteActionModifier<TravelAction> {
-    name = "Shrouded Wood";
     modifiedAction = TravelAction;
     mustUse = true;
 
@@ -170,7 +160,6 @@ export class ShroudedWood extends AtSiteActionModifier<TravelAction> {
 }
 
 export class NarrowPass extends ActionModifier<Site, TravelAction> {
-    name = "Narrow Pass";
     modifiedAction = TravelAction;
     mustUse = true;
 
@@ -181,7 +170,6 @@ export class NarrowPass extends ActionModifier<Site, TravelAction> {
 }
 
 export class TheHiddenPlaceTravel extends ActionModifier<Site, TravelAction> {
-    name = "The Hidden Place";
     modifiedAction = TravelAction;
     mustUse = true;
 
@@ -193,7 +181,6 @@ export class TheHiddenPlaceTravel extends ActionModifier<Site, TravelAction> {
     }
 }
 export class TheHiddenPlaceCampaign extends ActionModifier<Site, CampaignAttackAction> {
-    name = "The Hidden Place";
     modifiedAction = CampaignAttackAction;
     mustUse = true;
 
@@ -210,7 +197,6 @@ export class TheHiddenPlaceCampaign extends ActionModifier<Site, CampaignAttackA
 }
 
 export class OpportunitySite extends AtSiteActionModifier<WakeAction> {
-    name = "Opportunity Site";
     modifiedAction = WakeAction;
 
     canUse(): boolean {
@@ -223,7 +209,6 @@ export class OpportunitySite extends AtSiteActionModifier<WakeAction> {
 }
 
 export class Plains extends AtSiteActionModifier<CampaignAttackAction> {
-    name = "Plains";
     modifiedAction = CampaignAttackAction;
     mustUse = true;
 
@@ -238,7 +223,6 @@ export class Plains extends AtSiteActionModifier<CampaignAttackAction> {
 }
 
 export class Mountain extends AtSiteActionModifier<CampaignAttackAction> {
-    name = "Mountain";
     modifiedAction = CampaignAttackAction;
     mustUse = true;
 
@@ -253,7 +237,6 @@ export class Mountain extends AtSiteActionModifier<CampaignAttackAction> {
 }
 
 export class River extends AtSiteActionModifier<MusterAction> {
-    name = "River";
     modifiedAction = MusterAction;
     mustUse = true;
 
@@ -263,7 +246,6 @@ export class River extends AtSiteActionModifier<MusterAction> {
 }
 
 export class Marshes extends AtSiteActionModifier<SearchAction> {
-    name = "Marshes";
     modifiedAction = SearchAction;
     mustUse = true;
 
@@ -273,7 +255,6 @@ export class Marshes extends AtSiteActionModifier<SearchAction> {
 }
 
 export class GreatSlum extends AtSiteActionModifier<SearchPlayOrDiscardAction> {
-    name = "Great Slum";
     modifiedAction = SearchPlayOrDiscardAction;
     mustUse = true;
 
@@ -284,8 +265,6 @@ export class GreatSlum extends AtSiteActionModifier<SearchPlayOrDiscardAction> {
 }
 
 export class TheTribunal extends ActivePower<Site> {
-    name = "The Tribunal";
-
     usePower(): void {
         // Can't enforce future actions, so just do a basic binding exchange
         new StartBindingExchangeAction(this.action.player, MakeBindingExchangeOfferAction).doNext();

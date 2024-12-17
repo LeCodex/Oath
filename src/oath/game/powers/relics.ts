@@ -12,9 +12,9 @@ import { isExtended } from "../utils";
 
 
 export class GrandScepterSeize extends ActionModifier<GrandScepter, TakeOwnableObjectEffect> {
-    name = "Lock the Grand Scepter";
     modifiedAction = TakeOwnableObjectEffect;
     mustUse = true;
+    get name() { return "Lock the Grand Scepter"; }
 
     canUse(): boolean {
         return this.action.target === this.source;
@@ -25,7 +25,7 @@ export class GrandScepterSeize extends ActionModifier<GrandScepter, TakeOwnableO
     }
 }
 export class GrandScepterRest extends RestPower<GrandScepter> {
-    name = "Unlock the Grand Scepter";
+    get name() { return "Unlock the Grand Scepter"; }
 
     applyAfter(): void {
         new SetGrandScepterLockEffect(this.game, false).doNext();
@@ -37,7 +37,7 @@ export abstract class GrandScepterActive extends ActivePower<GrandScepter> {
     }
 }
 export class GrandScepterPeek extends GrandScepterActive {
-    name = "Peek at the Reliquary";
+    get name() { return "Peek at the Reliquary"; }
 
     usePower(): void {
         for (const slotProxy of this.gameProxy.reliquary.children) 
@@ -46,7 +46,7 @@ export class GrandScepterPeek extends GrandScepterActive {
     }
 }
 export class GrandScepterGrantCitizenship extends GrandScepterActive {
-    name = "Grant Citizenship";
+    get name() { return "Grant Citizenship"; }
 
     usePower(): void {
         const players = this.gameProxy.players.filter(e => e.board instanceof ExileBoard && !e.isImperial).map(e => e.original);
@@ -54,7 +54,7 @@ export class GrandScepterGrantCitizenship extends GrandScepterActive {
     }
 }
 export class GrandScepterExileCitizen extends GrandScepterActive {
-    name = "Exile a Citizen";
+    get name() { return "Exile a Citizen"; }
 
     usePower(): void {
         const citizens = [];
@@ -87,8 +87,6 @@ export class GrandScepterExileCitizen extends GrandScepterActive {
 }
 
 export class StickyFireAttack extends AttackerBattlePlan<Relic> {
-    name = "Sticky Fire";
-
     applyBefore(): void {
         const defender = this.action.campaignResult.defender;
         if (!defender) return;
@@ -100,8 +98,6 @@ export class StickyFireAttack extends AttackerBattlePlan<Relic> {
     }
 }
 export class StickyFireDefense extends DefenderBattlePlan<Relic> {
-    name = "Sticky Fire";
-
     applyBefore(): void {
         const attacker = this.action.campaignResult.attacker;
         this.action.campaignResult.onAttackWin(() => new MakeDecisionAction(this.action.player, "Use Sticky Fire?", () => { 
@@ -112,8 +108,6 @@ export class StickyFireDefense extends DefenderBattlePlan<Relic> {
 }
 
 export class CursedCauldronAttack extends AttackerBattlePlan<Relic> {
-    name = "Cursed Cauldron";
-
     applyBefore(): void {
         this.action.campaignResult.onAttackWin(() =>
             new ParentToTargetEffect(this.game, this.activator, this.activatorProxy.leader.bag.original.get(this.action.campaignResult.loserLoss)).doNext()
@@ -121,8 +115,6 @@ export class CursedCauldronAttack extends AttackerBattlePlan<Relic> {
     }
 }
 export class CursedCauldronDefense extends DefenderBattlePlan<Relic> {
-    name = "Cursed Cauldron";
-
     applyBefore(): void {
         this.action.campaignResult.onAttackWin(() => 
             new ParentToTargetEffect(this.game, this.activator, this.activatorProxy.leader.bag.original.get(this.action.campaignResult.loserLoss)).doNext()
@@ -131,8 +123,6 @@ export class CursedCauldronDefense extends DefenderBattlePlan<Relic> {
 }
 
 export class ObsidianCageAttack extends AttackerBattlePlan<Relic> {
-    name = "Obsidian Cage";
-
     applyBefore(): void {
         const defender = this.action.campaignResult.defender;
         if (!defender) return;
@@ -143,8 +133,6 @@ export class ObsidianCageAttack extends AttackerBattlePlan<Relic> {
     }
 }
 export class ObsidianCageDefense extends DefenderBattlePlan<Relic> {
-    name = "Obsidian Cage";
-
     applyBefore(): void {
         const attacker = this.action.campaignResult.attacker;
         this.action.campaignResult.onAttackWin(() => {
@@ -153,8 +141,6 @@ export class ObsidianCageDefense extends DefenderBattlePlan<Relic> {
     }
 }
 export class ObsidianCageActive extends ActivePower<Relic> {
-    name = "Obsidian Cage";
-
     usePower(): void {
         const players = new Set<OathPlayer>();
         for (const playerProxy of this.gameProxy.players)
@@ -178,7 +164,6 @@ export class ObsidianCageActive extends ActivePower<Relic> {
 }
 
 export class CupOfPlenty extends AccessedActionModifier<Relic, TradeAction> {
-    name = "Cup of Plenty";
     modifiedAction = TradeAction;
 
     applyBefore(): void {
@@ -195,7 +180,6 @@ function circletOfCommandCheckOwnable(sourceProxy: Relic, targetProxy: OwnableOb
         throw new InvalidActionResolution(`Cannot target or take objects from ${sourceProxy.ruler.name} while protected by the Circlet of Command.`);
 }
 export class CircletOfCommand extends EnemyActionModifier<Relic, TakeOwnableObjectEffect> {
-    name = "Circlet of Command";
     modifiedAction = TakeOwnableObjectEffect;
 
     applyBefore(): void {
@@ -204,8 +188,6 @@ export class CircletOfCommand extends EnemyActionModifier<Relic, TakeOwnableObje
     }
 }
 export class CircletOfCommandCampaign extends EnemyAttackerCampaignModifier<Relic> {
-    name = "Circlet of Command";
-
     applyBefore(): void {
         for (const target of this.action.campaignResult.targets) {
             if (isOwnable(target)) {
@@ -219,7 +201,6 @@ export class CircletOfCommandCampaign extends EnemyAttackerCampaignModifier<Reli
 }
 
 export class DragonskinDrum extends AccessedActionModifier<Relic, TravelAction> {
-    name = "Dragonskin Drum";
     modifiedAction = TravelAction;
 
     applyAfter(): void {
@@ -228,7 +209,6 @@ export class DragonskinDrum extends AccessedActionModifier<Relic, TravelAction> 
 }
 
 export class BookOfRecords extends AccessedActionModifier<Relic, PlayDenizenAtSiteEffect> {
-    name = "Book of Records";
     modifiedAction = PlayDenizenAtSiteEffect;
     mustUse = true;
 
@@ -239,7 +219,6 @@ export class BookOfRecords extends AccessedActionModifier<Relic, PlayDenizenAtSi
 }
 
 export class RingOfDevotionMuster extends ActionModifier<Relic, MusterAction> {
-    name = "Ring of Devotion";
     modifiedAction = MusterAction;
     mustUse = true;
 
@@ -248,7 +227,6 @@ export class RingOfDevotionMuster extends ActionModifier<Relic, MusterAction> {
     }
 }
 export class RingOfDevotionRestriction extends ActionModifier<Relic, MoveOwnWarbandsEffect> {
-    name = "Ring of Devotion";
     modifiedAction = MoveOwnWarbandsEffect;
     mustUse = true;
 
@@ -259,7 +237,6 @@ export class RingOfDevotionRestriction extends ActionModifier<Relic, MoveOwnWarb
 }
 
 export class SkeletonKey extends ActivePower<Relic> {
-    name = "Skeleton Key";
     cost = new ResourceCost([[Secret, 1]], [[Secret, 1]]);
     
     usePower(): void {
@@ -269,7 +246,6 @@ export class SkeletonKey extends ActivePower<Relic> {
 }
 
 export class DowsingSticks extends ActivePower<Relic> {
-    name = "Dowsing Sticks";
     cost = new ResourceCost([[Secret, 1]], [[Favor, 2]]);
     
     usePower(): void {
@@ -286,8 +262,6 @@ export class DowsingSticks extends ActivePower<Relic> {
 }
 
 export class MapRelic extends ActivePower<Relic> {
-    name = "Map";
-
     usePower(): void {
         this.source.putOnBottom(this.action.player);
         new GainSupplyEffect(this.action.player, 4).doNext();
@@ -295,7 +269,6 @@ export class MapRelic extends ActivePower<Relic> {
 }
 
 export class HornedMask extends ActivePower<Relic> {
-    name = "Horned Mask";
     cost = new ResourceCost([[Secret, 1]]);
 
     usePower(): void {
@@ -315,8 +288,6 @@ export class HornedMask extends ActivePower<Relic> {
 }
 
 export class OracularPig extends ActivePower<Relic> {
-    name = "Oracular Pig";
-
     usePower(): void {
         for (let i = 0; i < 3; i++) {
             const card = this.game.worldDeck.children[i];
@@ -326,7 +297,6 @@ export class OracularPig extends ActivePower<Relic> {
 }
 
 export class IvoryEye extends ActivePower<Relic> {
-    name = "Ivory Eye";
     cost = new ResourceCost([[Secret, 1]]);
 
     usePower(): void {
@@ -347,7 +317,6 @@ export class IvoryEye extends ActivePower<Relic> {
 }
 
 export class BrassHorse extends ActivePower<Relic> {
-    name = "Brass Horse";
     cost = new ResourceCost([[Secret, 1]]);
 
     usePower(): void {
@@ -371,7 +340,6 @@ export class BrassHorse extends ActivePower<Relic> {
 }
 
 export class Whistle extends ActivePower<Relic> {
-    name = "Whistle";
     cost = new ResourceCost([[Secret, 1]]);
 
     usePower(): void {
@@ -390,7 +358,6 @@ export class Whistle extends ActivePower<Relic> {
 }
 
 export class TruthfulHarp extends ActionModifier<Relic, SearchAction> {
-    name = "Truthful Harp";
     modifiedAction = SearchAction;
 
     applyBefore(): void {
@@ -403,7 +370,6 @@ export class TruthfulHarp extends ActionModifier<Relic, SearchAction> {
 }
 
 export class CrackedHorn extends ActionModifier<Relic, SearchAction> {
-    name = "Cracked Horn";
     modifiedAction = SearchAction;
 
     applyBefore(): void {
@@ -412,7 +378,6 @@ export class CrackedHorn extends ActionModifier<Relic, SearchAction> {
 }
 
 export class BanditCrown extends ActionModifier<Relic, ModifiableAction> {
-    name = "Bandit Crown";
     modifiedAction = ModifiableAction;
     mustUse = true;
 
@@ -432,7 +397,6 @@ export class BanditCrown extends ActionModifier<Relic, ModifiableAction> {
 }
 
 export class GrandMask extends ActionModifier<Relic, ModifiableAction> {
-    name = "Grand Mask";
     modifiedAction = ModifiableAction;
     mustUse = true;
 

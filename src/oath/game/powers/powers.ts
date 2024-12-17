@@ -7,14 +7,14 @@ import { OathPlayer } from "../player";
 import { AbstractConstructor, Constructor, MaskProxyManager } from "../utils";
 import { OathGame } from "../game";
 import { WithPowers } from "../interfaces";
+import { OathGameObject } from "../gameObject";
 
 
 
 //////////////////////////////////////////////////
 //                BASE CLASSES                  //
 //////////////////////////////////////////////////
-export abstract class OathPower<T extends WithPowers> {
-    abstract name: string;
+export abstract class OathPower<T extends OathGameObject & WithPowers> {
     source: T;
     cost: ResourceCost = new ResourceCost();
 
@@ -22,6 +22,7 @@ export abstract class OathPower<T extends WithPowers> {
         this.source = source;
     }
 
+    get name() { return this.source.name; }
     get game() { return this.source.game; }
 
     payCost(player: OathPlayer, next?: (success: boolean) => void): void {
@@ -145,7 +146,6 @@ export abstract class RestPower<T extends OwnableCard> extends AccessedActionMod
 export function gainPowerUntilActionResolves<T extends WithPowers, U extends ModifiableAction>(source: T, power: Constructor<OathPower<T>>, action: Constructor<U>) {
     new GainPowerEffect(source.game, source, power).doNext();
     new GainPowerEffect(source.game, source, class LosePowerWhenActionResolves extends ActionModifier<T, U> {
-        name = "Lose " + power.name;
         modifiedAction = action;
         mustUse = true;
     
@@ -153,6 +153,8 @@ export function gainPowerUntilActionResolves<T extends WithPowers, U extends Mod
             new LosePowerEffect(source.game, source, power).doNext();
             new LosePowerEffect(source.game, source, LosePowerWhenActionResolves).doNext();
         }
+
+        get name() { return `Lose ${power.name}`; }
     }).doNext();
 }
 
