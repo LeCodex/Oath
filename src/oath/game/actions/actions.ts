@@ -500,8 +500,8 @@ export class MayDiscardACardAction extends OathAction {
 
 
 export class CampaignAction extends MajorAction {
-    readonly selects: { defender: SelectNOf<OathPlayer | undefined> };
-    readonly parameters: { defender: (OathPlayer | undefined)[] };
+    readonly selects: { defenderProxy: SelectNOf<OathPlayer | undefined> };
+    readonly parameters: { defenderProxy: (OathPlayer | undefined)[] };
     readonly message = "Choose a defender";
     supplyCost = 2;
 
@@ -509,14 +509,14 @@ export class CampaignAction extends MajorAction {
 
     start() {
         const choices = new Map<string, OathPlayer | undefined>();
-        for (const playerProxy of this.gameProxy.players) choices.set(playerProxy.name, playerProxy);
+        for (const playerProxy of this.gameProxy.players) if (playerProxy !== this.playerProxy) choices.set(playerProxy.name, playerProxy);
         if (this.playerProxy.site.ruler === undefined) choices.set("Bandits", undefined);
-        this.selects.defender = new SelectNOf("Defender", choices, { min: 1 });
+        this.selects.defenderProxy = new SelectNOf("Defender", choices, { min: 1 });
         return super.start();
     }
 
     execute() {
-        this.defenderProxy = this.parameters.defender[0]!;
+        this.defenderProxy = this.parameters.defenderProxy[0];
         super.execute();
     }
 

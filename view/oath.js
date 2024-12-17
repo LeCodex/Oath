@@ -20,7 +20,7 @@ const setup = async () => {
 }
 
 const pawnColors = { Purple: "💜", Red: "❤️", Blue: "💙", Yellow: "💛", White: "🤍", Black: "🖤" };
-const warbandsColors = ["🟪", "🟥", "🟦", "🟨", "⬜", "⬛"];
+const warbandsColors = { Purple: "🟪", Red: "🟥", Blue: "🟦", Yellow: "🟨", White: "⬜", Black: "⬛" };
 const suitColors = { None: "🚫", Discord: "🔴", Arcane: "🟣", Order: "🔵", Hearth: "🟠", Beast: "🟤", Nomad: "🟢" };
 const render = () => {
     const titleNode = document.getElementById("title");
@@ -305,7 +305,12 @@ const handleResponse = async (response) => {
     if (!response.ok) return window.alert(info.message);
     console.log(info);
     
-    ({ game, action, appliedEffects, startOptions, rollbackConsent, over } = info);
+    game = info.game;
+    action = info.activeAction;
+    appliedEffects = info.appliedEffects;
+    startOptions = info.startOptions;
+    rollbackConsent = info.rollbackConsent;
+    over = info.over;
     render();
 }
 
