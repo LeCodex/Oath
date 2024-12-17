@@ -1,5 +1,4 @@
-let game = {};
-let action, appliedEffects, gameId, startOptions, rollbackConsent, over;
+let game = {}, action, appliedEffects, gameId, startOptions, rollbackConsent, over;
 
 const setup = async () => {
     const seed = window.prompt("Please input a TTS seed or game ID");
@@ -20,8 +19,6 @@ const setup = async () => {
     window.alert(`Created game ${gameId}`);
 }
 
-const oathNames = ["Supremacy", "the People", "Devotion", "Protection"];
-const visionNames = { Supremacy: "Conquest", ThePeople: "Revolution", Devotion: "Faith", Protection: "Sanctuary" };
 const pawnColors = { Purple: "💜", Red: "❤️", Blue: "💙", Yellow: "💛", White: "🤍", Black: "🖤" };
 const warbandsColors = ["🟪", "🟥", "🟦", "🟨", "⬜", "⬛"];
 const suitColors = { None: "🚫", Discord: "🔴", Arcane: "🟣", Order: "🔵", Hearth: "🟠", Beast: "🟤", Nomad: "🟢" };
@@ -149,7 +146,7 @@ const renderObject = (parent, obj) => {
             break;
 
         case "oath":
-            node = renderText((game.isUsurper ? "🥇" : "🏅") + " Oath of " + oathNames[obj.oath]);
+            node = renderText((game.isUsurper ? "🥇" : "🏅") + obj._name);
             break;
         
         case "resource":
@@ -308,14 +305,8 @@ const handleResponse = async (response) => {
     if (!response.ok) return window.alert(info.message);
     console.log(info);
     
-    game = info.game;
-    action = info.activeAction;
-    appliedEffects = info.appliedEffects;
-    startOptions = info.startOptions;
-    rollbackConsent = info.rollbackConsent;
-    over = info.over;
+    ({ game, action, appliedEffects, startOptions, rollbackConsent, over } = info);
     render();
-    return info;
 }
 
 setup();

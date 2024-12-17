@@ -72,7 +72,7 @@ export class Warband extends OathGameObjectLeaf<number> {
         return this;
     }
 
-    get name() { return `${isEnumKey(this.color, PlayerColor) ? PlayerColor[this.color] : "Uncolored"} Warband`; }
+    get name() { return `${isEnumKey(this.color, PlayerColor) ? this.color : "Uncolored"} Warband`; }
     get key() { return Number(this.id); }
 
     liteSerialize() {
@@ -105,7 +105,7 @@ export abstract class ResourcesAndWarbands<T = any> extends OathGameObject<T> {
     }
 
     putWarbands(color: PlayerColor, amount: number): number {
-        this.game.players.byKey(color)[0]?.bag.moveChildrenTo(this, amount);
+        this.game.players.find(e => e.board.id === color)?.bag.moveChildrenTo(this, amount);
         return this.getWarbandsAmount(color);
     }
 
@@ -126,7 +126,7 @@ export abstract class ResourcesAndWarbands<T = any> extends OathGameObject<T> {
             new BurnResourcesEffect(this.game, undefined, resource, Infinity, this).doNext();
 
         for (const player of this.game.players)
-            new ParentToTargetEffect(this.game, player, this.getWarbands(player.key), player.bag).doNext();
+            new ParentToTargetEffect(this.game, player, this.getWarbands(player.board.key), player.bag).doNext();
     }
 }
 

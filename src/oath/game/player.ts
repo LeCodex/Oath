@@ -10,16 +10,16 @@ import { Banner } from "./banks";
 
 export class WarbandsSupply extends Container<Warband, PlayerColor> {
     type = "bag";
-    readonly id: keyof typeof PlayerColor;
+    readonly id: PlayerColor;
     get hidden() { return true; }
 
-    constructor(id: keyof typeof PlayerColor) {
+    constructor(id: PlayerColor) {
         if (!isEnumKey(id, PlayerColor)) throw TypeError(`${id} is not a valid player color`);
         super(id, Warband);
     }
 
     get name() { return `${this.id}WarbandsSupply`; }
-    get key() { return PlayerColor[this.id]; }
+    get key() { return this.id; }
 }
 
 export class OathPlayer extends OathGameObject<number> implements CampaignActionTarget, AtSite {
@@ -112,17 +112,17 @@ export class OathPlayer extends OathGameObject<number> implements CampaignAction
 
 export abstract class PlayerBoard extends ResourcesAndWarbands<PlayerColor> implements OwnableObject {
     type = "board";
-    readonly id: keyof typeof PlayerColor;
+    readonly id: PlayerColor;
 
     bagAmount: number = 14;
     
-    constructor(id: keyof typeof PlayerColor) {
+    constructor(id: PlayerColor) {
         if (!isEnumKey(id, PlayerColor)) throw TypeError(`${id} is not a valid player color`);
         super(id);
     }
     
     get owner() { return this.typedParent(OathPlayer)!; }
-    get key() { return PlayerColor[this.id]; }
+    get key() { return this.id; }
 
     get isImperial() { return false; }
 
@@ -174,7 +174,7 @@ export class ChancellorBoard extends PlayerBoard {
     bagAmount = 24;
 
     constructor() {
-        super("Purple");
+        super(PlayerColor.Purple);
     }
 
     get isImperial() { return true; }
@@ -194,22 +194,23 @@ export class ChancellorBoard extends PlayerBoard {
 
 export class VisionSlot extends Container<Vision, PlayerColor> {
     type = "visionSlot";
-    readonly id: keyof typeof PlayerColor;
+    readonly id: PlayerColor;
 
-    constructor(id: keyof typeof PlayerColor) {
+    constructor(id: PlayerColor) {
+        if (!isEnumKey(id, PlayerColor)) throw new TypeError(`${id} is not a valid player color`);
         super(id, Vision);
     }
 
     get hidden() { return this.children.length === 0; }
     get name() { return `${this.id}VisionSlot`; }
-    get key() { return PlayerColor[this.id]; }
+    get key() { return this.id; }
 }
 
 export class ExileBoard extends PlayerBoard {
     isCitizen: boolean;
     visionSlot: VisionSlot;
 
-    constructor(id: keyof typeof PlayerColor) {
+    constructor(id: PlayerColor) {
         super(id);
     }
 

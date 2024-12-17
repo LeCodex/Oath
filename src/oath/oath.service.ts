@@ -2,7 +2,6 @@ import { BadRequestException, Injectable, OnModuleInit } from '@nestjs/common';
 import { OathGame } from './game/game';
 import { ActionManagerReturn } from './game/actions/manager';
 import { InvalidActionResolution } from "./game/actions/base";
-import { PlayerColor } from './game/enums';
 import * as fs from "fs";
 import { range } from 'lodash';
 
@@ -62,24 +61,24 @@ export class OathService implements OnModuleInit {
         return game;
     }
 
-    public beginAction(gameId: number, playerColor: keyof typeof PlayerColor, actionName: string): object {        
-        return this._wrapper(gameId, () => this._getGame(gameId).startAction(playerColor, actionName));
+    public beginAction(gameId: number, playerId: string, actionName: string): object {        
+        return this._wrapper(gameId, () => this._getGame(gameId).startAction(playerId, actionName));
     }
 
     public getCurrentState(gameId: number): object {
         return this._getGame(gameId).actionManager.defer();
     }
 
-    public continueAction(gameId: number, playerColor: keyof typeof PlayerColor, values: Record<string, string[]>): object {
-        return this._wrapper(gameId, () => this._getGame(gameId).actionManager.continueAction(playerColor, values));
+    public continueAction(gameId: number, playerId: string, values: Record<string, string[]>): object {
+        return this._wrapper(gameId, () => this._getGame(gameId).actionManager.continueAction(playerId, values));
     }
 
-    public cancelAction(gameId: number, playerColor: keyof typeof PlayerColor): object {
-        return this._wrapper(gameId, () => this._getGame(gameId).actionManager.cancelAction(playerColor));
+    public cancelAction(gameId: number, playerId: string): object {
+        return this._wrapper(gameId, () => this._getGame(gameId).actionManager.cancelAction(playerId));
     }
 
-    public consentToRollback(gameId: number, playerColor: keyof typeof PlayerColor): object {
-        return this._wrapper(gameId, () => this._getGame(gameId).actionManager.consentToRollback(playerColor));
+    public consentToRollback(gameId: number, playerId: string): object {
+        return this._wrapper(gameId, () => this._getGame(gameId).actionManager.consentToRollback(playerId));
     }
 }
 

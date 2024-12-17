@@ -421,7 +421,7 @@ export class Garrison extends WhenPlayed<Denizen> {
             this.action.executor, "Place a warband on each site you rule",
             (sites: Site[]) => { for (const site of sites) new MoveOwnWarbandsEffect(leader, this.action.executor.board, site).doNext() },
             [sites],
-            [[Math.min(sites.size, this.action.executor.board.getWarbandsAmount(leader.key))]]
+            [[Math.min(sites.size, this.action.executor.board.getWarbandsAmount(leader.board.key))]]
         ).doNext();
     }
 }

@@ -250,9 +250,9 @@ export class BloodPact extends ActivePower<Denizen> {
     usePower(): void {
         const leader = this.action.playerProxy.leader.original;
         new ChooseNumberAction(
-            this.action.player, "Sacrifice pairs of warbands to get secrets", inclusiveRange(1, Math.floor(this.action.player.board.getWarbandsAmount(leader.key) / 2)),
+            this.action.player, "Sacrifice pairs of warbands to get secrets", inclusiveRange(1, Math.floor(this.action.player.board.getWarbandsAmount(leader.board.key) / 2)),
             (value: number) => {
-                new ParentToTargetEffect(this.game, this.action.player, this.action.player.board.getWarbands(leader.key, 2 * value), leader.bag).doNext();
+                new ParentToTargetEffect(this.game, this.action.player, this.action.player.board.getWarbands(leader.board.key, 2 * value), leader.bag).doNext();
                 new PutResourcesOnTargetEffect(this.game, this.action.player, Secret, value).doNext();
             }
         ).doNext();

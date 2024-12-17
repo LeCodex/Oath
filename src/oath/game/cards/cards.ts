@@ -60,7 +60,7 @@ export abstract class OathCard extends ResourcesAndWarbands<string> implements H
         const obj = {
             ...super.liteSerialize(),
             facedown: this.facedown,
-            seenBy: [...this.seenBy].map(e => e.key) as PlayerColor[] | undefined
+            seenBy: [...this.seenBy].map(e => e.key) as number[] | undefined
         };
         if (obj.seenBy?.length === 0) delete obj.seenBy;
         return obj;
@@ -107,7 +107,7 @@ export class Site extends OathCard implements CampaignActionTarget {
     get ruler(): OathPlayer | undefined {
         let max = 0, ruler = undefined;
         for (const player of this.game.players) {
-            const amount = this.getWarbandsAmount(player.key);
+            const amount = this.getWarbandsAmount(player.board.key);
             if (amount > max) {
                 max = amount;
                 ruler = player;

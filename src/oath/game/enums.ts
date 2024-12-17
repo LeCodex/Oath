@@ -1,10 +1,10 @@
 export enum PlayerColor {
-    Purple,
-    Red,
-    Blue,
-    Yellow,
-    White,
-    Black
+    Purple = "Purple",
+    Red = "Red",
+    Blue = "Blue",
+    Yellow = "Yellow",
+    White = "White",
+    Black = "Black"
 }
 
 export const ALL_PLAYER_COLORS = [PlayerColor.Purple, PlayerColor.Red, PlayerColor.Blue, PlayerColor.Yellow, PlayerColor.White, PlayerColor.Black];

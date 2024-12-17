@@ -161,8 +161,7 @@ export class OathActionManager {
 
     startAction(actionName: string) {
         const action = this.startOptions[actionName];
-        if (!action)
-            throw new InvalidActionResolution("Invalid starting action name");
+        if (!action) throw new InvalidActionResolution("Invalid starting action name");
 
         this.markEventAsOneWay = false;
         this.currentEffectsStack.length = 0;

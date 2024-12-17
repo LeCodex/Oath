@@ -265,9 +265,8 @@ export class OathGame extends TreeRoot<OathGame> {
         return instances;
     }
 
-    startAction(playerColor: keyof typeof PlayerColor, actionName: string) {
-        const by = PlayerColor[playerColor];
-        if (this.turn !== by) throw new InvalidActionResolution(`Cannot begin an action outside your turn`);
+    startAction(playerId: string, actionName: string) {
+        if (this.currentPlayer.id !== playerId) throw new InvalidActionResolution(`Cannot begin an action outside your turn`);
         if (this.phase !== OathPhase.Act) throw new InvalidActionResolution(`Cannot begin an action outside the Act phase`);
         if (this.actionManager.actionsStack.length) throw new InvalidActionResolution("Cannot start an action while other actions are active");
 

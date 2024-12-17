@@ -155,7 +155,7 @@ export class KeyToTheCity extends WhenPlayed<Denizen> {
         if (this.sourceProxy.site.ruler?.site === this.sourceProxy.site) return;
 
         for (const player of this.game.players)
-            new ParentToTargetEffect(this.game, player, this.source.site.getWarbands(player.key), player.bag).doNext();
+            new ParentToTargetEffect(this.game, player, this.source.site.getWarbands(player.board.key), player.bag).doNext();
 
         new ParentToTargetEffect(this.game, this.action.executor, this.action.executorProxy.leader.original.bag.get(1), this.source.site).doNext();
     }
@@ -373,7 +373,7 @@ export class FalseProphetWake extends WakePower<Denizen> {
         if (this.action.playerProxy?.isImperial) return true;
 
         for (const player of this.game.players) {
-            if (player.board instanceof ExileBoard && player.board.vision && player.board.vision.getWarbandsAmount(this.action.player.key) > 0) {
+            if (player.board instanceof ExileBoard && player.board.vision && player.board.vision.getWarbandsAmount(this.action.player.board.key) > 0) {
                 const candidates = player.board.vision.oath.getOathkeeperCandidates();
                 if (candidates.size === 1 && candidates.has(this.action.player)) {
                     new WinGameEffect(this.action.player).doNext();

@@ -323,7 +323,7 @@ export class MoveWarbandsToEffect extends OathEffect<number> {
     }
 
     resolve(): void {
-        this.amount = this.source?.moveWarbandsTo(this.owner.key, this.target, this.amount) ?? 0;
+        this.amount = this.source?.moveWarbandsTo(this.owner.board.key, this.target, this.amount) ?? 0;
         this.result = this.amount;
     }
 
@@ -698,7 +698,7 @@ export class DiscardCardEffect<T extends OathCard> extends PlayerEffect {
         new ParentToTargetEffect(this.game, this.executor, [this.card], this.discardOptions.discard, !this.discardOptions.onBottom).doNext();
         this.card.returnResources();
         for (const player of this.game.players)
-            new ParentToTargetEffect(this.game, player, this.card.getWarbands(player.key), player.bag).doNext();
+            new ParentToTargetEffect(this.game, player, this.card.getWarbands(player.board.key), player.bag).doNext();
     }
 }
 
@@ -946,7 +946,7 @@ export class PutDenizenIntoDispossessedEffect extends OathEffect {
 
     resolve(): void {
         this.denizen.prune();
-        this.game.dispossessed.add(this.denizen.id);
+        this.game.dispossessed.add(this.denizen.key);
     }
 
     serialize(): Record<string, any> {
@@ -1067,7 +1067,7 @@ export class SiteExchangeOfferEffect extends BindingExchangeEffect {
         for (const site of this.sitesGiven) {
             new MoveOwnWarbandsEffect(this.executor, site, this.executor.board).doNext();
             new ChooseNumberAction(
-                this.other, "Move warbands to " + site.name, inclusiveRange(Math.max(0, 1 - site.getWarbandsAmount(this.other.leader.key)), this.other.board.getWarbandsAmount(this.other.leader.key)),
+                this.other, "Move warbands to " + site.name, inclusiveRange(Math.max(0, 1 - site.getWarbandsAmount(this.other.leader.board.key)), this.other.board.getWarbandsAmount(this.other.leader.board.key)),
                 (amount: number) => new MoveOwnWarbandsEffect(this.other, this.other.board, site, amount).doNext()
             ).doNext();
         }
@@ -1075,7 +1075,7 @@ export class SiteExchangeOfferEffect extends BindingExchangeEffect {
         for (const site of this.sitesTaken) {
             new MoveOwnWarbandsEffect(this.other, site, this.other.board).doNext();
             new ChooseNumberAction(
-                this.executor, "Move warbands to " + site.name, inclusiveRange(Math.max(0, 1 - site.getWarbandsAmount(this.executor.leader.key)), this.executor.board.getWarbandsAmount(this.executor.leader.key)),
+                this.executor, "Move warbands to " + site.name, inclusiveRange(Math.max(0, 1 - site.getWarbandsAmount(this.executor.leader.board.key)), this.executor.board.getWarbandsAmount(this.executor.leader.board.key)),
                 (amount: number) => new MoveOwnWarbandsEffect(this.executor, this.executor.board, site, amount).doNext()
             ).doNext();
         }
@@ -1378,7 +1378,7 @@ export class FinishChronicleEffect extends PlayerEffect {
             worldDeck.addChildren(middlePile, true);
             worldDeck.addChildren(topPile, true);
     
-            this.game.updateSeed(this.executor.key);
+            this.game.updateSeed(this.executor.board.key);
         });
         new ChangePhaseEffect(this.game, OathPhase.Over).doNext();
     }

@@ -31,7 +31,7 @@ export class SetupChoosePlayerBoardAction extends OathAction {
         for (const player of this.game.players)
             if (player.board)
                 colors.delete(player.board.key);
-        const choices = [...colors].map<[string, PlayerColor]>(e => [PlayerColor[e] + (e !== PlayerColor.Purple && this.game.oldCitizenship[e] === Citizenship.Citizen ? " (Citizen)" : ""), e]);
+        const choices = [...colors].map<[string, PlayerColor]>(e => [e + (e !== PlayerColor.Purple && this.game.oldCitizenship[e] === Citizenship.Citizen ? " (Citizen)" : ""), e]);
         this.selects.color = new SelectNOf("Color", choices, { min: 1 });
 
         return super.start();
@@ -39,14 +39,12 @@ export class SetupChoosePlayerBoardAction extends OathAction {
 
     execute(): void {
         const color = this.parameters.color[0]!;
-        const id = PlayerColor[color] as keyof typeof PlayerColor;
-
         if (color === PlayerColor.Purple) {
             this.player.board = this.player.addChild(new ChancellorBoard());
             this.game.chancellor = this.player;
         } else {
-            const board = this.player.board = this.player.addChild(new ExileBoard(id));
-            board.visionSlot = board.addChild(new VisionSlot(id));
+            const board = this.player.board = this.player.addChild(new ExileBoard(color));
+            board.visionSlot = board.addChild(new VisionSlot(color));
             board.isCitizen = this.game.oldCitizenship[color] === Citizenship.Citizen;
         }
     }
@@ -721,8 +719,8 @@ export class CampaignResult {
     get loserLoss() { return this.successful ? this.defenderLoss : this.attackerLoss; }
     get loserKills() { return this.successful ? this.defenderKills : this.attackerKills; }
 
-    get totalAtkForce() { return [...this.atkForce].reduce((a, e) => a + e.getWarbandsAmount(this.attacker.leader.original.key), 0); }
-    get totalDefForce() { return [...this.defForce].reduce((a, e) => a + e.getWarbandsAmount(this.defender?.leader.original.key), 0); }
+    get totalAtkForce() { return [...this.atkForce].reduce((a, e) => a + e.getWarbandsAmount(this.attacker.leader.board.original.key), 0); }
+    get totalDefForce() { return [...this.defForce].reduce((a, e) => a + e.getWarbandsAmount(this.defender?.leader.board.original.key), 0); }
 
     get atk() { return this.atkRoll.value; }
     get def() { return this.defRoll.value + this.totalDefForce; }
@@ -849,7 +847,7 @@ export class CampaignKillWarbandsInForceAction extends OathAction {
 
     start(): boolean {
         if (this.owner) {
-            const sources: [string, number][] = [...this.force].map(e => [e.name, e.getWarbandsAmount(this.owner?.key)]);
+            const sources: [string, number][] = [...this.force].map(e => [e.name, e.getWarbandsAmount(this.owner?.board.key)]);
             for (const [key, warbands] of sources) {
                 const min = Math.min(warbands, Math.max(0, this.amount - sources.filter(([k, _]) => k !== key).reduce((a, [_, v]) => a + Math.min(v, this.amount), 0)));
                 const max = Math.min(warbands, this.amount);
@@ -867,7 +865,7 @@ export class CampaignKillWarbandsInForceAction extends OathAction {
             throw new InvalidActionResolution("Invalid total amount of warbands");
         
         for (const source of this.force) {
-            const warbands = source.getWarbands(this.owner.leader.key, this.parameters[source.name]![0]);
+            const warbands = source.getWarbands(this.owner.leader.board.key, this.parameters[source.name]![0]);
             new ParentToTargetEffect(this.game, this.player, warbands, this.owner.leader.bag).doNext();
             if (this.attacker)
                 this.result.attackerLoss += warbands.length;
@@ -902,7 +900,7 @@ export class CampaignSeizeSiteAction extends OathAction {
     }
 
     start() {
-        this.selects.amount = new SelectNumber("Amount", inclusiveRange(this.player.board.getWarbandsAmount(this.player.leader.original.key)));
+        this.selects.amount = new SelectNumber("Amount", inclusiveRange(this.player.board.getWarbandsAmount(this.player.leader.board.original.key)));
         return super.start();
     }
 
@@ -1021,16 +1019,16 @@ export class MoveWarbandsAction extends ModifiableAction {
     start(): boolean {
         const choices = new Set<Site | PlayerBoard>();
         const siteProxy = this.playerProxy.site;
-        let max = this.player.board.getWarbandsAmount(this.playerProxy.leader.original.key);
+        let max = this.player.board.getWarbandsAmount(this.playerProxy.leader.board.original.key);
         if (this.playerProxy.isImperial) {
             for (const playerProxy of this.gameProxy.players) {
                 if (playerProxy !== this.playerProxy && playerProxy.isImperial && playerProxy.site === siteProxy) {
                     choices.add(playerProxy.board);
-                    max = Math.max(max, playerProxy.board.original.getWarbandsAmount(playerProxy.leader.original.key));
+                    max = Math.max(max, playerProxy.board.original.getWarbandsAmount(playerProxy.leader.board.original.key));
                 }
             }
         }
-        const siteAmount = siteProxy.original.getWarbandsAmount(this.playerProxy.leader.original.key);
+        const siteAmount = siteProxy.original.getWarbandsAmount(this.playerProxy.leader.board.original.key);
         if (siteAmount > 0) {
             choices.add(siteProxy);
             max = Math.max(max, siteAmount - 1);
@@ -1052,7 +1050,7 @@ export class MoveWarbandsAction extends ModifiableAction {
         const from = this.giving ? this.player.board : this.targetProxy.original;
         const to = this.giving ? this.targetProxy.original : this.player.board;
 
-        if (from instanceof Site && from.getWarbandsAmount(this.playerProxy.leader.original.key) - this.amount < 1)
+        if (from instanceof Site && from.getWarbandsAmount(this.playerProxy.leader.board.original.key) - this.amount < 1)
             throw new InvalidActionResolution("Cannot take the last warband off a site.");
 
         const effect = new MoveOwnWarbandsEffect(this.playerProxy.leader.original, from, to, this.amount);
@@ -1115,7 +1113,7 @@ export class KillWarbandsOnTargetAction extends OathAction {
     }
 
     start(): boolean {
-        const owners: [string, number][] = this.game.players.map(e => [e.name, this.target.getWarbands(e.key).length]);
+        const owners: [string, number][] = this.game.players.map(e => [e.name, this.target.getWarbands(e.board.key).length]);
         for (const [key, warbands] of owners) {
             if (warbands === 0) continue;
             const min = Math.min(warbands, Math.max(0, this.amount - owners.filter(([k, _]) => k !== key).reduce((a, [_, v]) => a + Math.min(v, this.amount), 0)));
@@ -1132,7 +1130,7 @@ export class KillWarbandsOnTargetAction extends OathAction {
         
         for (const owner of this.game.players)
             if (this.parameters[owner.name])
-                new ParentToTargetEffect(this.game, this.player, this.target.getWarbands(owner.key, this.parameters[owner.name]![0]), owner.leader.bag).doNext();
+                new ParentToTargetEffect(this.game, this.player, this.target.getWarbands(owner.board.key, this.parameters[owner.name]![0]), owner.leader.bag).doNext();
     }
 }
 
@@ -1711,7 +1709,7 @@ export class ChooseNewCitizensAction extends OathAction {
         for (const site of this.game.map.sites())
             for (const player of this.game.players)
                 if (!player.isImperial)
-                    new ParentToTargetEffect(this.game, player, site.getWarbands(player.leader.key), player.leader.bag).doNext()
+                    new ParentToTargetEffect(this.game, player, site.getWarbands(player.leader.board.key), player.leader.bag).doNext()
     }
 }
 
