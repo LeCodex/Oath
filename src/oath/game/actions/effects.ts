@@ -96,7 +96,7 @@ export class PutResourcesOnTargetEffect extends OathEffect<number> {
         super(game, player);
         this.resource = resource;
         this.amount = Math.max(0, amount);
-        this.target = target || this.executor;
+        this.target = target ?? this.executor?.board;
     }
 
     resolve(): void {
@@ -129,7 +129,7 @@ export class MoveResourcesToTargetEffect extends OathEffect<number> {
         this.resource = resource;
         this.amount = Math.max(0, amount);
         this.target = target;
-        this.source = source || this.executor?.board;
+        this.source = source ?? this.executor?.board;
     }
 
     resolve(): void {
@@ -168,7 +168,7 @@ export class BurnResourcesEffect extends OathEffect<number> {
         super(game, player);
         this.resource = resource;
         this.amount = Math.max(0, amount);
-        this.source = source || this.executor?.board;
+        this.source = source ?? this.executor?.board;
     }
 
     resolve(): void {
@@ -197,7 +197,7 @@ export class PayCostToTargetEffect extends OathEffect<boolean> {
         super(game, player);
         this.cost = cost;
         this.target = target;
-        this.source = source || this.executor?.board;
+        this.source = source ?? this.executor?.board;
     }
 
     resolve(): void {
@@ -231,7 +231,7 @@ export class PayCostToBankEffect extends OathEffect<boolean> {
         super(game, player);
         this.cost = cost;
         this.suit = suit;
-        this.source = source || this.executor?.board;
+        this.source = source ?? this.executor?.board;
     }
 
     resolve(): void {
@@ -283,7 +283,7 @@ export class FlipSecretsEffect extends OathEffect<number> {
         super(game, player);
         this.amount = Math.max(0, amount);
         this.facedown = facedown;
-        this.source = source || this.executor?.board;
+        this.source = source ?? this.executor?.board;
     }
 
     resolve(): void {
@@ -319,7 +319,7 @@ export class MoveWarbandsToEffect extends OathEffect<number> {
         this.owner = owner;
         this.amount = Math.max(0, amount);
         this.target = target;
-        this.source = source || this.executor?.board;
+        this.source = source ?? this.executor?.board;
     }
 
     resolve(): void {
@@ -582,7 +582,7 @@ export class MoveWorldCardToAdvisersEffect extends OathEffect {
     constructor(game: OathGame, player: OathPlayer | undefined, card: WorldCard, target?: OathPlayer) {
         super(game, player);
         this.card = card;
-        this.target = target || this.executor;
+        this.target = target ?? this.executor;
     }
 
     resolve(): void {
@@ -670,7 +670,7 @@ export class CheckCapacityEffect extends PlayerEffect {
     resolve(): void {
         for (const origin of this.origins) {
             const site = origin instanceof Site ? origin : undefined;
-            const player = origin instanceof OathPlayer ? origin : origin.ruler || this.executor;
+            const player = origin instanceof OathPlayer ? origin : origin.ruler ?? this.executor;
             
             const [capacity, takesSpaceInTargetProxies, _] = SearchPlayOrDiscardAction.getCapacityInformation(this.maskProxyManager, player, site);
             const excess = Math.max(0, takesSpaceInTargetProxies.length - capacity);
