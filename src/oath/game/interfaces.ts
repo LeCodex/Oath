@@ -44,18 +44,18 @@ export interface OwnableObject extends OathGameObject {
     setOwner(player?: OathPlayer): void;
 }
 
-export function isOwnable(obj: object): obj is OwnableObject {
+export function isOwnable(obj: OathGameObject): obj is OwnableObject {
     return "owner" in obj;
 }
 
 
-export interface CampaignActionTarget extends WithOriginal {
+export interface CampaignActionTarget extends OathGameObject {
     defense: number;
     force: ResourcesAndWarbands<any> | undefined;
     seize(player: OathPlayer): void;
 }
 
-export interface RecoverActionTarget extends WithOriginal {
+export interface RecoverActionTarget extends OathGameObject, OwnableObject {
     canRecover(action: RecoverAction): boolean;
     recover(player: OathPlayer): void;
 }

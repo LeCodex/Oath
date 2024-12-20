@@ -219,7 +219,7 @@ export abstract class OathEffect<T = never> extends ModifiableAction {
 
     abstract resolve(): void;
 
-    serialize(): Record<string, any> | undefined {
+    serialize() {
         const data = {
             ...super.serialize(),
             effect: this.constructor.name,

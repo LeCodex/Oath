@@ -1,10 +1,10 @@
-import { MakeDecisionAction, ChooseCardsAction, ChooseRegionAction, TakeFavorFromBankAction, TakeResourceFromPlayerAction, ChooseSuitsAction, SearchPlayOrDiscardAction, MusterAction, TravelAction, CampaignAction, KillWarbandsOnTargetAction, CampaignAttackAction, CampaignEndAction, RecoverAction, TakeReliquaryRelicAction, ChooseNumberAction, StartBindingExchangeAction, FestivalDistrictOfferAction } from "../../actions/actions";
+import { MakeDecisionAction, ChooseCardsAction, ChooseRegionAction, TakeFavorFromBankAction, TakeResourceFromPlayerAction, ChooseSuitsAction, SearchPlayOrDiscardAction, MusterAction, TravelAction, CampaignAction, KillWarbandsOnTargetAction, CampaignAttackAction, CampaignEndAction, TakeReliquaryRelicAction, ChooseNumberAction, StartBindingExchangeAction, FestivalDistrictOfferAction } from "../../actions/actions";
 import { InvalidActionResolution, ModifiableAction } from "../../actions/base";
 import { FavorBank, PeoplesFavor } from "../../banks";
 import { Region } from "../../map";
 import { Denizen, Edifice, OathCard, Relic, Site, Vision, WorldCard } from "../../cards/cards";
 import { D6, DefenseDie } from "../../dice";
-import { TakeOwnableObjectEffect, PutResourcesOnTargetEffect, MoveResourcesToTargetEffect, SetNewOathkeeperEffect, RollDiceEffect, DiscardCardEffect, BecomeCitizenEffect, PayCostToTargetEffect, PeekAtCardEffect, WinGameEffect, DrawFromDeckEffect, MoveWorldCardToAdvisersEffect, ParentToTargetEffect, BurnResourcesEffect } from "../../actions/effects";
+import { TakeOwnableObjectEffect, PutResourcesOnTargetEffect, MoveResourcesToTargetEffect, SetNewOathkeeperEffect, RollDiceEffect, DiscardCardEffect, BecomeCitizenEffect, PayCostToTargetEffect, PeekAtCardEffect, WinGameEffect, DrawFromDeckEffect, MoveWorldCardToAdvisersEffect, ParentToTargetEffect, BurnResourcesEffect, RecoverTargetEffect } from "../../actions/effects";
 import { BannerKey, OathSuit } from "../../enums";
 import { ExileBoard, OathPlayer } from "../../player";
 import { Favor, ResourceCost, Secret } from "../../resources";
@@ -516,12 +516,12 @@ export class VowOfRenewal extends ActionModifier<Denizen, BurnResourcesEffect> {
         new PutResourcesOnTargetEffect(this.game, this.sourceProxy.ruler.original, Favor, this.action.result).doNext();
     }
 }
-export class VowOfRenewalRecover extends AccessedActionModifier<Denizen, RecoverAction> {
-    modifiedAction = RecoverAction;
+export class VowOfRenewalRecover extends AccessedActionModifier<Denizen, RecoverTargetEffect> {
+    modifiedAction = RecoverTargetEffect;
     mustUse = true;
 
     applyBefore(): void {
-        if (this.action.targetProxy === this.gameProxy.banners.get(BannerKey.PeoplesFavor))
+        if (this.action.target === this.gameProxy.banners.get(BannerKey.PeoplesFavor)?.original)
             throw new InvalidActionResolution("Cannot recover the People's Favor with the Vow of Renewal");
     }
 }

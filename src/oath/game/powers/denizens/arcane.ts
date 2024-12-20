@@ -1,9 +1,9 @@
-import { CampaignAttackAction, CampaignDefenseAction, TakeFavorFromBankAction, TradeAction, TravelAction, MakeDecisionAction, RestAction, ChooseCardsAction, SearchPlayOrDiscardAction, ChoosePlayersAction, ChooseSitesAction, ChooseNumberAction, SearchAction, KillWarbandsOnTargetAction, MusterAction, RecoverAction, RecoverBannerPitchAction, ChooseTsAction, ChooseRnWsAction } from "../../actions/actions";
+import { CampaignAttackAction, CampaignDefenseAction, TakeFavorFromBankAction, TradeAction, TravelAction, MakeDecisionAction, RestAction, ChooseCardsAction, SearchPlayOrDiscardAction, ChoosePlayersAction, ChooseSitesAction, ChooseNumberAction, SearchAction, KillWarbandsOnTargetAction, MusterAction, RecoverBannerPitchAction, ChooseRnWsAction } from "../../actions/actions";
 import { InvalidActionResolution } from "../../actions/base";
 import { Conspiracy, Denizen, Edifice, Relic, Site, WorldCard } from "../../cards/cards";
 import { DiscardOptions } from "../../cards/decks";
 import { AttackDie, DefenseDie, DieSymbol, RollResult } from "../../dice";
-import { RegionDiscardEffect, PutResourcesOnTargetEffect, RollDiceEffect, BecomeCitizenEffect, DiscardCardEffect, PeekAtCardEffect, MoveResourcesToTargetEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, MoveWorldCardToAdvisersEffect, ParentToTargetEffect, BurnResourcesEffect } from "../../actions/effects";
+import { RegionDiscardEffect, PutResourcesOnTargetEffect, RollDiceEffect, BecomeCitizenEffect, DiscardCardEffect, PeekAtCardEffect, MoveResourcesToTargetEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, MoveWorldCardToAdvisersEffect, ParentToTargetEffect, BurnResourcesEffect, RecoverTargetEffect } from "../../actions/effects";
 import { BannerKey, OathSuit } from "../../enums";
 import { ExileBoard, OathPlayer } from "../../player";
 import { Favor, OathResourceType, ResourceCost, ResourcesAndWarbands, Secret } from "../../resources";
@@ -477,12 +477,12 @@ export class VowOfSilence extends AccessedActionModifier<Denizen, ParentToTarget
                 this.action.objects.delete(object);
     }
 }
-export class VowOfSilenceRecover extends AccessedActionModifier<Denizen, RecoverAction> {
-    modifiedAction = RecoverAction;
+export class VowOfSilenceRecover extends AccessedActionModifier<Denizen, RecoverTargetEffect> {
+    modifiedAction = RecoverTargetEffect;
     mustUse = true;
 
     applyBefore(): void {
-        if (this.action.targetProxy === this.gameProxy.banners.get(BannerKey.DarkestSecret))
+        if (this.action.target === this.gameProxy.banners.get(BannerKey.DarkestSecret)?.original)
             throw new InvalidActionResolution("Cannot recover the Darkest Secret with the Vow of Silence");
     }
 }
@@ -536,7 +536,6 @@ export class GreatSpire extends AccessedActionModifier<Edifice, SearchAction> {
                         new PutDenizenIntoDispossessedEffect(this.game, this.action.player, card).doNext();
                         new PeekAtCardEffect(this.action.player, newCard).doNext();
     
-                        // TODO: Put this in an effect
                         this.action.cards.delete(card);
                         this.action.cards.add(newCard);
                     });

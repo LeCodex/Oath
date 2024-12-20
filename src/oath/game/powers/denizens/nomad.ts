@@ -1,10 +1,10 @@
-import { TravelAction, MakeDecisionAction, ChooseRegionAction, SearchPlayOrDiscardAction, ChooseCardsAction, TakeFavorFromBankAction, ChooseSitesAction, MoveWarbandsBetweenBoardAndSitesAction, RestAction, RecoverAction, TakeReliquaryRelicAction, CampaignEndAction, StartBindingExchangeAction, TheGatheringOfferAction } from "../../actions/actions";
+import { TravelAction, MakeDecisionAction, ChooseRegionAction, SearchPlayOrDiscardAction, ChooseCardsAction, TakeFavorFromBankAction, ChooseSitesAction, MoveWarbandsBetweenBoardAndSitesAction, RestAction, TakeReliquaryRelicAction, CampaignEndAction, StartBindingExchangeAction, TheGatheringOfferAction } from "../../actions/actions";
 import { InvalidActionResolution, ModifiableAction, ResolveCallbackEffect } from "../../actions/base";
 import { Region } from "../../map";
 import { Denizen, Edifice, OathCard, Relic, Site, VisionBack, WorldCard } from "../../cards/cards";
 import { DiscardOptions } from "../../cards/decks";
 import { AttackDie, DieSymbol } from "../../dice";
-import { PayCostToTargetEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PayPowerCostEffect, BecomeCitizenEffect, DrawFromDeckEffect, FlipEdificeEffect, MoveResourcesToTargetEffect, DiscardCardEffect, GainSupplyEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, PeekAtCardEffect, MoveWorldCardToAdvisersEffect, MoveDenizenToSiteEffect, DiscardCardGroupEffect, PlayVisionEffect, ParentToTargetEffect, BurnResourcesEffect, PutPawnAtSiteEffect } from "../../actions/effects";
+import { PayCostToTargetEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PayPowerCostEffect, BecomeCitizenEffect, DrawFromDeckEffect, FlipEdificeEffect, MoveResourcesToTargetEffect, DiscardCardEffect, GainSupplyEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, PeekAtCardEffect, MoveWorldCardToAdvisersEffect, MoveDenizenToSiteEffect, DiscardCardGroupEffect, PlayVisionEffect, ParentToTargetEffect, BurnResourcesEffect, PutPawnAtSiteEffect, RecoverTargetEffect } from "../../actions/effects";
 import { BannerKey, OathSuit } from "../../enums";
 import { OwnableObject, isOwnable } from "../../interfaces";
 import { ExileBoard, OathPlayer } from "../../player";
@@ -225,12 +225,11 @@ export class AFastSteed extends ActionModifier<Denizen, TravelAction> {
     }
 }
 
-export class RelicWorship extends ActionModifier<Denizen, RecoverAction> {
-    modifiedAction = RecoverAction;
-    cost = new ResourceCost([[Favor, 1]]);
+export class RelicWorship extends ActionModifier<Denizen, RecoverTargetEffect> {
+    modifiedAction = RecoverTargetEffect;
 
     applyAtEnd(): void {
-        if (this.action.targetProxy instanceof Relic)
+        if (this.action.target instanceof Relic)
             new GainSupplyEffect(this.activator, 2).doNext();
     }
 }

@@ -1,7 +1,7 @@
 import { CampaignSeizeSiteAction, RecoverAction } from "../actions/actions";
 import { RecoverActionTarget, WithPowers, AtSite, CampaignActionTarget, OwnableObject, HiddenInformation } from "../interfaces";
 import { Region } from "../map";
-import { DiscardCardEffect, FlipSecretsEffect, MoveOwnWarbandsEffect, MoveResourcesToTargetEffect, ParentToTargetEffect, PayCostToBankEffect, RevealCardEffect, TakeOwnableObjectEffect } from "../actions/effects";
+import { DiscardCardEffect, FlipSecretsEffect, MoveOwnWarbandsEffect, MoveResourcesToTargetEffect, ParentToTargetEffect, PayCostToBankEffect, RecoverTargetEffect, RevealCardEffect, TakeOwnableObjectEffect } from "../actions/effects";
 import { CardRestriction, OathSuit, OathType, OathTypeVisionName, PlayerColor, RegionKey } from "../enums";
 import { Oath } from "../oaths";
 import { OathPlayer } from "../player";
@@ -204,7 +204,7 @@ export class Relic extends OwnableCard implements RecoverActionTarget, CampaignA
         const cost = this.site.recoverCost;
         new PayCostToBankEffect(this.game, player, cost, this.site.recoverSuit).doNext(success => {
             if (!success) throw cost.cannotPayError;
-            new TakeOwnableObjectEffect(this.game, player, this).doNext();
+            new RecoverTargetEffect(player, this).doNext();
         })
     }
 

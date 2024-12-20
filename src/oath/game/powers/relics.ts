@@ -1,4 +1,4 @@
-import { CitizenshipOfferAction, StartBindingExchangeAction, SkeletonKeyAction, TradeAction, MusterAction, TravelAction, MakeDecisionAction, ChoosePlayersAction, SearchAction, ChooseCardsAction } from "../actions/actions";
+import { CitizenshipOfferAction, StartBindingExchangeAction, SkeletonKeyAction, TradeAction, MusterAction, TravelAction, MakeDecisionAction, ChoosePlayersAction, SearchAction, ChooseCardsAction, ChooseNumberAction } from "../actions/actions";
 import { InvalidActionResolution, ModifiableAction } from "../actions/base";
 import { Denizen, GrandScepter, OathCard, Relic, Site } from "../cards/cards";
 import { TakeOwnableObjectEffect, PlayDenizenAtSiteEffect, MoveOwnWarbandsEffect, PeekAtCardEffect, SetGrandScepterLockEffect, GainSupplyEffect, DrawFromDeckEffect, RevealCardEffect, PayCostToTargetEffect, BecomeExileEffect, MoveResourcesToTargetEffect, MoveDenizenToSiteEffect, MoveWorldCardToAdvisersEffect, ParentToTargetEffect } from "../actions/effects";
@@ -8,7 +8,7 @@ import { OwnableObject, isOwnable } from "../interfaces";
 import { Favor, Warband, ResourceCost, Secret } from "../resources";
 import { AccessedActionModifier, EnemyActionModifier, AttackerBattlePlan, DefenderBattlePlan, ActionModifier, ActivePower, RestPower, BattlePlan, EnemyAttackerCampaignModifier } from "./powers";
 import { DiscardOptions } from "../cards/decks";
-import { isExtended } from "../utils";
+import { inclusiveRange, isExtended } from "../utils";
 
 
 export class GrandScepterSeize extends ActionModifier<GrandScepter, TakeOwnableObjectEffect> {
@@ -147,16 +147,20 @@ export class ObsidianCageActive extends ActivePower<Relic> {
             if (this.source.getWarbandsAmount(playerProxy.leader.board.original.key) + this.source.getWarbandsAmount(playerProxy.board.original.key) > 0)
                 players.add(playerProxy.original);
         
-        // TODO: "Any number"
         new ChoosePlayersAction(
             this.action.player, "Return the warbands to a player",
             (targets: OathPlayer[]) => {
                 const target = targets[0];
                 if (!target) return;
-                new ParentToTargetEffect(this.game, target, this.source.getWarbands(target.leader.board.key)).doNext();
-                const warbandsToSwap = this.source.getWarbands(target.board.key);
-                new ParentToTargetEffect(this.game, target, warbandsToSwap, target.bag).doNext();
-                new ParentToTargetEffect(this.game, target, target.leader.bag.get(warbandsToSwap.length)).doNext();
+                new ChooseNumberAction(
+                    this.action.player, "Choose how many to return", inclusiveRange(1, this.source.getWarbandsAmount(target.leader.board.key)),
+                    (amount: number) => {
+                        new ParentToTargetEffect(this.game, target, this.source.getWarbands(target.leader.board.key).max(amount)).doNext();
+                        const warbandsToSwap = this.source.getWarbands(target.board.key).max(amount);
+                        new ParentToTargetEffect(this.game, target, warbandsToSwap, target.bag).doNext();
+                        new ParentToTargetEffect(this.game, target, target.leader.bag.get(warbandsToSwap.length)).doNext();
+                    }
+                )
             },
             [players]
         ).doNext();

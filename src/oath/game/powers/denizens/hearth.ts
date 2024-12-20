@@ -1,8 +1,8 @@
-import { TradeAction, TakeResourceFromPlayerAction, TakeFavorFromBankAction, CampaignEndAction, MakeDecisionAction, CampaignAttackAction, RecoverAction, ChooseSuitsAction, ChooseCardsAction, MusterAction, SearchPlayOrDiscardAction, MayDiscardACardAction, SearchAction, SearchChooseAction, KillWarbandsOnTargetAction, TinkersFairOfferAction, StartBindingExchangeAction, DeedWriterOfferAction } from "../../actions/actions";
+import { TradeAction, TakeResourceFromPlayerAction, TakeFavorFromBankAction, CampaignEndAction, MakeDecisionAction, CampaignAttackAction, ChooseSuitsAction, ChooseCardsAction, MusterAction, SearchPlayOrDiscardAction, MayDiscardACardAction, SearchAction, SearchChooseAction, KillWarbandsOnTargetAction, TinkersFairOfferAction, StartBindingExchangeAction, DeedWriterOfferAction } from "../../actions/actions";
 import { ModifiableAction, InvalidActionResolution } from "../../actions/base";
 import { Denizen, Edifice, Relic, WorldCard } from "../../cards/cards";
 import { DieSymbol } from "../../dice";
-import { PlayVisionEffect, PlayWorldCardEffect, PeekAtCardEffect, DiscardCardEffect, BecomeCitizenEffect, SetPeoplesFavorMobState, GainSupplyEffect, DrawFromDeckEffect, TakeOwnableObjectEffect, MoveDenizenToSiteEffect, ParentToTargetEffect, PutResourcesOnTargetEffect } from "../../actions/effects";
+import { PlayVisionEffect, PlayWorldCardEffect, PeekAtCardEffect, DiscardCardEffect, BecomeCitizenEffect, SetPeoplesFavorMobState, GainSupplyEffect, DrawFromDeckEffect, TakeOwnableObjectEffect, MoveDenizenToSiteEffect, ParentToTargetEffect, PutResourcesOnTargetEffect, RecoverTargetEffect } from "../../actions/effects";
 import { BannerKey, OathSuit, ALL_OATH_SUITS } from "../../enums";
 import { WithPowers } from "../../interfaces";
 import { Favor, ResourceCost, Secret } from "../../resources";
@@ -80,7 +80,6 @@ export class HeartsAndMinds extends DefenderBattlePlan<Denizen> {
     cost = new ResourceCost([[Favor, 3]]);
 
     applyWhenApplied(): boolean {
-        // TODO: Put this in an effect
         this.action.campaignResult.successful = false;
         this.action.next.doNext();
 
@@ -440,12 +439,12 @@ export class HallOfDebate extends ActionModifier<Edifice, CampaignAttackAction> 
     }
 }
 
-export class HallOfMockery extends ActionModifier<Edifice, RecoverAction> {
-    modifiedAction = RecoverAction;
+export class HallOfMockery extends ActionModifier<Edifice, RecoverTargetEffect> {
+    modifiedAction = RecoverTargetEffect;
     mustUse = true;
 
     applyAfter(): void {
-        if (this.action.targetProxy === this.gameProxy.banners.get(BannerKey.PeoplesFavor))
+        if (this.action.target === this.gameProxy.banners.get(BannerKey.PeoplesFavor)?.original)
             new SetPeoplesFavorMobState(this.game, undefined, true).doNext();
     }
 }

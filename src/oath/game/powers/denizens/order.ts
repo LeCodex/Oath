@@ -5,10 +5,10 @@ import { DieSymbol } from "../../dice";
 import { PayCostToTargetEffect, MoveResourcesToTargetEffect, GainSupplyEffect, BecomeCitizenEffect, PutPawnAtSiteEffect, MoveOwnWarbandsEffect, BecomeExileEffect, PlayVisionEffect, TakeOwnableObjectEffect, ParentToTargetEffect } from "../../actions/effects";
 import { BannerKey, OathSuit } from "../../enums";
 import { OathGameObject } from "../../gameObject";
-import { CampaignActionTarget } from "../../interfaces";
+import { CampaignActionTarget, WithPowers } from "../../interfaces";
 import { ExileBoard, OathPlayer } from "../../player";
 import { Favor, ResourceCost } from "../../resources";
-import { AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, RestPower, ActivePower, ActionModifier, AccessedActionModifier, EnemyActionModifier } from "../powers";
+import { AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, RestPower, ActivePower, ActionModifier, AccessedActionModifier, EnemyActionModifier, BattlePlan } from "../powers";
 
 
 export class LongbowsAttack extends AttackerBattlePlan<Denizen> {
@@ -125,16 +125,16 @@ export class FieldPromotionDefense extends DefenderBattlePlan<Denizen> {
 export class PeaceEnvoyAttack extends AttackerBattlePlan<Denizen> {
     cost = new ResourceCost([[Favor, 1]]);
 
-    applyWhenApplied(): boolean {
-        for (const modifier of this.action.modifiers)
-            if (modifier !== this && modifier instanceof DefenderBattlePlan)
-                throw new InvalidActionResolution("Cannot use other battle plans with the Peace Envoy");
+    applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, CampaignAttackAction>>): Iterable<ActionModifier<WithPowers, CampaignAttackAction>> {
+        return [...modifiers].filter(e => e !== this && e instanceof BattlePlan);
+    }
 
+    applyWhenApplied(): boolean {
         // TODO: This will mean no other modifiers get to do anything. Is this fine?
         if (this.action.campaignResultProxy.defender?.site === this.activatorProxy.site) {
             new MoveResourcesToTargetEffect(this.game, this.activator, Favor, this.action.campaignResult.defPool, this.action.campaignResult.defender).doNext(amount => {
                 if (amount === 0) return;
-                this.action.campaignResult.successful = false;
+                this.action.campaignResult.successful = true;
                 this.action.campaignResult.ignoreKilling = true;
                 this.action.next.doNext();
             });
@@ -146,11 +146,11 @@ export class PeaceEnvoyAttack extends AttackerBattlePlan<Denizen> {
 export class PeaceEnvoyDefense extends DefenderBattlePlan<Denizen> {
     cost = new ResourceCost([[Favor, 1]]);
 
-    applyWhenApplied(): boolean {
-        for (const modifier of this.action.modifiers)
-            if (modifier !== this && modifier instanceof DefenderBattlePlan)
-                throw new InvalidActionResolution("Cannot use other battle plans with the Peace Envoy");
+    applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, CampaignDefenseAction>>): Iterable<ActionModifier<WithPowers, CampaignDefenseAction>> {
+        return [...modifiers].filter(e => e !== this && e instanceof BattlePlan);
+    }
 
+    applyWhenApplied(): boolean {
         if (this.action.campaignResultProxy.attacker.site === this.activatorProxy.site) {
             new MoveResourcesToTargetEffect(this.game, this.activator, Favor, this.action.campaignResult.defPool, this.action.campaignResult.attacker).doNext(amount => {
                 if (amount === 0) return;

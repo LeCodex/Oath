@@ -1,7 +1,7 @@
-import { ChooseResourceToTakeAction, WakeAction, TravelAction, CampaignAttackAction, MusterAction, SearchAction, StartBindingExchangeAction, MakeBindingExchangeOfferAction, SearchPlayOrDiscardAction, MayDiscardACardAction, RecoverAction } from "../actions/actions";
+import { ChooseResourceToTakeAction, WakeAction, TravelAction, CampaignAttackAction, MusterAction, SearchAction, StartBindingExchangeAction, MakeBindingExchangeOfferAction, SearchPlayOrDiscardAction, MayDiscardACardAction } from "../actions/actions";
 import { InvalidActionResolution, ModifiableAction } from "../actions/base";
 import { Site, Denizen } from "../cards/cards";
-import { PlayWorldCardEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, FlipSecretsEffect, ParentToTargetEffect } from "../actions/effects";
+import { PlayWorldCardEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, FlipSecretsEffect, ParentToTargetEffect, RecoverTargetEffect } from "../actions/effects";
 import { OathSuit } from "../enums";
 import { isAtSite, WithPowers } from "../interfaces";
 import { OathPlayer } from "../player";
@@ -27,9 +27,8 @@ export class Wastes extends HomelandSitePower {
     suit = OathSuit.Discord;
 
     giveReward(playerProxy: OathPlayer): void {
-        // TODO: Should probably have an effect just for recovering
-        for (const relicProxy of this.sourceProxy.relics)
-            return new TakeOwnableObjectEffect(this.game, playerProxy.original, relicProxy.original).doNext();
+        const relic = this.sourceProxy.relics[0]?.original;
+        if (relic) return new RecoverTargetEffect(playerProxy.original, relic).doNext();
     }
 }
 
@@ -70,8 +69,8 @@ export class DeepWoods extends HomelandSitePower {
     suit = OathSuit.Beast;
 
     giveReward(playerProxy: OathPlayer): void {
-        for (const relicProxy of this.sourceProxy.relics)
-            return new TakeOwnableObjectEffect(this.game, playerProxy.original, relicProxy.original).doNext();
+        const relic = this.sourceProxy.relics[0]?.original;
+        if (relic) return new RecoverTargetEffect(playerProxy.original, relic).doNext();
     }
 }
 

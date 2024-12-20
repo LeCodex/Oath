@@ -1,6 +1,6 @@
 import { ChooseSuitsAction, RecoverAction, RecoverBannerPitchAction } from "./actions/actions";
 import { RecoverActionTarget, CampaignActionTarget, WithPowers, OwnableObject } from "./interfaces";
-import { TakeOwnableObjectEffect, SetPeoplesFavorMobState, ParentToTargetEffect, BurnResourcesEffect, MoveResourcesToTargetEffect } from "./actions/effects";
+import { TakeOwnableObjectEffect, SetPeoplesFavorMobState, ParentToTargetEffect, BurnResourcesEffect, MoveResourcesToTargetEffect, RecoverTargetEffect } from "./actions/effects";
 import { isEnumKey, OathSuit } from "./enums";
 import { OathPlayer } from "./player";
 import { PeoplesFavorSearch, PeoplesFavorWake, DarkestSecretPower } from "./powers/banners";
@@ -49,7 +49,7 @@ export abstract class Banner<T extends OathResource = OathResource> extends Cont
         // Banner-specific logic
         new ParentToTargetEffect(this.game, player, player.byClass(this.cls).max(amount), this).doNext();
         this.handleRecovery(player);
-        new TakeOwnableObjectEffect(this.game, player, this).doNext();
+        new RecoverTargetEffect(player, this).doNext();
     }
 
     seize(player: OathPlayer) {
