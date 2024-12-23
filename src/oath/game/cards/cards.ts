@@ -6,7 +6,7 @@ import { CardRestriction, OathSuit, OathType, OathTypeVisionName, PlayerColor, R
 import { Oath } from "../oaths";
 import { OathPlayer } from "../player";
 import { OathPower } from "../powers/powers";
-import { ConspiracyPower } from "../powers/visions";
+import { ConspiracyWhenPlayed } from "../powers/visions";
 import { Favor, OathResource, ResourceCost, ResourcesAndWarbands, Secret } from "../resources";
 import { Constructor } from "../utils";
 import { CardDeck, Discard, DiscardOptions, RelicDeck } from "./decks";
@@ -300,6 +300,6 @@ export class Vision extends VisionBack {
 
 export class Conspiracy extends VisionBack {
     constructor() {
-        super("Conspiracy", [ConspiracyPower]);
+        super("Conspiracy", [ConspiracyWhenPlayed]);
     }
 }

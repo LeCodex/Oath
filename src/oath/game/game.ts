@@ -1,7 +1,7 @@
-import { ChoosePlayersAction, SetupChooseAdviserAction, WakeAction, ChooseSitesAction, ChooseTsAction, SetupChoosePlayerBoardAction } from "./actions/actions";
+import { ChoosePlayersAction, SetupChooseAdviserAction, WakeAction, ChooseSitesAction, SetupChoosePlayerBoardAction } from "./actions/actions";
 import { InvalidActionResolution, ModifiableAction, ResolveCallbackEffect } from "./actions/base";
 import { HistoryNode, OathActionManager } from "./actions/manager";
-import { BecomeCitizenEffect, DrawFromDeckEffect, PutPawnAtSiteEffect, SetNewOathkeeperEffect, SetUsurperEffect, WinGameEffect } from "./actions/effects";
+import { DrawFromDeckEffect, PutPawnAtSiteEffect, SetNewOathkeeperEffect, SetUsurperEffect, WinGameEffect } from "./actions/effects";
 import { ActionModifier, OathPower } from "./powers/powers";
 import { OathMap, Region } from "./map";
 import { Discard, RelicDeck, WorldDeck } from "./cards/decks";

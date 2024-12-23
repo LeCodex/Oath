@@ -282,10 +282,9 @@ export class VowOfBeastkin extends AccessedActionModifier<Denizen, MusterAction>
     modifiedAction = MusterAction;
     mustUse = true;
 
-    applyBefore(): void {
-        if (![...this.activatorProxy.advisers].some(e => e instanceof Denizen && e.suit === this.action.cardProxy.suit))
-            throw new InvalidActionResolution("Must muster on a card matching your advisers with Vow of Beastkin");
-
+    applyAtStart(): void {
+        const newChoices = [...this.action.selects.cardProxy.choices].filter(([_, e]) => this.action.playerProxy.suitAdviserCount(e.suit) > 0)
+        this.action.selects.cardProxy.choices = new Map(newChoices);
         this.action.getting++;
     }
 }

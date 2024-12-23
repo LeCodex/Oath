@@ -99,26 +99,32 @@ export abstract class MajorAction extends ModifiableAction {
     abstract majorAction(): void;
 }
 
-export class MusterAction extends MajorAction {
+export abstract class PayDenizenAction extends MajorAction {
     readonly selects: { cardProxy: SelectCard<Denizen> };
     readonly parameters: { cardProxy: Denizen[] };
-    readonly message = "Put a favor on a card to muster";
-    supplyCost = 1;
 
+    accessibleDenizenProxies: Denizen[] = [];
     cardProxy: Denizen;
-    using: OathResourceType = Favor;
-    amount = 1;
-    getting = 2;
-
+    
     start() {
-        this.selects.cardProxy = new SelectCard("Card", this.player, this.playerProxy.site.denizens.filter(e => e.suit !== OathSuit.None && e.empty), { min: 1 });
+        this.accessibleDenizenProxies.push(...this.playerProxy.site.denizens);
+        this.selects.cardProxy = new SelectCard("Card", this.player, this.accessibleDenizenProxies.filter(e => e.suit !== OathSuit.None && e.empty), { min: 1 });
         return super.start();
     }
-
+    
     execute() {
         this.cardProxy = this.parameters.cardProxy[0]!;
         super.execute();
     }
+}
+
+export class MusterAction extends PayDenizenAction {
+    readonly message = "Put a favor on a card to muster";
+    supplyCost = 1;
+
+    using: OathResourceType = Favor;
+    amount = 1;
+    getting = 2;
 
     majorAction() {
         const cost = new ResourceCost([[this.using, this.amount]]);
@@ -130,25 +136,22 @@ export class MusterAction extends MajorAction {
 }
 
 
-export class TradeAction extends MajorAction {
-    readonly selects: { cardProxy: SelectCard<Denizen>, forFavor: SelectBoolean };
-    readonly parameters: { cardProxy: Denizen[], forFavor: boolean[] };
+export class TradeAction extends PayDenizenAction {
+    readonly selects: PayDenizenAction["selects"] & { forFavor: SelectBoolean };
+    readonly parameters: PayDenizenAction["parameters"] & { forFavor: boolean[] };
     readonly message = "Put resources on a card to trade";
     supplyCost = 1;
 
-    cardProxy: Denizen;
     forFavor: boolean;
     paying: ResourceCost;
     getting: Map<OathResourceType, number>;
 
     start() {
-        this.selects.cardProxy = new SelectCard("Card", this.player, this.playerProxy.site.denizens.filter(e => e.suit !== OathSuit.None && e.empty), { min: 1 });
         this.selects.forFavor = new SelectBoolean("Type", ["For favors", "For secrets"]);
         return super.start();
     }
 
     execute() {
-        this.cardProxy = this.parameters.cardProxy[0]!;
         this.forFavor = this.parameters.forFavor[0]!;
         this.paying = new ResourceCost([[this.forFavor ? Secret : Favor, this.forFavor ? 1 : 2]]);
         this.getting = new Map([[this.forFavor ? Favor : Secret, this.forFavor ? 1 : 0]]);

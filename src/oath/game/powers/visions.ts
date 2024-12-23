@@ -21,7 +21,7 @@ export class OathDefense extends ActionModifier<Oath, CampaignDefenseAction> {
 
 
 // NOTE: Visions are directly integrated in the WakeAction
-export class ConspiracyPower extends WhenPlayed<Conspiracy> {
+export class ConspiracyWhenPlayed extends WhenPlayed<Conspiracy> {
     whenPlayed(): void {
         const targets: OathPlayer[] = [];
         for (const playerProxy of this.gameProxy.players) {

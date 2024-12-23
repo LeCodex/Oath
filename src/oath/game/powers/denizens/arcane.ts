@@ -379,11 +379,12 @@ export class MagiciansCode extends AccessedActionModifier<Denizen, RecoverBanner
 export class MapLibrary extends AccessedActionModifier<Denizen, TradeAction> {
     modifiedAction = TradeAction;
     
-    applyAtStart(): void {
+    applyWhenApplied(): boolean {
         if (this.action.playerProxy.site === this.sourceProxy.site && this.sourceProxy.site.region)
             for (const siteProxy of this.sourceProxy.site.region.sites)
-                for (const denizenProxy of siteProxy.denizens)
-                    this.action.selects.cardProxy.choices.set(denizenProxy.name, denizenProxy);
+                this.action.accessibleDenizenProxies.push(...siteProxy.denizens);
+
+        return true;
     }
 }
 

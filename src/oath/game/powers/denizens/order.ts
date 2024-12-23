@@ -359,8 +359,7 @@ export class Pressgangs extends AccessedActionModifier<Denizen, MusterAction> {
     modifiedAction = MusterAction;
 
     applyAtStart(): void {
-        // TODO: This doesn't take other modifiers into account. There is none like that, but if you had something similar to Map Library for mustering, this wouldn't work with it
-        for (const denizenProxy of this.action.playerProxy.site.denizens)
+        for (const denizenProxy of this.action.accessibleDenizenProxies)
             this.action.selects.cardProxy.choices.set(denizenProxy.visualName(this.action.player), denizenProxy.original);
     }
 }
