@@ -107,7 +107,9 @@ export class ChooseModifiers<T extends ModifiableAction> extends OathAction {
 
         // NOTE: For ignore loops, all powers in the loop are ignored.
         const ignore = new Set<ActionModifier<WithPowers, T>>();
-        for (const modifier of modifiers) for (const toIgnore of modifier.applyImmediately(modifiers)) ignore.add(toIgnore);
+        for (const modifier of modifiers)
+            for (const toIgnore of modifier.applyImmediately(modifiers))
+                ignore.add(toIgnore);
         for (const modifier of ignore) modifiers.delete(modifier);
 
         if (this.action.applyModifiers(modifiers)) {

@@ -42,6 +42,12 @@ export class SelectNOf<T> {
         this.max = Math.min(params.max, this.choices.size);
     }
 
+    filterChoices(condition: (e: T) => boolean) {
+        for (const [name, choice] of this.choices)
+            if (!condition(choice))
+                this.choices.delete(name);
+    }
+
     parse(input: Iterable<string>): T[] {
         const values = new Set<T>();
         for (const val of input) {

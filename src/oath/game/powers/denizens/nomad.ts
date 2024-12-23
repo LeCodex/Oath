@@ -6,7 +6,7 @@ import { DiscardOptions } from "../../cards/decks";
 import { AttackDie, DieSymbol } from "../../dice";
 import { PayCostToTargetEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PayPowerCostEffect, BecomeCitizenEffect, DrawFromDeckEffect, FlipEdificeEffect, MoveResourcesToTargetEffect, DiscardCardEffect, GainSupplyEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, PeekAtCardEffect, MoveWorldCardToAdvisersEffect, MoveDenizenToSiteEffect, DiscardCardGroupEffect, PlayVisionEffect, ParentToTargetEffect, BurnResourcesEffect, PutPawnAtSiteEffect, RecoverTargetEffect } from "../../actions/effects";
 import { BannerKey, OathSuit } from "../../enums";
-import { OwnableObject, isOwnable } from "../../interfaces";
+import { isOwnable } from "../../interfaces";
 import { ExileBoard, OathPlayer } from "../../player";
 import { Favor, ResourceCost, Secret } from "../../resources";
 import { ActivePower, CapacityModifier, AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, EnemyAttackerCampaignModifier, EnemyActionModifier, ActionModifier, gainPowerUntilActionResolves, BattlePlan } from "../powers";
@@ -234,30 +234,22 @@ export class RelicWorship extends ActionModifier<Denizen, RecoverTargetEffect> {
     }
 }
 
-function lostTongueCheckOwnable(sourceProxy: Denizen, targetProxy: OwnableObject, playerProxy: OathPlayer | undefined) {
-    if (!sourceProxy.ruler) return;
-    if (!playerProxy) return;
-    if (targetProxy.owner !== sourceProxy.ruler) return;
-
-    if (playerProxy.suitRuledCount(OathSuit.Nomad) < 1)
-        throw new InvalidActionResolution(`Cannot target or take objects from ${sourceProxy.ruler.name} without understanding the Lost Tongue.`);
-}
 export class LostTongue extends EnemyActionModifier<Denizen, TakeOwnableObjectEffect> {
     modifiedAction = TakeOwnableObjectEffect;
-
+    
     applyBefore(): void {
-        const targetProxy = this.action.maskProxyManager.get(this.action.target);
-        lostTongueCheckOwnable(this.sourceProxy, targetProxy, this.action.executorProxy);
+        if (this.action.playerProxy.suitRuledCount(OathSuit.Nomad) < 1) {
+            const targetProxy = this.action.maskProxyManager.get(this.action.target);
+            if (!this.sourceProxy.ruler) return;
+            if (targetProxy.owner !== this.sourceProxy.ruler) return;
+            throw new InvalidActionResolution(`Cannot target or take objects from ${this.sourceProxy.ruler.name} without understanding the Lost Tongue.`);
+        }
     }
 }
 export class LostTongueCampaign extends EnemyAttackerCampaignModifier<Denizen> {
-    applyBefore(): void {
-        for (const target of this.action.campaignResult.targets) {
-            if (isOwnable(target)) {
-                const targetProxy = this.action.maskProxyManager.get(target);
-                lostTongueCheckOwnable(this.sourceProxy, targetProxy, this.activatorProxy);
-            }
-        }
+    applyAtStart(): void {
+        if (this.action.playerProxy.suitRuledCount(OathSuit.Nomad) < 1)
+            this.action.selects.targetProxies.filterChoices(e => !isOwnable(e) || e.owner !== this.sourceProxy.ruler);
     }
 }
 
@@ -425,7 +417,7 @@ export class SpellBreaker extends EnemyActionModifier<Denizen, PayPowerCostEffec
     modifiedAction = PayPowerCostEffect;
 
     canUse(): boolean {
-        return (this.action.power.cost.totalResources.get(Secret) ?? 0) > 0;
+        return super.canUse() && (this.action.power.cost.totalResources.get(Secret) ?? 0) > 0;
     }
 
     applyBefore(): void {

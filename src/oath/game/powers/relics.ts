@@ -4,7 +4,7 @@ import { Denizen, GrandScepter, OathCard, Relic, Site } from "../cards/cards";
 import { TakeOwnableObjectEffect, PlayDenizenAtSiteEffect, MoveOwnWarbandsEffect, PeekAtCardEffect, SetGrandScepterLockEffect, GainSupplyEffect, DrawFromDeckEffect, RevealCardEffect, PayCostToTargetEffect, BecomeExileEffect, MoveResourcesToTargetEffect, MoveDenizenToSiteEffect, MoveWorldCardToAdvisersEffect, ParentToTargetEffect } from "../actions/effects";
 import { BannerKey, PlayerColor } from "../enums";
 import { OathPlayer, ExileBoard } from "../player";
-import { OwnableObject, isOwnable } from "../interfaces";
+import { isOwnable } from "../interfaces";
 import { Favor, Warband, ResourceCost, Secret } from "../resources";
 import { AccessedActionModifier, EnemyActionModifier, AttackerBattlePlan, DefenderBattlePlan, ActionModifier, ActivePower, RestPower, BattlePlan, EnemyAttackerCampaignModifier } from "./powers";
 import { DiscardOptions } from "../cards/decks";
@@ -175,32 +175,25 @@ export class CupOfPlenty extends AccessedActionModifier<Relic, TradeAction> {
     }
 }
 
-function circletOfCommandCheckOwnable(sourceProxy: Relic, targetProxy: OwnableObject, playerProxy: OathPlayer | undefined) {
-    if (!sourceProxy.ruler) return;
-    if (!playerProxy) return;
-    if (targetProxy.owner !== sourceProxy.ruler) return;
-
-    if (targetProxy !== sourceProxy)
-        throw new InvalidActionResolution(`Cannot target or take objects from ${sourceProxy.ruler.name} while protected by the Circlet of Command.`);
-}
 export class CircletOfCommand extends EnemyActionModifier<Relic, TakeOwnableObjectEffect> {
     modifiedAction = TakeOwnableObjectEffect;
 
     applyBefore(): void {
         const targetProxy = this.action.maskProxyManager.get(this.action.target);
-        circletOfCommandCheckOwnable(this.sourceProxy, targetProxy, this.action.executorProxy);
+        if (!this.sourceProxy.ruler) return;
+        if (targetProxy.owner !== this.sourceProxy.ruler) return;
+        if (targetProxy === this.sourceProxy) return;
+        throw new InvalidActionResolution(`Cannot take objects from ${this.sourceProxy.ruler.name} while protected by the Circlet of Command.`);
     }
 }
 export class CircletOfCommandCampaign extends EnemyAttackerCampaignModifier<Relic> {
-    applyBefore(): void {
-        for (const target of this.action.campaignResult.targets) {
-            if (isOwnable(target)) {
-                const targetProxy = this.action.maskProxyManager.get(target);
-                circletOfCommandCheckOwnable(this.sourceProxy, targetProxy, this.activatorProxy);
-            }
+    applyAtStart(): void {
+        this.action.selects.targetProxies.filterChoices(e => e === this.sourceProxy || !isOwnable(e) || e.owner !== this.sourceProxy.ruler);
+    }
 
+    applyBefore(): void {
+        for (const target of this.action.campaignResult.targets) 
             if (target === this.sourceProxy.ruler?.original) this.action.campaignResult.defPool += 1;
-        }
     }
 }
 

@@ -101,7 +101,7 @@ export abstract class ActionModifier<T extends WithPowers, U extends ModifiableA
         return true;
     }
 
-    /** Applied right after all the possible modifiers are collected. Returns modifiers to ignore */
+    /** Applied right after all the chosen modifiers are collected. Returns modifiers to ignore */
     applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, U>>): Iterable<ActionModifier<WithPowers, U>> { return []; }
     /** Applied before the action is added to the stack. If returns false, it will not be added */
     applyWhenApplied(): boolean { return true; }

@@ -87,10 +87,8 @@ export class ForestPaths extends AccessedActionModifier<Denizen, TravelAction> {
         return [...modifiers].filter(e => e.source instanceof Site);
     }
 
-    applyBefore(): void {
-        if (![...this.action.siteProxy.denizens].some(e => e.suit === OathSuit.Beast))
-            throw new InvalidActionResolution("When using the Forest Paths, you must travel to a site with a Beast card");
-
+    applyAtStart(): void {
+        this.action.selects.siteProxy.filterChoices(e => [...e.denizens].some(e => e.suit === OathSuit.Beast));
         this.action.noSupplyCost = true;
     }
 }
@@ -175,17 +173,15 @@ export class MarshSpirit extends ActionModifier<Denizen, CampaignAttackAction> {
 export class ForestCouncilTrade extends EnemyActionModifier<Denizen, TradeAction> {
     modifiedAction = TradeAction;
 
-    applyBefore(): void {
-        if (this.action.cardProxy.suit === OathSuit.Beast)
-            throw new InvalidActionResolution("Cannot trade with Beast cards under the Forest Council");
+    applyAtStart(): void {
+        this.action.selects.cardProxy.filterChoices(e => e.suit !== OathSuit.Beast);
     }
 }
 export class ForestCouncilMuster extends EnemyActionModifier<Denizen, MusterAction> {
     modifiedAction = MusterAction;
 
-    applyBefore(): void {
-        if (this.action.cardProxy.suit === OathSuit.Beast)
-            throw new InvalidActionResolution("Cannot muster from Beast cards under the Forest Council");
+    applyAtStart(): void {
+        this.action.selects.cardProxy.filterChoices(e => e.suit !== OathSuit.Beast);
     }
 }
 
@@ -304,9 +300,6 @@ export class SmallFriends extends AccessedActionModifier<Denizen, TradeAction> {
                 for (const denizenProxy of siteProxy.denizens)
                     if (denizenProxy.suit === OathSuit.Beast)
                         sites.add(siteProxy.original);
-
-        if (sites.size === 0)
-            throw new InvalidActionResolution("No other site with a Beast card");
 
         new ActAsIfAtSiteAction(this.activator, this.action, sites).doNext();
         return false;

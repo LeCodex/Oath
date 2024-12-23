@@ -1,7 +1,7 @@
 import { ChooseResourceToTakeAction, WakeAction, TravelAction, CampaignAttackAction, MusterAction, SearchAction, StartBindingExchangeAction, MakeBindingExchangeOfferAction, SearchPlayOrDiscardAction, MayDiscardACardAction } from "../actions/actions";
 import { InvalidActionResolution, ModifiableAction } from "../actions/base";
 import { Site, Denizen } from "../cards/cards";
-import { PlayWorldCardEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, FlipSecretsEffect, ParentToTargetEffect, RecoverTargetEffect } from "../actions/effects";
+import { PlayWorldCardEffect, PutResourcesOnTargetEffect, FlipSecretsEffect, ParentToTargetEffect, RecoverTargetEffect } from "../actions/effects";
 import { OathSuit } from "../enums";
 import { isAtSite, WithPowers } from "../interfaces";
 import { OathPlayer } from "../player";
@@ -98,17 +98,13 @@ export class CoastalSite extends AtSiteActionModifier<TravelAction> {
         return [...modifiers].filter(e => e instanceof NarrowPass);
     }
 
+    applyAtStart(): void {
+        this.action.selects.siteProxy.filterChoices(e => e.facedown || e.powers.has(CoastalSite));
+    }
+
     applyBefore(): void {
         if (this.action.siteProxy.facedown) return;
-
-        for (const power of this.action.siteProxy.powers) {
-            if (power === CoastalSite) {
-                this.action.supplyCost = 1;
-                return;
-            }
-        }
-
-        throw new InvalidActionResolution("When using a Coastal Site, you must travel to another Coastal Site");
+        this.action.supplyCost = 1;
     }
 }
 
@@ -131,12 +127,9 @@ export class BuriedGiant extends AtSiteActionModifier<TravelAction> {
     applyWhenApplied(): boolean {
         new FlipSecretsEffect(this.game, this.action.player, 1, true).doNext(amount => {
             if (amount < 1) throw new InvalidActionResolution("Cannot flip a secret for Buried Giant");
+            this.action.noSupplyCost = true;
         });
         return true;
-    }
-
-    applyBefore(): void {
-        this.action.noSupplyCost = true;
     }
 }
 
@@ -162,9 +155,9 @@ export class NarrowPass extends ActionModifier<Site, TravelAction> {
     modifiedAction = TravelAction;
     mustUse = true;
 
-    applyBefore(): void {
-        if (this.action.siteProxy !== this.sourceProxy && this.activatorProxy.site.region !== this.sourceProxy.region && this.action.siteProxy.region === this.sourceProxy.region)
-            throw new InvalidActionResolution("Must go through the Narrow Pass");
+    applyAtStart(): void {
+        if (this.activatorProxy.site.region !== this.sourceProxy.region)
+            this.action.selects.siteProxy.filterChoices(e => e === this.sourceProxy || e.region !== this.sourceProxy.region);
     }
 }
 

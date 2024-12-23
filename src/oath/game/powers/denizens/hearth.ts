@@ -432,10 +432,8 @@ export class HallOfDebate extends ActionModifier<Edifice, CampaignAttackAction> 
     modifiedAction = CampaignAttackAction;
     mustUse = true;
 
-    applyBefore(): void {
-        const peoplesFavor = this.game.banners.get(BannerKey.PeoplesFavor);
-        if (peoplesFavor && this.action.campaignResult.targets.has(peoplesFavor))
-            throw new InvalidActionResolution("Cannot target the People's Favor in campaigns with the Hall of Debate");
+    applyAtStart(): void {
+        this.action.selects.targetProxies.filterChoices(e => e !== this.game.banners.get(BannerKey.PeoplesFavor));
     }
 }
 

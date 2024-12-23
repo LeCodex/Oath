@@ -1,9 +1,8 @@
-import { CampaignAttackAction, CampaignDefenseAction, TakeFavorFromBankAction, TradeAction, TravelAction, MakeDecisionAction, RestAction, ChooseCardsAction, SearchPlayOrDiscardAction, ChoosePlayersAction, ChooseSitesAction, ChooseNumberAction, SearchAction, KillWarbandsOnTargetAction, MusterAction, RecoverBannerPitchAction, ChooseRnWsAction } from "../../actions/actions";
-import { InvalidActionResolution } from "../../actions/base";
+import { CampaignAttackAction, CampaignDefenseAction, TakeFavorFromBankAction, TradeAction, TravelAction, MakeDecisionAction, RestAction, ChooseCardsAction, SearchPlayOrDiscardAction, ChoosePlayersAction, ChooseSitesAction, ChooseNumberAction, SearchAction, KillWarbandsOnTargetAction, MusterAction, RecoverBannerPitchAction, ChooseRnWsAction, RecoverAction } from "../../actions/actions";
 import { Conspiracy, Denizen, Edifice, Relic, Site, WorldCard } from "../../cards/cards";
 import { DiscardOptions } from "../../cards/decks";
 import { AttackDie, DefenseDie, DieSymbol, RollResult } from "../../dice";
-import { RegionDiscardEffect, PutResourcesOnTargetEffect, RollDiceEffect, BecomeCitizenEffect, DiscardCardEffect, PeekAtCardEffect, MoveResourcesToTargetEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, MoveWorldCardToAdvisersEffect, ParentToTargetEffect, BurnResourcesEffect, RecoverTargetEffect } from "../../actions/effects";
+import { RegionDiscardEffect, PutResourcesOnTargetEffect, RollDiceEffect, BecomeCitizenEffect, DiscardCardEffect, PeekAtCardEffect, MoveResourcesToTargetEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, MoveWorldCardToAdvisersEffect, ParentToTargetEffect, BurnResourcesEffect } from "../../actions/effects";
 import { BannerKey, OathSuit } from "../../enums";
 import { ExileBoard, OathPlayer } from "../../player";
 import { Favor, OathResourceType, ResourceCost, ResourcesAndWarbands, Secret } from "../../resources";
@@ -302,9 +301,9 @@ export class Portal extends AccessedActionModifier<Denizen, TravelAction> {
         return [...modifiers].filter(e => e.source instanceof Site);
     }
 
-    applyBefore(): void {
-        if (this.activatorProxy.site !== this.sourceProxy.site && this.action.siteProxy !== this.sourceProxy.site)
-            throw new InvalidActionResolution("When using the Portal, you must travel to or from its site");
+    applyAtStart(): void {
+        if (this.activator.site !== this.source.site)
+            this.action.selects.siteProxy.filterChoices(e => e.original === this.source.site);
 
         this.action.noSupplyCost = true;
     }
@@ -478,13 +477,12 @@ export class VowOfSilence extends AccessedActionModifier<Denizen, ParentToTarget
                 this.action.objects.delete(object);
     }
 }
-export class VowOfSilenceRecover extends AccessedActionModifier<Denizen, RecoverTargetEffect> {
-    modifiedAction = RecoverTargetEffect;
+export class VowOfSilenceRecover extends AccessedActionModifier<Denizen, RecoverAction> {
+    modifiedAction = RecoverAction;
     mustUse = true;
 
-    applyBefore(): void {
-        if (this.action.target === this.gameProxy.banners.get(BannerKey.DarkestSecret)?.original)
-            throw new InvalidActionResolution("Cannot recover the Darkest Secret with the Vow of Silence");
+    applyAtStart(): void {
+        this.action.selects.targetProxy.filterChoices(e => e !== this.gameProxy.banners.get(BannerKey.DarkestSecret))
     }
 }
 export class VowOfSilencePitch extends ActionModifier<Denizen, RecoverBannerPitchAction> {

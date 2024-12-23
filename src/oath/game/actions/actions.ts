@@ -1393,7 +1393,7 @@ export class ActAsIfAtSiteAction extends ChooseSitesAction {
                 action.playerProxy.site = action.maskProxyManager.get(sites[0]);
                 action.doNext();  // Allow the player to choose other new modifiers
             },
-            sites && [sites]
+            sites && [sites], [[1]]
         );
     }
 }

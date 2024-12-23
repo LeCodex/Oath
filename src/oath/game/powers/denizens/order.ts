@@ -38,7 +38,7 @@ export class EncirclementDefense extends DefenderBattlePlan<Denizen> {
 }
 
 export class CodeOfHonorAttack extends AttackerBattlePlan<Denizen> {
-    applyBefore(): void {
+    applyAtStart(): void {
         for (const modifier of this.action.modifiers)
             if (modifier !== this && modifier instanceof AttackerBattlePlan)
                 throw new InvalidActionResolution("Cannot use other battle plans with the Code of Honor");
@@ -47,7 +47,7 @@ export class CodeOfHonorAttack extends AttackerBattlePlan<Denizen> {
     }
 }
 export class CodeOfHonorDefense extends DefenderBattlePlan<Denizen> {
-    applyBefore(): void {
+    applyAtStart(): void {
         for (const modifier of this.action.modifiers)
             if (modifier !== this && modifier instanceof DefenderBattlePlan)
                 throw new InvalidActionResolution("Cannot use other battle plans with the Code of Honor");
@@ -330,10 +330,8 @@ export class TomeGuardians extends EnemyActionModifier<Denizen, TakeOwnableObjec
 export class TomeGuardiansAttack extends EnemyActionModifier<Denizen, CampaignAttackAction> {
     modifiedAction = CampaignAttackAction;
 
-    applyBefore(): void {
-        for (const targetProxy of this.action.campaignResultProxy.targets)
-            if (targetProxy === this.gameProxy.banners.get(BannerKey.DarkestSecret))
-                throw new InvalidActionResolution("Cannot target the Darkest Secret under the Tome Guardians.");
+    applyAtStart(): void {
+        this.action.selects.targetProxies.filterChoices(e => e !== this.gameProxy.banners.get(BannerKey.DarkestSecret));
     }
 }
 
