@@ -4,7 +4,7 @@ import { WorldCard, VisionBack, OathCard, Relic } from "./cards";
 
 
 export abstract class CardDeck<T extends OathCard, U = any> extends Container<T, U> {
-    type = "deck";
+    readonly type = "deck";
 
     draw(amount: number, fromBottom: boolean = false, skip: number = 0): T[] {
         // Why such an involved process instead of just using splice? To make sure the draws are in correct order for reverting

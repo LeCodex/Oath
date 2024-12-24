@@ -7,7 +7,7 @@ import { AbstractConstructor } from "./utils";
 
 export abstract class OathResource extends OathGameObjectLeaf<number> {
     static resourceId = 0;  // TOOD: Find better solution for unique ids
-    type = "resource";
+    readonly type = "resource";
 
     constructor(id?: string) {
         super(id ?? String(OathResource.resourceId++));
@@ -60,7 +60,7 @@ export class Secret extends OathResource {
 export type OathResourceType<T extends OathResource = OathResource> = AbstractConstructor<T>;
 
 export class Warband extends OathGameObjectLeaf<number> {
-    type = "warband";
+    readonly type = "warband";
     color: PlayerColor;
 
     constructor(id?: string) {

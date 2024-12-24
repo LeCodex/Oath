@@ -49,7 +49,7 @@ const render = () => {
     const infoNode = document.getElementById("info");
     infoNode.innerText = "[SUPPLY]";
     for (const obj of sortedChildren(game)) {
-        if (obj._type === "player" || obj._type === "map") continue;
+        if (obj.type === "player" || obj.type === "map") continue;
         renderObject(infoNode, obj);
     }
 
@@ -109,7 +109,7 @@ const renderObject = (parent, obj) => {
     if (obj._hidden) return;
 
     let node, autoAppendChildren = true;
-    switch (obj._type) {
+    switch (obj.type) {
         case "player":
             const board = byType(obj, "board")[0];
             if (board) {
@@ -173,9 +173,9 @@ const renderObject = (parent, obj) => {
 const renderCard = (card) => {
     const cardNode = document.createElement("li");
     cardNode.id = "card" + card.id;
-    if (card._type === "relic") cardNode.innerText += "🧰 ";
-    if (card._type === "site") cardNode.innerText += "🗺️ ";
-    cardNode.innerText += (card.facedown ? card._type === "vision" ? "👁️ " : "❔ " : "");
+    if (card.type === "relic") cardNode.innerText += "🧰 ";
+    if (card.type === "site") cardNode.innerText += "🗺️ ";
+    cardNode.innerText += (card.facedown ? card.type === "vision" ? "👁️ " : "❔ " : "");
     cardNode.innerText += (card._locked ? "🔗" : "");
     cardNode.innerText += (!card.facedown || card.seenBy?.includes(game.order[game.turn]) ? (card._suit !== undefined ? suitColors[card._suit] + " " : "") + card._name : "");
     return cardNode;
@@ -188,11 +188,11 @@ const renderDeck = (deck, name, separateVisions = false) => {
     if (deck._searchCost !== undefined) deckNode.innerText += " : " + deck._searchCost + " Supply";
     if (!deck.children) return deckNode;
 
-    let topCardVision = deck.children[0]?._type === "vision";
+    let topCardVision = deck.children[0]?.type === "vision";
     const deckList = deckNode.appendChild(document.createElement("ul"));
     let facedownTotal = 0;
     for (const card of deck.children) {
-        if (card.facedown && !card.seenBy?.includes(game.order[game.turn]) && !(separateVisions && card._type === "vision")) {
+        if (card.facedown && !card.seenBy?.includes(game.order[game.turn]) && !(separateVisions && card.type === "vision")) {
             facedownTotal++;
         } else {
             if (facedownTotal) deckList.appendChild(renderText(facedownTotal + (topCardVision ? " 👁️" : " ❔")));
@@ -212,12 +212,12 @@ const renderResourcesAndWarbands = (node, obj) => {
 }
 
 const byType = (obj, type) => {
-    return obj.children.filter(e => e._type === type);
+    return obj.children.filter(e => e.type === type);
 }
 
 const typeOrder = ["oath", "denizen", "relic", "banner", "reliquary", "bank", "deck"];
 const sortedChildren = (obj) => {
-    return obj.children.sort((a, b) => typeOrder.indexOf(a._type) - typeOrder.indexOf(b._type));
+    return obj.children.sort((a, b) => typeOrder.indexOf(a.type) - typeOrder.indexOf(b.type));
 }
 
 const renderText = (text) => {

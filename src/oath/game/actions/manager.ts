@@ -20,7 +20,7 @@ export class HistoryNode<T extends OathActionManager> {
         if (data === "") return;
         const lines = data.split("\n");
         for (const [i, line] of lines.entries()) {
-            // console.log(`   Resolving event ${i}: ${line}`);
+            console.log(`   Resolving event ${i}: ${line}`);
             const { name, player, data } = JSON.parse(line) as ReturnType<HistoryEvent["serialize"]>;
             // This is a "dummy" event that just replays the actions. The replay takes care of adding the actual events back
             const event = new eventsIndex[name](this.manager, player, data);
@@ -257,29 +257,38 @@ export class OathActionManager {
     }
 
     authorizeCancel() {
-        while (this.history[this.history.length - 1]?.events.length === 0) this.history.pop();
-        const node = this.history.pop()!;  // Replays will put everything back into the history
+        const history = [...this.history];
+        const gameState = this.gameState;
+        try {
+            while (this.history[this.history.length - 1]?.events.length === 0) this.history.pop();
+            const node = this.history.pop()!;  // Replays will put everything back into the history
 
-        node.events.pop();
-        this.actionsStack.length = 0;
-        this.futureActionsList.length = 0;
-        this.currentEffectsStack.length = 0;
-        this.rollbackConsent = undefined;
-        this.markEventAsOneWay = false;
-        
-        this.game.parse(node.game, true);
-        if (this.history.length === 0) {
-            // console.log("Replaying from start");
-            this.game.initialActions();
-            this.checkForNextAction();  // Flush the initial actions onto the stack
+            node.events.pop();
+            this.actionsStack.length = 0;
+            this.futureActionsList.length = 0;
+            this.currentEffectsStack.length = 0;
+            this.rollbackConsent = undefined;
+            this.markEventAsOneWay = false;
+            
+            this.game.parse(node.game, true);
+            if (this.history.length === 0) {
+                // console.log("Replaying from start");
+                this.game.initialActions();
+                this.checkForNextAction();  // Flush the initial actions onto the stack
+            }
+            for (const [i, event] of node.events.entries()) {
+                // console.log(`Replaying event ${i}`);
+                event.replay();
+            }
+            
+            this.checkForNextAction();
+            return this.defer();
+        } catch (e) {
+            this.history = history;
+            this.revertCurrentAction(gameState);
+            throw e;
         }
-        for (const [i, event] of node.events.entries()) {
-            // console.log(`Replaying event ${i}`);
-            event.replay();
-        }
-        
-        this.checkForNextAction();
-        return this.defer();
+
     }
 
     revertCurrentAction({ game, stack }: this["gameState"]): void {

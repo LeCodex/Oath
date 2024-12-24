@@ -277,7 +277,7 @@ export abstract class TreeNode<RootType extends TreeRoot<RootType>, KeyType = an
     /** Use {@linkcode typedParent()} to get a strongly typed version of this. */
     parent: TreeNode<RootType>;
     /** Used for serialization and lookup. General categorization, above classes. */
-    abstract type: string;
+    abstract readonly type: string;
     /** Used for serialization. Printing name. */
     abstract name: string;
     /** Used for serialization. If clients should skip rendering this object. */
@@ -300,7 +300,7 @@ export abstract class TreeNode<RootType extends TreeRoot<RootType>, KeyType = an
     prune(deep: boolean = true) {
         this.parent?.children.delete(this);
         this.root?.removeFromLookup(this);
-        if (deep) for (const child of this.children) child.prune();
+        if (deep) for (const child of [...this.children]) child.prune();
         (this.parent as any) = undefined;  // Pruned objects shouldn't be accessed anyways
     }
 
@@ -347,6 +347,7 @@ export abstract class TreeNode<RootType extends TreeRoot<RootType>, KeyType = an
 
     /** Serialize the node into a simple object. If `lite` is true, only the necessary properties are recorded. */
     serialize(lite: boolean = false): SerializedNode<this> {
+        // if (this.root as any === this) console.log("SERIALIZED")
         const obj = {
             ...this.liteSerialize(),
             children: this.children.map(e => e.serialize(lite)).filter(e => e !== undefined),
@@ -360,14 +361,14 @@ export abstract class TreeNode<RootType extends TreeRoot<RootType>, KeyType = an
     liteSerialize() {
         return {
             class: this.constructor.name,
-            id: this.id
+            type: this.type,
+            id: this.id,
         };
     }
 
     /** Serialize the data that isn't taken into account for parsing (what is excluded in a lite serialization) */
     constSerialize(): Record<`_${string}`, any> {
         return {
-            _type: this.type,
             _name: this.name,
             _hidden: this.hidden,
         };
@@ -375,10 +376,11 @@ export abstract class TreeNode<RootType extends TreeRoot<RootType>, KeyType = an
 
     parse(obj: ReturnType<this["liteSerialize"]>, allowCreation: boolean = false) {
         if (obj.class !== this.constructor.name) throw TypeError(`Class parsing doesn't match: expected ${this.constructor.name}, got ${obj.class}`);
+        if (obj.type !== this.type) throw TypeError(`Type parsing doesn't match: expected ${this.type}, got ${obj.type}`);
         if (obj.id !== this.id) throw TypeError(`Id parsing doesn't match: expected ${this.id}, got ${obj.id}`);
 
         // Ugly type casting, since recursive types with generic parameters cause "type serialization is too deep" errors,
-        // and I want the child classes to use ReturnType<this["liteSerialize"]> and it causes issues with the recursivity
+        // and I want the child classes to use ReturnType<this["liteSerialize"]> and using it here causes issues with the recursivity
         let objWithChildren = obj as SerializedNode<this>;
         if (!objWithChildren.children) {
             for (const child of this.children) child.prune();
@@ -387,10 +389,10 @@ export abstract class TreeNode<RootType extends TreeRoot<RootType>, KeyType = an
 
         const confirmedChildren = new Set<TreeNode<RootType>>();
         for (const [i, child] of objWithChildren.children.entries()) {
-            let node = this.root.search(child.class, child.id);
+            let node = this.root.search(child.type, child.id);
             if (!node) {
-                console.warn(`Didn't find node of class ${child.class} and id ${child.id}`);
-                if (!allowCreation) throw TypeError(`Could not find node of class ${child.class} and id ${child.id}`);
+                if (!allowCreation) throw TypeError(`Could not find node of class ${child.type} and id ${child.id}, and creation is not allowed`);
+                console.warn(`Didn't find node of type ${child.type} and id ${child.id}`);
                 node = this.root.create(child.class, child);
             }
             if (node.parent !== this || node.parent.children.indexOf(node) !== i) this.addChild(node);
@@ -404,7 +406,7 @@ export abstract class TreeNode<RootType extends TreeRoot<RootType>, KeyType = an
     }
 }
 
-export type SerializedNode<T extends TreeNode<any>> = ReturnType<T["liteSerialize"]> & ReturnType<T["constSerialize"]> & { children?: SerializedNode<TreeNode<any>>[] }
+export type SerializedNode<T extends TreeNode<any>> = ReturnType<T["liteSerialize"]> & { children?: SerializedNode<TreeNode<any>>[] }
 
 export abstract class TreeRoot<RootType extends TreeRoot<RootType>> extends TreeNode<RootType, "root"> {
     parent = this;
@@ -425,19 +427,21 @@ export abstract class TreeRoot<RootType extends TreeRoot<RootType>> extends Tree
     }
 
     addToLookup(node: TreeNode<RootType>) {
-        let typeGroup = this.lookup[node.type] = this.lookup[node.type] ?? {};
+        // console.log(`+ Adding object of type ${node.type} and id ${node.id}`);
+        const typeGroup = this.lookup[node.type] ??= {};
         if (typeGroup[node.id]) throw TypeError(`Object of type ${node.type} and id ${node.id} already exists`);
         typeGroup[node.id] = node;
     }
-
+    
     removeFromLookup(node: TreeNode<RootType>) {
+        // console.log(`- Removing object of type ${node.type} and id ${node.id}`);
         const typeGroup = this.lookup[node.type];
         if (!typeGroup) return;
         delete typeGroup[node.id];
     }
 
     search<T extends TreeNode<RootType>>(type: T["type"], id: T["key"]): T | undefined {
-        const typeGroup = this.root.lookup[type];
+        const typeGroup = this.lookup[type];
         if (!typeGroup) return undefined;
         return typeGroup[id] as T;
     }

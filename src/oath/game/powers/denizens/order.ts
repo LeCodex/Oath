@@ -246,7 +246,7 @@ export class RelicHunter extends AttackerBattlePlan<Denizen> {
     }
 }
 export class RelicWrapper extends OathGameObject<Relic["key"]> implements CampaignActionTarget {
-    type = "relic";
+    readonly type = "relic";
     defense = 1;
     force = undefined;
     relic: Relic;

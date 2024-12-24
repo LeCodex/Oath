@@ -5,7 +5,7 @@ import { Container, OathGameObject } from "./gameObject";
 
 
 export class OathMap extends Container<Region, string> {
-    type = "map";
+    readonly type = "map";
     name = "Map";
     travelCosts = new Map<RegionKey, Map<RegionKey, number>>([
         [RegionKey.Cradle, new Map([[RegionKey.Cradle, 1], [RegionKey.Provinces, 2], [RegionKey.Hinterland, 4]])],
@@ -47,7 +47,7 @@ export class OathMap extends Container<Region, string> {
 
 
 export class Region extends OathGameObject<RegionKey> {
-    type = "region";
+    readonly type = "region";
     readonly id: keyof typeof RegionKey;
     size: number;
     discard: Discard;

@@ -5,7 +5,7 @@ import { Discard, RelicDeck, WorldDeck } from "./cards/decks";
 import { Oath } from "./oaths";
 import { Reliquary, ReliquarySlot } from "./reliquary";
 import { Favor, Warband, Secret } from "./resources";
-import { ChancellorBoard, ExileBoard } from "./player";
+import { ChancellorBoard, ExileBoard, VisionSlot } from "./player";
 
 const index = {
     FavorBank,
@@ -24,10 +24,11 @@ const index = {
     RelicDeck,
     Discard,
     Oath,
-    ExileBoard,
     ChancellorBoard,
     Reliquary,
     ReliquarySlot,
+    ExileBoard,
+    VisionSlot,
     Favor,
     Secret,
     Warband

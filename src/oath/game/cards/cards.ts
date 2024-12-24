@@ -75,7 +75,7 @@ export abstract class OathCard extends ResourcesAndWarbands<string> implements H
 
 
 export class Site extends OathCard implements CampaignActionTarget {
-    type = "site";
+    readonly type = "site";
     capacity: number;
     startingRelics: number;
     startingResources: Map<typeof OathResource, number>;
@@ -180,7 +180,7 @@ export abstract class OwnableCard extends OathCard implements OwnableObject  {
 }
 
 export class Relic extends OwnableCard implements RecoverActionTarget, CampaignActionTarget, AtSite {
-    type = "relic";
+    readonly type = "relic";
     defense: number;
     get force() { return this.owner?.board; }
 
@@ -230,7 +230,7 @@ export abstract class WorldCard extends OwnableCard {
 }
 
 export class Denizen extends WorldCard implements AtSite {
-    type = "denizen";
+    readonly type = "denizen";
     restriction: CardRestriction;
     locked: boolean;
     powers: Set<Constructor<OathPower<Denizen>>>;
@@ -280,7 +280,7 @@ export class Edifice extends Denizen {
 }
 
 export abstract class VisionBack extends WorldCard {
-    type = "vision";
+    readonly type = "vision";
 
     get facedownName(): string { return super.facedownName + "vision"; }
 }

@@ -8,7 +8,7 @@ import { OathPlayer } from "./player";
 
 
 export class Reliquary extends Container<ReliquarySlot, string> {
-    type = "reliquary";
+    readonly type = "reliquary";
     name = "Reliquary";
 
     constructor() {
@@ -33,7 +33,7 @@ export const reliquarySlotPowers = [Brutal, Decadent, Careless, Greedy];
 
 export class ReliquarySlot extends Container<Relic, number> implements WithPowers {
     name: string;
-    type = "reliquarySlot";
+    readonly type = "reliquarySlot";
     powers: Set<Constructor<OathPower<ReliquarySlot>>>;
 
     get active(): boolean { return !this.children[0]; }

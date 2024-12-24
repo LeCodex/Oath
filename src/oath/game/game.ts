@@ -24,7 +24,7 @@ import * as fs from "fs";
 
 
 export class OathGame extends TreeRoot<OathGame> {
-    type = "root";
+    readonly type = "root";
     classIndex = classIndex;
 
     random: PRNG;
@@ -399,7 +399,7 @@ export class OathGame extends TreeRoot<OathGame> {
         game.actionManager.checkForNextAction();  // Flush the initial actions onto the stack
 
         for (const [i, nodeData] of chunks.entries()) {
-            // console.log(`Resolving chunk ${i}`);
+            console.log(`Resolving chunk ${i}`);
             const node = new HistoryNode(game.actionManager, game.serialize(true));
             node.parse(nodeData);
         }

@@ -11,7 +11,7 @@ import { Container } from "./gameObject";
 
 export class FavorBank extends Container<Favor, OathSuit> {
     readonly id: keyof typeof OathSuit;
-    type = "favorBank";
+    readonly type = "favorBank";
 
     constructor(id: keyof typeof OathSuit) {
         if (!isEnumKey(id, OathSuit)) throw TypeError(`${id} is not a valid suit`);
@@ -23,7 +23,7 @@ export class FavorBank extends Container<Favor, OathSuit> {
 }
 
 export abstract class Banner<T extends OathResource = OathResource> extends Container<T, string> implements RecoverActionTarget, CampaignActionTarget, WithPowers, OwnableObject {
-    type = "banner";
+    readonly type = "banner";
     powers: Set<Constructor<OathPower<Banner<T>>>>;
     active = true;
     min = 1;

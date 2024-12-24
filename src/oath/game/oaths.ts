@@ -33,7 +33,7 @@ export const oathData: Record<OathType, [(game: OathGame) => void, (player: Oath
 };
 
 export class Oath extends OathGameObjectLeaf<OathType> implements OwnableObject, WithPowers {
-    type = "oath";
+    readonly type = "oath";
     oathType: OathType;
     active = true;
     powers = new Set([OathDefense]);

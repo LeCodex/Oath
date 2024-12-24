@@ -9,7 +9,7 @@ import { Container, OathGameObject } from "./gameObject";
 import { Banner } from "./banks";
 
 export class WarbandsSupply extends Container<Warband, PlayerColor> {
-    type = "bag";
+    readonly type = "bag";
     readonly id: PlayerColor;
     get hidden() { return true; }
 
@@ -23,7 +23,7 @@ export class WarbandsSupply extends Container<Warband, PlayerColor> {
 }
 
 export class OathPlayer extends OathGameObject<number> implements CampaignActionTarget, AtSite {
-    type = "player";
+    readonly type = "player";
     name: string;
     board: PlayerBoard;
     supply: number = 7;
@@ -111,7 +111,7 @@ export class OathPlayer extends OathGameObject<number> implements CampaignAction
 }
 
 export abstract class PlayerBoard extends ResourcesAndWarbands<PlayerColor> implements OwnableObject {
-    type = "board";
+    readonly type = "board";
     readonly id: PlayerColor;
 
     bagAmount: number = 14;
@@ -193,7 +193,7 @@ export class ChancellorBoard extends PlayerBoard {
 }
 
 export class VisionSlot extends Container<Vision, PlayerColor> {
-    type = "visionSlot";
+    readonly type = "visionSlot";
     readonly id: PlayerColor;
 
     constructor(id: PlayerColor) {
