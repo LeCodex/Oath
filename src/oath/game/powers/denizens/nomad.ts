@@ -286,12 +286,13 @@ export class VowOfKinshipGain extends ActionModifier<Denizen, ParentToTargetEffe
 
     applyBefore(): void {
         const ruler = this.sourceProxy.ruler?.original;
+        if (this.action.target !== ruler) return;
         const nomadBank = this.game.favorBank(OathSuit.Nomad);
         if (!nomadBank) return;
 
         const favors: Favor[] = [];
         for (const object of this.action.objects) {
-            if (object instanceof Favor && this.action.target === ruler) {
+            if (object instanceof Favor) {
                 favors.push(object);
                 this.action.objects.delete(object);
             }
@@ -305,7 +306,7 @@ export class VowOfKinshipGive extends ActionModifier<Denizen, MoveResourcesToTar
     mustUse = true;
 
     applyBefore(): void {
-        if (this.action.resource != Favor) return;
+        if (this.action.resource !== Favor) return;
         const ruler = this.sourceProxy.ruler?.original;
         const nomadBank = this.game.favorBank(OathSuit.Nomad);
         if (!nomadBank) return;
@@ -317,7 +318,7 @@ export class VowOfKinshipBurn extends ActionModifier<Denizen, BurnResourcesEffec
     mustUse = true;
 
     applyBefore(): void {
-        if (this.action.resource != Favor) return;
+        if (this.action.resource !== Favor) return;
         const ruler = this.sourceProxy.ruler?.original;
         const nomadBank = this.game.favorBank(OathSuit.Nomad);
         if (!nomadBank) return;

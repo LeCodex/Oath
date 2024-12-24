@@ -409,7 +409,7 @@ export class RelicBreaker extends ActivePower<Denizen> {
             (cards: Relic[]) => {
                 if (!cards[0]) return;
                 cards[0].putOnBottom(this.action.player);
-                new ParentToTargetEffect(this.game, this.action.player, this.action.playerProxy.leader.original.bag.get(3)).doNext();
+                new ParentToTargetEffect(this.game, this.action.player, this.action.playerProxy.leader.original.bag.get(3), this.action.player.board).doNext();
             }
         ).doNext();
     }

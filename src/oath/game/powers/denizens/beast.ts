@@ -431,7 +431,7 @@ export class SecondChance extends ActivePower<Denizen> {
             (targets: OathPlayer[]) => {
                 if (!targets[0]) return;
                 new KillWarbandsOnTargetAction(this.action.player, targets[0].board, 1).doNext();
-                new ParentToTargetEffect(this.game, this.action.player, this.action.playerProxy.leader.original.bag.get(1)).doNext();
+                new ParentToTargetEffect(this.game, this.action.player, this.action.playerProxy.leader.original.bag.get(1), this.action.player.board).doNext();
             },
             [players]
         ).doNext();

@@ -155,7 +155,7 @@ export class TamingCharm extends ActivePower<Denizen> {
             (cards: Denizen[]) => {
                 if (!cards[0]) return;
                 const bank = this.game.favorBank(cards[0].suit);
-                if (bank) new ParentToTargetEffect(this.game, this.action.player, bank.get(2)).doNext();
+                if (bank) new MoveResourcesToTargetEffect(this.game, this.action.player, Favor, 2, this.action.player.board, bank).doNext();
                 new DiscardCardEffect(this.action.player, cards[0]).doNext();
             }
         ).doNext();
@@ -315,7 +315,7 @@ export class SecretSignal extends AccessedActionModifier<Denizen, TradeAction> {
     applyAfter(): void {
         const bank = this.game.favorBank(this.action.cardProxy.suit);
         if (bank && this.action.getting.get(Favor) === 1)
-            new ParentToTargetEffect(this.game, this.action.player, bank.get(1)).doNext();
+            new MoveResourcesToTargetEffect(this.game, this.action.player, Favor, 1, this.action.player.board, bank).doNext();
     }
 }
 

@@ -515,8 +515,12 @@ export class CampaignAction extends MajorAction {
 
     start() {
         const choices = new Map<string, OathPlayer | undefined>();
-        for (const playerProxy of this.gameProxy.players) if (playerProxy !== this.playerProxy) choices.set(playerProxy.name, playerProxy);
-        if (this.playerProxy.site.ruler === undefined) choices.set("Bandits", undefined);
+        for (const playerProxy of this.gameProxy.players)
+            if (playerProxy !== this.playerProxy && this.playerProxy.site === playerProxy.site)
+                choices.set(playerProxy.name, playerProxy);
+        
+        const siteRulerProxy = this.playerProxy.site.ruler;
+        choices.set(siteRulerProxy?.name ?? "Bandits", siteRulerProxy);
         this.selects.defenderProxy = new SelectNOf("Defender", choices, { min: 1 });
         return super.start();
     }
@@ -693,7 +697,7 @@ export class CampaignResult {
     targets = new Set<CampaignActionTarget>();
     atkPool: number;
     defPool: number;
-    atkForce: Set<ResourcesAndWarbands>;  // The force is all your warbands on the objects in this array
+    atkForce: Set<ResourcesAndWarbands>;  // The force is all your warbands on the objects in this set
     defForce: Set<ResourcesAndWarbands>;
     endCallbacks: (() => void)[] = [];
 
