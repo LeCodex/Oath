@@ -8,6 +8,7 @@ import { OathPlayer } from "./player";
 
 
 export class Reliquary extends Container<ReliquarySlot, string> {
+    readonly id: "reliquary";
     readonly type = "reliquary";
     name = "Reliquary";
 

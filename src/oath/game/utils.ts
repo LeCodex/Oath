@@ -304,7 +304,7 @@ export abstract class TreeNode<RootType extends TreeRoot<RootType>, KeyType = an
         (this.parent as any) = undefined;  // Pruned objects shouldn't be accessed anyways
     }
 
-    parentTo<T extends TreeNode<RootType>>(parent: T, onTop: boolean = false) {
+    parentTo(parent: TreeNode<RootType>, onTop: boolean = false) {
         return parent.addChild(this, onTop);
     }
 
@@ -347,7 +347,7 @@ export abstract class TreeNode<RootType extends TreeRoot<RootType>, KeyType = an
 
     /** Serialize the node into a simple object. If `lite` is true, only the necessary properties are recorded. */
     serialize(lite: boolean = false): SerializedNode<this> {
-        // if (this.root as any === this) console.log("SERIALIZED")
+        // if (this.root as any === this) console.log("SERIALIZED");
         const obj = {
             ...this.liteSerialize(),
             children: this.children.map(e => e.serialize(lite)).filter(e => e !== undefined),
@@ -378,29 +378,26 @@ export abstract class TreeNode<RootType extends TreeRoot<RootType>, KeyType = an
         if (obj.class !== this.constructor.name) throw TypeError(`Class parsing doesn't match: expected ${this.constructor.name}, got ${obj.class}`);
         if (obj.type !== this.type) throw TypeError(`Type parsing doesn't match: expected ${this.type}, got ${obj.type}`);
         if (obj.id !== this.id) throw TypeError(`Id parsing doesn't match: expected ${this.id}, got ${obj.id}`);
-
+        
+        const confirmedChildren = new Set<TreeNode<RootType>>();
         // Ugly type casting, since recursive types with generic parameters cause "type serialization is too deep" errors,
         // and I want the child classes to use ReturnType<this["liteSerialize"]> and using it here causes issues with the recursivity
         let objWithChildren = obj as SerializedNode<this>;
-        if (!objWithChildren.children) {
-            for (const child of this.children) child.prune();
-            return;
-        }
-
-        const confirmedChildren = new Set<TreeNode<RootType>>();
-        for (const [i, child] of objWithChildren.children.entries()) {
-            let node = this.root.search(child.type, child.id);
-            if (!node) {
-                if (!allowCreation) throw TypeError(`Could not find node of class ${child.type} and id ${child.id}, and creation is not allowed`);
-                console.warn(`Didn't find node of type ${child.type} and id ${child.id}`);
-                node = this.root.create(child.class, child);
+        if (objWithChildren.children) {
+            for (const [i, child] of objWithChildren.children.entries()) {
+                let node = this.root.search(child.type, child.id);
+                if (!node) {
+                    if (!allowCreation) throw TypeError(`Could not find node of class ${child.type} and id ${child.id}, and creation is not allowed`);
+                    console.warn(`Didn't find node of type ${child.type} and id ${child.id}`);
+                    node = this.root.create(child.class, child);
+                }
+                if (node.parent !== this || node.parent.children.indexOf(node) !== i) this.addChild(node);
+                confirmedChildren.add(node);
+                node.parse(child, allowCreation);
             }
-            if (node.parent !== this || node.parent.children.indexOf(node) !== i) this.addChild(node);
-            confirmedChildren.add(node);
-            node.parse(child, allowCreation);
         }
 
-        for (const child of this.children)
+        for (const child of [...this.children])
             if (!confirmedChildren.has(child))
                 child.prune();
     }
@@ -427,20 +424,20 @@ export abstract class TreeRoot<RootType extends TreeRoot<RootType>> extends Tree
     }
 
     addToLookup(node: TreeNode<RootType>) {
-        // console.log(`+ Adding object of type ${node.type} and id ${node.id}`);
+        // console.log(`+ ${node.type} ${node.id} ${node.name}`);
         const typeGroup = this.lookup[node.type] ??= {};
         if (typeGroup[node.id]) throw TypeError(`Object of type ${node.type} and id ${node.id} already exists`);
         typeGroup[node.id] = node;
     }
     
     removeFromLookup(node: TreeNode<RootType>) {
-        // console.log(`- Removing object of type ${node.type} and id ${node.id}`);
+        // console.log(`- ${node.type} ${node.id} ${node.name}`);
         const typeGroup = this.lookup[node.type];
         if (!typeGroup) return;
         delete typeGroup[node.id];
     }
 
-    search<T extends TreeNode<RootType>>(type: T["type"], id: T["key"]): T | undefined {
+    search<T extends TreeNode<RootType>>(type: T["type"], id: T["id"]): T | undefined {
         const typeGroup = this.lookup[type];
         if (!typeGroup) return undefined;
         return typeGroup[id] as T;

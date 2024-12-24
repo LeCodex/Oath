@@ -61,6 +61,7 @@ export abstract class Banner<T extends OathResource = OathResource> extends Cont
 }
 
 export class PeoplesFavor extends Banner<Favor> {
+    readonly id: "peoplesFavor";
     name = "PeoplesFavor";
     powers = new Set([PeoplesFavorSearch, PeoplesFavorWake]);
     isMob: boolean;
@@ -104,6 +105,7 @@ export class PeoplesFavor extends Banner<Favor> {
 }
 
 export class DarkestSecret extends Banner<Secret> {
+    readonly id: "darkestSecret";
     name = "DarkestSecret";
     powers = new Set([DarkestSecretPower]);
 

@@ -3,7 +3,7 @@ import { Denizen, Edifice, OathCard, OwnableCard, Relic, Site, WorldCard } from 
 import { DiscardOptions, SearchableDeck } from "../cards/decks";
 import { AttackDie, DefenseDie, DieSymbol, RollResult } from "../dice";
 import { MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, RollDiceEffect, DrawFromDeckEffect, PutPawnAtSiteEffect, DiscardCardEffect, MoveOwnWarbandsEffect, SetPeoplesFavorMobState, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, FlipEdificeEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect, CheckCapacityEffect, CampaignJoinDefenderAlliesEffect, MoveWorldCardToAdvisersEffect, DiscardCardGroupEffect, ParentToTargetEffect, PaySupplyEffect, ThingsExchangeOfferEffect, SiteExchangeOfferEffect } from "./effects";
-import { ALL_OATH_SUITS, ALL_PLAYER_COLORS, OathPhase, OathSuit, OathType, PlayerColor, RegionKey } from "../enums";
+import { ALL_OATH_SUITS, ALL_PLAYER_COLORS, CardRestriction, OathPhase, OathSuit, OathType, PlayerColor } from "../enums";
 import { OathGame } from "../game";
 import { ChancellorBoard, ExileBoard, OathPlayer, PlayerBoard, VisionSlot } from "../player";
 import { ActionModifier, ActivePower, CapacityModifier } from "../powers/powers";
@@ -40,11 +40,10 @@ export class SetupChoosePlayerBoardAction extends OathAction {
     execute(): void {
         const color = this.parameters.color[0]!;
         if (color === PlayerColor.Purple) {
-            this.player.board = this.player.addChild(new ChancellorBoard());
-            this.game.chancellor = this.player;
+            this.player.addChild(new ChancellorBoard());
         } else {
-            const board = this.player.board = this.player.addChild(new ExileBoard(color));
-            board.visionSlot = board.addChild(new VisionSlot(color));
+            const board = this.player.addChild(new ExileBoard(color));
+            board.addChild(new VisionSlot(color));
             board.isCitizen = this.game.oldCitizenship[color] === Citizenship.Citizen;
         }
     }
@@ -396,9 +395,13 @@ export class SearchPlayOrDiscardAction extends ModifiableAction {
 
     start() {
         const sitesChoice = new Map<string, Site | boolean | undefined>();
-        sitesChoice.set("Faceup adviser", false);
-        sitesChoice.set("Facedown adviser", true);
-        sitesChoice.set(this.playerProxy.site.name, this.playerProxy.site);
+        if (!(this.cardProxy instanceof Denizen && this.cardProxy.restriction === CardRestriction.Site)) {
+            sitesChoice.set("Faceup adviser", false);
+            sitesChoice.set("Facedown adviser", true);
+        }
+        if (this.cardProxy instanceof Denizen && this.cardProxy.restriction !== CardRestriction.Adviser) {
+            sitesChoice.set(this.playerProxy.site.name, this.playerProxy.site);
+        }
         sitesChoice.set("Discard", undefined);
         this.selects.choice = new SelectNOf("Choice", sitesChoice, { min: 1 });
 
@@ -1673,11 +1676,11 @@ export class VowOathAction extends OathAction {
     start(): boolean {
         const choices = new Map<string, OathType>();
         if (this.player.board instanceof ExileBoard && this.player.board.vision) {
-            const oathType = this.player.board.vision.oath.key;
+            const oathType = this.player.board.vision.oath.oathType;
             choices.set(OathType[oathType], oathType);
         } else {
             for (let i: OathType = 0; i < 4; i++)
-                if (i !== this.game.oath.key)
+                if (i !== this.game.oath.oathType)
                     choices.set(OathType[i], i);
         }
         this.selects.oath = new SelectNOf("Oath", choices, { min: 1 });

@@ -218,6 +218,7 @@ export class Relic extends OwnableCard implements RecoverActionTarget, CampaignA
 }
 
 export class GrandScepter extends Relic {
+    readonly id: "GrandScepter";
     seizedThisTurn = false;
 
     constructor() {
@@ -299,6 +300,8 @@ export class Vision extends VisionBack {
 }
 
 export class Conspiracy extends VisionBack {
+    readonly id: "Conspiracy";
+
     constructor() {
         super("Conspiracy", [ConspiracyWhenPlayed]);
     }

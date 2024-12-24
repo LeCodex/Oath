@@ -1,7 +1,7 @@
 import { CampaignBanishPlayerAction } from "./actions/actions";
 import { CampaignActionTarget, AtSite, OwnableObject } from "./interfaces";
 import { Denizen, OwnableCard, Relic, Site, Vision, WorldCard } from "./cards/cards";
-import { Discard, DiscardOptions } from "./cards/decks";
+import { DiscardOptions } from "./cards/decks";
 import { BurnResourcesEffect, FlipSecretsEffect, GainSupplyEffect } from "./actions/effects";
 import { ALL_OATH_SUITS, isEnumKey, OathSuit, PlayerColor } from "./enums";
 import { Warband, ResourcesAndWarbands, Favor, OathResourceType } from "./resources";
@@ -25,10 +25,8 @@ export class WarbandsSupply extends Container<Warband, PlayerColor> {
 export class OathPlayer extends OathGameObject<number> implements CampaignActionTarget, AtSite {
     readonly type = "player";
     name: string;
-    board: PlayerBoard;
     supply: number = 7;
     site: Site;
-    bag: WarbandsSupply;
     
     defense = 2;
     get force() { return this.board };
@@ -37,13 +35,15 @@ export class OathPlayer extends OathGameObject<number> implements CampaignAction
     get advisers() { return this.byClass(WorldCard); }
     get relics() { return this.byClass(Relic); }
     get banners() { return this.byClass(Banner); }
+    get bag() { return this.byClass(WarbandsSupply)[0]!; }
+    get board() { return this.byClass(PlayerBoard)[0]!; }
 
     get isImperial() { return this.board?.isImperial ?? false; }    
-    get leader(): OathPlayer { return this.board.isImperial ? this.game.chancellor : this; }
-    get discard(): Discard | undefined { return this.game.map.nextRegion(this.site.region)?.discard || this.site.region?.discard; }
+    get leader() { return this.board.isImperial ? this.game.chancellor : this; }
+    get discard() { return this.game.map.nextRegion(this.site.region)?.discard || this.site.region?.discard; }
     get discardOptions() { return new DiscardOptions(this.discard ?? this.game.worldDeck); }
-    get ruledSuits(): number { return ALL_OATH_SUITS.reduce((a, e) => a + (this.suitRuledCount(e) > 0 ? 1 : 0), 0); }
-    get ruledSites(): number { return [...this.game.map.sites()].reduce((a, e) => a + (e.ruler === this ? 1 : 0), 0); }
+    get ruledSuits() { return ALL_OATH_SUITS.reduce((a, e) => a + (this.suitRuledCount(e) > 0 ? 1 : 0), 0); }
+    get ruledSites() { return [...this.game.map.sites()].reduce((a, e) => a + (e.ruler === this ? 1 : 0), 0); }
 
     suitAdviserCount(suit: OathSuit): number {
         let total = 0;
@@ -106,7 +106,6 @@ export class OathPlayer extends OathGameObject<number> implements CampaignAction
         this.supply = obj.supply;
         const site = this.game.search<Site>("site", obj.site);
         this.site = site!;  // It can be undefined at the start of the game. It's bad, but it's controlled
-        if (!obj.board) this.board = undefined as any;  // Same thing
     }
 }
 
@@ -170,6 +169,7 @@ export abstract class PlayerBoard extends ResourcesAndWarbands<PlayerColor> impl
 }
 
 export class ChancellorBoard extends PlayerBoard {
+    readonly id: PlayerColor.Purple;
     name = "Chancellor";
     bagAmount = 24;
 
@@ -208,7 +208,6 @@ export class VisionSlot extends Container<Vision, PlayerColor> {
 
 export class ExileBoard extends PlayerBoard {
     isCitizen: boolean;
-    visionSlot: VisionSlot;
 
     constructor(id: PlayerColor) {
         super(id);
@@ -216,6 +215,7 @@ export class ExileBoard extends PlayerBoard {
 
     get name() { return `${this.id}Exile`; }
     get isImperial() { return this.isCitizen; }
+    get visionSlot() { return this.byClass(VisionSlot)[0]!; }
     get vision() { return this.visionSlot.children[0]; }
 
     setVision(newVision?: Vision) {

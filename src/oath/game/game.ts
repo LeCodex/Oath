@@ -10,7 +10,7 @@ import { relicsData } from "./cards/relics";
 import { OathPhase, OathSuit, RegionKey, PlayerColor, ALL_OATH_SUITS, BannerKey } from "./enums";
 import { Oath } from "./oaths";
 import { Conspiracy, Denizen, Edifice, GrandScepter, Relic, Site, Vision, WorldCard } from "./cards/cards";
-import { ExileBoard, OathPlayer, WarbandsSupply } from "./player";
+import { ExileBoard, OathPlayer, PlayerBoard, WarbandsSupply } from "./player";
 import { Banner, DarkestSecret, FavorBank, PeoplesFavor } from "./banks";
 import { AbstractConstructor, Constructor, isExtended, MurmurHash3, PRNG, TreeNode, TreeRoot } from "./utils";
 import { parseOathTTSSavefileString, serializeOathGame } from "./parser";
@@ -32,7 +32,6 @@ export class OathGame extends TreeRoot<OathGame> {
     seed: string;
     name: string;
     chronicleNumber: number;
-    oath: Oath;
     isUsurper = false;
 
     turn = 0;
@@ -42,12 +41,6 @@ export class OathGame extends TreeRoot<OathGame> {
 
     // References for quick access to static elements
     actionManager = new OathActionManager(this);
-    chancellor: OathPlayer;
-    reliquary: Reliquary;
-    worldDeck: WorldDeck;
-    relicDeck: RelicDeck;
-    map: OathMap;
-    grandScepter: GrandScepter;
     banners = new Map<BannerKey, Banner>;
 
     archive: Set<string>;
@@ -58,13 +51,21 @@ export class OathGame extends TreeRoot<OathGame> {
         super();
         this.setup(setupData);
     }
+
+    get chancellor() { return this.search<PlayerBoard>("board", PlayerColor.Purple)?.typedParent(OathPlayer)!; }
+    get oath() { return this.search<Oath>("oath", "oath")!; }
+    get reliquary() { return this.search<Reliquary>("reliquary", "reliquary")!; }
+    get worldDeck() { return this.search<WorldDeck>("deck", "worldDeck")!; }
+    get relicDeck() { return this.search<RelicDeck>("deck", "relicDeck")!; }
+    get map() { return this.search<OathMap>("map", "map")!; }
+    get grandScepter() { return this.search<GrandScepter>("relic", "GrandScepter")!; }
     
     setup([seed, playerNames]: this["setupData"]) {
         this.seed = seed;
         this.random = new PRNG(MurmurHash3(this.seed));
 
-        this.worldDeck = this.addChild(new WorldDeck());
-        this.relicDeck = this.addChild(new RelicDeck());
+        this.addChild(new WorldDeck());
+        this.addChild(new RelicDeck());
         for (let i = 0; i < 36; i++) this.addChild(new Favor());
 
         const peoplesFavor = new PeoplesFavor();
@@ -122,14 +123,14 @@ export class OathGame extends TreeRoot<OathGame> {
         }
         this.oldCitizenship = gameData.playerCitizenship;
 
-        this.reliquary = this.addChild(new Reliquary());
+        this.addChild(new Reliquary());
         for (let i = 0; i < 4; i++) this.reliquary.addChild(new ReliquarySlot(String(i))).getRelic();
 
-        this.map = this.addChild(new OathMap());
+        this.addChild(new OathMap());
         for (let i = RegionKey.Cradle; i <= RegionKey.Hinterland; i++) {
             const id = RegionKey[i] as keyof typeof RegionKey;
-            const region = this.map.addChild(new Region(id));
-            region.discard = this.addChild(new Discard(id));
+            this.map.addChild(new Region(id));
+            this.addChild(new Discard(id));
         }
 
         let regionKey: RegionKey = RegionKey.Cradle;
@@ -173,8 +174,8 @@ export class OathGame extends TreeRoot<OathGame> {
             Favor.putOn(bank, startingAmount);
         }
         
-        this.grandScepter = new GrandScepter();
-        this.oath = new Oath().setType(gameData.oath);
+        this.addChild(new GrandScepter());
+        this.addChild(new Oath().setType(gameData.oath));
 
         this.initialActions();
     }
@@ -189,7 +190,7 @@ export class OathGame extends TreeRoot<OathGame> {
             
             this.order = [];
             for (const player of this.players) {
-                player.bag = player.addChild(new WarbandsSupply(player.board.id));
+                player.addChild(new WarbandsSupply(player.board.id));
                 for (let i = 0; i < player.board.bagAmount; i++) player.bag.addChild(new Warband().colorize(player.board.key));
                 if (player !== this.chancellor) this.order.push(player.key);
             }

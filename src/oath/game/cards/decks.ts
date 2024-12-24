@@ -27,6 +27,7 @@ export abstract class CardDeck<T extends OathCard, U = any> extends Container<T,
 }
 
 export class RelicDeck extends CardDeck<Relic, string> {
+    readonly id: "relicDeck";
     name = "RelicDeck";
 
     constructor() {
@@ -52,6 +53,7 @@ export abstract class SearchableDeck<T = any> extends CardDeck<WorldCard, T> {
 }
 
 export class WorldDeck extends SearchableDeck<string> {
+    readonly id: "worldDeck";
     name = "WorldDeck";
     visionsDrawn: number = 0;
     get searchCost() { return this.visionsDrawn < 3 ? this.visionsDrawn < 1 ? 2 : 3 : 4; }

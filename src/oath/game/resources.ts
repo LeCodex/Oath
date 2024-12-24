@@ -72,7 +72,7 @@ export class Warband extends OathGameObjectLeaf<number> {
         return this;
     }
 
-    get name() { return `${isEnumKey(this.color, PlayerColor) ? this.color : "Uncolored"} Warband`; }
+    get name() { return `${isEnumKey(this.color, PlayerColor) ? this.color : "Bandit"}Warband`; }
     get key() { return Number(this.id); }
 
     liteSerialize() {

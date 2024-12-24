@@ -32,8 +32,9 @@ export const oathData: Record<OathType, [(game: OathGame) => void, (player: Oath
     ],
 };
 
-export class Oath extends OathGameObjectLeaf<OathType> implements OwnableObject, WithPowers {
+export class Oath extends OathGameObjectLeaf<string> implements OwnableObject, WithPowers {
     readonly type = "oath";
+    readonly id: "oath";
     oathType: OathType;
     active = true;
     powers = new Set([OathDefense]);
@@ -42,7 +43,7 @@ export class Oath extends OathGameObjectLeaf<OathType> implements OwnableObject,
         super("oath");
     }
     
-    get key() { return this.oathType; }
+    get key() { return this.id; }
     get name() { return `OathOf${OathType[this.oathType]}`; }
     get owner() { return this.typedParent(OathPlayer); }
 

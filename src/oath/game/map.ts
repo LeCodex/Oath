@@ -6,6 +6,7 @@ import { Container, OathGameObject } from "./gameObject";
 
 export class OathMap extends Container<Region, string> {
     readonly type = "map";
+    readonly id: "map";
     name = "Map";
     travelCosts = new Map<RegionKey, Map<RegionKey, number>>([
         [RegionKey.Cradle, new Map([[RegionKey.Cradle, 1], [RegionKey.Provinces, 2], [RegionKey.Hinterland, 4]])],
@@ -50,7 +51,6 @@ export class Region extends OathGameObject<RegionKey> {
     readonly type = "region";
     readonly id: keyof typeof RegionKey;
     size: number;
-    discard: Discard;
 
     constructor(id: keyof typeof RegionKey) {
         if (!isEnumKey(id, RegionKey)) throw TypeError(`${id} is not a valid region key`);
@@ -61,4 +61,5 @@ export class Region extends OathGameObject<RegionKey> {
     get name() { return this.id; }
     get key() { return RegionKey[this.id]; }
     get sites() { return this.byClass(Site); }
+    get discard() { return this.root.search<Discard>("deck", this.id)!; }
 }
