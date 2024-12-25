@@ -96,7 +96,7 @@ export class PutResourcesOnTargetEffect extends OathEffect<number> {
         super(game, player);
         this.resource = resource;
         this.amount = Math.max(0, amount);
-        this.target = target ?? this.executor?.board;
+        this.target = target ?? this.executor;
     }
 
     resolve(): void {
@@ -129,7 +129,7 @@ export class MoveResourcesToTargetEffect extends OathEffect<number> {
         this.resource = resource;
         this.amount = Math.max(0, amount);
         this.target = target;
-        this.source = source ?? this.executor?.board;
+        this.source = source ?? this.executor;
     }
 
     resolve(): void {
@@ -168,7 +168,7 @@ export class BurnResourcesEffect extends OathEffect<number> {
         super(game, player);
         this.resource = resource;
         this.amount = Math.max(0, amount);
-        this.source = source ?? this.executor?.board;
+        this.source = source ?? this.executor;
     }
 
     resolve(): void {
@@ -197,7 +197,7 @@ export class PayCostToTargetEffect extends OathEffect<boolean> {
         super(game, player);
         this.cost = cost;
         this.target = target;
-        this.source = source ?? this.executor?.board;
+        this.source = source ?? this.executor;
     }
 
     resolve(): void {
@@ -231,7 +231,7 @@ export class PayCostToBankEffect extends OathEffect<boolean> {
         super(game, player);
         this.cost = cost;
         this.suit = suit;
-        this.source = source ?? this.executor?.board;
+        this.source = source ?? this.executor;
     }
 
     resolve(): void {
@@ -283,7 +283,7 @@ export class FlipSecretsEffect extends OathEffect<number> {
         super(game, player);
         this.amount = Math.max(0, amount);
         this.facedown = facedown;
-        this.source = source ?? this.executor?.board;
+        this.source = source ?? this.executor;
     }
 
     resolve(): void {
@@ -319,7 +319,7 @@ export class MoveWarbandsToEffect extends OathEffect<number> {
         this.owner = owner;
         this.amount = Math.max(0, amount);
         this.target = target;
-        this.source = source ?? this.executor?.board;
+        this.source = source ?? this.executor;
     }
 
     resolve(): void {
@@ -518,7 +518,7 @@ export class PlayDenizenAtSiteEffect extends PlayerEffect {
     card: Denizen;
     site: Site;
 
-    getting = new Map([[Favor, 1]]);
+    getting = new Map<typeof OathResource, number>([[Favor, 1]]);
     revealedCard: boolean;
 
     constructor(player: OathPlayer, card: Denizen, site: Site) {
@@ -536,7 +536,7 @@ export class PlayDenizenAtSiteEffect extends PlayerEffect {
         const bank = this.game.byClass(FavorBank).byKey(this.card.suit)[0];
         for (const [resource, amount] of this.getting) {
             if (bank && resource === Favor)
-                new ParentToTargetEffect(this.game, this.executor, bank.byClass(Favor).max(amount)).doNext();
+                new MoveResourcesToTargetEffect(this.game, this.executor, resource, amount, this.executor, bank).doNext();
             else
                 new PutResourcesOnTargetEffect(this.game, this.executor, resource, amount).doNext();
         }
@@ -696,6 +696,7 @@ export class DiscardCardEffect<T extends OathCard> extends PlayerEffect {
     resolve(): void {
         new ParentToTargetEffect(this.game, this.executor, [this.card], this.discardOptions.discard, !this.discardOptions.onBottom).doNext();
         this.card.returnResources();
+        this.card.turnFacedown();
         for (const player of this.game.players)
             new ParentToTargetEffect(this.game, player, this.card.getWarbands(player.board.key), player.bag).doNext();
     }
@@ -921,7 +922,7 @@ export class BecomeCitizenEffect extends PlayerEffect {
         
         const exileBag = this.executorProxy.leader.bag.original;
         const playerColor = this.executorProxy.leader.board.key;
-        for (const source of [...this.game.map.sites(), this.executor.board]) {
+        for (const source of [...this.game.map.sites(), this.executor]) {
             const amount = source.getWarbandsAmount(playerColor);
             if (!amount) continue;
             new ParentToTargetEffect(this.game, this.executor, source.getWarbands(playerColor), exileBag).doNext();
@@ -940,8 +941,8 @@ export class BecomeExileEffect extends PlayerEffect {
         if (!(this.executor.board instanceof ExileBoard) || !this.executor.board.isCitizen) return;
         this.executor.board.isCitizen = false;
         
-        const amount = this.executor.board.getWarbandsAmount(PlayerColor.Purple);
-        new ParentToTargetEffect(this.game, this.game.chancellor, this.executor.board.getWarbands(PlayerColor.Purple), this.game.chancellor.bag).doNext();
+        const amount = this.executor.getWarbandsAmount(PlayerColor.Purple);
+        new ParentToTargetEffect(this.game, this.game.chancellor, this.executor.getWarbands(PlayerColor.Purple), this.game.chancellor.bag).doNext();
         new ParentToTargetEffect(this.game, this.executor, this.executorProxy.leader.bag.original.get(amount), this.executor).doNext();
 
         if (this.game.currentPlayer === this.executor) new RestAction(this.executor).doNext();
@@ -1077,18 +1078,18 @@ export class SiteExchangeOfferEffect extends BindingExchangeEffect {
         super.resolve();
 
         for (const site of this.sitesGiven) {
-            new MoveOwnWarbandsEffect(this.executor, site, this.executor.board).doNext();
+            new MoveOwnWarbandsEffect(this.executor, site, this.executor).doNext();
             new ChooseNumberAction(
-                this.other, "Move warbands to " + site.name, inclusiveRange(Math.max(0, 1 - site.getWarbandsAmount(this.other.leader.board.key)), this.other.board.getWarbandsAmount(this.other.leader.board.key)),
-                (amount: number) => new MoveOwnWarbandsEffect(this.other, this.other.board, site, amount).doNext()
+                this.other, "Move warbands to " + site.name, inclusiveRange(Math.max(0, 1 - site.getWarbandsAmount(this.other.leader.board.key)), this.other.getWarbandsAmount(this.other.leader.board.key)),
+                (amount: number) => new MoveOwnWarbandsEffect(this.other, this.other, site, amount).doNext()
             ).doNext();
         }
 
         for (const site of this.sitesTaken) {
-            new MoveOwnWarbandsEffect(this.other, site, this.other.board).doNext();
+            new MoveOwnWarbandsEffect(this.other, site, this.other).doNext();
             new ChooseNumberAction(
-                this.executor, "Move warbands to " + site.name, inclusiveRange(Math.max(0, 1 - site.getWarbandsAmount(this.executor.leader.board.key)), this.executor.board.getWarbandsAmount(this.executor.leader.board.key)),
-                (amount: number) => new MoveOwnWarbandsEffect(this.executor, this.executor.board, site, amount).doNext()
+                this.executor, "Move warbands to " + site.name, inclusiveRange(Math.max(0, 1 - site.getWarbandsAmount(this.executor.leader.board.key)), this.executor.getWarbandsAmount(this.executor.leader.board.key)),
+                (amount: number) => new MoveOwnWarbandsEffect(this.executor, this.executor, site, amount).doNext()
             ).doNext();
         }
     }

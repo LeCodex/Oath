@@ -9,7 +9,7 @@ import { BannerKey, OathSuit } from "../../enums";
 import { isOwnable } from "../../interfaces";
 import { ExileBoard, OathPlayer } from "../../player";
 import { Favor, ResourceCost, Secret } from "../../resources";
-import { ActivePower, CapacityModifier, AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, EnemyAttackerCampaignModifier, EnemyActionModifier, ActionModifier, gainPowerUntilActionResolves, BattlePlan } from "../powers";
+import { ActivePower, CapacityModifier, AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, EnemyAttackerCampaignModifier, EnemyActionModifier, ActionModifier, gainPowerUntilActionResolves, BattlePlan, AccessedActionModifier } from "../powers";
 
 
 export class HorseArchersAttack extends AttackerBattlePlan<Denizen> {
@@ -172,7 +172,7 @@ export class WayStation extends ActionModifier<Denizen, TravelAction> {
         if (!this.sourceProxy.site) return;
         if (this.action.siteProxy === this.sourceProxy.site) {
             if (!this.activatorProxy.rules(this.sourceProxy)) {
-                new PayCostToTargetEffect(this.game, this.activator, new ResourceCost([[Favor, 1]]), this.sourceProxy.ruler?.board.original).doNext(success => {
+                new PayCostToTargetEffect(this.game, this.activator, new ResourceCost([[Favor, 1]]), this.sourceProxy.ruler?.original).doNext(success => {
                     if (!success) return;
                     this.action.noSupplyCost = true;
                 });
@@ -183,7 +183,7 @@ export class WayStation extends ActionModifier<Denizen, TravelAction> {
     }
 }
 
-export class Hospitality extends ActionModifier<Denizen, TravelAction> {
+export class Hospitality extends AccessedActionModifier<Denizen, TravelAction> {
     modifiedAction = TravelAction;
 
     applyAfter(): void {
@@ -193,7 +193,7 @@ export class Hospitality extends ActionModifier<Denizen, TravelAction> {
     }
 }
 
-export class Tents extends ActionModifier<Denizen, TravelAction> {
+export class Tents extends AccessedActionModifier<Denizen, TravelAction> {
     modifiedAction = TravelAction;
     cost = new ResourceCost([[Favor, 1]]);
 
@@ -203,7 +203,7 @@ export class Tents extends ActionModifier<Denizen, TravelAction> {
     }
 }
 
-export class SpecialEnvoy extends ActionModifier<Denizen, TravelAction> {
+export class SpecialEnvoy extends AccessedActionModifier<Denizen, TravelAction> {
     modifiedAction = TravelAction;
 
     applyBefore(): void {
@@ -215,17 +215,17 @@ export class SpecialEnvoy extends ActionModifier<Denizen, TravelAction> {
     }
 }
 
-export class AFastSteed extends ActionModifier<Denizen, TravelAction> {
+export class AFastSteed extends AccessedActionModifier<Denizen, TravelAction> {
     modifiedAction = TravelAction;
     cost = new ResourceCost([[Favor, 1]]);
 
     applyBefore(): void {
-        if (this.activatorProxy.board.warbands.length <= 3)
+        if (this.activatorProxy.warbands.length <= 3)
             this.action.noSupplyCost = true;
     }
 }
 
-export class RelicWorship extends ActionModifier<Denizen, RecoverTargetEffect> {
+export class RelicWorship extends AccessedActionModifier<Denizen, RecoverTargetEffect> {
     modifiedAction = RecoverTargetEffect;
 
     applyAtEnd(): void {
@@ -492,14 +492,14 @@ export class TwinBrother extends WhenPlayed<Denizen> {
     whenPlayed(): void {
         const cards = new Set<Denizen>();
         for (const playerProxy of this.gameProxy.players) {
-            if (playerProxy !== this.action.executorProxy) continue;
+            if (playerProxy === this.action.executorProxy) continue;
             for (const adviserProxy of playerProxy.advisers)
-                if (adviserProxy instanceof Denizen && adviserProxy.suit === OathSuit.Nomad && !adviserProxy.activelyLocked)
+                if (adviserProxy !== this.sourceProxy && adviserProxy instanceof Denizen && adviserProxy.suit === OathSuit.Nomad && !adviserProxy.activelyLocked)
                     cards.add(adviserProxy.original);
         }
 
         new ChooseCardsAction(
-            this.action.executor, "Swap Twin Brother with another Nomad adviser", [cards],
+            this.action.executor, "You may swap Twin Brother with another Nomad adviser", [cards],
             (cards: Denizen[]) => {
                 if (!cards[0]) return;
                 const otherPlayer = cards[0].owner as OathPlayer;
@@ -515,14 +515,14 @@ export class GreatHerd extends WhenPlayed<Denizen> {
     whenPlayed(): void {
         const cards = new Set<Denizen>();
         for (const siteProxy of this.gameProxy.map.sites()) {
-            if (siteProxy !== this.action.executorProxy.site) continue;
+            if (siteProxy === this.action.executorProxy.site) continue;
             for (const denizenProxy of siteProxy.denizens)
-                if (denizenProxy.suit === OathSuit.Nomad && !denizenProxy.activelyLocked)
+                if (denizenProxy !== this.sourceProxy && denizenProxy.suit === OathSuit.Nomad && !denizenProxy.activelyLocked)
                     cards.add(denizenProxy.original);
         }
 
         new ChooseCardsAction(
-            this.action.executor, "Swap Great Herd with another Nomad denizen", [cards],
+            this.action.executor, "You may swap Great Herd with another Nomad denizen", [cards],
             (cards: Denizen[]) => {
                 if (!cards[0]) return;
                 const otherSite = cards[0].site as Site;

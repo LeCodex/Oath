@@ -149,7 +149,7 @@ export class Site extends OathCard implements CampaignActionTarget {
     }
 
     seize(player: OathPlayer) {
-        if (this.ruler) new MoveOwnWarbandsEffect(this.ruler.leader, this, this.ruler.board).doNext();
+        if (this.ruler) new MoveOwnWarbandsEffect(this.ruler.leader, this, this.ruler).doNext();
         new CampaignSeizeSiteAction(player, this).doNext();
     }
 
@@ -182,7 +182,7 @@ export abstract class OwnableCard extends OathCard implements OwnableObject  {
 export class Relic extends OwnableCard implements RecoverActionTarget, CampaignActionTarget, AtSite {
     readonly type = "relic";
     defense: number;
-    get force() { return this.owner?.board; }
+    get force() { return this.owner; }
 
     constructor(id: keyof typeof relicsData) {
         const data = relicsData[id];

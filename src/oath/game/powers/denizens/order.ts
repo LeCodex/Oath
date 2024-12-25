@@ -185,7 +185,7 @@ export class Wrestlers extends DefenderBattlePlan<Denizen> {
 export class BearTraps extends DefenderBattlePlan<Denizen> {
     applyBefore(): void {
         this.action.campaignResult.atkPool--;
-        new KillWarbandsOnTargetAction(this.action.player, this.action.campaignResult.attacker.board, 1).doNext();
+        new KillWarbandsOnTargetAction(this.action.player, this.action.campaignResult.attacker, 1).doNext();
     }
 }
 
@@ -273,7 +273,7 @@ export class Curfew extends EnemyActionModifier<Denizen, TradeAction> {
 
     applyBefore(): void {
         const cost = new ResourceCost([[Favor, 1]]);
-        new PayCostToTargetEffect(this.game, this.activator, cost, this.sourceProxy.ruler?.board.original).doNext(success => {
+        new PayCostToTargetEffect(this.game, this.activator, cost, this.sourceProxy.ruler?.original).doNext(success => {
             if (!success) throw cost.cannotPayError;
         });
     }
@@ -285,7 +285,7 @@ export class TollRoads extends EnemyActionModifier<Denizen, TravelAction> {
     applyBefore(): void {
         if (this.action.siteProxy.ruler === this.sourceProxy.ruler) {
             const cost = new ResourceCost([[Favor, 1]]);
-            new PayCostToTargetEffect(this.game, this.activator, cost, this.sourceProxy.ruler?.board.original).doNext(success => {
+            new PayCostToTargetEffect(this.game, this.activator, cost, this.sourceProxy.ruler?.original).doNext(success => {
                 if (!success) throw cost.cannotPayError;
             });
         }
@@ -301,7 +301,7 @@ export class ForcedLabor extends EnemyActionModifier<Denizen, SearchAction> {
 
     applyBefore(): void {
         const cost = new ResourceCost([[Favor, 1]]);
-        new PayCostToTargetEffect(this.game, this.activator, cost, this.sourceProxy.ruler?.board.original).doNext(success => {
+        new PayCostToTargetEffect(this.game, this.activator, cost, this.sourceProxy.ruler?.original).doNext(success => {
             if (!success) throw cost.cannotPayError;
         });
     }
@@ -355,6 +355,7 @@ export class CouncilSeat extends AccessedActionModifier<Denizen, BecomeExileEffe
 
 export class Pressgangs extends AccessedActionModifier<Denizen, MusterAction> {
     modifiedAction = MusterAction;
+    mustUse = true;  // Nicer to have it automatically apply
 
     applyAtStart(): void {
         for (const denizenProxy of this.action.accessibleDenizenProxies)
@@ -416,9 +417,9 @@ export class Garrison extends WhenPlayed<Denizen> {
         
         new ChooseSitesAction(
             this.action.executor, "Place a warband on each site you rule",
-            (sites: Site[]) => { for (const site of sites) new MoveOwnWarbandsEffect(leader, this.action.executor.board, site).doNext() },
+            (sites: Site[]) => { for (const site of sites) new MoveOwnWarbandsEffect(leader, this.action.executor, site).doNext() },
             [sites],
-            [[Math.min(sites.size, this.action.executor.board.getWarbandsAmount(leader.board.key))]]
+            [[Math.min(sites.size, this.action.executor.getWarbandsAmount(leader.board.key))]]
         ).doNext();
     }
 }

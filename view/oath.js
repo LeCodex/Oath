@@ -207,6 +207,7 @@ const renderDeck = (deck, name, separateVisions = false) => {
 }
 
 const renderResourcesAndWarbands = (node, obj) => {
+    if (!obj.children) return;
     node.innerText += " " + byType(obj, "resource").sort((a, b) => a.class.localeCompare(b.class)).map(e => e.class === "Favor" ? "🟡" : e.flipped ? "📖" : "📘").join("");
     node.innerText += " " + byType(obj, "warband").map(e => warbandsColors[e.color]).join("");
 }

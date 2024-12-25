@@ -102,8 +102,8 @@ export class AwaitedReturn extends AccessedActionModifier<Denizen, TradeAction> 
     modifiedAction = TradeAction;
 
     applyBefore(): void {
-        if (this.activator.board.warbands.length) {
-            new KillWarbandsOnTargetAction(this.activator, this.activator.board, 1).doNext();
+        if (this.activator.warbands.length) {
+            new KillWarbandsOnTargetAction(this.activator, this.activator, 1).doNext();
             this.action.noSupplyCost = true;
         }
     }
@@ -373,7 +373,7 @@ export class ARoundOfAle extends ActivePower<Denizen> {
     cost = new ResourceCost([[Favor, 1]]);
 
     usePower(): void {
-        this.action.player.board.returnResources();
+        this.action.player.returnResources();
         const bank = this.game.favorBank(OathSuit.Hearth);
         if (bank) new ParentToTargetEffect(this.game, this.action.player, bank.get(1), this.source).doNext();
     }

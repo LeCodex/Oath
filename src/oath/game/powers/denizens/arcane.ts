@@ -155,7 +155,7 @@ export class TamingCharm extends ActivePower<Denizen> {
             (cards: Denizen[]) => {
                 if (!cards[0]) return;
                 const bank = this.game.favorBank(cards[0].suit);
-                if (bank) new MoveResourcesToTargetEffect(this.game, this.action.player, Favor, 2, this.action.player.board, bank).doNext();
+                if (bank) new MoveResourcesToTargetEffect(this.game, this.action.player, Favor, 2, this.action.player, bank).doNext();
                 new DiscardCardEffect(this.action.player, cards[0]).doNext();
             }
         ).doNext();
@@ -201,8 +201,8 @@ export class TerrorSpells extends ActivePower<Denizen> {
                 targets.push(siteProxy.original);
         
         for (const playerProxy of this.gameProxy.players)
-            if (playerProxy.site.region === this.action.playerProxy.site.region && playerProxy.board.warbands.length > 0)
-                targets.push(playerProxy.board.original);
+            if (playerProxy.site.region === this.action.playerProxy.site.region && playerProxy.warbands.length > 0)
+                targets.push(playerProxy.original);
 
         new ChooseRnWsAction(
             this.action.player, "Kill a warband (" + amount + " left)",
@@ -249,9 +249,9 @@ export class BloodPact extends ActivePower<Denizen> {
     usePower(): void {
         const leader = this.action.playerProxy.leader.original;
         new ChooseNumberAction(
-            this.action.player, "Sacrifice pairs of warbands to get secrets", inclusiveRange(1, Math.floor(this.action.player.board.getWarbandsAmount(leader.board.key) / 2)),
+            this.action.player, "Sacrifice pairs of warbands to get secrets", inclusiveRange(1, Math.floor(this.action.player.getWarbandsAmount(leader.board.key) / 2)),
             (value: number) => {
-                new ParentToTargetEffect(this.game, this.action.player, this.action.player.board.getWarbands(leader.board.key, 2 * value), leader.bag).doNext();
+                new ParentToTargetEffect(this.game, this.action.player, this.action.player.getWarbands(leader.board.key, 2 * value), leader.bag).doNext();
                 new PutResourcesOnTargetEffect(this.game, this.action.player, Secret, value).doNext();
             }
         ).doNext();
@@ -448,7 +448,7 @@ export class WitchsBargain extends ActivePower<Denizen> {
 export class Bewitch extends WhenPlayed<Denizen> {
     whenPlayed(): void {
         if (!(this.action.playerProxy.board instanceof ExileBoard)) return;
-        if (this.action.executorProxy.board.getAllResources(Secret) > this.gameProxy.chancellor.byClass(Secret).length)
+        if (this.action.executorProxy.getAllResources(Secret) > this.gameProxy.chancellor.byClass(Secret).length)
             new MakeDecisionAction(this.action.executor, "Become a Citizen?", () => new BecomeCitizenEffect(this.action.executor).doNext()).doNext();
     }
 }

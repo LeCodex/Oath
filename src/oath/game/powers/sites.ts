@@ -157,7 +157,7 @@ export class NarrowPass extends ActionModifier<Site, TravelAction> {
 
     applyAtStart(): void {
         if (this.activatorProxy.site.region !== this.sourceProxy.region)
-            this.action.selects.siteProxy.filterChoices(e => e.powers.has(NarrowPass) || e.region !== this.sourceProxy.region);
+            this.action.selects.siteProxy.filterChoices(e => e.original.powers.has(NarrowPass) || e.region !== this.sourceProxy.region);
     }
 }
 

@@ -22,14 +22,14 @@ export class WarbandsSupply extends Container<Warband, PlayerColor> {
     get key() { return this.id; }
 }
 
-export class OathPlayer extends OathGameObject<number> implements CampaignActionTarget, AtSite {
+export class OathPlayer extends ResourcesAndWarbands<number> implements CampaignActionTarget, AtSite {
     readonly type = "player";
     name: string;
     supply: number = 7;
     site: Site;
     
     defense = 2;
-    get force() { return this.board };
+    get force() { return this; }
     
     get key() { return Number(this.id); }
     get advisers() { return this.byClass(WorldCard); }
@@ -44,6 +44,23 @@ export class OathPlayer extends OathGameObject<number> implements CampaignAction
     get discardOptions() { return new DiscardOptions(this.discard ?? this.game.worldDeck); }
     get ruledSuits() { return ALL_OATH_SUITS.reduce((a, e) => a + (this.suitRuledCount(e) > 0 ? 1 : 0), 0); }
     get ruledSites() { return [...this.game.map.sites()].reduce((a, e) => a + (e.ruler === this ? 1 : 0), 0); }
+
+    getAllResources(type: OathResourceType): number {
+        let amount = this.byClass(type).length;
+        for (const site of this.game.map.sites())
+            for (const denizen of site.denizens)
+                amount += denizen.byClass(type).length;
+
+        for (const player of this.game.players) {
+            for (const adviser of player.advisers)
+                amount += adviser.byClass(type).length;
+
+            for (const relic of player.relics)
+                amount += relic.byClass(type).length;
+        }
+
+        return amount;
+    }
 
     suitAdviserCount(suit: OathSuit): number {
         let total = 0;
@@ -86,9 +103,25 @@ export class OathPlayer extends OathGameObject<number> implements CampaignAction
         this.supply -= amount;
         return true;
     }
+
+    returnResources() {
+        for (const site of this.game.map.sites())
+            for (const denizen of site.denizens)
+                denizen.returnResources();
+
+        for (const player of this.game.players) {
+            for (const adviser of player.advisers)
+                adviser.returnResources();
+
+            for (const relic of player.relics)
+                relic.returnResources();
+        }
+
+        new FlipSecretsEffect(this.game, this, Infinity, false).doNext();
+    }
     
     seize(player: OathPlayer) {
-        new BurnResourcesEffect(this.game, this, Favor, Math.floor(this.byClass(Favor).length / 2), this.board).doNext();
+        new BurnResourcesEffect(this.game, this, Favor, Math.floor(this.byClass(Favor).length / 2)).doNext();
         new CampaignBanishPlayerAction(player, this).doNext();
     }
 
@@ -109,7 +142,7 @@ export class OathPlayer extends OathGameObject<number> implements CampaignAction
     }
 }
 
-export abstract class PlayerBoard extends ResourcesAndWarbands<PlayerColor> implements OwnableObject {
+export abstract class PlayerBoard extends OathGameObject<PlayerColor> implements OwnableObject {
     readonly type = "board";
     readonly id: PlayerColor;
 
@@ -120,8 +153,8 @@ export abstract class PlayerBoard extends ResourcesAndWarbands<PlayerColor> impl
         super(id);
     }
     
-    get owner() { return this.typedParent(OathPlayer)!; }
     get key() { return this.id; }
+    get owner() { return this.typedParent(OathPlayer)!; }
 
     get isImperial() { return false; }
 
@@ -130,41 +163,8 @@ export abstract class PlayerBoard extends ResourcesAndWarbands<PlayerColor> impl
         player?.addChild(this);
     }
 
-    getAllResources(type: OathResourceType): number {
-        let amount = this.byClass(type).length;
-        for (const site of this.game.map.sites())
-            for (const denizen of site.denizens)
-                amount += denizen.byClass(type).length;
-
-        for (const player of this.game.players) {
-            for (const adviser of player.advisers)
-                amount += adviser.byClass(type).length;
-
-            for (const relic of player.relics)
-                amount += relic.byClass(type).length;
-        }
-
-        return amount;
-    }
-
     rest() {
-        this.returnResources();
-    }
-
-    returnResources() {
-        for (const site of this.game.map.sites())
-            for (const denizen of site.denizens)
-                denizen.returnResources();
-
-        for (const player of this.game.players) {
-            for (const adviser of player.advisers)
-                adviser.returnResources();
-
-            for (const relic of player.relics)
-                relic.returnResources();
-        }
-
-        new FlipSecretsEffect(this.game, this.owner, Infinity, false).doNext();
+        this.owner.returnResources();
     }
 }
 

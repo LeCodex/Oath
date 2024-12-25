@@ -575,7 +575,7 @@ export class CampaignAttackAction extends ModifiableAction {
         }
         this.selects.targetProxies = new SelectNOf("Target(s)", choices, { min: 1 - this.campaignResult.targets.size, max: choices.size });
 
-        this.selects.pool = new SelectNumber("Attack pool", inclusiveRange(this.playerProxy.board.warbands.length));
+        this.selects.pool = new SelectNumber("Attack pool", inclusiveRange(this.playerProxy.warbands.length));
         
         return super.start();
     }
@@ -619,19 +619,19 @@ export class CampaignAttackAction extends ModifiableAction {
 
         for (const ally of this.campaignResult.defenderAllies) {
             if (ally.site === this.player.site) {
-                this.campaignResult.defForce.add(ally.board);
+                this.campaignResult.defForce.add(ally);
                 continue;
             }
             
             for (const target of this.campaignResult.targets) {
                 if (target instanceof Site && ally.site === target) {
-                    this.campaignResult.defForce.add(ally.board);
+                    this.campaignResult.defForce.add(ally);
                     continue;
                 }
             }
         }
         
-        this.campaignResult.atkForce = new Set([this.player.board]);
+        this.campaignResult.atkForce = new Set([this.player]);
 
         if (this.campaignResult.defender) {
             this.next.doNext();
@@ -729,8 +729,8 @@ export class CampaignResult {
     get loserLoss() { return this.successful ? this.defenderLoss : this.attackerLoss; }
     get loserKills() { return this.successful ? this.defenderKills : this.attackerKills; }
 
-    get totalAtkForce() { return [...this.atkForce].reduce((a, e) => a + e.getWarbandsAmount(this.attacker.leader.board.original.key), 0); }
-    get totalDefForce() { return [...this.defForce].reduce((a, e) => a + e.getWarbandsAmount(this.defender?.leader.board.original.key), 0); }
+    get totalAtkForce() { return [...this.atkForce].reduce((a, e) => a + e.getWarbandsAmount(this.attacker.leader.board.key), 0); }
+    get totalDefForce() { return [...this.defForce].reduce((a, e) => a + e.getWarbandsAmount(this.defender?.leader.board.key), 0); }
 
     get atk() { return this.atkRoll.value; }
     get def() { return this.defRoll.value + this.totalDefForce; }
@@ -910,12 +910,12 @@ export class CampaignSeizeSiteAction extends OathAction {
     }
 
     start() {
-        this.selects.amount = new SelectNumber("Amount", inclusiveRange(this.player.board.getWarbandsAmount(this.player.leader.board.original.key)));
+        this.selects.amount = new SelectNumber("Amount", inclusiveRange(this.player.getWarbandsAmount(this.player.leader.board.key)));
         return super.start();
     }
 
     execute() {
-        new MoveOwnWarbandsEffect(this.player.leader, this.player.board, this.site, this.parameters.amount[0]!).doNext();
+        new MoveOwnWarbandsEffect(this.player.leader, this.player, this.site, this.parameters.amount[0]!).doNext();
     }
 }
 
@@ -1018,23 +1018,23 @@ export class PlayFacedownAdviserAction extends ModifiableAction {
 
 
 export class MoveWarbandsAction extends ModifiableAction {
-    readonly selects: { targetProxy: SelectWithName<Site | PlayerBoard>, amount: SelectNumber, giving: SelectBoolean };
-    readonly parameters: { targetProxy: (Site | PlayerBoard)[], amount: number[], giving: boolean[] };
+    readonly selects: { targetProxy: SelectWithName<Site | OathPlayer>, amount: SelectNumber, giving: SelectBoolean };
+    readonly parameters: { targetProxy: (Site | OathPlayer)[], amount: number[], giving: boolean[] };
     readonly message = "Give or take warbands";
 
-    targetProxy: Site | PlayerBoard;
+    targetProxy: Site | OathPlayer;
     amount: number;
     giving: boolean;
 
     start(): boolean {
-        const choices = new Set<Site | PlayerBoard>();
+        const choices = new Set<Site | OathPlayer>();
         const siteProxy = this.playerProxy.site;
-        let max = this.player.board.getWarbandsAmount(this.playerProxy.leader.board.original.key);
+        let max = this.player.getWarbandsAmount(this.playerProxy.leader.board.original.key);
         if (this.playerProxy.isImperial) {
             for (const playerProxy of this.gameProxy.players) {
                 if (playerProxy !== this.playerProxy && playerProxy.isImperial && playerProxy.site === siteProxy) {
-                    choices.add(playerProxy.board);
-                    max = Math.max(max, playerProxy.board.original.getWarbandsAmount(playerProxy.leader.board.original.key));
+                    choices.add(playerProxy);
+                    max = Math.max(max, playerProxy.original.getWarbandsAmount(playerProxy.leader.board.original.key));
                 }
             }
         }
@@ -1057,15 +1057,15 @@ export class MoveWarbandsAction extends ModifiableAction {
     }
 
     modifiedExecution(): void {
-        const from = this.giving ? this.player.board : this.targetProxy.original;
-        const to = this.giving ? this.targetProxy.original : this.player.board;
+        const from = this.giving ? this.player : this.targetProxy.original;
+        const to = this.giving ? this.targetProxy.original : this.player;
 
         if (from instanceof Site && from.getWarbandsAmount(this.playerProxy.leader.board.original.key) - this.amount < 1)
             throw new InvalidActionResolution("Cannot take the last warband off a site.");
 
         const effect = new MoveOwnWarbandsEffect(this.playerProxy.leader.original, from, to, this.amount);
-        if (this.targetProxy instanceof PlayerBoard || this.targetProxy.ruler && this.targetProxy.ruler !== this.playerProxy) {
-            const askTo = this.targetProxy instanceof PlayerBoard ? this.targetProxy.owner : this.targetProxy.ruler;
+        if (this.targetProxy instanceof OathPlayer || this.targetProxy.ruler && this.targetProxy.ruler !== this.playerProxy) {
+            const askTo = this.targetProxy instanceof OathPlayer ? this.targetProxy : this.targetProxy.ruler;
             if (askTo) new MakeDecisionAction(askTo.original, `Allow ${this.amount} warbands to move from ${from.name} to ${to.name}?`, () => effect.doNext()).doNext();
         } else {
             effect.doNext();
@@ -1202,8 +1202,8 @@ export class ChooseResourceToTakeAction extends OathAction {
 
     execute(): void {
         const resource = this.parameters.resource[0];
-        if (!resource || !this.player.board) return;
-        new ParentToTargetEffect(this.game, this.player, [resource], this.player.board).doNext();   
+        if (!resource || !this.player) return;
+        new ParentToTargetEffect(this.game, this.player, [resource]).doNext();   
     }
 }
 

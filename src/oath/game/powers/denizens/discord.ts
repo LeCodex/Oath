@@ -434,7 +434,7 @@ export class BoilingLake extends EnemyActionModifier<Denizen, TravelAction> {
 
     applyBefore(): void {
         if (this.action.siteProxy == this.sourceProxy.site)
-            new KillWarbandsOnTargetAction(this.action.player, this.action.player.board, 2).doNext();
+            new KillWarbandsOnTargetAction(this.action.player, this.action.player, 2).doNext();
     }
 }
 

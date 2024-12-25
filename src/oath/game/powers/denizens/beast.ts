@@ -190,7 +190,7 @@ export class GraspingVines extends EnemyActionModifier<Denizen, TravelAction> {
 
     applyBefore(): void {
         if (this.action.maskProxyManager.get(this.action.travelling).site == this.sourceProxy.site)
-            new KillWarbandsOnTargetAction(this.action.travelling, this.action.travelling.board, 1).doNext();
+            new KillWarbandsOnTargetAction(this.action.travelling, this.action.travelling, 1).doNext();
     }
 }
 
@@ -374,7 +374,7 @@ export class Wolves extends ActivePower<Denizen> {
     usePower(): void {
         new ChoosePlayersAction(
             this.action.player, "Kill a warband",
-            (targets: OathPlayer[]) => { if (targets[0]) new KillWarbandsOnTargetAction(this.action.player, targets[0].board, 1).doNext(); },
+            (targets: OathPlayer[]) => { if (targets[0]) new KillWarbandsOnTargetAction(this.action.player, targets[0], 1).doNext(); },
             [this.game.players]
         ).doNext();
     }
@@ -430,8 +430,8 @@ export class SecondChance extends ActivePower<Denizen> {
             this.action.player, "Kill a warband",
             (targets: OathPlayer[]) => {
                 if (!targets[0]) return;
-                new KillWarbandsOnTargetAction(this.action.player, targets[0].board, 1).doNext();
-                new ParentToTargetEffect(this.game, this.action.player, this.action.playerProxy.leader.original.bag.get(1), this.action.player.board).doNext();
+                new KillWarbandsOnTargetAction(this.action.player, targets[0], 1).doNext();
+                new ParentToTargetEffect(this.game, this.action.player, this.action.playerProxy.leader.original.bag.get(1), this.action.player).doNext();
             },
             [players]
         ).doNext();

@@ -198,9 +198,9 @@ export class OathGame extends TreeRoot<OathGame> {
             this.order.unshift(this.chancellor.key);
             
             for (const player of this.players) {
-                player.board.putResources(Favor, player === this.chancellor ? 2 : 1);
-                player.board.putResources(Secret, 1);
-                player.leader.bag.moveChildrenTo(player.board, 3);
+                player.putResources(Favor, player === this.chancellor ? 2 : 1);
+                player.putResources(Secret, 1);
+                player.leader.bag.moveChildrenTo(player, 3);
                 new DrawFromDeckEffect(player, this.worldDeck, 3, true).doNext(cards => {
                     if (player !== this.chancellor)
                         new ChooseSitesAction(
@@ -305,7 +305,7 @@ export class OathGame extends TreeRoot<OathGame> {
         new ChoosePlayersAction(
             this.chancellor, "Choose a Successor",
             (targets: OathPlayer[]) => { if (targets[0]) new WinGameEffect(targets[0]).doNext(); },
-            [[...candidates].filter(e => e.board instanceof ExileBoard && e.isImperial)]
+            [[...candidates].filter(e => e.board instanceof ExileBoard && e.board.isCitizen)]
         ).doNext();
     }
 
