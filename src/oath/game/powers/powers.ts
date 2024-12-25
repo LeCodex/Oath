@@ -107,9 +107,9 @@ export abstract class ActionModifier<T extends WithPowers, U extends ModifiableA
     applyWhenApplied(): boolean { return true; }
     /** Applied when the action starts and selects are set up (before choices are made) */
     applyAtStart(): void { }
-    /** Applied right before the execution of the action is put on the stack */
+    /** Applied right before the modified execution of the action is put on the stack */
     applyBefore(): void { }
-    /** Applied after the execution of the action is put onto the stack */
+    /** Applied right after the modified execution of the action */
     applyAfter(): void { }
     /** Applied after the full execution of the action (and its modifiers) */
     applyAtEnd(): void { }

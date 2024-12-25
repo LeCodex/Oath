@@ -81,6 +81,8 @@ export class SelectNumber extends SelectNOf<number> {
     constructor(name: string, values: Iterable<number>, params: SelectParams = {}) {
         const choices = new Map<string, number>();
         for (const i of values) choices.set(i.toString(), i);
+        params.min = 1;
+        params.max = 1;
         super(name, choices, params);
     }
 }

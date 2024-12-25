@@ -394,6 +394,7 @@ export class OathGame extends TreeRoot<OathGame> {
     }
 
     static load(gameId: number, data: string) {
+        // TODO: Disable writing to the save file during reloads
         const chunks = data.split('\n\n');
         const setupData = JSON.parse(chunks.shift()!);
         const game = new this(gameId, setupData);

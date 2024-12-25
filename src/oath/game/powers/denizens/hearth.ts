@@ -279,7 +279,7 @@ export class WelcomingPartyPlay extends ActionModifier<Denizen, SearchPlayOrDisc
     modifiedAction = SearchPlayOrDiscardAction;
 
     applyAfter(): void {
-        const bank = this.game.favorBank(OathSuit.Hearth)
+        const bank = this.game.favorBank(OathSuit.Hearth);
         if (bank) new ParentToTargetEffect(this.game, this.activator, bank.get(1)).doNext();
     }
 }

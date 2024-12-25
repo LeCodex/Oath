@@ -334,7 +334,7 @@ export class SearchChooseAction extends ModifiableAction {
         
         this.playActions.length = 0;
         for (const card of this.playing) {
-            const playAction = new SearchPlayOrDiscardAction(this.player, card.original, this.discardOptions)
+            const playAction = new SearchPlayOrDiscardAction(this.player, card.original, this.discardOptions);
             this.playActions.push(playAction);
             playAction.doNext();
         }
@@ -395,13 +395,11 @@ export class SearchPlayOrDiscardAction extends ModifiableAction {
 
     start() {
         const sitesChoice = new Map<string, Site | boolean | undefined>();
-        if (!(this.cardProxy instanceof Denizen && this.cardProxy.restriction === CardRestriction.Site)) {
+        if (!(this.cardProxy instanceof Denizen && this.cardProxy.restriction === CardRestriction.Site))
             sitesChoice.set("Faceup adviser", false);
-            sitesChoice.set("Facedown adviser", true);
-        }
-        if (this.cardProxy instanceof Denizen && this.cardProxy.restriction !== CardRestriction.Adviser) {
+        sitesChoice.set("Facedown adviser", true);
+        if (this.cardProxy instanceof Denizen && this.cardProxy.restriction !== CardRestriction.Adviser)
             sitesChoice.set(this.playerProxy.site.name, this.playerProxy.site);
-        }
         sitesChoice.set("Discard", undefined);
         this.selects.choice = new SelectNOf("Choice", sitesChoice, { min: 1 });
 
@@ -1226,7 +1224,7 @@ export class ChooseRegionAction extends OathAction {
     }
 
     start() {
-        if (!this.regions) this.regions = new Set(this.game.map.children.filter(e => e !== this.player.site.region));
+        if (!this.regions) this.regions = new Set(this.game.map.children);
 
         const choices = new Map<string, Region | undefined>();
         if (this.none) choices.set(this.none, undefined);
@@ -1471,12 +1469,14 @@ export class MakeBindingExchangeOfferAction extends ModifiableAction {
     readonly message = "Choose what you want in the exchange";
 
     other: OathPlayer;
+    otherProxy: OathPlayer;
     effect: BindingExchangeEffect;
     next?: MakeBindingExchangeOfferAction;
 
     constructor(player: OathPlayer, other: OathPlayer, next?: MakeBindingExchangeOfferAction) {
         super(player);
         this.other = other;
+        this.otherProxy = this.maskProxyManager.get(other);
         this.effect = next?.effect || new BindingExchangeEffect(other, player);
         this.next = next;
     }
@@ -1515,7 +1515,7 @@ export class DeedWriterOfferAction extends MakeBindingExchangeOfferAction {
     }
 
     start(): boolean {
-        this.selects.sites = new SelectCard("Sites", this.player, this.gameProxy.map.sites());
+        this.selects.sites = new SelectCard("Sites", this.player, [...this.gameProxy.map.sites()].filter(e => e.ruler === this.otherProxy).map(e => e.original));
         return super.start();
     }
 

@@ -168,8 +168,10 @@ export abstract class ModifiableAction extends OathAction {
 
     execute() {
         for (const modifier of this.modifiers) modifier.applyBefore();
-        new ResolveCallbackEffect(this.game, () => this.modifiedExecution()).doNext(); // This allows actions to be slotted before the actual resolution of the action
-        for (const modifier of this.modifiers) modifier.applyAfter();
+        new ResolveCallbackEffect(this.game, () => {  // This allows actions to be slotted before the actual resolution of the ac tion
+            this.modifiedExecution()
+            for (const modifier of this.modifiers) modifier.applyAfter();
+        }).doNext();
         new ResolveCallbackEffect(this.game, () => { for (const modifier of this.modifiers) modifier.applyAtEnd(); }).doNext();
     }
 
