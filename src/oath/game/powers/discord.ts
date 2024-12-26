@@ -1,15 +1,15 @@
-import { MakeDecisionAction, ChooseCardsAction, ChooseRegionAction, TakeFavorFromBankAction, TakeResourceFromPlayerAction, ChooseSuitsAction, SearchPlayOrDiscardAction, MusterAction, TravelAction, CampaignAction, KillWarbandsOnTargetAction, CampaignAttackAction, CampaignEndAction, TakeReliquaryRelicAction, ChooseNumberAction, StartBindingExchangeAction, FestivalDistrictOfferAction, RecoverAction } from "../../actions/actions";
-import { InvalidActionResolution, ModifiableAction } from "../../actions/base";
-import { FavorBank, PeoplesFavor } from "../../banks";
-import { Region } from "../../map";
-import { Denizen, Edifice, OathCard, Relic, Site, Vision, WorldCard } from "../../cards/cards";
-import { D6, DefenseDie } from "../../dice";
-import { TakeOwnableObjectEffect, PutResourcesOnTargetEffect, MoveResourcesToTargetEffect, SetNewOathkeeperEffect, RollDiceEffect, DiscardCardEffect, BecomeCitizenEffect, PayCostToTargetEffect, PeekAtCardEffect, WinGameEffect, DrawFromDeckEffect, MoveWorldCardToAdvisersEffect, ParentToTargetEffect, BurnResourcesEffect } from "../../actions/effects";
-import { BannerKey, OathSuit } from "../../enums";
-import { ExileBoard, OathPlayer } from "../../player";
-import { Favor, ResourceCost, Secret } from "../../resources";
-import { WhenPlayed, CapacityModifier, ActivePower, RestPower, AttackerBattlePlan, DefenderBattlePlan, ActionModifier, AccessedActionModifier, WakePower, EnemyActionModifier, EnemyAttackerCampaignModifier, EnemyDefenderCampaignModifier } from "../powers";
-import { minInGroup } from "../../utils";
+import { MakeDecisionAction, ChooseCardsAction, ChooseRegionAction, TakeFavorFromBankAction, TakeResourceFromPlayerAction, ChooseSuitsAction, SearchPlayOrDiscardAction, MusterAction, TravelAction, CampaignAction, KillWarbandsOnTargetAction, CampaignAttackAction, CampaignEndAction, TakeReliquaryRelicAction, ChooseNumberAction, StartBindingExchangeAction, FestivalDistrictOfferAction, RecoverAction } from "../actions";
+import { InvalidActionResolution, ModifiableAction } from "../actions/base";
+import { FavorBank, PeoplesFavor } from "../banks";
+import { Region } from "../map";
+import { Denizen, Edifice, OathCard, Relic, Site, Vision, WorldCard } from "../cards";
+import { D6, DefenseDie } from "../dice";
+import { TakeOwnableObjectEffect, PutResourcesOnTargetEffect, MoveResourcesToTargetEffect, SetNewOathkeeperEffect, RollDiceEffect, DiscardCardEffect, BecomeCitizenEffect, PayCostToTargetEffect, PeekAtCardEffect, WinGameEffect, DrawFromDeckEffect, MoveWorldCardToAdvisersEffect, ParentToTargetEffect, BurnResourcesEffect } from "../actions/effects";
+import { BannerKey, OathSuit } from "../enums";
+import { ExileBoard, OathPlayer } from "../player";
+import { Favor, ResourceCost, Secret } from "../resources";
+import { WhenPlayed, CapacityModifier, ActivePower, RestPower, AttackerBattlePlan, DefenderBattlePlan, ActionModifier, AccessedActionModifier, WakePower, EnemyActionModifier, EnemyAttackerCampaignModifier, EnemyDefenderCampaignModifier } from ".";
+import { minInGroup } from "../utils";
 
 
 export class MercenariesAttack extends AttackerBattlePlan<Denizen> {

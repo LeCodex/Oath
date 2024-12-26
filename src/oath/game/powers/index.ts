@@ -1,7 +1,7 @@
-import { RestAction, UsePowerAction, WakeAction, CampaignAttackAction, CampaignDefenseAction } from "../actions/actions";
+import { RestAction, UsePowerAction, WakeAction, CampaignAttackAction, CampaignDefenseAction } from "../actions";
 import { ModifiableAction } from "../actions/base";
 import { ApplyWhenPlayedEffect, GainPowerEffect, LosePowerEffect, PayPowerCostEffect } from "../actions/effects";
-import { OathCard, OwnableCard, Site, WorldCard } from "../cards/cards";
+import { OathCard, OwnableCard, Site, WorldCard } from "../cards";
 import { ResourceCost } from "../resources";
 import { OathPlayer } from "../player";
 import { AbstractConstructor, Constructor, MaskProxyManager } from "../utils";

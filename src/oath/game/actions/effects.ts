@@ -1,14 +1,14 @@
 import { InvalidActionResolution, OathEffect, PlayerEffect } from "./base";
-import { Denizen, Edifice, OathCard, Relic, Site, Vision, VisionBack, WorldCard } from "../cards/cards";
+import { Denizen, Edifice, OathCard, Relic, Site, Vision, VisionBack, WorldCard } from "../cards";
 import { ALL_OATH_SUITS, BannerKey, CardRestriction, OathPhase, OathSuit, PlayerColor } from "../enums";
 import { ExileBoard, OathPlayer } from "../player";
-import { OathPower, WhenPlayed } from "../powers/powers";
+import { OathPower, WhenPlayed } from "../powers";
 import { Favor, OathResource, OathResourceType, ResourceCost, ResourcesAndWarbands, Secret } from "../resources";
 import { Banner, FavorBank, PeoplesFavor } from "../banks";
 import { OwnableObject, RecoverActionTarget, WithPowers } from "../interfaces";
 import { OathGame } from "../game";
 import { OathGameObject } from "../gameObject";
-import { BuildOrRepairEdificeAction, ChooseNewCitizensAction, VowOathAction, RestAction, WakeAction, CampaignResult, SearchDiscardAction, SearchPlayOrDiscardAction, ChooseSuitsAction, ChooseNumberAction } from "./actions";
+import { BuildOrRepairEdificeAction, ChooseNewCitizensAction, VowOathAction, RestAction, WakeAction, CampaignResult, SearchDiscardAction, SearchPlayOrDiscardAction, ChooseSuitsAction, ChooseNumberAction } from ".";
 import { DiscardOptions } from "../cards/decks";
 import { CardDeck } from "../cards/decks";
 import { Constructor, inclusiveRange, isExtended, maxInGroup } from "../utils";

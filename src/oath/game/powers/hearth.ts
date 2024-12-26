@@ -1,14 +1,14 @@
-import { TradeAction, TakeResourceFromPlayerAction, TakeFavorFromBankAction, CampaignEndAction, MakeDecisionAction, CampaignAttackAction, ChooseSuitsAction, ChooseCardsAction, MusterAction, SearchPlayOrDiscardAction, MayDiscardACardAction, SearchAction, SearchChooseAction, KillWarbandsOnTargetAction, TinkersFairOfferAction, StartBindingExchangeAction, DeedWriterOfferAction } from "../../actions/actions";
-import { ModifiableAction, InvalidActionResolution } from "../../actions/base";
-import { Denizen, Edifice, Relic, WorldCard } from "../../cards/cards";
-import { DieSymbol } from "../../dice";
-import { PlayVisionEffect, PlayWorldCardEffect, PeekAtCardEffect, DiscardCardEffect, BecomeCitizenEffect, SetPeoplesFavorMobState, GainSupplyEffect, DrawFromDeckEffect, TakeOwnableObjectEffect, MoveDenizenToSiteEffect, ParentToTargetEffect, PutResourcesOnTargetEffect, RecoverTargetEffect } from "../../actions/effects";
-import { BannerKey, OathSuit, ALL_OATH_SUITS } from "../../enums";
-import { WithPowers } from "../../interfaces";
-import { Favor, ResourceCost, Secret } from "../../resources";
-import { maxInGroup, minInGroup } from "../../utils";
-import { DefenderBattlePlan, AccessedActionModifier, ActivePower, WhenPlayed, EnemyActionModifier, AttackerBattlePlan, ActionModifier, EnemyDefenderCampaignModifier } from "../powers";
-import { ExileBoard } from "../../player";
+import { TradeAction, TakeResourceFromPlayerAction, TakeFavorFromBankAction, CampaignEndAction, MakeDecisionAction, CampaignAttackAction, ChooseSuitsAction, ChooseCardsAction, MusterAction, SearchPlayOrDiscardAction, MayDiscardACardAction, SearchAction, SearchChooseAction, KillWarbandsOnTargetAction, TinkersFairOfferAction, StartBindingExchangeAction, DeedWriterOfferAction } from "../actions";
+import { ModifiableAction, InvalidActionResolution } from "../actions/base";
+import { Denizen, Edifice, Relic, WorldCard } from "../cards";
+import { DieSymbol } from "../dice";
+import { PlayVisionEffect, PlayWorldCardEffect, PeekAtCardEffect, DiscardCardEffect, BecomeCitizenEffect, SetPeoplesFavorMobState, GainSupplyEffect, DrawFromDeckEffect, TakeOwnableObjectEffect, MoveDenizenToSiteEffect, ParentToTargetEffect, PutResourcesOnTargetEffect, RecoverTargetEffect } from "../actions/effects";
+import { BannerKey, OathSuit, ALL_OATH_SUITS } from "../enums";
+import { WithPowers } from "../interfaces";
+import { Favor, ResourceCost, Secret } from "../resources";
+import { maxInGroup, minInGroup } from "../utils";
+import { DefenderBattlePlan, AccessedActionModifier, ActivePower, WhenPlayed, EnemyActionModifier, AttackerBattlePlan, ActionModifier, EnemyDefenderCampaignModifier } from ".";
+import { ExileBoard } from "../player";
 
 
 export class TravelingDoctorAttack extends AttackerBattlePlan<Denizen> {

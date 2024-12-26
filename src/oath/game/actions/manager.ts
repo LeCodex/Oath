@@ -1,4 +1,4 @@
-import { UsePowerAction, PlayFacedownAdviserAction, MoveWarbandsAction, RestAction, MusterAction, TradeAction, TravelAction, RecoverAction, SearchAction, CampaignAction } from "./actions";
+import { UsePowerAction, PlayFacedownAdviserAction, MoveWarbandsAction, RestAction, MusterAction, TradeAction, TravelAction, RecoverAction, SearchAction, CampaignAction } from ".";
 import { OathAction, OathEffect, InvalidActionResolution } from "./base";
 import { OathPhase } from "../enums";
 import { OathGame } from "../game";

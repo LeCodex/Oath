@@ -1,7 +1,7 @@
 import { OathGame } from "../game";
 import { WithPowers } from "../interfaces";
 import { OathPlayer } from "../player";
-import { ActionModifier } from "../powers/powers";
+import { ActionModifier } from "../powers";
 import { Constructor, MaskProxyManager } from "../utils";
 import { SelectNOf } from "./selects";
 

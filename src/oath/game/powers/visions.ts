@@ -1,8 +1,8 @@
-import { CampaignDefenseAction, ChoosePlayersAction, ConspiracyStealAction } from "../actions/actions";
-import { Conspiracy, Denizen } from "../cards/cards";
+import { CampaignDefenseAction, ChoosePlayersAction, ConspiracyStealAction } from "../actions";
+import { Conspiracy, Denizen } from "../cards";
 import { Oath } from "../oaths";
 import { OathPlayer } from "../player";
-import { ActionModifier, WhenPlayed } from "./powers";
+import { ActionModifier, WhenPlayed } from ".";
 
 
 export class OathDefense extends ActionModifier<Oath, CampaignDefenseAction> {

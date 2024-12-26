@@ -1,10 +1,10 @@
-import { ChooseSuitsAction, RecoverAction, RecoverBannerPitchAction } from "./actions/actions";
+import { ChooseSuitsAction, RecoverAction, RecoverBannerPitchAction } from "./actions";
 import { RecoverActionTarget, CampaignActionTarget, WithPowers, OwnableObject } from "./interfaces";
 import { TakeOwnableObjectEffect, SetPeoplesFavorMobState, ParentToTargetEffect, BurnResourcesEffect, MoveResourcesToTargetEffect, RecoverTargetEffect } from "./actions/effects";
 import { isEnumKey, OathSuit } from "./enums";
 import { OathPlayer } from "./player";
 import { PeoplesFavorSearch, PeoplesFavorWake, DarkestSecretPower } from "./powers/banners";
-import { OathPower } from "./powers/powers";
+import { OathPower } from "./powers";
 import { Constructor } from "./utils";
 import { Favor, OathResource, Secret } from "./resources";
 import { Container } from "./gameObject";

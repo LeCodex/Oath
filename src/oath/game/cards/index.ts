@@ -1,11 +1,11 @@
-import { CampaignSeizeSiteAction, RecoverAction } from "../actions/actions";
+import { CampaignSeizeSiteAction, RecoverAction } from "../actions";
 import { RecoverActionTarget, WithPowers, AtSite, CampaignActionTarget, OwnableObject, HiddenInformation } from "../interfaces";
 import { Region } from "../map";
 import { DiscardCardEffect, FlipSecretsEffect, MoveOwnWarbandsEffect, MoveResourcesToTargetEffect, ParentToTargetEffect, PayCostToBankEffect, RecoverTargetEffect, RevealCardEffect, TakeOwnableObjectEffect } from "../actions/effects";
 import { CardRestriction, OathSuit, OathType, OathTypeVisionName, PlayerColor, RegionKey } from "../enums";
 import { Oath } from "../oaths";
 import { OathPlayer } from "../player";
-import { OathPower } from "../powers/powers";
+import { OathPower } from "../powers";
 import { ConspiracyWhenPlayed } from "../powers/visions";
 import { Favor, OathResource, ResourceCost, ResourcesAndWarbands, Secret } from "../resources";
 import { Constructor } from "../utils";

@@ -1,5 +1,5 @@
 import { DarkestSecret, PeoplesFavor } from "./banks";
-import { GrandScepter } from "./cards/cards";
+import { GrandScepter } from "./cards";
 import { OathType } from "./enums";
 import { OathGame } from "./game";
 import { OathGameObjectLeaf } from "./gameObject";

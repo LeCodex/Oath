@@ -1,7 +1,7 @@
-import { OathPower } from "../powers/powers";
+import { OathPower } from "../powers";
 import { BanditCrown, BookOfRecords, BrassHorse, CircletOfCommand, CrackedHorn, CupOfPlenty, CursedCauldronAttack, CursedCauldronDefense, DowsingSticks, DragonskinDrum, GrandMask, GrandScepterExileCitizen, GrandScepterGrantCitizenship, GrandScepterPeek, GrandScepterRest, GrandScepterSeize, HornedMask, IvoryEye, MapRelic, ObsidianCageActive, ObsidianCageAttack, ObsidianCageDefense, OracularPig, RingOfDevotionMuster, RingOfDevotionRestriction, SkeletonKey, StickyFireAttack, StickyFireDefense, TruthfulHarp, Whistle } from "../powers/relics";
 import { Constructor } from "../utils";
-import { Relic } from "./cards";
+import { Relic } from ".";
 
 export const relicsData: Record<string, [number, Constructor<OathPower<Relic>>[]]> = {
     CircletOfCommand:   [1, [CircletOfCommand]],

@@ -1,6 +1,6 @@
-import { CampaignBanishPlayerAction } from "./actions/actions";
+import { CampaignBanishPlayerAction } from "./actions";
 import { CampaignActionTarget, AtSite, OwnableObject } from "./interfaces";
-import { Denizen, OwnableCard, Relic, Site, Vision, WorldCard } from "./cards/cards";
+import { Denizen, OwnableCard, Relic, Site, Vision, WorldCard } from "./cards";
 import { DiscardOptions } from "./cards/decks";
 import { BurnResourcesEffect, FlipSecretsEffect, GainSupplyEffect } from "./actions/effects";
 import { ALL_OATH_SUITS, isEnumKey, OathSuit, PlayerColor } from "./enums";

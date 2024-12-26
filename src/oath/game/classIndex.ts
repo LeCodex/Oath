@@ -1,6 +1,6 @@
 import { DarkestSecret, FavorBank, PeoplesFavor } from "./banks";
 import { OathMap, Region } from "./map";
-import { Conspiracy, Denizen, Edifice, GrandScepter, Relic, Site, Vision } from "./cards/cards";
+import { Conspiracy, Denizen, Edifice, GrandScepter, Relic, Site, Vision } from "./cards";
 import { Discard, RelicDeck, WorldDeck } from "./cards/decks";
 import { Oath } from "./oaths";
 import { Reliquary, ReliquarySlot } from "./reliquary";

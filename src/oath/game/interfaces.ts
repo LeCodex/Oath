@@ -1,8 +1,8 @@
-import { RecoverAction } from "./actions/actions";
-import { Site } from "./cards/cards";
+import { RecoverAction } from "./actions";
+import { Site } from "./cards";
 import { OathGameObject } from "./gameObject";
 import { OathPlayer } from "./player";
-import { OathPower } from "./powers/powers";
+import { OathPower } from "./powers";
 import { ResourcesAndWarbands } from "./resources";
 import { Constructor, WithOriginal } from "./utils";
 

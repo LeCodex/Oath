@@ -1,4 +1,4 @@
-import { OathCard } from "../cards/cards";
+import { OathCard } from "../cards";
 import { OathPlayer } from "../player";
 import { InvalidActionResolution } from "./base";
 

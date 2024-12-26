@@ -1,4 +1,4 @@
-import { Site } from "./cards/cards";
+import { Site } from "./cards";
 import { Discard } from "./cards/decks";
 import { RegionKey, RegionSize, isEnumKey } from "./enums";
 import { Container, OathGameObject } from "./gameObject";

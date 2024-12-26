@@ -1,12 +1,12 @@
-import { ChooseResourceToTakeAction, WakeAction, TravelAction, CampaignAttackAction, MusterAction, SearchAction, StartBindingExchangeAction, MakeBindingExchangeOfferAction, SearchPlayOrDiscardAction, MayDiscardACardAction } from "../actions/actions";
+import { ChooseResourceToTakeAction, WakeAction, TravelAction, CampaignAttackAction, MusterAction, SearchAction, StartBindingExchangeAction, MakeBindingExchangeOfferAction, SearchPlayOrDiscardAction, MayDiscardACardAction } from "../actions";
 import { InvalidActionResolution, ModifiableAction } from "../actions/base";
-import { Site, Denizen } from "../cards/cards";
+import { Site, Denizen } from "../cards";
 import { PlayWorldCardEffect, PutResourcesOnTargetEffect, FlipSecretsEffect, ParentToTargetEffect, RecoverTargetEffect } from "../actions/effects";
 import { OathSuit } from "../enums";
 import { isAtSite, WithPowers } from "../interfaces";
 import { OathPlayer } from "../player";
 import { Secret } from "../resources";
-import { ActionModifier, ActivePower } from "./powers";
+import { ActionModifier, ActivePower } from ".";
 
 
 export abstract class HomelandSitePower extends ActionModifier<Site, PlayWorldCardEffect> {
