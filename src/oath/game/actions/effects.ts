@@ -240,12 +240,11 @@ export class PayCostToBankEffect extends OathEffect<boolean> {
             return;
         }
     
+        this.result = true;
         for (const [resource, amount] of this.cost.burntResources) {
             new BurnResourcesEffect(this.game, this.executor, resource, amount, this.source).doNext(result => { if (result < amount) this.result = false; });
-            return;
         }
 
-        this.result = true;
         if (this.suit) {
             const bank = this.game.byClass(FavorBank).byKey(this.suit)[0];
             if (bank) {

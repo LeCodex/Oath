@@ -127,7 +127,7 @@ export class DarkestSecret extends Banner<Secret> {
     }
 
     handleRecovery(player: OathPlayer) {
-        new MoveResourcesToTargetEffect(this.game, player, this.cls, 1, this).doNext();
+        new MoveResourcesToTargetEffect(this.game, player, this.cls, 1, player, this).doNext();
         if (this.owner) new MoveResourcesToTargetEffect(this.game, this.owner, this.cls, this.amount - 1, this).doNext();
     }
 }

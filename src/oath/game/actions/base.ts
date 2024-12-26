@@ -125,8 +125,8 @@ export class ChooseModifiers<T extends ModifiableAction> extends OathAction {
 export abstract class ModifiableAction extends OathAction {
     modifiers: ActionModifier<WithPowers, this>[] = [];
     maskProxyManager: MaskProxyManager;
-    gameProxy: OathGame; // Effects and powers are allowed to modify the proxies to "lie" to the action
-    playerProxy: OathPlayer; // This is a simple reference for simplicity
+    gameProxy: OathGame;  // Effects and powers are allowed to modify the proxies to "lie" to the action
+    playerProxy: OathPlayer;  // This is a simple reference for simplicity
 
     constructor(player: OathPlayer) {
         super(player);

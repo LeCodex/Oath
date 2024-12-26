@@ -16,6 +16,7 @@ export class SelectNOf<T> {
     defaults: string[];
     min: number;
     max: number;
+    exact: boolean;
 
     /**
      * Default params are: any number (including 0), with exact (must be able to select the demanded number).
@@ -40,12 +41,15 @@ export class SelectNOf<T> {
 
         this.min = params.min;
         this.max = Math.min(params.max, this.choices.size);
+        this.exact = params.exact;
     }
 
     filterChoices(condition: (e: T) => boolean) {
         for (const [name, choice] of this.choices)
             if (!condition(choice))
                 this.choices.delete(name);
+
+        if (this.choices.size < this.min && this.exact) throw new InvalidActionResolution(`Not enough choices for select ${this.name}`);
     }
 
     parse(input: Iterable<string>): T[] {
