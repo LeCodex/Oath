@@ -272,13 +272,15 @@ export class WelcomingParty extends AccessedActionModifier<Denizen, SearchChoose
 
     applyAfter(): void {
         for (const playAction of this.action.playActions)
-            playAction.applyModifiers([new WelcomingPartyPlay(this.source, playAction, this.activator)]);
+            if (playAction.cardProxy instanceof Denizen)
+                playAction.applyModifiers([new WelcomingPartyPlay(this.source, playAction, this.activator)]);
     }
 }
 export class WelcomingPartyPlay extends ActionModifier<Denizen, SearchPlayOrDiscardAction> {
     modifiedAction = SearchPlayOrDiscardAction;
 
     applyAfter(): void {
+        if (this.action.facedown) return;
         const bank = this.game.favorBank(OathSuit.Hearth);
         if (bank) new ParentToTargetEffect(this.game, this.activator, bank.get(1)).doNext();
     }
