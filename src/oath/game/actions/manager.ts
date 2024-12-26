@@ -3,6 +3,7 @@ import { OathAction, OathEffect, InvalidActionResolution } from "./base";
 import { OathPhase } from "../enums";
 import { OathGame } from "../game";
 import { Constructor, SerializedNode } from "../utils";
+import { clone } from "lodash";
 
 
 export class HistoryNode<T extends OathActionManager> {
@@ -127,9 +128,15 @@ export class OathActionManager {
     }
 
     get gameState() {
+        const cloneDeepNext = (e: OathAction) => {
+            const clonedAction = clone(e);
+            if ("next" in clonedAction && clonedAction.next instanceof OathAction) clonedAction.next = cloneDeepNext(clonedAction.next);
+            return clonedAction;
+        }
+
         return {
             game: this.game.serialize(true) as SerializedNode<this["game"]>,
-            stack: [...this.actionsStack]
+            stack: this.actionsStack.map(e => cloneDeepNext(e))
         };
     }
     get activePlayer() { return this.actionsStack[this.actionsStack.length - 1]?.player ?? this.game.currentPlayer; }
@@ -177,8 +184,7 @@ export class OathActionManager {
             event.oneWay = this.markEventAsOneWay;
             return this.defer();
         } catch (e) {
-            this.history.pop();
-            this.revertCurrentAction(gameState);
+            this.authorizeCancel();
             throw e;
         }
     }
@@ -201,8 +207,7 @@ export class OathActionManager {
         this.rollbackConsent = undefined;
         const parsed = action.parse(values);
         action.applyParameters(parsed);
-        
-        const gameState = this.gameState;
+
         const event = new ContinueEvent(this, playerId, values);
         const events = this.history[this.history.length - 1]?.events;
         events?.push(event);
@@ -211,8 +216,7 @@ export class OathActionManager {
             event.oneWay = this.markEventAsOneWay;
             return this.defer();
         } catch (e) {
-            events?.pop();
-            this.revertCurrentAction(gameState);
+            this.authorizeCancel();
             throw e;
         }
     }

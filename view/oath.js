@@ -314,6 +314,8 @@ const handleResponse = async (response) => {
     rollbackConsent = info.rollbackConsent;
     over = info.over;
     render();
+
+    return info;
 }
 
 setup();

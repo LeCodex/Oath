@@ -442,7 +442,7 @@ export class Gossip extends EnemyActionModifier<Denizen, SearchPlayOrDiscardActi
     modifiedAction = SearchPlayOrDiscardAction;
 
     applyAtStart(): void {
-        this.action.selects.choice.filterChoices(e => !(e === false));
+        this.action.selects.choice.filterChoices(e => e !== false);
     }
 }
 
