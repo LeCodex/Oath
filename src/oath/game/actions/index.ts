@@ -795,7 +795,7 @@ export class CampaignResult {
 }
 
 export class CampaignEndAction extends ModifiableAction {
-    readonly selects: { doSacrifice: SelectBoolean, callbacks: SelectNOf<CampaignEndCallback> };
+    readonly selects: { doSacrifice: SelectBoolean, callbacks: SelectWithName<CampaignEndCallback> };
     readonly parameters: { doSacrifice: boolean[], callbacks: CampaignEndCallback[] };
     readonly message = "Handle the end of the campaign";
     

@@ -48,20 +48,24 @@ export class GrandScepterPeek extends GrandScepterActive {
 export class GrandScepterGrantCitizenship extends GrandScepterActive {
     get name() { return "Grant Citizenship"; }
 
+    canUse(): boolean {
+        return super.canUse() && !!this.game.players.filter(e => e.board instanceof ExileBoard && !e.isImperial).length;
+    }
+
     usePower(): void {
-        const players = this.gameProxy.players.filter(e => e.board instanceof ExileBoard && !e.isImperial).map(e => e.original);
-        new StartBindingExchangeAction(this.action.player, CitizenshipOfferAction, players).doNext();
+        const exiles = this.game.players.filter(e => e.board instanceof ExileBoard && !e.isImperial);
+        new StartBindingExchangeAction(this.action.player, CitizenshipOfferAction, exiles).doNext();
     }
 }
 export class GrandScepterExileCitizen extends GrandScepterActive {
     get name() { return "Exile a Citizen"; }
 
-    usePower(): void {
-        const citizens = [];
-        for (const player of this.game.players)
-            if (player.board instanceof ExileBoard && player.isImperial)
-                citizens.push(player);
+    canUse(): boolean {
+        return super.canUse() && !!this.game.players.filter(e => e.board instanceof ExileBoard && e.isImperial).length;
+    }
 
+    usePower(): void {
+        const citizens = this.game.players.filter(e => e.board instanceof ExileBoard && e.isImperial)
         new ChoosePlayersAction(
             this.action.player, "Exile a Citizen",
             (targets: OathPlayer[]) => {
