@@ -2,11 +2,11 @@ import { PRNG } from "./utils";
 
 export enum DieSymbol {
     Sword = 1,
-    TwoSword = 2,
+    TwoSwords = 2,
     HollowSword = 0.5,
     Skull = 0,
     Shield = 1,
-    TwoShield = 2,
+    TwoShields = 2,
     DoubleShield = -1
 };
 
@@ -30,7 +30,7 @@ export class AttackDie extends Die {
         [DieSymbol.HollowSword], 
         [DieSymbol.Sword], 
         [DieSymbol.Sword], 
-        [DieSymbol.TwoSword, DieSymbol.Skull]
+        [DieSymbol.TwoSwords, DieSymbol.Skull]
     ];
 }
 
@@ -40,7 +40,7 @@ export class DefenseDie extends Die {
         [],
         [DieSymbol.Shield],
         [DieSymbol.Shield],
-        [DieSymbol.TwoShield],
+        [DieSymbol.TwoShields],
         [DieSymbol.DoubleShield],
     ]
 
@@ -67,32 +67,28 @@ export class D6 extends Die {
  * get() returns 0 instead of undefined if a key isn't found.
  */
 export class RollResult {
-    dice: Map<typeof Die, Map<number, number>> = new Map();
+    rolls: number[][] = [];
     ignore: Set<number> = new Set();
 
-    constructor(public random: PRNG) { }
+    constructor(public random: PRNG, public die: typeof Die) { }
 
     get symbols(): Map<number, number> {
         const res = new Map<number, number>();
-        for (const symbols of this.dice.values())
-            for (const [symbol, amount] of symbols)
-                res.set(symbol, (res.get(symbol) ?? 0) + amount);
+        for (const roll of this.rolls)
+            for (const symbol of roll)
+                res.set(symbol, (res.get(symbol) ?? 0) + 1);
         
         return res;
     }
 
     get value(): number {
-        let total = 0;
-        for (const [die, symbols] of this.dice) total += die.getValue(symbols, this.ignore);
-        return total;
+        return this.die.getValue(this.symbols, this.ignore);
     }
 
-    roll(die: typeof Die, amount: number): this {
+    roll(amount: number): this {
         for (let i = 0; i < amount; i++) {
-            const symbols = this.random.pick(die.faces);
-            const symbolCount = this.dice.get(die) ?? new Map<number, number>();
-            for (const symbol of symbols) symbolCount.set(symbol, (symbolCount.get(symbol) ?? 0) + 1);
-            this.dice.set(die, symbolCount);
+            const roll = this.random.pick(this.die.faces);
+            this.rolls.push(roll);
         }
         return this;
     }

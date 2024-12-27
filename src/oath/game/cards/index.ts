@@ -121,7 +121,7 @@ export class Site extends OathCard implements CampaignActionTarget {
     }
 
     accessibleBy(player: OathPlayer): boolean {
-        return player.site === this || player === this.ruler;
+        return player.site === this || player.leader === this.ruler;
     }
 
     getWarbandsAmount(color?: PlayerColor): number {

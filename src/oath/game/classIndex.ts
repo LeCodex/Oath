@@ -32,5 +32,5 @@ const index = {
     Favor,
     Secret,
     Warband
-}
+};
 export default index; 

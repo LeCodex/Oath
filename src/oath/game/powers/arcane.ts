@@ -279,15 +279,12 @@ export class Jinx extends ActionModifier<Denizen, RollDiceEffect> {
         const result = this.action.result;
         const player = this.action.executor;
         if (!player) return;
-        if (this.action.die !== AttackDie || this.action.die !== DefenseDie) return;
+        if (this.action.result.die !== AttackDie || this.action.result.die !== DefenseDie) return;
 
-        const dieResult = result.dice.get(this.action.die)
-        if (!dieResult) return;
-
-        new MakeDecisionAction(player, "Reroll " + [...dieResult.values()].join(", ") + "?", () => {
+        new MakeDecisionAction(player, "Reroll " + this.action.result.rolls.map(e => e.join(" & ")).join(", ") + " ?", () => {
             this.payCost(player, success => {
                 if (!success) return;
-                result.dice.set(this.action.die, new RollResult(this.game.random).roll(this.action.die, this.action.amount).dice.get(this.action.die)!)
+                result.rolls = new RollResult(this.game.random, this.action.result.die).roll(this.action.amount).rolls;
             });
         }).doNext();
     }

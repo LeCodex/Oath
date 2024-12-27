@@ -743,26 +743,24 @@ export class RecoverTargetEffect extends PlayerEffect {
 }
 
 export class RollDiceEffect extends OathEffect<RollResult> {
-    die: typeof Die;
     amount: number;
     result: RollResult;
 
-    constructor(game: OathGame, player: OathPlayer | undefined, die: typeof Die, amount: number, result: RollResult = new RollResult(game.random)) {
+    constructor(game: OathGame, player: OathPlayer | undefined, dieOrResult: typeof Die | RollResult, amount: number) {
         super(game, player);
-        this.die = die;
         this.amount = Math.max(0, amount);
-        this.result = result;
+        this.result = dieOrResult instanceof RollResult ? dieOrResult : new RollResult(game.random, dieOrResult);
     }
 
     resolve(): void {
         this.game.actionManager.markEventAsOneWay = true;
-        this.result.roll(this.die, this.amount);
+        this.result.roll(this.amount);
     }
 
     serialize() {
         return {
             ...super.serialize(),
-            die: this.die.name,
+            die: this.result.die.name,
             result: Object.fromEntries(this.result.symbols.entries())
         };
     }

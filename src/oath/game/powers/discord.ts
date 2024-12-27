@@ -536,14 +536,14 @@ export class SqualidDistrict extends ActionModifier<Edifice, RollDiceEffect> {
     mustUse = true;
 
     canUse(): boolean {
-        return !!this.sourceProxy.ruler && this.action.die === D6;
+        return !!this.sourceProxy.ruler && this.action.result.die === D6;
     }
 
     applyAfter(): void {
         const result = this.action.result;
         new ChooseNumberAction(
             this.sourceProxy.ruler!.original, "Add to " + result.value, [1, 0, -1],
-            (value: number) => result.dice.set(D6, new Map([[result.value + value, 1]])),
+            (value: number) => result.rolls = [[result.value + value]],
         ).doNext();
     }
 }

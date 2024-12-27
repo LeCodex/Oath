@@ -29,14 +29,14 @@ export class WarTortoiseAttack extends AttackerBattlePlan<Denizen> {
     cost = new ResourceCost([[Favor, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.defRoll.ignore.add(DieSymbol.TwoShield);
+        this.action.campaignResult.defRoll.ignore.add(DieSymbol.TwoShields);
     }
 }
 export class WarTortoiseDefense extends DefenderBattlePlan<Denizen> {
     cost = new ResourceCost([[Favor, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.atkRoll.ignore.add(DieSymbol.TwoSword);
+        this.action.campaignResult.atkRoll.ignore.add(DieSymbol.TwoSwords);
     }
 }
 

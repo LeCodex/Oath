@@ -126,22 +126,23 @@ export class WildMountsReplace extends ActionModifier<Denizen, DiscardCardEffect
 
 export class RainBoots extends AttackerBattlePlan<Denizen> {
     applyBefore(): void {
-        this.action.campaignResult.defRoll.ignore.add(DieSymbol.Shield)
+        this.action.campaignResult.defRoll.ignore.add(DieSymbol.Shield);
+        this.action.campaignResult.discardAtEnd(this.source);
     }
 }
 
 export class Lancers extends AttackerBattlePlan<Denizen> {
     applyBefore(): void {
         this.action.next.next.applyModifiers([new LancersEnd(this.source, this.action.next.next, this.activator)]);
+        this.action.campaignResult.discardAtEnd(this.source);
     }
 }
 export class LancersEnd extends ActionModifier<Denizen, CampaignEndAction> {
     modifiedAction = CampaignEndAction;
 
     applyBefore(): void {
-        const roll = this.action.campaignResult.atkRoll.dice.get(AttackDie);
-        if (!roll) return;
-        for (const [symbol, amount] of roll) roll.set(symbol, 2 * amount);
+        const rolls = this.action.campaignResult.atkRoll.rolls;
+        this.action.campaignResult.atkRoll.rolls = [...rolls, ...rolls];
     }
 }
 
@@ -162,6 +163,7 @@ export class MountedPatrol extends DefenderBattlePlan<Denizen> {
 export class WarningSignals extends DefenderBattlePlan<Denizen> {
     applyBefore(): void {
         new MoveWarbandsBetweenBoardAndSitesAction(this.action.playerProxy).doNext();
+        this.action.campaignResult.discardAtEnd(this.source);
     }
 }
 

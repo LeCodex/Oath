@@ -9,7 +9,7 @@ import { denizenData, DenizenName, edificeFlipside } from "./cards/denizens";
 import { RelicName, relicsData } from "./cards/relics";
 import { OathPhase, OathSuit, RegionKey, PlayerColor, ALL_OATH_SUITS, BannerKey } from "./enums";
 import { Oath } from "./oaths";
-import { Conspiracy, Denizen, Edifice, GrandScepter, Relic, Site, Vision, WorldCard } from "./cards";
+import { Conspiracy, Denizen, Edifice, GrandScepter, Relic, Site, Vision } from "./cards";
 import { ExileBoard, OathPlayer, PlayerBoard, WarbandsSupply } from "./player";
 import { Banner, DarkestSecret, FavorBank, PeoplesFavor } from "./banks";
 import { AbstractConstructor, Constructor, isExtended, MurmurHash3, PRNG, TreeNode, TreeRoot } from "./utils";
@@ -40,7 +40,6 @@ export class OathGame extends TreeRoot<OathGame> {
     round = 1;
     order: number[] = [];
 
-    // References for quick access to static elements
     actionManager = new OathActionManager(this);
     banners = new Map<BannerKey, Banner>;
 
@@ -53,6 +52,7 @@ export class OathGame extends TreeRoot<OathGame> {
         this.setup(setupData);
     }
 
+    // References for quick access to static elements
     get chancellor() { return this.search<PlayerBoard>("board", PlayerColor.Purple)?.typedParent(OathPlayer)!; }
     get oath() { return this.search<Oath>("oath", "oath")!; }
     get reliquary() { return this.search<Reliquary>("reliquary", "reliquary")!; }
@@ -157,7 +157,7 @@ export class OathGame extends TreeRoot<OathGame> {
                     continue;
                 }
 
-                console.warn("Couldn't load " + cardId + " for " + siteId);
+                console.warn(`Couldn't load ${cardId} for ${siteId}`);
             }
 
             if (region.byClass(Site).length >= region.size) regionKey++;

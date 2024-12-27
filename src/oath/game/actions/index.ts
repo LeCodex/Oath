@@ -715,8 +715,8 @@ export class CampaignResult {
     
     constructor(game: OathGame) {
         this.game = game;
-        this.atkRoll = new RollResult(this.game.random);
-        this.defRoll = new RollResult(this.game.random);
+        this.atkRoll = new RollResult(this.game.random, AttackDie);
+        this.defRoll = new RollResult(this.game.random, DefenseDie);
     }
 
     get winner() { return this.successful ? this.attacker : this.defender; }
@@ -778,9 +778,9 @@ export class CampaignResult {
     }
 
     resolve(callback: () => void) {
-        new RollDiceEffect(this.game, this.attacker, AttackDie, this.atkPool, this.atkRoll).doNext();
+        new RollDiceEffect(this.game, this.attacker, this.atkRoll, this.atkPool).doNext();
         const pool = this.defPool + (this.atkPool < 0 ? -this.atkPool : 0);
-        new RollDiceEffect(this.game, this.defender, DefenseDie, pool, this.defRoll).doNext(callback);
+        new RollDiceEffect(this.game, this.defender, this.defRoll, pool).doNext(callback);
     }
 }
 
