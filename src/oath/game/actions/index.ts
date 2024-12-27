@@ -686,6 +686,14 @@ export class CampaignDefenseAction extends ModifiableAction {
     }
 }
 
+export class CampaignEndCallback {
+    constructor(
+        public resolve: () => void,
+        public name: string,
+        public orderAgnostic: boolean = true
+    ) {}
+}
+
 export class CampaignResult {
     game: OathGame;
     attacker: OathPlayer;
@@ -697,7 +705,7 @@ export class CampaignResult {
     defPool: number;
     atkForce: Set<ResourcesAndWarbands>;  // The force is all your warbands on the objects in this set
     defForce: Set<ResourcesAndWarbands>;
-    endCallbacks: (() => void)[] = [];
+    endCallbacks: CampaignEndCallback[] = [];
 
     atkRoll: RollResult;
     defRoll: RollResult;
@@ -739,23 +747,25 @@ export class CampaignResult {
     }
     get couldSacrifice() { return this.requiredSacrifice > 0 && this.requiredSacrifice <= this.totalAtkForce; }
 
-    atEnd(callback: () => void) {
+    atEnd(callback: CampaignEndCallback) {
         this.endCallbacks.push(callback);
     }
 
     discardAtEnd(denizen: Denizen) {
-        this.atEnd(() => new DiscardCardEffect(denizen.ruler ?? this.attacker, denizen).doNext());
+        this.atEnd(new CampaignEndCallback(() => new DiscardCardEffect(denizen.ruler ?? this.attacker, denizen).doNext(), `Discard ${denizen.name}`));
     }
 
-    onSuccessful(successful: boolean, callback: () => void) {
-        this.atEnd(() => { if (this.successful === successful) callback(); });
+    onSuccessful(successful: boolean, callback: CampaignEndCallback) {
+        const originalResolve = callback.resolve;
+        callback.resolve = () => { if (this.successful === successful) originalResolve(); }
+        this.atEnd(callback);
     }
 
-    onAttackWin(callback: () => void) {
+    onAttackWin(callback: CampaignEndCallback) {
         return this.onSuccessful(true, callback);
     }
 
-    onDefenseWin(callback: () => void) {
+    onDefenseWin(callback: CampaignEndCallback) {
         return this.onSuccessful(false, callback);
     }
 
@@ -785,9 +795,9 @@ export class CampaignResult {
 }
 
 export class CampaignEndAction extends ModifiableAction {
-    readonly selects: { doSacrifice: SelectBoolean };
-    readonly parameters: { doSacrifice: boolean[] };
-    readonly message = "Sacrifice is needed to win";
+    readonly selects: { doSacrifice: SelectBoolean, callbacks: SelectNOf<CampaignEndCallback> };
+    readonly parameters: { doSacrifice: boolean[], callbacks: CampaignEndCallback[] };
+    readonly message = "Handle the end of the campaign";
     
     campaignResult = new CampaignResult(this.game);
     campaignResultProxy = this.maskProxyManager.get(this.campaignResult);
@@ -800,16 +810,20 @@ export class CampaignEndAction extends ModifiableAction {
 
     start() {
         if (this.campaignResultProxy.couldSacrifice) {
-            this.selects.doSacrifice = new SelectBoolean("Decision", [`Sacrifice ${this.campaignResultProxy.requiredSacrifice} warbands`, "Abandon"]);
+            this.selects.doSacrifice = new SelectBoolean("Sacrifice needed", [`Sacrifice ${this.campaignResultProxy.requiredSacrifice} warbands`, "Abandon"]);
         } else {
             this.parameters.doSacrifice = [false];
         }
+
+        const callbacksToOrder = this.campaignResult.endCallbacks.filter(e => !e.orderAgnostic);
+        this.selects.callbacks = new SelectWithName("Order effects", callbacksToOrder);
         
         return super.start();
     }
 
     execute() {
         this.doSacrifice = this.parameters.doSacrifice[0]!;
+        this.campaignResult.endCallbacks = [...this.parameters.callbacks, ...this.campaignResult.endCallbacks.filter(e => e.orderAgnostic)];
         super.execute();
     }
 
@@ -825,8 +839,8 @@ export class CampaignEndAction extends ModifiableAction {
         if (this.campaignResult.successful)
             for (const target of this.campaignResult.targets) target.seize(this.campaignResult.attacker);
 
-        for (const func of this.campaignResult.endCallbacks)
-            func();
+        for (const callback of this.campaignResult.endCallbacks)
+            callback.resolve();
 
         console.log(this.campaignResult);
     }

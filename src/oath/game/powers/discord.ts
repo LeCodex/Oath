@@ -1,4 +1,4 @@
-import { MakeDecisionAction, ChooseCardsAction, ChooseRegionAction, TakeFavorFromBankAction, TakeResourceFromPlayerAction, ChooseSuitsAction, SearchPlayOrDiscardAction, MusterAction, TravelAction, CampaignAction, KillWarbandsOnTargetAction, CampaignAttackAction, CampaignEndAction, TakeReliquaryRelicAction, ChooseNumberAction, StartBindingExchangeAction, FestivalDistrictOfferAction, RecoverAction } from "../actions";
+import { MakeDecisionAction, ChooseCardsAction, ChooseRegionAction, TakeFavorFromBankAction, TakeResourceFromPlayerAction, ChooseSuitsAction, SearchPlayOrDiscardAction, MusterAction, TravelAction, CampaignAction, KillWarbandsOnTargetAction, CampaignAttackAction, CampaignEndAction, TakeReliquaryRelicAction, ChooseNumberAction, StartBindingExchangeAction, FestivalDistrictOfferAction, RecoverAction, CampaignEndCallback } from "../actions";
 import { InvalidActionResolution, ModifiableAction } from "../actions/base";
 import { FavorBank, PeoplesFavor } from "../banks";
 import { Region } from "../map";
@@ -17,7 +17,7 @@ export class MercenariesAttack extends AttackerBattlePlan<Denizen> {
 
     applyBefore(): void {
         this.action.campaignResult.atkPool += 3;
-        this.action.campaignResult.onDefenseWin(() => new DiscardCardEffect(this.activator, this.source).doNext());
+        this.action.campaignResult.onDefenseWin(new CampaignEndCallback(() => new DiscardCardEffect(this.activator, this.source).doNext(), this.source.name));
     }
 }
 export class MercenariesDefense extends DefenderBattlePlan<Denizen> {
@@ -25,7 +25,7 @@ export class MercenariesDefense extends DefenderBattlePlan<Denizen> {
 
     applyBefore(): void {
         this.action.campaignResult.atkPool -= 3;
-        this.action.campaignResult.onAttackWin(() => new DiscardCardEffect(this.activator, this.source).doNext());
+        this.action.campaignResult.onAttackWin(new CampaignEndCallback(() => new DiscardCardEffect(this.activator, this.source).doNext(), this.source.name));
     }
 }
 
@@ -70,11 +70,11 @@ export class DisgracedCaptain extends AttackerBattlePlan<Denizen> {
 
 export class BookBurning extends AttackerBattlePlan<Denizen> {
     applyBefore(): void {
-        this.action.campaignResult.onSuccessful(true, () => {
+        this.action.campaignResult.onSuccessful(true, new CampaignEndCallback(() => {
             const defender = this.action.campaignResult.defender;
             if (!defender) return;
-            new MoveResourcesToTargetEffect(this.game, defender, Secret, defender.byClass(Secret).length - 1, undefined).doNext()
-        });
+            new BurnResourcesEffect(this.game, defender, Secret, defender.byClass(Secret).length - 1).doNext()
+        }, this.source.name));
     }
 }
 
@@ -82,11 +82,11 @@ export class Slander extends AttackerBattlePlan<Denizen> {
     cost = new ResourceCost([[Favor, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.onSuccessful(true, () => {
+        this.action.campaignResult.onSuccessful(true, new CampaignEndCallback(() => {
             const defender = this.action.campaignResult.defender;
             if (!defender) return;
-            new MoveResourcesToTargetEffect(this.game, defender, Favor, Infinity, undefined).doNext();
-        });
+            new BurnResourcesEffect(this.game, defender, Favor, Infinity).doNext();
+        }, this.source.name));
     }
 }
 
@@ -94,7 +94,7 @@ export class SecondWind extends AttackerBattlePlan<Denizen> {
     cost = new ResourceCost([[Secret, 1]], [[Favor, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.onSuccessful(true, () => {
+        this.action.campaignResult.onSuccessful(true, new CampaignEndCallback(() => {
             new MakeDecisionAction(
                 this.action.player, "Take a Travel action?",
                 () => {
@@ -112,7 +112,7 @@ export class SecondWind extends AttackerBattlePlan<Denizen> {
                     campaignAction.doNext();
                 }
             ).doNext();
-        });
+        }, this.source.name));
     }
 }
 

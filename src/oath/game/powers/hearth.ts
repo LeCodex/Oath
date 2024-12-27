@@ -1,4 +1,4 @@
-import { TradeAction, TakeResourceFromPlayerAction, TakeFavorFromBankAction, CampaignEndAction, MakeDecisionAction, CampaignAttackAction, ChooseSuitsAction, ChooseCardsAction, MusterAction, SearchPlayOrDiscardAction, MayDiscardACardAction, SearchAction, SearchChooseAction, KillWarbandsOnTargetAction, TinkersFairOfferAction, StartBindingExchangeAction, DeedWriterOfferAction } from "../actions";
+import { TradeAction, TakeResourceFromPlayerAction, TakeFavorFromBankAction, CampaignEndAction, MakeDecisionAction, CampaignAttackAction, ChooseSuitsAction, ChooseCardsAction, MusterAction, SearchPlayOrDiscardAction, MayDiscardACardAction, SearchAction, SearchChooseAction, KillWarbandsOnTargetAction, TinkersFairOfferAction, StartBindingExchangeAction, DeedWriterOfferAction, CampaignEndCallback } from "../actions";
 import { ModifiableAction, InvalidActionResolution } from "../actions/base";
 import { Denizen, Edifice, Relic, WorldCard } from "../cards";
 import { DieSymbol } from "../dice";
@@ -14,13 +14,19 @@ import { ExileBoard } from "../player";
 export class TravelingDoctorAttack extends AttackerBattlePlan<Denizen> {
     applyBefore(): void {
         this.action.campaignResult.attackerKillsNoWarbands = true;
-        this.action.campaignResult.onDefenseWin(() => new DiscardCardEffect(this.activator, this.source).doNext());
+        this.action.campaignResult.onDefenseWin(new CampaignEndCallback(
+            () => new DiscardCardEffect(this.activator, this.source).doNext(),
+            this.source.name
+        ));
     }
 }
 export class TravelingDoctorDefense extends DefenderBattlePlan<Denizen> {
     applyBefore(): void {
         this.action.campaignResult.defenderKillsNoWarbands = true;
-        this.action.campaignResult.onAttackWin(() => new DiscardCardEffect(this.activator, this.source).doNext());
+        this.action.campaignResult.onAttackWin(new CampaignEndCallback(
+            () => new DiscardCardEffect(this.activator, this.source).doNext(),
+            this.source.name
+        ));
     }
 }
 
@@ -61,18 +67,18 @@ export class TheGreatLevyDefense extends DefenderBattlePlan<Denizen> {
 
 export class HospitalAttack extends AttackerBattlePlan<Denizen> {
     applyBefore(): void {
-        this.action.campaignResult.atEnd(() => {
+        this.action.campaignResult.atEnd(new CampaignEndCallback(() => {
             if (this.sourceProxy.site?.ruler === this.activatorProxy.leader)
                 new ParentToTargetEffect(this.game, this.activator.leader, this.activatorProxy.leader.original.bag.get(this.action.campaignResult.attackerLoss), this.source.site).doNext();
-        });
+        }, this.source.name, false));
     }
 }
 export class HospitalDefense extends DefenderBattlePlan<Denizen> {
     applyBefore(): void {
-        this.action.campaignResult.atEnd(() => {
+        this.action.campaignResult.atEnd(new CampaignEndCallback(() => {
             if (this.sourceProxy.site?.ruler === this.activatorProxy.leader)
                 new ParentToTargetEffect(this.game, this.activator.leader, this.activatorProxy.leader.original.bag.get(this.action.campaignResult.defenderLoss), this.source.site).doNext();
-        });
+        }, this.source.name, false));
     }
 }
 

@@ -1,4 +1,4 @@
-import { TradeAction, TravelAction, SearchAction, SearchPlayOrDiscardAction, TakeFavorFromBankAction, CampaignKillWarbandsInForceAction, CampaignResult, MakeDecisionAction, CampaignAction, ActAsIfAtSiteAction, CampaignDefenseAction, ChooseSitesAction, ChoosePlayersAction, KillWarbandsOnTargetAction, MusterAction, MoveWarbandsBetweenBoardAndSitesAction, CampaignAttackAction } from "../actions";
+import { TradeAction, TravelAction, SearchAction, SearchPlayOrDiscardAction, TakeFavorFromBankAction, CampaignKillWarbandsInForceAction, CampaignResult, MakeDecisionAction, CampaignAction, ActAsIfAtSiteAction, CampaignDefenseAction, ChooseSitesAction, ChoosePlayersAction, KillWarbandsOnTargetAction, MusterAction, MoveWarbandsBetweenBoardAndSitesAction, CampaignAttackAction, CampaignEndCallback } from "../actions";
 import { InvalidActionResolution } from "../actions/base";
 import { Denizen, Edifice, Relic, Site, Vision } from "../cards";
 import { DieSymbol } from "../dice";
@@ -58,18 +58,18 @@ export class CodeOfHonorDefense extends DefenderBattlePlan<Denizen> {
 
 export class BattleHonorsAttack extends AttackerBattlePlan<Denizen> {
     applyBefore(): void {
-        this.action.campaignResult.onAttackWin(() => {
+        this.action.campaignResult.onAttackWin(new CampaignEndCallback(() => {
             const bank = this.game.favorBank(OathSuit.Order);
             if (bank) new ParentToTargetEffect(this.game, this.activator, bank.get(2)).doNext();
-        })
+        }, this.source.name));
     }
 }
 export class BattleHonorsDefense extends DefenderBattlePlan<Denizen> {
     applyBefore(): void {
-        this.action.campaignResult.onDefenseWin(() => () => {
+        this.action.campaignResult.onDefenseWin(new CampaignEndCallback(() => {
             const bank = this.game.favorBank(OathSuit.Order);
             if (bank) new ParentToTargetEffect(this.game, this.activator, bank.get(2)).doNext();
-        })
+        }, this.source.name));
     }
 }
 
@@ -83,12 +83,12 @@ function militaryParadeResolution(campaignResult: CampaignResult, activator: Oat
 }
 export class MilitaryParadeAttack extends AttackerBattlePlan<Denizen> {
     applyBefore(): void {
-        this.action.campaignResult.onAttackWin(() => militaryParadeResolution(this.action.campaignResult, this.activator));
+        this.action.campaignResult.onAttackWin(new CampaignEndCallback(() => militaryParadeResolution(this.action.campaignResult, this.activator), this.source.name));
     }
 }
 export class MilitaryParadeDefense extends DefenderBattlePlan<Denizen> {
     applyBefore(): void {
-        this.action.campaignResult.onDefenseWin(() => militaryParadeResolution(this.action.campaignResult, this.activator));
+        this.action.campaignResult.onDefenseWin(new CampaignEndCallback(() => militaryParadeResolution(this.action.campaignResult, this.activator), this.source.name));
     }
 }
 
@@ -96,14 +96,20 @@ export class MartialCultureAttack extends AttackerBattlePlan<Denizen> {
     applyBefore(): void {
         if (!(this.action.playerProxy.board instanceof ExileBoard)) return;
         if (!this.action.campaignResult.defender?.isImperial)
-            this.action.campaignResult.onAttackWin(() => new MakeDecisionAction(this.activator, "Become a Citizen?", () => new BecomeCitizenEffect(this.activator).doNext()));
+            this.action.campaignResult.onAttackWin(new CampaignEndCallback(
+                () => new MakeDecisionAction(this.activator, "Become a Citizen?", () => new BecomeCitizenEffect(this.activator).doNext()),
+                this.source.name
+            ));
     }
 }
 export class MartialCultureDefense extends DefenderBattlePlan<Denizen> {
     applyBefore(): void {
         if (!(this.action.playerProxy.board instanceof ExileBoard)) return;
         if (!this.action.campaignResult.defender?.isImperial)
-            this.action.campaignResult.onDefenseWin(() => new MakeDecisionAction(this.activator, "Become a Citizen?", () => new BecomeCitizenEffect(this.activator).doNext()));
+            this.action.campaignResult.onDefenseWin(new CampaignEndCallback(
+                () => new MakeDecisionAction(this.activator, "Become a Citizen?", () => new BecomeCitizenEffect(this.activator).doNext()),
+                this.source.name
+            ));
     }
 }
 
@@ -111,14 +117,20 @@ export class FieldPromotionAttack extends AttackerBattlePlan<Denizen> {
     cost = new ResourceCost([[Favor, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.onAttackWin(() => new ParentToTargetEffect(this.game, this.activator, this.activatorProxy.leader.original.bag.get(3)).doNext());
+        this.action.campaignResult.onAttackWin(new CampaignEndCallback(
+            () => new ParentToTargetEffect(this.game, this.activator, this.activatorProxy.leader.original.bag.get(3)).doNext(),
+            this.source.name
+        ));
     }
 }
 export class FieldPromotionDefense extends DefenderBattlePlan<Denizen> {
     cost = new ResourceCost([[Favor, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.onDefenseWin(() => new ParentToTargetEffect(this.game, this.activator, this.activatorProxy.leader.original.bag.get(3)).doNext());
+        this.action.campaignResult.onDefenseWin(new CampaignEndCallback(
+            () => new ParentToTargetEffect(this.game, this.activator, this.activatorProxy.leader.original.bag.get(3)).doNext(),
+            this.source.name
+        ));
     }
 }
 

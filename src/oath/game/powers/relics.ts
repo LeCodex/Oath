@@ -1,4 +1,4 @@
-import { CitizenshipOfferAction, StartBindingExchangeAction, SkeletonKeyAction, TradeAction, MusterAction, TravelAction, MakeDecisionAction, ChoosePlayersAction, SearchAction, ChooseCardsAction, ChooseNumberAction } from "../actions";
+import { CitizenshipOfferAction, StartBindingExchangeAction, SkeletonKeyAction, TradeAction, MusterAction, TravelAction, MakeDecisionAction, ChoosePlayersAction, SearchAction, ChooseCardsAction, ChooseNumberAction, CampaignEndCallback } from "../actions";
 import { InvalidActionResolution, ModifiableAction } from "../actions/base";
 import { Denizen, GrandScepter, OathCard, Relic, Site } from "../cards";
 import { TakeOwnableObjectEffect, PlayDenizenAtSiteEffect, MoveOwnWarbandsEffect, PeekAtCardEffect, SetGrandScepterLockEffect, GainSupplyEffect, DrawFromDeckEffect, RevealCardEffect, PayCostToTargetEffect, BecomeExileEffect, MoveResourcesToTargetEffect, MoveDenizenToSiteEffect, MoveWorldCardToAdvisersEffect, ParentToTargetEffect } from "../actions/effects";
@@ -91,34 +91,36 @@ export class StickyFireAttack extends AttackerBattlePlan<Relic> {
         const defender = this.action.campaignResult.defender;
         if (!defender) return;
 
-        this.action.campaignResult.onAttackWin(() => new MakeDecisionAction(this.action.player, "Use Sticky Fire?", () => { 
+        this.action.campaignResult.onAttackWin(new CampaignEndCallback(() => new MakeDecisionAction(this.action.player, "Use Sticky Fire?", () => { 
             this.action.campaignResult.defenderKills(Infinity);
             new MoveResourcesToTargetEffect(this.game, this.action.player, Favor, 1, defender).doNext();
-        }).doNext());
+        }).doNext(), this.source.name, false));
     }
 }
 export class StickyFireDefense extends DefenderBattlePlan<Relic> {
     applyBefore(): void {
         const attacker = this.action.campaignResult.attacker;
-        this.action.campaignResult.onAttackWin(() => new MakeDecisionAction(this.action.player, "Use Sticky Fire?", () => { 
+        this.action.campaignResult.onAttackWin(new CampaignEndCallback(() => new MakeDecisionAction(this.action.player, "Use Sticky Fire?", () => { 
             this.action.campaignResult.attackerKills(Infinity);
             new MoveResourcesToTargetEffect(this.game, this.action.player, Favor, 1, attacker).doNext();
-        }).doNext());
+        }).doNext(), this.source.name, false));
     }
 }
 
 export class CursedCauldronAttack extends AttackerBattlePlan<Relic> {
     applyBefore(): void {
-        this.action.campaignResult.onAttackWin(() =>
-            new ParentToTargetEffect(this.game, this.activator, this.activatorProxy.leader.bag.original.get(this.action.campaignResult.loserLoss)).doNext()
-        );
+        this.action.campaignResult.onAttackWin(new CampaignEndCallback(() =>
+            new ParentToTargetEffect(this.game, this.activator, this.activatorProxy.leader.bag.original.get(this.action.campaignResult.loserLoss)).doNext(),
+            this.source.name, false
+        ));
     }
 }
 export class CursedCauldronDefense extends DefenderBattlePlan<Relic> {
     applyBefore(): void {
-        this.action.campaignResult.onAttackWin(() => 
-            new ParentToTargetEffect(this.game, this.activator, this.activatorProxy.leader.bag.original.get(this.action.campaignResult.loserLoss)).doNext()
-        );
+        this.action.campaignResult.onAttackWin(new CampaignEndCallback(
+            () => new ParentToTargetEffect(this.game, this.activator, this.activatorProxy.leader.bag.original.get(this.action.campaignResult.loserLoss)).doNext(),
+            this.source.name, false
+        ));
     }
 }
 
@@ -127,17 +129,19 @@ export class ObsidianCageAttack extends AttackerBattlePlan<Relic> {
         const defender = this.action.campaignResult.defender;
         if (!defender) return;
 
-        this.action.campaignResult.onAttackWin(() => {
-            new ParentToTargetEffect(this.game, this.activator, defender.byClass(Warband), this.source).doNext();
-        });
+        this.action.campaignResult.onAttackWin(new CampaignEndCallback(
+            () => new ParentToTargetEffect(this.game, this.activator, defender.byClass(Warband), this.source).doNext(),
+            this.source.name, false
+        ));
     }
 }
 export class ObsidianCageDefense extends DefenderBattlePlan<Relic> {
     applyBefore(): void {
         const attacker = this.action.campaignResult.attacker;
-        this.action.campaignResult.onAttackWin(() => {
-            new ParentToTargetEffect(this.game, this.activator, attacker.byClass(Warband), this.source).doNext();
-        });
+        this.action.campaignResult.onAttackWin(new CampaignEndCallback(
+            () => new ParentToTargetEffect(this.game, this.activator, attacker.byClass(Warband), this.source).doNext(),
+            this.source.name, false
+        ));
     }
 }
 export class ObsidianCageActive extends ActivePower<Relic> {
