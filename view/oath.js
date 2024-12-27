@@ -1,4 +1,5 @@
 let game = {}, action, appliedEffects, gameId, startOptions, rollbackConsent, over;
+let choices = {};
 
 const setup = async () => {
     const seed = window.prompt("Please input a TTS seed or game ID");
@@ -69,6 +70,7 @@ const render = () => {
 
     const actionNode = document.getElementById("action");
     actionNode.innerHTML = "";
+    choices = {};
     if (!over) {
         if (action) {
             actionNode.innerText = "[" + action.message + "] (" + byType(game, "player").filter(e => e.id === action.player)[0]._name + ")";
@@ -76,10 +78,11 @@ const render = () => {
             for (const [k, select] of Object.entries(action.selects)) {
                 const selectNode = actionNode.appendChild(renderText(select.name + ` (${select.min}-${select.max})`));
                 selectNode.id = "select" + k;
+                choices[k] = select.defaults;
                 
                 const selectList = selectNode.appendChild(document.createElement("ul"));
                 for (const [i, choice] of select.choices.entries())
-                    selectList.append(...renderCheckbox(k + i, choice, select.defaults.includes(choice)));
+                    selectList.append(...renderCheckbox(k, i, choice, select.defaults.includes(choice)));
             }
             actionNode.appendChild(renderButton("Submit", () => continueAction()));
         } else {
@@ -235,14 +238,23 @@ const renderButton = (text, callback) => {
     return parentNode;
 }
 
-const renderCheckbox = (key, text, checked=false) => {
+const renderCheckbox = (key, index, text, checked=false) => {
     const checkboxNode = document.createElement("input");
     checkboxNode.type = "checkbox";
-    checkboxNode.id = "check" + key;
+    checkboxNode.id = "check" + key + index;
     checkboxNode.value = text;
     checkboxNode.checked = checked;
+    checkboxNode.onclick = () => {
+        const selectChoices = choices[key];
+        if (checkboxNode.checked) {
+            selectChoices.push(text);
+        } else if (selectChoices.indexOf(text) > -1) {
+            selectChoices.splice(selectChoices.indexOf(text), 1);
+        }
+        console.log(selectChoices);
+    }
     const checkboxLabel = document.createElement("label");
-    checkboxLabel.htmlFor = "check" + key;
+    checkboxLabel.htmlFor = "check" + key + index;
     checkboxLabel.innerText = text;
     return [checkboxNode, checkboxLabel];
 }
@@ -258,19 +270,11 @@ const startAction = async (actionName) => {
 }
 
 const continueAction = async () => {
-    let body = {};
-    for (const [k, select] of Object.entries(action.selects)) {
-        body[k] = [];
-        const selectNode = document.getElementById("select" + k);
-        for (const input of selectNode.childNodes[1].childNodes)
-            if (input.checked) body[k].push(input.value);
-    }
-
     const response = await fetch("http://localhost:3000/oath/" + gameId + "/" + action.player + "/continue", { 
         method: "POST", 
         mode: "cors", 
         headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
+        body: JSON.stringify(choices)
     });
     handleResponse(response);
 }
