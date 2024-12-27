@@ -138,7 +138,13 @@ export class MoveResourcesToTargetEffect extends OathEffect<number> {
             return;
         }
 
-        const resources = this.source.byClass(this.resource).max(this.amount);
+        let resources;  // TODO: This makes me sad. Find a better way to do this. Static method on the resource class to get the "usable" resources?
+        if (this.resource === Secret)
+            resources = this.source.byClass(Secret).by("flipped", false);
+        else
+            resources = this.source.byClass(this.resource);
+
+        resources = resources.max(this.amount);
         if (resources.length < this.amount) {
             this.result = 0;
             return;
