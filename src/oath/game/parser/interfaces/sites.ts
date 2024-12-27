@@ -1,5 +1,5 @@
 
-export const SiteName: Record<string, number> = {
+export const SiteName = {
   Mine: 0,
   SaltFlats: 1,
   FertileValley: 2,
@@ -25,11 +25,11 @@ export const SiteName: Record<string, number> = {
   TheHiddenPlace: 22,
   
   NONE: 255
-};
+} as const;
 
 export const SiteNameIndexes = Object.keys(SiteName)
-  .reduce((prev, cur) => {
+  .reduce((prev, cur: keyof typeof SiteName) => {
     prev[SiteName[cur]!] = cur;
     prev[SiteName[cur]! + 24] = cur;
     return prev;
-  }, {} as Record<number, string>);
+  }, {} as Record<number, keyof typeof SiteName>);

@@ -1,12 +1,14 @@
 import { PlayerColor, OathSuit, OathType } from '../../enums';
+import { CardName } from './cards';
 import { PlayerCitizenship } from './enums';
+import { SiteName } from './sites';
 
 export interface CardData {
-  name: string;
+  name: keyof typeof CardName;
 }
 
 export interface SiteData {
-  name: string;
+  name: keyof typeof SiteName;
   facedown: boolean;
   cards: CardData[];
 }

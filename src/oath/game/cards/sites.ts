@@ -1,11 +1,8 @@
 import { OathSuit } from "../enums";
-import { OathPower } from "../powers";
 import { AncientCity, BuriedGiant, CharmingValley, CoastalSite, DeepWoods, FertileValley, GreatSlum, Marshes, Mountain, NarrowPass, OpportunitySite, Plains, River, ShroudedWood, StandingStones, Steppe, TheHiddenPlaceCampaign, TheHiddenPlaceTravel, TheTribunal, Wastes } from "../powers/sites";
-import { Favor, OathResource, ResourceCost, Secret } from "../resources";
-import { Constructor } from "../utils";
-import { Site } from ".";
+import { Favor, ResourceCost, Secret } from "../resources";
 
-export const sitesData: Record<string, [number, Constructor<OathPower<Site>>[], number?, ResourceCost?, OathSuit?, Iterable<[typeof OathResource, number]>?]> = {
+export const sitesData = {
     Plains:         [3, [Plains]],
     Mountain:       [2, [Mountain],         1, new ResourceCost([], [[Favor, 2]])],
     GreatSlum:      [3, [GreatSlum]],
@@ -32,4 +29,6 @@ export const sitesData: Record<string, [number, Constructor<OathPower<Site>>[], 
     NarrowPass:     [1, [NarrowPass],       1, new ResourceCost([[Favor, 3]]),      OathSuit.Arcane],
     ShroudedWood:   [3, [ShroudedWood],     1, new ResourceCost([], [[Secret, 1]])],
     TheHiddenPlace: [2, [TheHiddenPlaceTravel, TheHiddenPlaceCampaign], 1, new ResourceCost([], [[Secret, 1]])],
-}
+} as const;
+
+export type SiteName = keyof typeof sitesData;

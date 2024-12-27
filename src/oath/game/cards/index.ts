@@ -10,10 +10,10 @@ import { ConspiracyWhenPlayed } from "../powers/visions";
 import { Favor, OathResource, ResourceCost, ResourcesAndWarbands, Secret } from "../resources";
 import { Constructor } from "../utils";
 import { CardDeck, Discard, DiscardOptions, RelicDeck } from "./decks";
-import { denizenData } from "./denizens";
+import { denizenData, DenizenName } from "./denizens";
 import { FavorBank } from "../banks";
-import { sitesData } from "./sites";
-import { relicsData } from "./relics";
+import { SiteName, sitesData } from "./sites";
+import { RelicName, relicsData } from "./relics";
 
 
 export abstract class OathCard extends ResourcesAndWarbands<string> implements HiddenInformation, WithPowers {
@@ -21,8 +21,8 @@ export abstract class OathCard extends ResourcesAndWarbands<string> implements H
     seenBy: Set<OathPlayer> = new Set();
     powers: Set<Constructor<OathPower<OathCard>>>;
 
-    get name() { return this.id; }
     get key() { return this.id; }
+    get name() { return this.id; }
     get active(): boolean { return !this.facedown; }
 
     constructor(id: string, powers: Iterable<Constructor<OathPower<OathCard>>>) {
@@ -75,6 +75,7 @@ export abstract class OathCard extends ResourcesAndWarbands<string> implements H
 
 
 export class Site extends OathCard implements CampaignActionTarget {
+    readonly id: SiteName;
     readonly type = "site";
     capacity: number;
     startingRelics: number;
@@ -87,7 +88,7 @@ export class Site extends OathCard implements CampaignActionTarget {
     defense = 1;
     force = this;
 
-    constructor(id: keyof typeof sitesData) {
+    constructor(id: SiteName) {
         const data = sitesData[id];
         if (!data) throw TypeError(`${id} is not a valid Site id`);
         super(id, data[1]);
@@ -180,11 +181,12 @@ export abstract class OwnableCard extends OathCard implements OwnableObject  {
 }
 
 export class Relic extends OwnableCard implements RecoverActionTarget, CampaignActionTarget, AtSite {
+    readonly id: RelicName;
     readonly type = "relic";
     defense: number;
     get force() { return this.owner; }
 
-    constructor(id: keyof typeof relicsData) {
+    constructor(id: RelicName) {
         const data = relicsData[id];
         if (!data) throw TypeError(`${id} is not a valid Relic id`);
         super(id, data[1]);
@@ -231,12 +233,13 @@ export abstract class WorldCard extends OwnableCard {
 }
 
 export class Denizen extends WorldCard implements AtSite {
+    readonly id: DenizenName;
     readonly type = "denizen";
     restriction: CardRestriction;
     locked: boolean;
     powers: Set<Constructor<OathPower<Denizen>>>;
 
-    constructor(id: keyof typeof denizenData) {
+    constructor(id: DenizenName) {
         const data = denizenData[id];
         if (!data) throw TypeError(`${id} is not a valid Denizen id`);
         super(id, data[1]);

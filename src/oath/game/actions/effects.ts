@@ -14,8 +14,8 @@ import { CardDeck } from "../cards/decks";
 import { Constructor, inclusiveRange, isExtended, maxInGroup } from "../utils";
 import { D6, RollResult, Die } from "../dice";
 import { Region } from "../map";
-import { denizenData, edificeFlipside } from "../cards/denizens";
-import { sitesData } from "../cards/sites";
+import { denizenData, DenizenName, edificeFlipside } from "../cards/denizens";
+import { SiteName, sitesData } from "../cards/sites";
 
 
 
@@ -958,7 +958,7 @@ export class PutDenizenIntoDispossessedEffect extends OathEffect {
 
     resolve(): void {
         this.denizen.prune();
-        this.game.dispossessed.add(this.denizen.key);
+        this.game.dispossessed.add(this.denizen.id);
     }
 
     serialize() {
@@ -1176,7 +1176,7 @@ export class BuildEdificeFromDenizenEffect extends OathEffect {
         if (!this.denizen.site) throw new InvalidActionResolution("Card is not at a site");
         const site = this.denizen.site;
             
-        for (const key of Object.keys(edificeFlipside)) {
+        for (const key of Object.keys(edificeFlipside) as DenizenName[]) {
             const data = denizenData[key]!;
             const suit = data[0];
             if (suit === this.denizen.suit) {
@@ -1236,7 +1236,7 @@ export class FinishChronicleEffect extends PlayerEffect {
     resolve(): void {
         const storedSites: Site[] = [];
         const pushedSites: Site[] = [];
-        const sitesKeysSet = new Set(Object.keys(sitesData));
+        const sitesKeysSet = new Set(Object.keys(sitesData) as SiteName[]);
 
         // Discard and put aside sites
         for (const regionProxy of this.gameProxy.map.children) {
@@ -1317,10 +1317,12 @@ export class FinishChronicleEffect extends PlayerEffect {
         ).doNext();
     }
 
-    getRandomCardDataInArchive(suit: OathSuit): string[] {
-        const cardKeys: string[] = [];
-        for (const [key, data] of Object.entries(this.game.archive))
+    getRandomCardDataInArchive(suit: OathSuit) {
+        const cardKeys: DenizenName[] = [];
+        for (const key of this.game.archive) {
+            const data = denizenData[key];
             if (data[0] === suit) cardKeys.push(key);
+        }
 
         this.game.random.shuffleArray(cardKeys);
         return cardKeys;

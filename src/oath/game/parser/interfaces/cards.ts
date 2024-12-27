@@ -1,5 +1,5 @@
 
-export const CardName: Record<string, number> = {
+export const CardName = {
   Wrestlers: 0,
   BattleHonors: 1,
   BearTraps: 2,
@@ -246,12 +246,15 @@ export const CardName: Record<string, number> = {
   ObsidianCage: 235,
   BookOfRecords: 236,
   DragonskinDrum: 237,
+
+  // Additions not used by TTS
+  GrandScepter: 238,
   
   NONE: 255
-};
+} as const;
 
 export const CardNameIndexes = Object.keys(CardName)
-  .reduce((prev, cur) => {
+  .reduce((prev, cur: keyof typeof CardName) => {
     prev[CardName[cur]!] = cur;
     return prev;
-  }, {} as Record<number, string>);
+  }, {} as Record<number, keyof typeof CardName>);

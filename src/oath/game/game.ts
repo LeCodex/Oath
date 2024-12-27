@@ -5,8 +5,8 @@ import { DrawFromDeckEffect, PutPawnAtSiteEffect, SetNewOathkeeperEffect, SetUsu
 import { ActionModifier, OathPower } from "./powers";
 import { OathMap, Region } from "./map";
 import { Discard, RelicDeck, WorldDeck } from "./cards/decks";
-import { denizenData, edificeFlipside } from "./cards/denizens";
-import { relicsData } from "./cards/relics";
+import { denizenData, DenizenName, edificeFlipside } from "./cards/denizens";
+import { RelicName, relicsData } from "./cards/relics";
 import { OathPhase, OathSuit, RegionKey, PlayerColor, ALL_OATH_SUITS, BannerKey } from "./enums";
 import { Oath } from "./oaths";
 import { Conspiracy, Denizen, Edifice, GrandScepter, Relic, Site, Vision, WorldCard } from "./cards";
@@ -14,13 +14,14 @@ import { ExileBoard, OathPlayer, PlayerBoard, WarbandsSupply } from "./player";
 import { Banner, DarkestSecret, FavorBank, PeoplesFavor } from "./banks";
 import { AbstractConstructor, Constructor, isExtended, MurmurHash3, PRNG, TreeNode, TreeRoot } from "./utils";
 import { parseOathTTSSavefileString, serializeOathGame } from "./parser";
-import { Citizenship, PlayerCitizenship } from "./parser/interfaces";
+import { CardName, Citizenship, PlayerCitizenship } from "./parser/interfaces";
 import { hasPowers, SourceType, WithPowers } from "./interfaces";
 import { Favor, Warband, Secret } from "./resources";
 import { Reliquary, ReliquarySlot } from "./reliquary";
 import classIndex from "./classIndex";
 import { constant, times } from "lodash";
 import * as fs from "fs";
+import { SiteName } from "./cards/sites";
 
 
 export class OathGame extends TreeRoot<OathGame> {
@@ -43,8 +44,8 @@ export class OathGame extends TreeRoot<OathGame> {
     actionManager = new OathActionManager(this);
     banners = new Map<BannerKey, Banner>;
 
-    archive: Set<string>;
-    dispossessed: Set<string>;
+    archive: Set<DenizenName>;
+    dispossessed: Set<DenizenName>;
     oldCitizenship: PlayerCitizenship;
 
     constructor(public gameId: number, public setupData: [string, string[]]) {
@@ -79,42 +80,42 @@ export class OathGame extends TreeRoot<OathGame> {
         this.name = gameData.chronicleName;
         this.chronicleNumber = gameData.gameCount;
 
-        this.archive = new Set(Object.keys(denizenData));
+        this.archive = new Set(Object.keys(denizenData) as DenizenName[]);
         this.dispossessed = new Set();
 
         for (const cardData of gameData.dispossessed) {
-            this.archive.delete(cardData.name);
-            this.dispossessed.add(cardData.name);
+            this.archive.delete(cardData.name as DenizenName);
+            this.dispossessed.add(cardData.name as DenizenName);
         }
 
         for (const cardData of gameData.world) {
-            const existing = this.archive.delete(cardData.name);
+            const existing = this.archive.delete(cardData.name as DenizenName);
             if (existing) {
-                this.worldDeck.addChild(new Denizen(cardData.name), true);
+                this.worldDeck.addChild(new Denizen(cardData.name as DenizenName), true);
                 continue;
             }
 
-            let card: WorldCard | undefined = {
+            let card = {
                 Conspiracy: new Conspiracy(),
                 Sanctuary: new Vision("Protection"),
                 Rebellion: new Vision("ThePeople"),
                 Faith: new Vision("Devotion"),
                 Conquest: new Vision("Supremacy")
-            }[cardData.name];
+            }[cardData.name as string];
 
             if (card)
                 this.worldDeck.addChild(card, true);
             else
-                console.warn("Couldn't load " + cardData.name + " into World Deck");
+                console.warn(`Couldn't load ${cardData.name} into World Deck`);
         }
 
         for (const cardData of gameData.relics) {
-            const data = relicsData[cardData.name];
+            const data = relicsData[cardData.name as RelicName];
             if (!data) {
-                console.warn("Couldn't load " + cardData.name+ " into relic deck");
+                console.warn(`Couldn't load ${cardData.name} into relic deck`);
                 continue;
             }
-            this.relicDeck.addChild(new Relic(cardData.name), true);
+            this.relicDeck.addChild(new Relic(cardData.name as RelicName), true);
         }
 
         for (const [i, name] of playerNames.entries()) {
@@ -136,7 +137,7 @@ export class OathGame extends TreeRoot<OathGame> {
         let regionKey: RegionKey = RegionKey.Cradle;
         const siteKeys: string[] = [];
         for (const siteData of gameData.sites) {
-            const siteId = siteData.name;
+            const siteId = siteData.name as SiteName;
             siteKeys.push(siteId);
             const region = this.map.byClass(Region).byKey(regionKey)[0]!;
             const site = region.addChild(new Site(siteId));
@@ -146,13 +147,13 @@ export class OathGame extends TreeRoot<OathGame> {
             for (const denizenOrRelicData of siteData.cards) {
                 const cardId = denizenOrRelicData.name;
                 if (cardId in denizenData) {
-                    const card = cardId in edificeFlipside ? new Edifice(cardId) : new Denizen(cardId);
+                    const card = cardId in edificeFlipside ? new Edifice(cardId as DenizenName) : new Denizen(cardId as DenizenName);
                     site.addChild(card).turnFaceup();
                     continue;
                 }
 
                 if (cardId in relicsData) {
-                    site.addChild(new Relic(cardId));
+                    site.addChild(new Relic(cardId as RelicName));
                     continue;
                 }
 
@@ -365,10 +366,10 @@ export class OathGame extends TreeRoot<OathGame> {
             playerCitizenship: newCitizenship,
             oath: this.oath.oathType,
             suitOrder: ALL_OATH_SUITS,
-            sites: [...this.map.sites()].map(e => ({ name: e.name, facedown: e.facedown, cards: [...e.denizens, ...times(3 - e.denizens.length - e.relics.length, constant({ name: "NONE" })), ...e.relics].map(e => ({ name: e.name })) })),
-            world: this.worldDeck.children.map(e => ({ name: e.name })),
+            sites: [...this.map.sites()].map(e => ({ name: e.id, facedown: e.facedown, cards: [...e.denizens, ...times(3 - e.denizens.length - e.relics.length, constant({ id: "NONE" as const })), ...e.relics].map(e => ({ name: e.id })) })),
+            world: this.worldDeck.children.map(e => ({ name: e.id as keyof typeof CardName })),
             dispossessed: [...this.dispossessed].map(e => ({ name: e })),
-            relics: this.relicDeck.children.map(e => ({ name: e.name })),
+            relics: this.relicDeck.children.map(e => ({ name: e.id })),
 
             prevPlayerCitizenship: this.oldCitizenship,
             winner: winner

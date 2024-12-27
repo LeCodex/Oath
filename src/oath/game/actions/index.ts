@@ -175,7 +175,7 @@ export class TradeAction extends PayDenizenAction {
 export class TravelAction extends MajorAction {
     readonly selects: { siteProxy: SelectCard<Site> };
     readonly parameters: { siteProxy: Site[] };
-    readonly message: string = "Choose a site to travel to";
+    readonly message: string = "Travel to a site";
     readonly autocompleteSelects: boolean;
 
     travelling: OathPlayer;
@@ -345,7 +345,7 @@ export class SearchDiscardAction extends ModifiableAction {
     readonly selects: { cards: SelectCard<WorldCard> }
     readonly parameters: { cards: WorldCard[] };
     readonly autocompleteSelects = false;
-    readonly message = "Choose the order of the discards";
+    readonly message = "Order the discards";
 
     cards: Set<WorldCard>;
     discarding: WorldCard[];  // For this action, order is important
