@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, OnModuleInit } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { OathGame } from './game/game';
 import { ActionManagerReturn } from './game/actions/manager';
 import { InvalidActionResolution } from "./game/actions/base";
@@ -30,7 +30,7 @@ export class OathService implements OnModuleInit {
         return [...this.games.keys()];
     }
 
-    public startNewGame(seed: string): object {
+    public startNewGame(seed: string) {
         const id = (this.games.size ? Math.max(...this.games.keys()) : 0) + 1;
 
         // TEMP: Forcefully set the number of players
@@ -57,28 +57,36 @@ export class OathService implements OnModuleInit {
 
     private _getGame(id: number): OathGame {
         const game = this.games.get(id);
-        if (!game) throw new BadRequestException(`Game not found with id ${id}`);
+        if (!game) throw new NotFoundException(`Game not found with id ${id}`);
         return game;
     }
 
-    public beginAction(gameId: number, playerId: string, actionName: string): object {        
+    public beginAction(gameId: number, playerId: string, actionName: string) {        
         return this._wrapper(gameId, () => this._getGame(gameId).startAction(playerId, actionName));
     }
 
-    public getCurrentState(gameId: number): object {
+    public getCurrentState(gameId: number) {
         return this._getGame(gameId).actionManager.defer();
     }
 
-    public continueAction(gameId: number, playerId: string, values: Record<string, string[]>): object {
+    public continueAction(gameId: number, playerId: string, values: Record<string, string[]>) {
         return this._wrapper(gameId, () => this._getGame(gameId).actionManager.continueAction(playerId, values));
     }
 
-    public cancelAction(gameId: number, playerId: string): object {
+    public cancelAction(gameId: number, playerId: string) {
         return this._wrapper(gameId, () => this._getGame(gameId).actionManager.cancelAction(playerId));
     }
 
-    public consentToRollback(gameId: number, playerId: string): object {
+    public consentToRollback(gameId: number, playerId: string) {
         return this._wrapper(gameId, () => this._getGame(gameId).actionManager.consentToRollback(playerId));
+    }
+
+    public endGame(gameId: number) {
+        const game = this._getGame(gameId);
+        const obj = game.actionManager.defer();
+        obj.over = true;
+        this.games.delete(gameId);
+        return obj;
     }
 }
 

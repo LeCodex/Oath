@@ -4,6 +4,7 @@ import { OathPhase } from "../enums";
 import { OathGame } from "../game";
 import { Constructor, SerializedNode } from "../utils";
 import { clone } from "lodash";
+import { ApiProperty } from "@nestjs/swagger";
 
 
 export class HistoryNode<T extends OathActionManager> {
@@ -89,14 +90,24 @@ const eventsIndex = {
     ContinueEvent
 }
 
+export class ActionManagerReturn {
+    @ApiProperty({ example: { seed: "122345", children: [] }, description: "Serialized game data" })
+    game: Record<string, any>
 
-export type ActionManagerReturn = {
-    activeAction?: Record<string, any>,
-    startOptions?: string[],
-    appliedEffects: Record<string, any>[],
-    rollbackConsent?: Record<string, boolean>,
-    game: Record<string, any>,
+    @ApiProperty({ example: [{}], description: "Effects applied since the last action" })
+    appliedEffects: Record<string, any>[]
+
+    @ApiProperty({ example: false, description: "Is the game over?" })
     over: boolean
+
+    @ApiProperty({ example: {}, description: "Currently active action, if applicable" })
+    activeAction?: Record<string, any>
+
+    @ApiProperty({ example: ["Muster", "Trade", "Travel"], description: "Start options, if the stack is empty" })
+    startOptions?: string[]
+
+    @ApiProperty({ example: { Purple: true, Red: false }, description: "Rollback consent needed, if applicable" })
+    rollbackConsent?: Record<string, boolean>
 };
 
 export class OathActionManager {
@@ -157,12 +168,12 @@ export class OathActionManager {
 
         let action = this.actionsStack[this.actionsStack.length - 1];
         return {
+            game: this.game.serialize(),
+            appliedEffects: this.currentEffectsStack.map(e => e.serialize()).filter(e => e !== undefined),
+            over: this.game.phase === OathPhase.Over,
             activeAction: action?.serialize(),
             startOptions: !action ? Object.keys(this.startOptions) : undefined,
-            appliedEffects: this.currentEffectsStack.map(e => e.serialize()).filter(e => e !== undefined),
-            rollbackConsent: this.rollbackConsent,
-            game: this.game.serialize(),
-            over: this.game.phase === OathPhase.Over
+            rollbackConsent: this.rollbackConsent
         };
     }
 
