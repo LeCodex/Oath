@@ -2,7 +2,7 @@ import { OathAction, ModifiableAction, InvalidActionResolution, ChooseModifiers 
 import { Denizen, Edifice, OathCard, OwnableCard, Relic, Site, WorldCard } from "../cards";
 import { DiscardOptions, SearchableDeck } from "../cards/decks";
 import { AttackDie, DefenseDie, DieSymbol, RollResult } from "../dice";
-import { MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, RollDiceEffect, DrawFromDeckEffect, PutPawnAtSiteEffect, DiscardCardEffect, MoveOwnWarbandsEffect, SetPeoplesFavorMobState, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, FlipEdificeEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect, CheckCapacityEffect, CampaignJoinDefenderAlliesEffect, MoveWorldCardToAdvisersEffect, DiscardCardGroupEffect, ParentToTargetEffect, PaySupplyEffect, ThingsExchangeOfferEffect, SiteExchangeOfferEffect } from "./effects";
+import { MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, RollDiceEffect, DrawFromDeckEffect, PutPawnAtSiteEffect, DiscardCardEffect, MoveOwnWarbandsEffect, SetPeoplesFavorMobState, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, FlipEdificeEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect, CheckCapacityEffect, CampaignJoinDefenderAlliesEffect, MoveWorldCardToAdvisersEffect, DiscardCardGroupEffect, ParentToTargetEffect, PaySupplyEffect, ThingsExchangeOfferEffect, SiteExchangeOfferEffect, SearchDrawEffect } from "./effects";
 import { ALL_OATH_SUITS, ALL_PLAYER_COLORS, CardRestriction, OathPhase, OathSuit, OathType, PlayerColor } from "../enums";
 import { OathGame } from "../game";
 import { ChancellorBoard, ExileBoard, OathPlayer, VisionSlot } from "../player";
@@ -291,7 +291,7 @@ export class SearchAction extends MajorAction {
     }
 
     majorAction() {
-        new DrawFromDeckEffect(this.player, this.deckProxy.original, this.amount, this.fromBottom).doNext(cards => {
+        new SearchDrawEffect(this.player, this.deckProxy.original, this.amount, this.fromBottom).doNext(cards => {
             this.cards = new Set(cards);
             new SearchChooseAction(this.player, this.cards, this.discardOptions).doNext();
         });
@@ -344,8 +344,8 @@ export class SearchChooseAction extends ModifiableAction {
 export class SearchDiscardAction extends ModifiableAction {
     readonly selects: { cards: SelectCard<WorldCard> }
     readonly parameters: { cards: WorldCard[] };
-    readonly autocompleteSelects = false;
-    readonly message = "Order the discards";
+    readonly autocompleteSelects = false;  // What's important is the order
+    readonly message = "Choose and order the discards";
 
     cards: Set<WorldCard>;
     discarding: WorldCard[];  // For this action, order is important

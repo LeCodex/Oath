@@ -9,7 +9,7 @@ import { OwnableObject, RecoverActionTarget, WithPowers } from "../interfaces";
 import { OathGame } from "../game";
 import { OathGameObject } from "../gameObject";
 import { BuildOrRepairEdificeAction, ChooseNewCitizensAction, VowOathAction, RestAction, WakeAction, CampaignResult, SearchDiscardAction, SearchPlayOrDiscardAction, ChooseSuitsAction, ChooseNumberAction } from ".";
-import { DiscardOptions } from "../cards/decks";
+import { DiscardOptions, SearchableDeck } from "../cards/decks";
 import { CardDeck } from "../cards/decks";
 import { Constructor, inclusiveRange, isExtended, maxInGroup } from "../utils";
 import { D6, RollResult, Die } from "../dice";
@@ -422,27 +422,11 @@ export class RevealCardEffect extends OathEffect {
     }
 }
 
-export class ClearCardPeekEffect extends PlayerEffect {
-    card: OathCard;
-    oldPeeks: Set<OathPlayer>;
-
-    constructor(player: OathPlayer, card: OathCard) {
-        super(player);
-        this.card = card;
-    }
-
-    resolve(): void {
-        this.oldPeeks = new Set(this.card.seenBy);
-        this.card.seenBy.clear();
-    }
-}
-
 export class DrawFromDeckEffect<T extends OathCard> extends PlayerEffect<T[]> {
     deck: CardDeck<T>;
     amount: number;
     fromBottom: boolean;
     skip: number;
-    cards: T[];
 
     constructor(player: OathPlayer, deck: CardDeck<T>, amount: number, fromBottom: boolean = false, skip: number = 0) {
         super(player);
@@ -453,13 +437,39 @@ export class DrawFromDeckEffect<T extends OathCard> extends PlayerEffect<T[]> {
     }
 
     resolve(): void {
-        this.cards = this.deck.draw(this.amount, this.fromBottom, this.skip);
-        for (const card of this.cards) {
-            if (this.cards.length > 1) new ClearCardPeekEffect(this.executor, card).doNext();
+        this.result = this.deck.draw(this.amount, this.fromBottom, this.skip);
+        for (const card of this.result) {
+            if (this.result.length > 1) card.seenBy.clear();
             new PeekAtCardEffect(this.executor, card).doNext();
         }
+    }
+}
 
-        this.result = this.cards;
+export class SearchDrawEffect extends PlayerEffect<WorldCard[]> {
+    deck: SearchableDeck;
+    amount: number;
+    fromBottom: boolean;
+
+    constructor(player: OathPlayer, deck: SearchableDeck, amount: number, fromBottom: boolean = false) {
+        super(player);
+        this.deck = deck;
+        this.amount = amount;
+        this.fromBottom = fromBottom;
+    }
+
+    resolve(): void {
+        this.result = [];
+        for (let i = 0; i < this.amount; i++) {
+            const card = this.deck.drawSingleCard(this.fromBottom);
+            if (!card) break;
+            this.result.push(card);
+            if (this.deck === this.game.worldDeck && card instanceof VisionBack) break;
+        }
+
+        for (const card of this.result) {
+            if (this.result.length > 1) card.seenBy.clear();
+            new PeekAtCardEffect(this.executor, card).doNext();
+        }
     }
 }
 

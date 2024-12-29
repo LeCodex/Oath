@@ -91,7 +91,7 @@ export class OathGame extends TreeRoot<OathGame> {
         for (const cardData of gameData.world) {
             const existing = this.archive.delete(cardData.name as DenizenName);
             if (existing) {
-                this.worldDeck.addChild(new Denizen(cardData.name as DenizenName), true);
+                this.worldDeck.addChild(new Denizen(cardData.name as DenizenName));
                 continue;
             }
 
@@ -104,7 +104,7 @@ export class OathGame extends TreeRoot<OathGame> {
             }[cardData.name as string];
 
             if (card)
-                this.worldDeck.addChild(card, true);
+                this.worldDeck.addChild(card);
             else
                 console.warn(`Couldn't load ${cardData.name} into World Deck`);
         }
@@ -115,7 +115,7 @@ export class OathGame extends TreeRoot<OathGame> {
                 console.warn(`Couldn't load ${cardData.name} into relic deck`);
                 continue;
             }
-            this.relicDeck.addChild(new Relic(cardData.name as RelicName), true);
+            this.relicDeck.addChild(new Relic(cardData.name as RelicName));
         }
 
         for (const [i, name] of playerNames.entries()) {
@@ -205,7 +205,7 @@ export class OathGame extends TreeRoot<OathGame> {
                 new DrawFromDeckEffect(player, this.worldDeck, 3, true).doNext(cards => {
                     if (player !== this.chancellor)
                         new ChooseSitesAction(
-                            player, "Put your pawn at a faceup site (Hand: " + cards.map(e => e.name).join(", ") + ")",
+                            player, "Put your pawn at a faceup site (Hand: " + cards.map(e => e.name).join(", ") + ")",  // TODO: Find a better solution for this
                             (sites: Site[]) => { if (sites[0]) new PutPawnAtSiteEffect(player, sites[0]).doNext(); }
                         ).doNext();
                     else

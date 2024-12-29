@@ -65,19 +65,6 @@ export class WorldDeck extends SearchableDeck<string> {
 
     get key() { return this.id; }
 
-    draw(amount: number, fromBottom: boolean = false, skip: number = 0): WorldCard[] {
-        for (let i = 0; i < amount; i++) {
-            const card = this.children[fromBottom ? i + skip : this.children.length - 1 - i - skip];
-            if (!card) break;
-            if (card instanceof VisionBack) {
-                amount = i+1;
-                break;
-            }
-        }
-        
-        return super.draw(amount, fromBottom, skip);
-    }
-
     drawSingleCard(fromBottom?: boolean): WorldCard | undefined {
         const card = super.drawSingleCard(fromBottom);
         if (card instanceof VisionBack) this.visionsDrawn++;

@@ -219,7 +219,7 @@ const byType = (obj, type) => {
     return obj.children.filter(e => e.type === type);
 }
 
-const typeOrder = ["oath", "denizen", "relic", "banner", "reliquary", "bank", "deck"];
+const typeOrder = ["oath", "vision", "denizen", "relic", "banner", "reliquary", "bank", "deck"];
 const sortedChildren = (obj) => {
     return obj.children.sort((a, b) => typeOrder.indexOf(a.type) - typeOrder.indexOf(b.type));
 }

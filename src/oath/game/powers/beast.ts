@@ -3,7 +3,7 @@ import { InvalidActionResolution } from "../actions/base";
 import { Denizen, Edifice, GrandScepter, Relic, Site } from "../cards";
 import { DieSymbol } from "../dice";
 import { BecomeCitizenEffect, DiscardCardEffect, DrawFromDeckEffect, FinishChronicleEffect, GainSupplyEffect, MoveDenizenToSiteEffect, MoveResourcesToTargetEffect, MoveWorldCardToAdvisersEffect, ParentToTargetEffect, PlayWorldCardEffect, RegionDiscardEffect, TakeOwnableObjectEffect } from "../actions/effects";
-import { OathSuit } from "../enums";
+import { CardRestriction, OathSuit } from "../enums";
 import { WithPowers } from "../interfaces";
 import { ExileBoard, OathPlayer } from "../player";
 import { Favor, Warband, ResourceCost, Secret } from "../resources";
@@ -97,7 +97,7 @@ export class NewGrowth extends AccessedActionModifier<Denizen, SearchPlayOrDisca
     modifiedAction = SearchPlayOrDiscardAction;
 
     applyAtStart(): void {
-        if (!(this.action.cardProxy instanceof Denizen)) return;
+        if (!(this.action.cardProxy instanceof Denizen) || this.action.cardProxy.restriction === CardRestriction.Adviser) return;
         if (this.action.cardProxy.suit !== OathSuit.Beast && this.action.cardProxy.suit !== OathSuit.Hearth) return;
 
         for (const site of this.game.map.sites())
