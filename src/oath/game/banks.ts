@@ -1,17 +1,19 @@
 import { ChooseSuitsAction, RecoverAction, RecoverBannerPitchAction } from "./actions";
 import { RecoverActionTarget, CampaignActionTarget, WithPowers, OwnableObject } from "./interfaces";
 import { TakeOwnableObjectEffect, SetPeoplesFavorMobState, ParentToTargetEffect, BurnResourcesEffect, MoveResourcesToTargetEffect, RecoverTargetEffect } from "./actions/effects";
-import { isEnumKey, OathSuit } from "./enums";
+import { OathSuit } from "./enums";
+import { isEnumKey } from "./utils";
 import { OathPlayer } from "./player";
 import { PeoplesFavorSearch, PeoplesFavorWake, DarkestSecretPower } from "./powers/banners";
 import { OathPower } from "./powers";
 import { Constructor } from "./utils";
-import { Favor, OathResource, Secret } from "./resources";
+import { Favor, OathResource, OathResourceType, Secret } from "./resources";
 import { Container } from "./gameObject";
 
 export class FavorBank extends Container<Favor, OathSuit> {
     readonly id: keyof typeof OathSuit;
     readonly type = "favorBank";
+    cls: typeof Favor;
 
     constructor(id: keyof typeof OathSuit) {
         if (!isEnumKey(id, OathSuit)) throw TypeError(`${id} is not a valid suit`);
@@ -54,7 +56,7 @@ export abstract class Banner<T extends OathResource = OathResource> extends Cont
 
     seize(player: OathPlayer) {
         new TakeOwnableObjectEffect(this.game, player, this).doNext();
-        new BurnResourcesEffect(this.game, player, this.cls, 2, this).doNext();
+        new BurnResourcesEffect(this.game, player, this.cls as any, 2, this).doNext();
     }
 
     abstract handleRecovery(player: OathPlayer): void;
@@ -64,6 +66,7 @@ export class PeoplesFavor extends Banner<Favor> {
     readonly id: "peoplesFavor";
     name = "PeoplesFavor";
     powers = new Set([PeoplesFavorSearch, PeoplesFavorWake]);
+    cls: typeof Favor;
     isMob: boolean;
 
     constructor() {
@@ -108,6 +111,7 @@ export class DarkestSecret extends Banner<Secret> {
     readonly id: "darkestSecret";
     name = "DarkestSecret";
     powers = new Set([DarkestSecretPower]);
+    cls: typeof Secret;
 
     constructor() {
         super("darkestSecret", Secret);

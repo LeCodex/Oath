@@ -352,7 +352,7 @@ export class Whistle extends ActivePower<Relic> {
             this.action.player, "Force a player to travel to you",
             (targets: OathPlayer[]) => {
                 if (!targets[0]) return;
-                const travelAction = new TravelAction(targets[0], this.action.player, (s: Site) => s === this.action.player.site)
+                const travelAction = new TravelAction(targets[0], this.action.player, (site: Site) => site === this.action.player.site);
                 travelAction.noSupplyCost = true;
                 travelAction.doNext();
                 new MoveResourcesToTargetEffect(this.game, this.action.player, Secret, 1, targets[0], this.source).doNext();

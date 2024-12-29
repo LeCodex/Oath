@@ -1,8 +1,9 @@
 import { BurnResourcesEffect, ParentToTargetEffect } from "./actions/effects";
 import { OathGameObject, OathGameObjectLeaf } from "./gameObject";
 import { InvalidActionResolution } from "./actions/base";
-import { isEnumKey, PlayerColor } from "./enums";
-import { AbstractConstructor } from "./utils";
+import { PlayerColor } from "./enums";
+import { isEnumKey } from "./utils";
+import { NodeGroup } from "./utils";
 
 
 export abstract class OathResource extends OathGameObjectLeaf<number> {
@@ -17,6 +18,7 @@ export abstract class OathResource extends OathGameObjectLeaf<number> {
 
     abstract burn(): void;
     static putOn(target: OathGameObject, amount: number): void { };
+    static usable(target: OathGameObject): NodeGroup<OathResource> { return target.byClass(this); };
 }
 
 export class Favor extends OathResource {
@@ -38,6 +40,8 @@ export class Secret extends OathResource {
         for (let i = 0; i < amount; i++) target.addChild(new this());
     }
 
+    static usable(target: OathGameObject): NodeGroup<OathResource> { return target.byClass(this).by("flipped", false); };
+
     burn(): void {
         this.prune();
     }
@@ -57,7 +61,7 @@ export class Secret extends OathResource {
     }
 }
 
-export type OathResourceType<T extends OathResource = OathResource> = AbstractConstructor<T>;
+export type OathResourceType = typeof OathResource;
 
 export class Warband extends OathGameObjectLeaf<number> {
     readonly type = "warband";

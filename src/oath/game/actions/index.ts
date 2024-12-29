@@ -183,7 +183,7 @@ export class TravelAction extends MajorAction {
     siteProxy: Site;
     restriction: (s: Site) => boolean;
 
-    constructor(travelling: OathPlayer, choosing: OathPlayer = travelling, restriction?: (s: Site) => boolean) {
+    constructor(travelling: OathPlayer, choosing: OathPlayer = travelling, restriction?: (site: Site) => boolean) {
         super(travelling);
         this.autocompleteSelects = !!restriction;
         this.restriction = restriction ?? ((_: Site) => true);
@@ -193,7 +193,7 @@ export class TravelAction extends MajorAction {
 
     start() {
         this.player = this.choosing;
-        this.selects.siteProxy = new SelectCard("Site", this.player, [...this.gameProxy.map.sites()].filter(e => e !== this.playerProxy.site && this.restriction(e)), { min: 1 });
+        this.selects.siteProxy = new SelectCard("Site", this.player, [...this.gameProxy.map.sites()].filter(e => e !== this.maskProxyManager.get(this.travelling.site) && this.restriction(e.original)), { min: 1 });
         return super.start();
     }
 
@@ -1012,9 +1012,8 @@ export class PlayFacedownAdviserAction extends ModifiableAction {
     playing: WorldCard;
 
     start() {
-        const cardProxiesArray = [...this.playerProxy.advisers].filter(e => e.facedown)
-        this.cardProxies = new Set(cardProxiesArray);
-        this.selects.cardProxies = new SelectCard("Adviser", this.player, cardProxiesArray, { min: 1 });
+        this.cardProxies = new Set([...this.playerProxy.advisers].filter(e => e.facedown));
+        this.selects.cardProxies = new SelectCard("Adviser", this.player, this.cardProxies, { min: 1 });
         return super.start();
     }
 
@@ -1024,6 +1023,7 @@ export class PlayFacedownAdviserAction extends ModifiableAction {
     }
 
     modifiedExecution(): void {
+        this.playing.prune();  // Otherwise capacity calculations count the card twice
         new SearchPlayOrDiscardAction(this.player, this.playing).doNext();
     }
 }
@@ -1412,7 +1412,7 @@ export class ActAsIfAtSiteAction extends ChooseSitesAction {
                 action.playerProxy.site = action.maskProxyManager.get(sites[0]);
                 action.doNext();  // Allow the player to choose other new modifiers
             },
-            sites && [sites], [[1]]
+            sites && [sites]
         );
     }
 }

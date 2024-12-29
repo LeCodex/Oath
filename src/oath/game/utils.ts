@@ -3,7 +3,11 @@ import { isMap, isSet, range } from "lodash";
 export type AbstractConstructor<T> = abstract new (...args: any) => T;
 export type Constructor<T> = new (...args: any) => T;
 export const isExtended = <T>(constructor: Constructor<any>, type: AbstractConstructor<T>): constructor is Constructor<T> => { return constructor.prototype instanceof type };
-export const instanceOf = <T>(obj: any, type: AbstractConstructor<T>): obj is T => { return obj instanceof type };
+
+export type Enum<E> = Record<keyof E, number | string> & { [k: number]: string; };
+export function isEnumKey<E extends Enum<E>>(key: string | number | symbol, _enum: E): key is keyof E {
+    return key in _enum;
+}
 
 export function MurmurHash3(str: string) {
     let hash = 1779033703 ^ str.length
@@ -302,6 +306,7 @@ export abstract class TreeNode<RootType extends TreeRoot<RootType>, KeyType = an
         this.root?.removeFromLookup(this);
         if (deep) for (const child of [...this.children]) child.prune();
         (this.parent as any) = undefined;  // Pruned objects shouldn't be accessed anyways
+        return this;
     }
 
     parentTo(parent: TreeNode<RootType>, onTop: boolean = false) {
@@ -419,7 +424,7 @@ export abstract class TreeRoot<RootType extends TreeRoot<RootType>> extends Tree
     get key(): "root" { return "root"; }
     get root(): RootType { return this as any; }
 
-    prune() {
+    prune(): this {
         throw TypeError("Cannot prune a root node");
     }
 
@@ -476,7 +481,7 @@ export class NodeGroup<T extends TreeNode<any>> extends Array<T> {
     }
 
     typeCheck<U extends T>(node: TreeNode<any>, cls: AbstractConstructor<U> | string) {
-        return typeof cls === "string" ? node.constructor.name === cls : instanceOf(node, cls);
+        return typeof cls === "string" ? node.constructor.name === cls : node instanceof cls;
     }
 
     hasOfClass(cls: AbstractConstructor<T> | string) {

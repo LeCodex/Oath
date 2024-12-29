@@ -1,4 +1,5 @@
-import { isEnumKey, RegionKey } from "../enums";
+import { RegionKey } from "../enums";
+import { isEnumKey } from "../utils";
 import { Container } from "../gameObject";
 import { WorldCard, VisionBack, OathCard, Relic } from ".";
 
@@ -6,7 +7,7 @@ import { WorldCard, VisionBack, OathCard, Relic } from ".";
 export abstract class CardDeck<T extends OathCard, U = any> extends Container<T, U> {
     readonly type = "deck";
 
-    draw(amount: number, fromBottom: boolean = false, skip: number = 0): T[] {
+    draw(amount: number, fromBottom: boolean = false, skip: number = 0) {
         // Why such an involved process instead of just using splice? To make sure the draws are in correct order for reverting
         amount = Math.min(this.children.length - skip, amount);
         const cards: T[] = [];
@@ -17,8 +18,8 @@ export abstract class CardDeck<T extends OathCard, U = any> extends Container<T,
         return cards;
     }
 
-    drawSingleCard(fromBottom: boolean = false, skip: number = 0): T | undefined {
-        return this.children.splice(fromBottom ? skip: this.children.length - 1 - skip, 1)[0];
+    drawSingleCard(fromBottom: boolean = false, skip: number = 0) {
+        return this.children[!fromBottom ? skip : this.children.length - 1 - skip]?.prune();
     }
 
     shuffle() {

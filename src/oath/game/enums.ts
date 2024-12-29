@@ -70,7 +70,3 @@ export enum OathPhase {
     Over
 }
 
-export type Enum<E> = Record<keyof E, number | string> & { [k: number]: string };
-export function isEnumKey<E extends Enum<E>>(key: string | number | symbol, _enum: E): key is keyof E {
-    return key in _enum;
-} 

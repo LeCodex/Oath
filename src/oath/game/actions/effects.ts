@@ -138,13 +138,7 @@ export class MoveResourcesToTargetEffect extends OathEffect<number> {
             return;
         }
 
-        let resources;  // TODO: This makes me sad. Find a better way to do this. Static method on the resource class to get the "usable" resources?
-        if (this.resource === Secret)
-            resources = this.source.byClass(Secret).by("flipped", false);
-        else
-            resources = this.source.byClass(this.resource);
-
-        resources = resources.max(this.amount);
+        let resources = this.resource.usable(this.source).max(this.amount);
         if (resources.length < this.amount) {
             this.result = 0;
             return;
@@ -523,8 +517,7 @@ export class PlayDenizenAtSiteEffect extends PlayerEffect {
     card: Denizen;
     site: Site;
 
-    getting = new Map<typeof OathResource, number>([[Favor, 1]]);
-    revealedCard: boolean;
+    getting = new Map<OathResourceType, number>([[Favor, 1]]);
 
     constructor(player: OathPlayer, card: Denizen, site: Site) {
         super(player);
@@ -533,9 +526,7 @@ export class PlayDenizenAtSiteEffect extends PlayerEffect {
     }
 
     resolve(): void {
-        new ParentToTargetEffect(this.game, this.executor, [this.card], this.site).doNext();
-        this.revealedCard = this.card.facedown;
-        if (this.revealedCard) this.card.turnFaceup();
+        new ParentToTargetEffect(this.game, this.executor, [this.card], this.site).doNext(() => { if (this.card.facedown) this.card.turnFaceup(); });
         
         // TODO: Put this in an effect?
         const bank = this.game.byClass(FavorBank).byKey(this.card.suit)[0];
@@ -559,8 +550,7 @@ export class PlayWorldCardToAdviserEffect extends PlayerEffect {
     }
 
     resolve(): void {
-        new ParentToTargetEffect(this.game, this.executor, [this.card]).doNext();
-        if (!this.facedown) this.card.turnFaceup();
+        new ParentToTargetEffect(this.game, this.executor, [this.card]).doNext(() => { if (!this.facedown) this.card.turnFaceup(); });
     }
 }
 
@@ -1316,8 +1306,7 @@ export class FinishChronicleEffect extends PlayerEffect {
         new ChooseSuitsAction(
             this.executor, "Choose a suit to add to the World Deck", 
             (suits: OathSuit[]) => { if (suits[0] !== undefined) this.addCardsToWorldDeck(suits[0]); },
-            [maxInGroup(ALL_OATH_SUITS, this.executor.suitAdviserCount.bind(this.executor))],
-            [[1]]
+            [maxInGroup(ALL_OATH_SUITS, this.executor.suitAdviserCount.bind(this.executor))]
         ).doNext();
     }
 
