@@ -1,7 +1,7 @@
 import { CampaignAttackAction, CampaignDefenseAction, TakeFavorFromBankAction, TradeAction, TravelAction, MakeDecisionAction, RestAction, ChooseCardsAction, SearchPlayOrDiscardAction, ChoosePlayersAction, ChooseSitesAction, ChooseNumberAction, SearchAction, KillWarbandsOnTargetAction, MusterAction, RecoverBannerPitchAction, ChooseRnWsAction, RecoverAction } from "../actions";
 import { Conspiracy, Denizen, Edifice, Relic, Site, WorldCard } from "../cards";
 import { DiscardOptions } from "../cards/decks";
-import { AttackDie, DefenseDie, DieSymbol, RollResult } from "../dice";
+import { AttackDie, AttackDieSymbol, DefenseDie, RollResult } from "../dice";
 import { RegionDiscardEffect, PutResourcesOnTargetEffect, RollDiceEffect, BecomeCitizenEffect, DiscardCardEffect, PeekAtCardEffect, MoveResourcesToTargetEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, MoveWorldCardToAdvisersEffect, ParentToTargetEffect, BurnResourcesEffect } from "../actions/effects";
 import { BannerKey, OathSuit } from "../enums";
 import { ExileBoard, OathPlayer } from "../player";
@@ -50,7 +50,7 @@ export class KindredWarriorsAttack extends AttackerBattlePlan<Denizen> {
     cost = new ResourceCost([[Secret, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.atkRoll.ignore.add(DieSymbol.Skull);
+        this.action.campaignResult.atkRoll.ignore.add(AttackDieSymbol.Skull);
         this.action.campaignResult.atkPool += (this.activator.ruledSuits - 1);
     }
 }
@@ -83,7 +83,7 @@ export class RustingRay extends DefenderBattlePlan<Denizen> {
     applyBefore(): void {
         const darkestSecretProxy = this.gameProxy.banners.get(BannerKey.DarkestSecret);
         if (darkestSecretProxy?.owner !== this.activatorProxy) return;
-        this.action.campaignResult.atkRoll.ignore.add(DieSymbol.HollowSword);
+        this.action.campaignResult.atkRoll.ignore.add(AttackDieSymbol.HollowSword);
     }
 }
 
@@ -267,7 +267,7 @@ export class ActingTroupe extends AccessedActionModifier<Denizen, TradeAction> {
     }
 }
 
-export class Jinx extends ActionModifier<Denizen, RollDiceEffect> {
+export class Jinx extends ActionModifier<Denizen, RollDiceEffect<AttackDie | DefenseDie>> {
     modifiedAction = RollDiceEffect;
     cost = new ResourceCost([[Secret, 1]]);
 
@@ -279,7 +279,7 @@ export class Jinx extends ActionModifier<Denizen, RollDiceEffect> {
         const result = this.action.result;
         const player = this.action.executor;
         if (!player) return;
-        if (this.action.result.die !== AttackDie || this.action.result.die !== DefenseDie) return;
+        if (!(this.action.result.die instanceof AttackDie) || !(this.action.result.die instanceof DefenseDie)) return;
 
         new MakeDecisionAction(player, "Reroll " + this.action.result.rolls.map(e => e.join(" & ")).join(", ") + " ?", () => {
             this.payCost(player, success => {

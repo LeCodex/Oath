@@ -748,11 +748,11 @@ export class RecoverTargetEffect extends PlayerEffect {
     }
 }
 
-export class RollDiceEffect extends OathEffect<RollResult> {
+export class RollDiceEffect<T extends Die<any>> extends OathEffect<RollResult<T>> {
     amount: number;
-    result: RollResult;
+    result: RollResult<T>;
 
-    constructor(game: OathGame, player: OathPlayer | undefined, dieOrResult: typeof Die | RollResult, amount: number) {
+    constructor(game: OathGame, player: OathPlayer | undefined, dieOrResult: T | RollResult<T>, amount: number) {
         super(game, player);
         this.amount = Math.max(0, amount);
         this.result = dieOrResult instanceof RollResult ? dieOrResult : new RollResult(game.random, dieOrResult);
@@ -766,7 +766,7 @@ export class RollDiceEffect extends OathEffect<RollResult> {
     serialize() {
         return {
             ...super.serialize(),
-            die: this.result.die.name,
+            die: this.result.die.constructor.name,
             result: Object.fromEntries(this.result.symbols.entries())
         };
     }
@@ -903,7 +903,7 @@ export class NextTurnEffect extends OathEffect {
         }
 
         if (this.game.round > 5 && this.game.oathkeeper.isImperial) {
-            new RollDiceEffect(this.game, this.game.chancellor, D6, 1).doNext(result => {
+            new RollDiceEffect(this.game, this.game.chancellor, new D6(), 1).doNext(result => {
                 const threshold = [6, 5, 3][this.game.round - 6] ?? 7;
                 if (result.value >= threshold)
                     return this.game.empireWins();

@@ -3,13 +3,13 @@ import { InvalidActionResolution, ModifiableAction, ResolveCallbackEffect } from
 import { Region } from "../map";
 import { Denizen, Edifice, OathCard, Relic, Site, VisionBack, WorldCard } from "../cards";
 import { DiscardOptions } from "../cards/decks";
-import { AttackDie, DieSymbol } from "../dice";
 import { PayCostToTargetEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PayPowerCostEffect, BecomeCitizenEffect, DrawFromDeckEffect, FlipEdificeEffect, MoveResourcesToTargetEffect, DiscardCardEffect, GainSupplyEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, PeekAtCardEffect, MoveWorldCardToAdvisersEffect, MoveDenizenToSiteEffect, DiscardCardGroupEffect, PlayVisionEffect, ParentToTargetEffect, BurnResourcesEffect, PutPawnAtSiteEffect, RecoverTargetEffect } from "../actions/effects";
 import { BannerKey, OathSuit } from "../enums";
 import { isOwnable } from "../interfaces";
 import { ExileBoard, OathPlayer } from "../player";
 import { Favor, ResourceCost, Secret } from "../resources";
 import { ActivePower, CapacityModifier, AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, EnemyAttackerCampaignModifier, EnemyActionModifier, ActionModifier, gainPowerUntilActionResolves, BattlePlan, AccessedActionModifier } from ".";
+import { DefenseDieSymbol } from "../dice";
 
 
 export class HorseArchersAttack extends AttackerBattlePlan<Denizen> {
@@ -126,7 +126,7 @@ export class WildMountsReplace extends ActionModifier<Denizen, DiscardCardEffect
 
 export class RainBoots extends AttackerBattlePlan<Denizen> {
     applyBefore(): void {
-        this.action.campaignResult.defRoll.ignore.add(DieSymbol.Shield);
+        this.action.campaignResult.defRoll.ignore.add(DefenseDieSymbol.Shield);
         this.action.campaignResult.discardAtEnd(this.source);
     }
 }

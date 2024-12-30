@@ -1,13 +1,13 @@
 import { SearchAction, CampaignAttackAction, CampaignDefenseAction, TradeAction, TakeFavorFromBankAction, ActAsIfAtSiteAction, MakeDecisionAction, CampaignAction, ChoosePlayersAction, ChooseCardsAction, ChooseSuitsAction, KillWarbandsOnTargetAction, MusterAction, TravelAction, SearchPlayOrDiscardAction, BrackenAction } from "../actions";
 import { InvalidActionResolution } from "../actions/base";
 import { Denizen, Edifice, GrandScepter, Relic, Site } from "../cards";
-import { DieSymbol } from "../dice";
 import { BecomeCitizenEffect, DiscardCardEffect, DrawFromDeckEffect, FinishChronicleEffect, GainSupplyEffect, MoveDenizenToSiteEffect, MoveResourcesToTargetEffect, MoveWorldCardToAdvisersEffect, ParentToTargetEffect, PlayWorldCardEffect, RegionDiscardEffect, TakeOwnableObjectEffect } from "../actions/effects";
 import { CardRestriction, OathSuit } from "../enums";
 import { WithPowers } from "../interfaces";
 import { ExileBoard, OathPlayer } from "../player";
 import { Favor, Warband, ResourceCost, Secret } from "../resources";
 import { AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, RestPower, ActivePower, EnemyAttackerCampaignModifier, EnemyDefenderCampaignModifier, AccessedActionModifier, ActionModifier, EnemyActionModifier } from ".";
+import { AttackDieSymbol, DefenseDieSymbol } from "../dice";
 
 
 export class NatureWorshipAttack extends AttackerBattlePlan<Denizen> {
@@ -29,14 +29,14 @@ export class WarTortoiseAttack extends AttackerBattlePlan<Denizen> {
     cost = new ResourceCost([[Favor, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.defRoll.ignore.add(DieSymbol.TwoShields);
+        this.action.campaignResult.defRoll.ignore.add(DefenseDieSymbol.TwoShields);
     }
 }
 export class WarTortoiseDefense extends DefenderBattlePlan<Denizen> {
     cost = new ResourceCost([[Favor, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.atkRoll.ignore.add(DieSymbol.TwoSwords);
+        this.action.campaignResult.atkRoll.ignore.add(AttackDieSymbol.TwoSwords);
     }
 }
 
@@ -44,7 +44,7 @@ export class Rangers extends AttackerBattlePlan<Denizen> {
     cost = new ResourceCost([[Favor, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.atkRoll.ignore.add(DieSymbol.Skull);
+        this.action.campaignResult.atkRoll.ignore.add(AttackDieSymbol.Skull);
         if (this.action.campaignResult.defPool >= 4) this.action.campaignResult.atkPool += 2;
     }
 }

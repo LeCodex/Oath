@@ -139,7 +139,7 @@ export class RelicThief extends EnemyActionModifier<Denizen, TakeOwnableObjectEf
                     const cost = new ResourceCost([[Favor, 1], [Secret, 1]]);
                     new PayCostToTargetEffect(this.game, rulerProxy.original, cost, this.source).doNext(success => {
                         if (!success) throw cost.cannotPayError;
-                        new RollDiceEffect(this.game, rulerProxy.original, DefenseDie, 1).doNext(result => {
+                        new RollDiceEffect(this.game, rulerProxy.original, new DefenseDie(), 1).doNext(result => {
                             if (result.value === 0) new TakeOwnableObjectEffect(this.game, rulerProxy.original, this.action.target).doNext();
                         });
                     });
@@ -234,7 +234,7 @@ export class GamblingHall extends ActivePower<Denizen> {
     cost = new ResourceCost([[Favor, 2]]);
 
     usePower(): void {
-        new RollDiceEffect(this.game, this.action.player, DefenseDie, 4).doNext(result => {
+        new RollDiceEffect(this.game, this.action.player, new DefenseDie(), 4).doNext(result => {
             new TakeFavorFromBankAction(this.action.player, result.value).doNext();
         });
     }
@@ -531,12 +531,12 @@ export class FestivalDistrict extends ActivePower<Denizen> {
     }
 }
 
-export class SqualidDistrict extends ActionModifier<Edifice, RollDiceEffect> {
+export class SqualidDistrict extends ActionModifier<Edifice, RollDiceEffect<D6>> {
     modifiedAction = RollDiceEffect;
     mustUse = true;
 
     canUse(): boolean {
-        return !!this.sourceProxy.ruler && this.action.result.die === D6;
+        return !!this.sourceProxy.ruler && this.action.result.die instanceof D6;
     }
 
     applyAfter(): void {

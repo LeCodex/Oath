@@ -1,7 +1,7 @@
 import { OathAction, ModifiableAction, InvalidActionResolution, ChooseModifiers } from "./base";
 import { Denizen, Edifice, OathCard, OwnableCard, Relic, Site, WorldCard } from "../cards";
 import { DiscardOptions, SearchableDeck } from "../cards/decks";
-import { AttackDie, DefenseDie, DieSymbol, RollResult } from "../dice";
+import { AttackDie, AttackDieSymbol, DefenseDie, RollResult } from "../dice";
 import { MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, RollDiceEffect, DrawFromDeckEffect, PutPawnAtSiteEffect, DiscardCardEffect, MoveOwnWarbandsEffect, SetPeoplesFavorMobState, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, FlipEdificeEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect, CheckCapacityEffect, CampaignJoinDefenderAlliesEffect, MoveWorldCardToAdvisersEffect, DiscardCardGroupEffect, ParentToTargetEffect, PaySupplyEffect, ThingsExchangeOfferEffect, SiteExchangeOfferEffect, SearchDrawEffect } from "./effects";
 import { ALL_OATH_SUITS, ALL_PLAYER_COLORS, CardRestriction, OathPhase, OathSuit, OathType, PlayerColor } from "../enums";
 import { OathGame } from "../game";
@@ -681,7 +681,7 @@ export class CampaignDefenseAction extends ModifiableAction {
             this.campaignResult.successful = this.campaignResult.atk > this.campaignResult.def;
 
             if (!this.campaignResult.ignoreKilling)
-                this.campaignResult.attackerKills(this.campaignResult.atkRoll.get(DieSymbol.Skull));
+                this.campaignResult.attackerKills(this.campaignResult.atkRoll.get(AttackDieSymbol.Skull));
         });
     }
 }
@@ -707,8 +707,8 @@ export class CampaignResult {
     defForce: Set<ResourcesAndWarbands>;
     endCallbacks: CampaignEndCallback[] = [];
 
-    atkRoll: RollResult;
-    defRoll: RollResult;
+    atkRoll: RollResult<AttackDie>;
+    defRoll: RollResult<DefenseDie>;
     
     ignoreKilling: boolean = false;
     attackerKillsNoWarbands: boolean = false;
@@ -723,8 +723,8 @@ export class CampaignResult {
     
     constructor(game: OathGame) {
         this.game = game;
-        this.atkRoll = new RollResult(this.game.random, AttackDie);
-        this.defRoll = new RollResult(this.game.random, DefenseDie);
+        this.atkRoll = new RollResult(this.game.random, new AttackDie());
+        this.defRoll = new RollResult(this.game.random, new DefenseDie());
     }
 
     get winner() { return this.successful ? this.attacker : this.defender; }

@@ -1,7 +1,6 @@
 import { TradeAction, TravelAction, SearchAction, SearchPlayOrDiscardAction, TakeFavorFromBankAction, CampaignKillWarbandsInForceAction, CampaignResult, MakeDecisionAction, CampaignAction, ActAsIfAtSiteAction, CampaignDefenseAction, ChooseSitesAction, ChoosePlayersAction, KillWarbandsOnTargetAction, MusterAction, MoveWarbandsBetweenBoardAndSitesAction, CampaignAttackAction, CampaignEndCallback } from "../actions";
 import { InvalidActionResolution } from "../actions/base";
 import { Denizen, Edifice, Relic, Site, Vision } from "../cards";
-import { DieSymbol } from "../dice";
 import { PayCostToTargetEffect, MoveResourcesToTargetEffect, GainSupplyEffect, BecomeCitizenEffect, PutPawnAtSiteEffect, MoveOwnWarbandsEffect, BecomeExileEffect, PlayVisionEffect, TakeOwnableObjectEffect, ParentToTargetEffect } from "../actions/effects";
 import { BannerKey, OathSuit } from "../enums";
 import { OathGameObject } from "../gameObject";
@@ -9,6 +8,7 @@ import { CampaignActionTarget, WithPowers } from "../interfaces";
 import { ExileBoard, OathPlayer } from "../player";
 import { Favor, ResourceCost } from "../resources";
 import { AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, RestPower, ActivePower, ActionModifier, AccessedActionModifier, EnemyActionModifier, BattlePlan } from ".";
+import { AttackDieSymbol } from "../dice";
 
 
 export class LongbowsAttack extends AttackerBattlePlan<Denizen> {
@@ -216,7 +216,7 @@ export class Scouts extends AttackerBattlePlan<Denizen> {
 
 export class Outriders extends AttackerBattlePlan<Denizen> {
     applyBefore(): void {
-        this.action.campaignResult.atkRoll.ignore.add(DieSymbol.Skull);
+        this.action.campaignResult.atkRoll.ignore.add(AttackDieSymbol.Skull);
     }
 }
 
