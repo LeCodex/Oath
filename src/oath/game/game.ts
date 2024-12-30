@@ -18,10 +18,10 @@ import { CardName, Citizenship, PlayerCitizenship } from "./parser/interfaces";
 import { hasPowers, SourceType, WithPowers } from "./interfaces";
 import { Favor, Warband, Secret } from "./resources";
 import { Reliquary, ReliquarySlot } from "./reliquary";
-import classIndex from "./classIndex";
 import { constant, times } from "lodash";
-import * as fs from "fs";
 import { SiteName } from "./cards/sites";
+import classIndex from "./classIndex";
+import * as fs from "fs";
 
 
 export class OathGame extends TreeRoot<OathGame> {
@@ -404,7 +404,7 @@ export class OathGame extends TreeRoot<OathGame> {
         for (const [i, nodeData] of chunks.entries()) {
             console.log(`Resolving chunk ${i}`);
             const node = new HistoryNode(game.actionManager, game.serialize(true));
-            node.parse(nodeData);
+            node.parse(nodeData, false);
         }
 
         return game;

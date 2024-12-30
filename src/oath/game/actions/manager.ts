@@ -18,7 +18,7 @@ export class HistoryNode<T extends OathActionManager> {
         return this.events.map(e => JSON.stringify(e.serialize())).join("\n");
     }
 
-    parse(data: string) {
+    parse(data: string, save: boolean = true) {
         if (data === "") return;
         const lines = data.split("\n");
         for (const [i, line] of lines.entries()) {
@@ -26,7 +26,7 @@ export class HistoryNode<T extends OathActionManager> {
             const { name, player, data } = JSON.parse(line) as ReturnType<HistoryEvent["serialize"]>;
             // This is a "dummy" event that just replays the actions. The replay takes care of adding the actual events back
             const event = new eventsIndex[name](this.manager, player, data);
-            event.replay();
+            event.replay(save);
         }
     }
 }
@@ -39,7 +39,7 @@ export abstract class HistoryEvent {
         public player: string,
     ) { }
 
-    abstract replay(): void;
+    abstract replay(save?: boolean): void;
     
     serialize() {
         return {
@@ -56,8 +56,8 @@ export class StartEvent extends HistoryEvent {
         public actionName: string
     ) { super(manager, player); }
 
-    replay() {
-        this.manager.startAction(this.actionName);
+    replay(save: boolean = true) {
+        this.manager.startAction(this.actionName, save);
     }
 
     serialize() {
@@ -74,8 +74,8 @@ export class ContinueEvent extends HistoryEvent {
         public values: Record<string, string[]>
     ) { super(manager, player); }
 
-    replay() {
-        this.manager.continueAction(this.player, this.values);
+    replay(save: boolean = true) {
+        this.manager.continueAction(this.player, this.values, save);
     }
 
     serialize() {
@@ -163,8 +163,8 @@ export class OathActionManager {
         if (continueNow) this.resolveTopAction();
     }
 
-    defer(): ActionManagerReturn {
-        if (this.game.phase !== OathPhase.Over) this.game.save();
+    defer(save: boolean = true): ActionManagerReturn {
+        if (save && this.game.phase !== OathPhase.Over) this.game.save();
 
         let action = this.actionsStack[this.actionsStack.length - 1];
         return {
@@ -177,7 +177,7 @@ export class OathActionManager {
         };
     }
 
-    startAction(actionName: string) {
+    startAction(actionName: string, save: boolean = true) {
         const action = this.startOptions[actionName];
         if (!action) throw new InvalidActionResolution("Invalid starting action name");
 
@@ -193,7 +193,7 @@ export class OathActionManager {
         try {
             this.checkForNextAction();
             event.oneWay = this.markEventAsOneWay;
-            return this.defer();
+            return this.defer(save);
         } catch (e) {
             this.authorizeCancel();
             throw e;
@@ -206,7 +206,7 @@ export class OathActionManager {
         return player;
     }
 
-    continueAction(playerId: string, values: Record<string, string[]>) {
+    continueAction(playerId: string, values: Record<string, string[]>, save: boolean = true) {
         const action = this.actionsStack[this.actionsStack.length - 1];
         if (!action) throw new InvalidActionResolution("No action to continue");
 
@@ -225,7 +225,7 @@ export class OathActionManager {
         try {
             this.resolveTopAction();
             event.oneWay = this.markEventAsOneWay;
-            return this.defer();
+            return this.defer(save);
         } catch (e) {
             this.authorizeCancel();
             throw e;
