@@ -3,6 +3,15 @@ import { OathService } from './oath.service';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { ActionManagerReturn } from './game/actions/manager';
 
+function ApiActionResponses(invalidAction: boolean = true): MethodDecorator {
+    return (target: Object, propertyKey: string | symbol, descriptor: TypedPropertyDescriptor<any>) => {
+        ApiResponse({ status: 200, description: "Game state", type: ActionManagerReturn })(target, propertyKey, descriptor);
+        ApiResponse({ status: 404, description: "Not found" })(target, propertyKey, descriptor);
+        ApiResponse({ status: 403, description: "Forbidden (Game was not reloaded properly)" })(target, propertyKey, descriptor);
+        if (invalidAction) ApiResponse({ status: 400, description: "Invalid action" })(target, propertyKey, descriptor);
+    }
+}
+
 @Controller("/oath")
 export class OathController {
     constructor(private readonly service: OathService) {}
@@ -23,17 +32,14 @@ export class OathController {
 
     @Get(":id")
     @ApiOperation({ summary: "Get an active game" })
-    @ApiResponse({ status: 200, description: "Game state", type: ActionManagerReturn })
-    @ApiResponse({ status: 404, description: "Not found" })
+    @ApiActionResponses(false)
     getGame(@Param('id', ParseIntPipe) gameId: number): ActionManagerReturn {
         return this.service.getCurrentState(gameId);
     }
 
     @Post(":id/:player/start/:action")
     @ApiOperation({ summary: "Start an action in an active game.", description: "The action stack must be empty (startOptions is defined)" })
-    @ApiResponse({ status: 200, description: "Game state", type: ActionManagerReturn })
-    @ApiResponse({ status: 404, description: "Not found" })
-    @ApiResponse({ status: 400, description: "Invalid action" })
+    @ApiActionResponses()
     startAction(@Param('id', ParseIntPipe) gameId: number, @Param('player') playerId: string, @Param('action') action: string): ActionManagerReturn {
         return this.service.beginAction(gameId, playerId, action);
     }
@@ -41,9 +47,7 @@ export class OathController {
     @Post(":id/:player/continue")
     @UsePipes(new ValidationPipe({ transform: true }))
     @ApiOperation({ summary: "Continue an active action in an active game", description: "The action stack must not be empty (activeAction is defined)" })
-    @ApiResponse({ status: 200, description: "Game state", type: ActionManagerReturn })
-    @ApiResponse({ status: 404, description: "Not found" })
-    @ApiResponse({ status: 400, description: "Invalid action" })
+    @ApiActionResponses()
     continueAction(@Param('id', ParseIntPipe) gameId: number, @Param('player') playerId: string, @Body() values: Record<string, string[]>): ActionManagerReturn {
         return this.service.continueAction(gameId, playerId, values);
     }
@@ -51,9 +55,7 @@ export class OathController {
     @Post(":id/:player/cancel")
     @UsePipes(new ValidationPipe({ transform: true }))
     @ApiOperation({ summary: "Request a rollback in an active game" })
-    @ApiResponse({ status: 200, description: "Game state", type: ActionManagerReturn })
-    @ApiResponse({ status: 404, description: "Not found" })
-    @ApiResponse({ status: 400, description: "Invalid action" })
+    @ApiActionResponses()
     cancelAction(@Param('id', ParseIntPipe) gameId: number, @Param('player') playerId: string): ActionManagerReturn {
         return this.service.cancelAction(gameId, playerId);
     }
@@ -61,17 +63,30 @@ export class OathController {
     @Post(":id/:player/consent")
     @UsePipes(new ValidationPipe({ transform: true }))
     @ApiOperation({ summary: "Consent to a rollback in an active game", description: "A rollback must have been requested (rollbackConsent is defined)" })
-    @ApiResponse({ status: 200, description: "Game state", type: ActionManagerReturn })
-    @ApiResponse({ status: 404, description: "Not found" })
-    @ApiResponse({ status: 400, description: "Invalid action" })
+    @ApiActionResponses()
     consentToRollback(@Param('id', ParseIntPipe) gameId: number, @Param('player') playerId: string): ActionManagerReturn {
         return this.service.consentToRollback(gameId, playerId);
     }
 
+    @Post(":id/reload/history")
+    @UsePipes(new ValidationPipe({ transform: true }))
+    @ApiOperation({ summary: "Reload a game with failed ", description: "The game's loading must have failed (returns ReloadFailedErrors when interacted with)" })
+    @ApiActionResponses()
+    reloadFromHistory(@Param('id', ParseIntPipe) gameId: number): ActionManagerReturn {
+        return this.service.reloadFromHistory(gameId);
+    }
+
+    @Post(":id/reload/state")
+    @UsePipes(new ValidationPipe({ transform: true }))
+    @ApiOperation({ summary: "Consent to a rollback in an active game", description: "A rollback must have been requested (rollbackConsent is defined)" })
+    @ApiActionResponses()
+    reloadFromFinalState(@Param('id', ParseIntPipe) gameId: number): ActionManagerReturn {
+        return this.service.reloadFromFinalState(gameId);
+    }
+
     @Delete(":id")
     @ApiOperation({ summary: "End an active game" })
-    @ApiResponse({ status: 200, description: "Game state", type: ActionManagerReturn })
-    @ApiResponse({ status: 404, description: "Not found" })
+    @ApiActionResponses(false)
     endGame(@Param('id', ParseIntPipe) gameId: number): ActionManagerReturn {
         return this.service.endGame(gameId);
     }

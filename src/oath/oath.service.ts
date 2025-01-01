@@ -1,6 +1,6 @@
-import { BadRequestException, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { OathGame } from './game/game';
-import { ActionManagerReturn } from './game/actions/manager';
+import { ActionManagerReturn, ReloadFailError } from './game/actions/manager';
 import { InvalidActionResolution } from "./game/actions/base";
 import * as fs from "fs";
 import { range } from 'lodash';
@@ -43,14 +43,15 @@ export class OathService implements OnModuleInit {
         return obj;
     }
 
-    private _wrapper(gameId: number, func: () => ActionManagerReturn) {
+    private _wrapper(gameId: number, func: (game: OathGame) => ActionManagerReturn) {
         try {
-            const result = func();
+            const result = func(this._getGame(gameId));
             if (result.over) this.games.delete(gameId);
             return result;
         } catch (e) {
             // TODO: Use exception filters
-            if (e instanceof InvalidActionResolution) throw new BadRequestException(e.message);
+            if (e instanceof InvalidActionResolution) throw new BadRequestException({ error: "InvalidActionResolution", message: e.message });
+            if (e instanceof ReloadFailError) throw new ForbiddenException({ error: "ReloadFailError", message: e.message });
             throw e;
         }
     }
@@ -61,24 +62,32 @@ export class OathService implements OnModuleInit {
         return game;
     }
 
+    public reloadFromHistory(gameId: number) {
+        return this._wrapper(gameId, (game) => game.actionManager.reloadFromHistory());
+    }
+
+    public reloadFromFinalState(gameId: number) {
+        return this._wrapper(gameId, (game) => game.actionManager.reloadFromFinalState());
+    }
+
     public beginAction(gameId: number, playerId: string, actionName: string) {        
-        return this._wrapper(gameId, () => this._getGame(gameId).startAction(playerId, actionName));
+        return this._wrapper(gameId, (game) => game.startAction(playerId, actionName));
     }
 
     public getCurrentState(gameId: number) {
-        return this._getGame(gameId).actionManager.defer();
+        return this._wrapper(gameId, (game) => game.actionManager.defer());
     }
 
     public continueAction(gameId: number, playerId: string, values: Record<string, string[]>) {
-        return this._wrapper(gameId, () => this._getGame(gameId).actionManager.continueAction(playerId, values));
+        return this._wrapper(gameId, (game) => game.actionManager.continueAction(playerId, values));
     }
 
     public cancelAction(gameId: number, playerId: string) {
-        return this._wrapper(gameId, () => this._getGame(gameId).actionManager.cancelAction(playerId));
+        return this._wrapper(gameId, (game) => game.actionManager.cancelAction(playerId));
     }
 
     public consentToRollback(gameId: number, playerId: string) {
-        return this._wrapper(gameId, () => this._getGame(gameId).actionManager.consentToRollback(playerId));
+        return this._wrapper(gameId, (game) => game.actionManager.consentToRollback(playerId));
     }
 
     public endGame(gameId: number) {

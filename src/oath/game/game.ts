@@ -377,7 +377,7 @@ export class OathGame extends TreeRoot<OathGame> {
     }
 
     stringify() {
-        return JSON.stringify(this.setupData) + "\n\n" + this.actionManager.history.map(e => e.stringify()).join("\n\n");
+        return JSON.stringify(this.setupData) + "\n\n" + this.actionManager.stringify();
     }
 
     get savePath() { return "data/oath/save" + this.gameId + ".txt"; }
@@ -395,18 +395,10 @@ export class OathGame extends TreeRoot<OathGame> {
     }
 
     static load(gameId: number, data: string) {
-        // TODO: Disable writing to the save file during reloads
         const chunks = data.split('\n\n');
         const setupData = JSON.parse(chunks.shift()!);
         const game = new this(gameId, setupData);
-        game.actionManager.checkForNextAction();  // Flush the initial actions onto the stack
-
-        for (const [i, nodeData] of chunks.entries()) {
-            console.log(`Resolving chunk ${i}`);
-            const node = new HistoryNode(game.actionManager, game.serialize(true));
-            node.parse(nodeData, false);
-        }
-
+        game.actionManager.parse(chunks);
         return game;
     }
 }

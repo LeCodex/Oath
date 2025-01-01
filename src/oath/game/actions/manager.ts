@@ -110,8 +110,12 @@ export class ActionManagerReturn {
     rollbackConsent?: Record<string, boolean>
 };
 
+export class ReloadFailError extends Error {}
+
 export class OathActionManager {
-    game: OathGame;
+    loaded: boolean = true;
+    lastState: SerializedNode<this["game"]>;
+
     actionsStack: OathAction[] = [];
     futureActionsList: OathAction[] = [];
     currentEffectsStack: OathEffect<any>[] = [];
@@ -134,9 +138,7 @@ export class OathActionManager {
         "Rest": RestAction
     };
 
-    constructor(game: OathGame) {
-        this.game = game;
-    }
+    constructor(public game: OathGame) {}
 
     get gameState() {
         const cloneDeepNext = (e: OathAction) => {
@@ -151,88 +153,14 @@ export class OathActionManager {
         };
     }
     get activePlayer() { return this.actionsStack[this.actionsStack.length - 1]?.player ?? this.game.currentPlayer; }
- 
-    checkForNextAction() {
-        if (!this.actionsStack.length && !this.futureActionsList.length) this.game.stackEmpty();
 
-        for (const action of this.futureActionsList) this.actionsStack.push(action);
-        this.futureActionsList.length = 0;
-        let action = this.actionsStack[this.actionsStack.length - 1];
-
-        let continueNow = action?.start();
-        if (continueNow) this.resolveTopAction();
-    }
-
-    defer(save: boolean = true): ActionManagerReturn {
-        if (save && this.game.phase !== OathPhase.Over) this.game.save();
-
-        let action = this.actionsStack[this.actionsStack.length - 1];
-        return {
-            game: this.game.serialize(),
-            appliedEffects: this.currentEffectsStack.map(e => e.serialize()).filter(e => e !== undefined),
-            over: this.game.phase === OathPhase.Over,
-            activeAction: action?.serialize(),
-            startOptions: !action ? Object.keys(this.startOptions) : undefined,
-            rollbackConsent: this.rollbackConsent
-        };
-    }
-
-    startAction(actionName: string, save: boolean = true) {
-        const action = this.startOptions[actionName];
-        if (!action) throw new InvalidActionResolution("Invalid starting action name");
-
-        this.markEventAsOneWay = false;
-        this.currentEffectsStack.length = 0;
-        this.rollbackConsent = undefined;
-        new action(this.game.currentPlayer).doNext();
-
-        const playerId = this.game.currentPlayer.id;
-        const gameState = this.gameState;
-        const event = new StartEvent(this, playerId, actionName);
-        this.history.push(new HistoryNode(this, gameState.game, [event]));
-        try {
-            this.checkForNextAction();
-            event.oneWay = this.markEventAsOneWay;
-            return this.defer(save);
-        } catch (e) {
-            this.authorizeCancel();
-            throw e;
-        }
-    }
-
-    getPlayerFromId(playerId: string) {
+    private getPlayerFromId(playerId: string) {
         const player = this.game.players.by("id", playerId)[0];
         if (!player) throw new InvalidActionResolution(`Invalid player id ${playerId}`);
         return player;
     }
 
-    continueAction(playerId: string, values: Record<string, string[]>, save: boolean = true) {
-        const action = this.actionsStack[this.actionsStack.length - 1];
-        if (!action) throw new InvalidActionResolution("No action to continue");
-
-        const player = this.getPlayerFromId(playerId);
-        if (action.player !== player) throw new InvalidActionResolution(`Action must be resolved by ${action.player.name}, not ${player.name}`);
-
-        this.markEventAsOneWay = false;
-        this.currentEffectsStack.length = 0;
-        this.rollbackConsent = undefined;
-        const parsed = action.parse(values);
-        action.applyParameters(parsed);
-
-        const event = new ContinueEvent(this, playerId, values);
-        const events = this.history[this.history.length - 1]?.events;
-        events?.push(event);
-        try {
-            this.resolveTopAction();
-            event.oneWay = this.markEventAsOneWay;
-            return this.defer(save);
-        } catch (e) {
-            this.authorizeCancel();
-            throw e;
-        }
-    }
-
-    resolveTopAction() {
+    private resolveTopAction() {
         const action = this.game.actionManager.actionsStack.pop();
         if (!action) {
             this.game.actionManager.currentEffectsStack.pop();
@@ -243,35 +171,7 @@ export class OathActionManager {
         return this.checkForNextAction();
     }
 
-    cancelAction(playerId: string) {
-        const player = this.getPlayerFromId(playerId);
-        if (this.activePlayer !== player) throw new InvalidActionResolution(`Rollback can only be done by ${this.activePlayer.name}, not ${player.name}`);
-
-        let last = this.history.length - 1, lastNode = this.history[last];
-        while (lastNode?.events.length === 0) {
-            last--;
-            lastNode = this.history[this.history.length - 2];
-        }
-        if (!lastNode || lastNode.events.length === 0) throw new InvalidActionResolution("Cannot roll back");
-        let lastEvent = lastNode.events[lastNode.events.length - 1]!;
-        if (lastEvent.player !== this.activePlayer.id || lastEvent.oneWay) {
-            this.rollbackConsent = Object.fromEntries(this.game.players.map(e => [e.id, e.id === playerId]));
-            return this.defer();
-        }
-
-        return this.authorizeCancel();
-    }
-    
-    consentToRollback(playerId: string) {
-        const player = this.getPlayerFromId(playerId);
-        if (!this.rollbackConsent || !(playerId in this.rollbackConsent)) throw new InvalidActionResolution(`No rollback consent needed from ${player.name}`);
-
-        this.rollbackConsent[playerId] = true;
-        for (const consent of Object.values(this.rollbackConsent)) if (!consent) return this.defer();
-        return this.authorizeCancel();
-    }
-
-    authorizeCancel() {
+    private authorizeCancel() {
         const history = [...this.history];
         const gameState = this.gameState;
         try {
@@ -306,9 +206,161 @@ export class OathActionManager {
 
     }
 
-    revertCurrentAction({ game, stack }: this["gameState"]): void {
+    private revertCurrentAction({ game, stack }: this["gameState"]): void {
         this.game.parse(game, true);
         this.actionsStack = stack;
         this.currentEffectsStack.length = 0;
+    }
+ 
+    public checkForNextAction() {
+        if (!this.loaded) throw new ReloadFailError();
+        if (!this.actionsStack.length && !this.futureActionsList.length) this.game.stackEmpty();
+
+        for (const action of this.futureActionsList) this.actionsStack.push(action);
+        this.futureActionsList.length = 0;
+        let action = this.actionsStack[this.actionsStack.length - 1];
+
+        let continueNow = action?.start();
+        if (continueNow) this.resolveTopAction();
+    }
+
+    public defer(save: boolean = true): ActionManagerReturn {
+        if (!this.loaded) throw new ReloadFailError();
+        if (save) {
+            if (this.game.phase !== OathPhase.Over) this.game.save();
+            this.lastState = this.gameState.game;
+        }
+
+        let action = this.actionsStack[this.actionsStack.length - 1];
+        return {
+            game: this.game.serialize(),
+            appliedEffects: this.currentEffectsStack.map(e => e.serialize()).filter(e => e !== undefined),
+            over: this.game.phase === OathPhase.Over,
+            activeAction: action?.serialize(),
+            startOptions: !action ? Object.keys(this.startOptions) : undefined,
+            rollbackConsent: this.rollbackConsent
+        };
+    }
+
+    public startAction(actionName: string, save: boolean = true) {
+        if (!this.loaded) throw new ReloadFailError();
+        const action = this.startOptions[actionName];
+        if (!action) throw new InvalidActionResolution("Invalid starting action name");
+
+        this.markEventAsOneWay = false;
+        this.currentEffectsStack.length = 0;
+        this.rollbackConsent = undefined;
+        new action(this.game.currentPlayer).doNext();
+
+        const playerId = this.game.currentPlayer.id;
+        const gameState = this.gameState;
+        const event = new StartEvent(this, playerId, actionName);
+        this.history.push(new HistoryNode(this, gameState.game, [event]));
+        try {
+            this.checkForNextAction();
+            event.oneWay = this.markEventAsOneWay;
+            return this.defer(save);
+        } catch (e) {
+            this.authorizeCancel();
+            throw e;
+        }
+    }
+
+    public continueAction(playerId: string, values: Record<string, string[]>, save: boolean = true) {
+        if (!this.loaded) throw new ReloadFailError();
+        const action = this.actionsStack[this.actionsStack.length - 1];
+        if (!action) throw new InvalidActionResolution("No action to continue");
+
+        const player = this.getPlayerFromId(playerId);
+        if (action.player !== player) throw new InvalidActionResolution(`Action must be resolved by ${action.player.name}, not ${player.name}`);
+
+        this.markEventAsOneWay = false;
+        this.currentEffectsStack.length = 0;
+        this.rollbackConsent = undefined;
+        const parsed = action.parse(values);
+        action.applyParameters(parsed);
+
+        const event = new ContinueEvent(this, playerId, values);
+        const events = this.history[this.history.length - 1]?.events;
+        events?.push(event);
+        try {
+            this.resolveTopAction();
+            event.oneWay = this.markEventAsOneWay;
+            return this.defer(save);
+        } catch (e) {
+            this.authorizeCancel();
+            throw e;
+        }
+    }
+
+    public cancelAction(playerId: string) {
+        if (!this.loaded) throw new ReloadFailError();
+        const player = this.getPlayerFromId(playerId);
+        if (this.activePlayer !== player) throw new InvalidActionResolution(`Rollback can only be done by ${this.activePlayer.name}, not ${player.name}`);
+
+        let last = this.history.length - 1, lastNode = this.history[last];
+        while (lastNode?.events.length === 0) {
+            last--;
+            lastNode = this.history[this.history.length - 2];
+        }
+        if (!lastNode || lastNode.events.length === 0) throw new InvalidActionResolution("Cannot roll back");
+        let lastEvent = lastNode.events[lastNode.events.length - 1]!;
+        if (lastEvent.player !== this.activePlayer.id || lastEvent.oneWay) {
+            this.rollbackConsent = Object.fromEntries(this.game.players.map(e => [e.id, e.id === playerId]));
+            return this.defer();
+        }
+
+        return this.authorizeCancel();
+    }
+    
+    public consentToRollback(playerId: string) {
+        if (!this.loaded) throw new ReloadFailError();
+        const player = this.getPlayerFromId(playerId);
+        if (!this.rollbackConsent || !(playerId in this.rollbackConsent)) throw new InvalidActionResolution(`No rollback consent needed from ${player.name}`);
+
+        this.rollbackConsent[playerId] = true;
+        for (const consent of Object.values(this.rollbackConsent)) if (!consent) return this.defer();
+        return this.authorizeCancel();
+    }
+
+    public stringify() {
+        return this.history.map(e => e.stringify()).join("\n\n") + "\n\n" + JSON.stringify(this.lastState);
+    }
+
+    public parse(chunks: string[]) {
+        this.checkForNextAction();  // Flush the initial actions onto the stack
+        this.lastState = JSON.parse(chunks.pop()!);
+        try {
+            for (const [i, nodeData] of chunks.entries()) {
+                console.log(`Resolving chunk ${i}`);
+                const node = new HistoryNode(this, this.game.serialize(true) as SerializedNode<this["game"]>);
+                node.parse(nodeData, false);
+            }
+
+            if (JSON.stringify(this.gameState.game) !== JSON.stringify(this.lastState))
+                console.warn(`Loading of game ${this.game.gameId} has conflicting final state`);
+        } catch (e) {
+            this.loaded = false;
+            console.error(`Loading of game ${this.game.gameId} failed:`, e);
+        }
+    }
+
+    public reloadFromHistory() {
+        if (this.loaded) throw new InvalidActionResolution("Game loading does not need resolution");
+        this.loaded = true;
+        return this.defer();
+    }
+
+    public reloadFromFinalState() {
+        if (this.loaded) throw new InvalidActionResolution("Game loading does not need resolution");
+        try {
+            this.game.parse(this.lastState);
+            this.history.length = 0;
+            this.loaded = true;
+            return this.defer();
+        } catch (e) {
+            console.warn("Reloading from final state failed. Reloading from history instead");
+            return this.reloadFromHistory();
+        }
     }
 }

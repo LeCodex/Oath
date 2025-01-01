@@ -266,7 +266,7 @@ const startAction = async (actionName) => {
         mode: "cors", 
         headers: { 'Access-Control-Allow-Origin': '*' }
     });
-    handleResponse(response);
+    return handleResponse(response);
 }
 
 const continueAction = async () => {
@@ -276,7 +276,7 @@ const continueAction = async () => {
         headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' },
         body: JSON.stringify(choices)
     });
-    handleResponse(response);
+    return handleResponse(response);
 }
 
 const cancelAction = async () => {
@@ -285,7 +285,7 @@ const cancelAction = async () => {
         mode: "cors", 
         headers: { 'Access-Control-Allow-Origin': '*' }
     });
-    handleResponse(response);
+    return handleResponse(response);
 }
 
 const consentToRollback = async (color) => {
@@ -294,7 +294,7 @@ const consentToRollback = async (color) => {
         mode: "cors", 
         headers: { 'Access-Control-Allow-Origin': '*' }
     });
-    handleResponse(response);
+    return handleResponse(response);
 }
 
 const reload = async () => {
@@ -303,12 +303,27 @@ const reload = async () => {
         mode: "cors", 
         headers: { 'Access-Control-Allow-Origin': '*' }
     });
-    handleResponse(response);
+    return handleResponse(response);
+}
+
+const chooseReloadMethod = async (fromState) => {
+    const response = await fetch("http://localhost:3000/oath/" + gameId + "/reload/" + (fromState ? "state" : "history"), { 
+        method: "POST", 
+        mode: "cors", 
+        headers: { 'Access-Control-Allow-Origin': '*' }
+    });
+    return handleResponse(response);
 }
 
 const handleResponse = async (response) => {
     const info = await response.json();
-    if (!response.ok) return window.alert(info.message);
+    if (!response.ok) {
+        if (info.error === "ReloadFailError") {
+            const choice = window.prompt("Reloading the game has failed. Would you like to reload from the final state? This will erase the history, otherwise the game will be rolled back to before the error");
+            return await chooseReloadMethod(choice[0].toLowerCase() === "y");
+        }
+        return window.alert(info.message);
+    }
     console.log(info);
     
     game = info.game;
