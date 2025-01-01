@@ -1,6 +1,6 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { OathGame } from './game/game';
-import { ActionManagerReturn, ReloadFailError } from './game/actions/manager';
+import { ActionManagerReturn } from './game/actions/manager';
 import { InvalidActionResolution } from "./game/actions/base";
 import * as fs from "fs";
 import { range } from 'lodash';
@@ -51,7 +51,6 @@ export class OathService implements OnModuleInit {
         } catch (e) {
             // TODO: Use exception filters
             if (e instanceof InvalidActionResolution) throw new BadRequestException({ error: "InvalidActionResolution", message: e.message });
-            if (e instanceof ReloadFailError) throw new ForbiddenException({ error: "ReloadFailError", message: e.message });
             throw e;
         }
     }
@@ -71,11 +70,11 @@ export class OathService implements OnModuleInit {
     }
 
     public beginAction(gameId: number, playerId: string, actionName: string) {        
-        return this._wrapper(gameId, (game) => game.startAction(playerId, actionName));
+        return this._wrapper(gameId, (game) => game.actionManager.startAction(playerId, actionName));
     }
 
     public getCurrentState(gameId: number) {
-        return this._wrapper(gameId, (game) => game.actionManager.defer());
+        return this._wrapper(gameId, (game) => game.actionManager.defer(false));
     }
 
     public continueAction(gameId: number, playerId: string, values: Record<string, string[]>) {

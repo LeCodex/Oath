@@ -57,7 +57,7 @@ export class StartEvent extends HistoryEvent {
     ) { super(manager, player); }
 
     replay(save: boolean = true) {
-        this.manager.startAction(this.actionName, save);
+        this.manager.startAction(this.player, this.actionName, save);
     }
 
     serialize() {
@@ -108,9 +108,10 @@ export class ActionManagerReturn {
 
     @ApiProperty({ example: { Purple: true, Red: false }, description: "Rollback consent needed, if applicable" })
     rollbackConsent?: Record<string, boolean>
-};
 
-export class ReloadFailError extends Error {}
+    @ApiProperty({ example: true, description: "Is the game raedy to receive actions?" })
+    loaded?: boolean
+};
 
 export class OathActionManager {
     loaded: boolean = true;
@@ -213,7 +214,7 @@ export class OathActionManager {
     }
  
     public checkForNextAction() {
-        if (!this.loaded) throw new ReloadFailError();
+        if (!this.loaded) return;
         if (!this.actionsStack.length && !this.futureActionsList.length) this.game.stackEmpty();
 
         for (const action of this.futureActionsList) this.actionsStack.push(action);
@@ -225,10 +226,9 @@ export class OathActionManager {
     }
 
     public defer(save: boolean = true): ActionManagerReturn {
-        if (!this.loaded) throw new ReloadFailError();
         if (save) {
-            if (this.game.phase !== OathPhase.Over) this.game.save();
             this.lastState = this.gameState.game;
+            if (this.game.phase !== OathPhase.Over) this.game.save();
         }
 
         let action = this.actionsStack[this.actionsStack.length - 1];
@@ -238,12 +238,18 @@ export class OathActionManager {
             over: this.game.phase === OathPhase.Over,
             activeAction: action?.serialize(),
             startOptions: !action ? Object.keys(this.startOptions) : undefined,
-            rollbackConsent: this.rollbackConsent
+            rollbackConsent: this.rollbackConsent,
+            loaded: this.loaded
         };
     }
 
-    public startAction(actionName: string, save: boolean = true) {
-        if (!this.loaded) throw new ReloadFailError();
+    public startAction(playerId: string, actionName: string, save: boolean = true) {
+        if (!this.loaded) return this.defer(false);
+
+        if (this.game.currentPlayer.id !== playerId) throw new InvalidActionResolution(`Cannot begin an action outside your turn`);
+        if (this.game.phase !== OathPhase.Act) throw new InvalidActionResolution(`Cannot begin an action outside the Act phase`);
+        if (this.actionsStack.length) throw new InvalidActionResolution("Cannot start an action while other actions are active");
+
         const action = this.startOptions[actionName];
         if (!action) throw new InvalidActionResolution("Invalid starting action name");
 
@@ -252,7 +258,6 @@ export class OathActionManager {
         this.rollbackConsent = undefined;
         new action(this.game.currentPlayer).doNext();
 
-        const playerId = this.game.currentPlayer.id;
         const gameState = this.gameState;
         const event = new StartEvent(this, playerId, actionName);
         this.history.push(new HistoryNode(this, gameState.game, [event]));
@@ -267,7 +272,8 @@ export class OathActionManager {
     }
 
     public continueAction(playerId: string, values: Record<string, string[]>, save: boolean = true) {
-        if (!this.loaded) throw new ReloadFailError();
+        if (!this.loaded) return this.defer(false);
+
         const action = this.actionsStack[this.actionsStack.length - 1];
         if (!action) throw new InvalidActionResolution("No action to continue");
 
@@ -294,7 +300,8 @@ export class OathActionManager {
     }
 
     public cancelAction(playerId: string) {
-        if (!this.loaded) throw new ReloadFailError();
+        if (!this.loaded) return this.defer(false);
+
         const player = this.getPlayerFromId(playerId);
         if (this.activePlayer !== player) throw new InvalidActionResolution(`Rollback can only be done by ${this.activePlayer.name}, not ${player.name}`);
 
@@ -314,7 +321,8 @@ export class OathActionManager {
     }
     
     public consentToRollback(playerId: string) {
-        if (!this.loaded) throw new ReloadFailError();
+        if (!this.loaded) return this.defer(false);
+
         const player = this.getPlayerFromId(playerId);
         if (!this.rollbackConsent || !(playerId in this.rollbackConsent)) throw new InvalidActionResolution(`No rollback consent needed from ${player.name}`);
 

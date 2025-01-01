@@ -1,4 +1,4 @@
-let game = {}, action, appliedEffects, gameId, startOptions, rollbackConsent, over;
+let game = {}, action, appliedEffects, gameId, startOptions, rollbackConsent, over, loaded;
 let choices = {};
 
 const setup = async () => {
@@ -72,26 +72,32 @@ const render = () => {
     actionNode.innerHTML = "";
     choices = {};
     if (!over) {
-        if (action) {
-            actionNode.innerText = "[" + action.message + "] (" + byType(game, "player").filter(e => e.id === action.player)[0]._name + ")";
-            if (action.modifiers?.length) actionNode.appendChild(renderText("Modifiers: " + action.modifiers.join(", ")));
-            for (const [k, select] of Object.entries(action.selects)) {
-                const selectNode = actionNode.appendChild(renderText(select.name + ` (${select.min}-${select.max})`));
-                selectNode.id = "select" + k;
-                choices[k] = select.defaults;
-                
-                const selectList = selectNode.appendChild(document.createElement("ul"));
-                for (const [i, choice] of select.choices.entries())
-                    selectList.append(...renderCheckbox(k, i, choice, select.defaults.includes(choice)));
-            }
-            actionNode.appendChild(renderButton("Submit", () => continueAction()));
+        if (!loaded) {
+            actionNode.innerText = "Reloading the game has failed. The state currently shown is what was able to be loaded from the history until the error. Choose the way to handle this";
+            actionNode.appendChild(renderButton("Keep the game state as is and keep the history", () => chooseReloadMethod(false)));
+            actionNode.appendChild(renderButton("Reload from the final state and lose the history (this prevents rollbacks and replays)", () => chooseReloadMethod(true)));
         } else {
-            actionNode.innerText = "[Start action]";
-            for (const name of startOptions)
-                actionNode.appendChild(renderButton(name, () => startAction(name)));
+            if (action) {
+                actionNode.innerText = "[" + action.message + "] (" + byType(game, "player").filter(e => e.id === action.player)[0]._name + ")";
+                if (action.modifiers?.length) actionNode.appendChild(renderText("Modifiers: " + action.modifiers.join(", ")));
+                for (const [k, select] of Object.entries(action.selects)) {
+                    const selectNode = actionNode.appendChild(renderText(select.name + ` (${select.min}-${select.max})`));
+                    selectNode.id = "select" + k;
+                    choices[k] = select.defaults;
+                    
+                    const selectList = selectNode.appendChild(document.createElement("ul"));
+                    for (const [i, choice] of select.choices.entries())
+                        selectList.append(...renderCheckbox(k, i, choice, select.defaults.includes(choice)));
+                }
+                actionNode.appendChild(renderButton("Submit", () => continueAction()));
+            } else {
+                actionNode.innerText = "[Start action]";
+                for (const name of startOptions)
+                    actionNode.appendChild(renderButton(name, () => startAction(name)));
+            }
+            actionNode.appendChild(renderButton("Cancel", () => cancelAction()));
+            actionNode.appendChild(renderButton("Reload", () => reload()));
         }
-        actionNode.appendChild(renderButton("Cancel", () => cancelAction()));
-        actionNode.appendChild(renderButton("Reload", () => reload()));
     } else {
         actionNode.innerText = "Game over!";
     }
@@ -318,10 +324,6 @@ const chooseReloadMethod = async (fromState) => {
 const handleResponse = async (response) => {
     const info = await response.json();
     if (!response.ok) {
-        if (info.error === "ReloadFailError") {
-            const choice = window.prompt("Reloading the game has failed. Would you like to reload from the final state? This will erase the history, otherwise the game will be rolled back to before the error");
-            return await chooseReloadMethod(choice[0].toLowerCase() === "y");
-        }
         return window.alert(info.message);
     }
     console.log(info);
@@ -332,6 +334,7 @@ const handleResponse = async (response) => {
     startOptions = info.startOptions;
     rollbackConsent = info.rollbackConsent;
     over = info.over;
+    loaded = info.loaded;
     render();
 
     return info;

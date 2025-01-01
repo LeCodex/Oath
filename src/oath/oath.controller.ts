@@ -7,8 +7,8 @@ function ApiActionResponses(invalidAction: boolean = true): MethodDecorator {
     return (target: Object, propertyKey: string | symbol, descriptor: TypedPropertyDescriptor<any>) => {
         ApiResponse({ status: 200, description: "Game state", type: ActionManagerReturn })(target, propertyKey, descriptor);
         ApiResponse({ status: 404, description: "Not found" })(target, propertyKey, descriptor);
-        ApiResponse({ status: 403, description: "Forbidden (Game was not reloaded properly)", example: { error: "ReloadFailError", message: "" } })(target, propertyKey, descriptor);
-        if (invalidAction) ApiResponse({ status: 400, description: "Invalid action", example: { error: "InvalidActionResolution", message: "Cannot start an action outside your turn" } })(target, propertyKey, descriptor);
+        if (invalidAction)
+            ApiResponse({ status: 400, description: "Invalid action", example: { error: "InvalidActionResolution", message: "Cannot start an action outside your turn" } })(target, propertyKey, descriptor);
     }
 }
 
@@ -25,7 +25,7 @@ export class OathController {
 
     @Post(":seed")
     @ApiOperation({ summary: "Create a game" })
-    @ApiResponse({ status: 201, description: "Game state with id", type: ActionManagerReturn })
+    @ApiResponse({ status: 201, description: "Game state with ID", type: ActionManagerReturn })
     createGame(@Param('seed') seed: string): ActionManagerReturn & { id: number } {
         return this.service.startNewGame(seed);
     }
