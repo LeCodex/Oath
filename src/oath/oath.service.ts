@@ -16,7 +16,7 @@ export class OathService implements OnModuleInit {
         const dir = fs.readdirSync("data/oath");
         for (const file of dir) {
             // console.log(`Checking ${file}`);
-            const match = file.match(/save(\d+)\.txt/);
+            const match = file.match(/save(\d+)\.jsonl/);
             if (match) {
                 const id = Number(match[1]);
                 const game = OathGame.load(id, fs.readFileSync("data/oath/" + file).toString());

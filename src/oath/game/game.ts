@@ -380,8 +380,8 @@ export class OathGame extends TreeRoot<OathGame> {
         return JSON.stringify(this.setupData) + "\n\n" + this.actionManager.stringify();
     }
 
-    get savePath() { return "data/oath/save" + this.gameId + ".txt"; }
-    get archivePath() { return "data/oath/replay" + Date.now() + ".txt"; }
+    get savePath() { return "data/oath/save" + this.gameId + ".jsonl"; }
+    get archivePath() { return "data/oath/replay" + Date.now() + ".jsonl"; }
 
     save() {
         const data = this.stringify();
