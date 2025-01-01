@@ -7,8 +7,8 @@ function ApiActionResponses(invalidAction: boolean = true): MethodDecorator {
     return (target: Object, propertyKey: string | symbol, descriptor: TypedPropertyDescriptor<any>) => {
         ApiResponse({ status: 200, description: "Game state", type: ActionManagerReturn })(target, propertyKey, descriptor);
         ApiResponse({ status: 404, description: "Not found" })(target, propertyKey, descriptor);
-        ApiResponse({ status: 403, description: "Forbidden (Game was not reloaded properly)" })(target, propertyKey, descriptor);
-        if (invalidAction) ApiResponse({ status: 400, description: "Invalid action" })(target, propertyKey, descriptor);
+        ApiResponse({ status: 403, description: "Forbidden (Game was not reloaded properly)", example: { error: "ReloadFailError", message: "" } })(target, propertyKey, descriptor);
+        if (invalidAction) ApiResponse({ status: 400, description: "Invalid action", example: { error: "InvalidActionResolution", message: "Cannot start an action outside your turn" } })(target, propertyKey, descriptor);
     }
 }
 
@@ -18,7 +18,7 @@ export class OathController {
 
     @Get()
     @ApiOperation({ summary: "Get a list of all games" })
-    @ApiResponse({ status: 200, description: "List of game IDs" })
+    @ApiResponse({ status: 200, description: "List of game IDs", example: [1, 2, 3] })
     getGames(): number[] {
         return this.service.getGames();
     }
@@ -38,7 +38,7 @@ export class OathController {
     }
 
     @Post(":id/:player/start/:action")
-    @ApiOperation({ summary: "Start an action in an active game.", description: "The action stack must be empty (startOptions is defined)" })
+    @ApiOperation({ summary: "Start an action in an active game.", description: "The action stack must be empty (startOptions is defined)." })
     @ApiActionResponses()
     startAction(@Param('id', ParseIntPipe) gameId: number, @Param('player') playerId: string, @Param('action') action: string): ActionManagerReturn {
         return this.service.beginAction(gameId, playerId, action);
@@ -46,7 +46,7 @@ export class OathController {
 
     @Post(":id/:player/continue")
     @UsePipes(new ValidationPipe({ transform: true }))
-    @ApiOperation({ summary: "Continue an active action in an active game", description: "The action stack must not be empty (activeAction is defined)" })
+    @ApiOperation({ summary: "Continue an active action in an active game", description: "The action stack must not be empty (activeAction is defined)." })
     @ApiActionResponses()
     continueAction(@Param('id', ParseIntPipe) gameId: number, @Param('player') playerId: string, @Body() values: Record<string, string[]>): ActionManagerReturn {
         return this.service.continueAction(gameId, playerId, values);
@@ -62,7 +62,7 @@ export class OathController {
 
     @Post(":id/:player/consent")
     @UsePipes(new ValidationPipe({ transform: true }))
-    @ApiOperation({ summary: "Consent to a rollback in an active game", description: "A rollback must have been requested (rollbackConsent is defined)" })
+    @ApiOperation({ summary: "Consent to a rollback in an active game", description: "A rollback must have been requested (rollbackConsent is defined)." })
     @ApiActionResponses()
     consentToRollback(@Param('id', ParseIntPipe) gameId: number, @Param('player') playerId: string): ActionManagerReturn {
         return this.service.consentToRollback(gameId, playerId);
@@ -70,7 +70,7 @@ export class OathController {
 
     @Post(":id/reload/history")
     @UsePipes(new ValidationPipe({ transform: true }))
-    @ApiOperation({ summary: "Reload a game with failed ", description: "The game's loading must have failed (returns ReloadFailedErrors when interacted with)" })
+    @ApiOperation({ summary: "Finish a failed game reload by using the history", description: "The game's reloading must have failed (returns ReloadFailError when interacted with). This will reload the game until the error happened, keeping the history intact up to that point." })
     @ApiActionResponses()
     reloadFromHistory(@Param('id', ParseIntPipe) gameId: number): ActionManagerReturn {
         return this.service.reloadFromHistory(gameId);
@@ -78,7 +78,7 @@ export class OathController {
 
     @Post(":id/reload/state")
     @UsePipes(new ValidationPipe({ transform: true }))
-    @ApiOperation({ summary: "Consent to a rollback in an active game", description: "A rollback must have been requested (rollbackConsent is defined)" })
+    @ApiOperation({ summary: "Finish a failed game reload by using the final game state", description: "The game's reloading must have failed (returns ReloadFailError when interacted with). This will keep the game as it was when last saved, but will lose the entire history (preventing rollbacks and replays)." })
     @ApiActionResponses()
     reloadFromFinalState(@Param('id', ParseIntPipe) gameId: number): ActionManagerReturn {
         return this.service.reloadFromFinalState(gameId);
