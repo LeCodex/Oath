@@ -1,0 +1,118 @@
+import { CampaignKillWarbandsInForceAction } from ".";
+import { Denizen } from "../cards";
+import { RollResult, AttackDie, DefenseDie } from "../dice";
+import { OathGame } from "../game";
+import { CampaignActionTarget } from "../interfaces";
+import { OathPlayer, ExileBoard } from "../player";
+import { ResourcesAndWarbands } from "../resources";
+import { MaskProxyManager } from "../utils";
+import { DiscardCardEffect, RollDiceEffect } from "./effects";
+
+
+export class CampaignEndCallback {
+    constructor(
+        public resolve: () => void,
+        public name: string,
+        public orderAgnostic: boolean = true
+    ) { }
+}
+
+export class CampaignResult {
+    game: OathGame;
+    attacker: OathPlayer;
+    defender: OathPlayer | undefined;
+    defenderAllies = new Set<OathPlayer>();
+
+    targets = new Set<CampaignActionTarget>();
+    atkPool: number;
+    defPool: number;
+    atkForce: Set<ResourcesAndWarbands>; // The force is all your warbands on the objects in this set
+    defForce: Set<ResourcesAndWarbands>;
+    endCallbacks: CampaignEndCallback[] = [];
+
+    atkRoll: RollResult<AttackDie>;
+    defRoll: RollResult<DefenseDie>;
+
+    ignoreKilling: boolean = false;
+    attackerKillsNoWarbands: boolean = false;
+    defenderKillsNoWarbands: boolean = false;
+    attackerKillsEntireForce: boolean = false;
+    defenderKillsEntireForce: boolean = false;
+    sacrificeValue: number = 1;
+
+    successful: boolean;
+    attackerLoss: number = 0;
+    defenderLoss: number = 0;
+
+    constructor(game: OathGame) {
+        this.game = game;
+        this.atkRoll = new RollResult(this.game.random, new AttackDie());
+        this.defRoll = new RollResult(this.game.random, new DefenseDie());
+    }
+
+    get winner() { return this.successful ? this.attacker : this.defender; }
+    get loser() { return this.successful ? this.defender : this.attacker; }
+    get loserTotalForce() { return this.successful ? this.totalDefForce : this.totalAtkForce; }
+    get loserKillsNoWarbands() { return this.successful ? this.defenderKillsNoWarbands : this.attackerKillsNoWarbands; }
+    get loserKillsEntireForce() { return this.successful ? this.defenderKillsEntireForce : this.attackerKillsEntireForce; }
+    get loserLoss() { return this.successful ? this.defenderLoss : this.attackerLoss; }
+    get loserKills() { return this.successful ? this.defenderKills : this.attackerKills; }
+
+    get totalAtkForce() { return [...this.atkForce].reduce((a, e) => a + e.getWarbandsAmount(this.attacker.leader.board.key), 0); }
+    get totalDefForce() { return [...this.defForce].reduce((a, e) => a + e.getWarbandsAmount(this.defender?.leader.board.key), 0); }
+
+    get atk() { return this.atkRoll.value; }
+    get def() { return this.defRoll.value + this.totalDefForce; }
+
+    get requiredSacrifice() {
+        const diff = this.def - this.atk + 1;
+        return this.sacrificeValue === 0 ? diff > 0 ? Infinity : 0 : Math.ceil(diff / this.sacrificeValue);
+    }
+    get couldSacrifice() { return this.requiredSacrifice > 0 && this.requiredSacrifice <= this.totalAtkForce; }
+
+    atEnd(callback: CampaignEndCallback) {
+        this.endCallbacks.push(callback);
+    }
+
+    discardAtEnd(denizen: Denizen) {
+        this.atEnd(new CampaignEndCallback(() => new DiscardCardEffect(denizen.ruler ?? this.attacker, denizen).doNext(), `Discard ${denizen.name}`));
+    }
+
+    onSuccessful(successful: boolean, callback: CampaignEndCallback) {
+        const originalResolve = callback.resolve;
+        callback.resolve = () => { if (this.successful === successful) originalResolve(); };
+        this.atEnd(callback);
+    }
+
+    onAttackWin(callback: CampaignEndCallback) {
+        return this.onSuccessful(true, callback);
+    }
+
+    onDefenseWin(callback: CampaignEndCallback) {
+        return this.onSuccessful(false, callback);
+    }
+
+    checkForImperialInfighting(maskProxyManager: MaskProxyManager) {
+        if (maskProxyManager.get(this.defender)?.isImperial) {
+            if (this.attacker.board instanceof ExileBoard) // Citizen attacks: revoke Citizen priviledges
+                maskProxyManager.get(this.attacker.board).isCitizen = false;
+            else if (this.defender?.board instanceof ExileBoard) // Chancellor attacks: revoke defender's Citizen priviledges
+                maskProxyManager.get(this.defender.board).isCitizen = false;
+        }
+    }
+
+    attackerKills(amount: number) {
+        if (amount) new CampaignKillWarbandsInForceAction(this, true, amount).doNext();
+    }
+
+    defenderKills(amount: number) {
+        if (!this.defender) return;
+        if (amount) new CampaignKillWarbandsInForceAction(this, false, amount).doNext();
+    }
+
+    resolve(callback: () => void) {
+        new RollDiceEffect(this.game, this.attacker, this.atkRoll, this.atkPool).doNext();
+        const pool = this.defPool + (this.atkPool < 0 ? -this.atkPool : 0);
+        new RollDiceEffect(this.game, this.defender, this.defRoll, pool).doNext(callback);
+    }
+}

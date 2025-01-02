@@ -7,14 +7,13 @@ import { OathPlayer } from "../player";
 import { AbstractConstructor, Constructor, MaskProxyManager } from "../utils";
 import { OathGame } from "../game";
 import { WithPowers } from "../interfaces";
-import { OathGameObject } from "../gameObject";
 
 
 
 //////////////////////////////////////////////////
 //                BASE CLASSES                  //
 //////////////////////////////////////////////////
-export abstract class OathPower<T extends OathGameObject & WithPowers> {
+export abstract class OathPower<T extends WithPowers> {
     source: T;
     cost: ResourceCost = new ResourceCost();
 
@@ -114,7 +113,7 @@ export abstract class ActionModifier<T extends WithPowers, U extends ModifiableA
     /** Applied after the full execution of the action (and its modifiers) */
     applyAtEnd(): void { }
     
-    serialize(): string {
+    serialize() {
         return this.name;
     }
 }

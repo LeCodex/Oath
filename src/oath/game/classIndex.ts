@@ -7,7 +7,7 @@ import { Reliquary, ReliquarySlot } from "./reliquary";
 import { Favor, Warband, Secret } from "./resources";
 import { ChancellorBoard, ExileBoard, VisionSlot } from "./player";
 
-const index = {
+const classIndex = {
     FavorBank,
     PeoplesFavor,
     DarkestSecret,
@@ -33,4 +33,4 @@ const index = {
     Secret,
     Warband
 };
-export default index; 
+export default classIndex; 

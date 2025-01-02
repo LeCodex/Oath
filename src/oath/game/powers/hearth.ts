@@ -1,4 +1,5 @@
-import { TradeAction, TakeResourceFromPlayerAction, TakeFavorFromBankAction, CampaignEndAction, MakeDecisionAction, CampaignAttackAction, ChooseSuitsAction, ChooseCardsAction, MusterAction, SearchPlayOrDiscardAction, MayDiscardACardAction, SearchAction, SearchChooseAction, KillWarbandsOnTargetAction, TinkersFairOfferAction, StartBindingExchangeAction, DeedWriterOfferAction, CampaignEndCallback } from "../actions";
+import { TradeAction, TakeResourceFromPlayerAction, TakeFavorFromBankAction, CampaignEndAction, MakeDecisionAction, CampaignAttackAction, ChooseSuitsAction, ChooseCardsAction, MusterAction, SearchPlayOrDiscardAction, MayDiscardACardAction, SearchAction, SearchChooseAction, KillWarbandsOnTargetAction, TinkersFairOfferAction, StartBindingExchangeAction, DeedWriterOfferAction } from "../actions";
+import { CampaignEndCallback } from "../actions/utils";
 import { ModifiableAction, InvalidActionResolution } from "../actions/base";
 import { Denizen, Edifice, Relic, WorldCard } from "../cards";
 import { PlayVisionEffect, PlayWorldCardEffect, PeekAtCardEffect, DiscardCardEffect, BecomeCitizenEffect, SetPeoplesFavorMobState, GainSupplyEffect, DrawFromDeckEffect, TakeOwnableObjectEffect, MoveDenizenToSiteEffect, ParentToTargetEffect, PutResourcesOnTargetEffect, RecoverTargetEffect } from "../actions/effects";

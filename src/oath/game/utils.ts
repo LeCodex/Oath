@@ -394,7 +394,7 @@ export abstract class TreeNode<RootType extends TreeRoot<RootType>, KeyType = an
                 if (!node) {
                     if (!allowCreation) throw TypeError(`Could not find node of class ${child.type} and id ${child.id}, and creation is not allowed`);
                     console.warn(`Didn't find node of type ${child.type} and id ${child.id}`);
-                    node = this.root.create(child.class, child);
+                    node = this.root.create(child.class, child.id);
                 }
                 if (node.parent !== this || node.parent.children.indexOf(node) !== i) this.addChild(node);
                 confirmedChildren.add(node);
@@ -448,9 +448,16 @@ export abstract class TreeRoot<RootType extends TreeRoot<RootType>> extends Tree
         return typeGroup[id] as T;
     }
 
-    create(cls: string, obj: Record<string, any>): TreeNode<RootType> {
+    create(cls: string, id: string): TreeNode<RootType> {
         if (!this.classIndex[cls]) throw TypeError(`Cannot create a node of class ${cls}`);
-        return new this.classIndex[cls](obj.id);
+        return new this.classIndex[cls](id);
+    }
+
+    // @ts-expect-error
+    searchOrCreate<T extends TreeNode<RootType>>(cls: T["constructor"]["name"], type: T["type"], id: T["id"]): T {
+        const found = this.search(type, id);
+        if (found) return found;
+        return this.create(cls, id) as T;
     }
 }
 

@@ -8,7 +8,7 @@ import { Banner, FavorBank, PeoplesFavor } from "../banks";
 import { OwnableObject, RecoverActionTarget, WithPowers } from "../interfaces";
 import { OathGame } from "../game";
 import { OathGameObject } from "../gameObject";
-import { BuildOrRepairEdificeAction, ChooseNewCitizensAction, VowOathAction, RestAction, WakeAction, CampaignResult, SearchDiscardAction, SearchPlayOrDiscardAction, ChooseSuitsAction, ChooseNumberAction } from ".";
+import { BuildOrRepairEdificeAction, ChooseNewCitizensAction, VowOathAction, RestAction, WakeAction, SearchDiscardAction, SearchPlayOrDiscardAction, ChooseSuitsAction, ChooseNumberAction } from ".";
 import { DiscardOptions, SearchableDeck } from "../cards/decks";
 import { CardDeck } from "../cards/decks";
 import { Constructor, inclusiveRange, isExtended, maxInGroup } from "../utils";
@@ -16,6 +16,7 @@ import { D6, RollResult, Die } from "../dice";
 import { Region } from "../map";
 import { denizenData, DenizenName, edificeFlipside } from "../cards/denizens";
 import { SiteName, sitesData } from "../cards/sites";
+import { CampaignResult } from "./utils";
 
 
 

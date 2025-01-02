@@ -4,7 +4,7 @@ import { OathGameObject } from "./gameObject";
 import { OathPlayer } from "./player";
 import { OathPower } from "./powers";
 import { ResourcesAndWarbands } from "./resources";
-import { Constructor, WithOriginal } from "./utils";
+import { Constructor } from "./utils";
 
 
 export interface WithPowers extends OathGameObject {
