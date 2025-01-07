@@ -1,10 +1,10 @@
-import { UsePowerAction, PlayFacedownAdviserAction, MoveWarbandsAction, RestAction, MusterAction, TradeAction, TravelAction, RecoverAction, SearchAction, CampaignAction } from ".";
 import { OathAction, OathEffect, InvalidActionResolution } from "./base";
 import { OathPhase } from "../enums";
 import { OathGame } from "../game";
-import { Constructor, SerializedNode } from "../utils";
+import { SerializedNode } from "../utils";
 import { clone } from "lodash";
 import { ApiProperty } from "@nestjs/swagger";
+import { ActPhaseAction } from ".";
 
 
 export class HistoryNode<T extends OathActionManager> {
@@ -49,24 +49,6 @@ export abstract class HistoryEvent {
         };
     }
 };
-export class StartEvent extends HistoryEvent {
-    constructor(
-        manager: OathActionManager,
-        player: string,
-        public actionName: string
-    ) { super(manager, player); }
-
-    replay(save: boolean = true) {
-        this.manager.startAction(this.player, this.actionName, save);
-    }
-
-    serialize() {
-        return {
-            ...super.serialize(),
-            data: this.actionName
-        };
-    }
-}
 export class ContinueEvent extends HistoryEvent {
     constructor(
         manager: OathActionManager,
@@ -86,7 +68,6 @@ export class ContinueEvent extends HistoryEvent {
     }
 }
 const eventsIndex = {
-    StartEvent,
     ContinueEvent
 }
 
@@ -97,14 +78,8 @@ export class ActionManagerReturn {
     @ApiProperty({ example: [{}], description: "Effects applied since the last action" })
     appliedEffects: Record<string, any>[]
 
-    @ApiProperty({ example: false, description: "Is the game over?" })
-    over: boolean
-
     @ApiProperty({ example: {}, description: "Currently active action, if applicable" })
     activeAction?: Record<string, any>
-
-    @ApiProperty({ example: ["Muster", "Trade", "Travel"], description: "Start options, if the stack is empty" })
-    startOptions?: string[]
 
     @ApiProperty({ example: { Purple: true, Red: false }, description: "Rollback consent needed, if applicable" })
     rollbackConsent?: Record<string, boolean>
@@ -115,7 +90,7 @@ export class ActionManagerReturn {
 
 export class OathActionManager {
     loaded: boolean = true;
-    lastState: SerializedNode<this["game"]>;
+    lastStartState: SerializedNode<this["game"]>;
 
     actionsStack: OathAction[] = [];
     futureActionsList: OathAction[] = [];
@@ -124,20 +99,6 @@ export class OathActionManager {
     rollbackConsent?: Record<string, boolean> = undefined;
     /** Set this to true to prevent rolling back this action/effect without the other players' consent. */
     markEventAsOneWay: boolean = false;
-
-    startOptions: Record<string, Constructor<OathAction>> = {
-        "Muster": MusterAction,
-        "Trade": TradeAction,
-        "Travel": TravelAction,
-        "Recover": RecoverAction,
-        "Search": SearchAction,
-        "Campaign": CampaignAction,
-
-        "Use": UsePowerAction,
-        "Reveal": PlayFacedownAdviserAction,
-        "Move warbands": MoveWarbandsAction,
-        "Rest": RestAction
-    };
 
     constructor(public game: OathGame) {}
 
@@ -161,18 +122,18 @@ export class OathActionManager {
         return player;
     }
 
-    private resolveTopAction() {
+    private resolveTopAction(save: boolean = false) {
         const action = this.game.actionManager.actionsStack.pop();
         if (!action) {
             this.game.actionManager.currentEffectsStack.pop();
-            return this.checkForNextAction();
+            return this.checkForNextAction(save);
         }
 
         action.execute();
-        return this.checkForNextAction();
+        return this.checkForNextAction(save);
     }
 
-    private authorizeCancel() {
+    private authorizeCancel(save: boolean = true) {
         const history = [...this.history];
         const gameState = this.gameState;
         try {
@@ -190,85 +151,63 @@ export class OathActionManager {
             if (this.history.length === 0) {
                 // console.log("Replaying from start");
                 this.game.initialActions();
-                this.checkForNextAction();  // Flush the initial actions onto the stack
+                this.checkForNextAction(save);  // Flush the initial actions onto the stack
             }
             for (const [i, event] of node.events.entries()) {
                 // console.log(`Replaying event ${i}`);
-                event.replay();
+                event.replay(save);
             }
             
-            this.checkForNextAction();
-            return this.defer();
+            this.checkForNextAction(save);
+            return this.defer(save);
         } catch (e) {
             this.history = history;
             this.revertCurrentAction(gameState);
             throw e;
         }
-
     }
 
     private revertCurrentAction({ game, stack }: this["gameState"]): void {
+        // Last ditch effort to revert. Has shown to be unreliable
         this.game.parse(game, true);
         this.actionsStack = stack;
         this.currentEffectsStack.length = 0;
     }
  
-    public checkForNextAction() {
+    public checkForNextAction(save: boolean = true) {
         if (!this.loaded) return;
-        if (!this.actionsStack.length && !this.futureActionsList.length) this.game.stackEmpty();
+        if (!this.actionsStack.length && !this.futureActionsList.length) this.emptyStack(save);
 
         for (const action of this.futureActionsList) this.actionsStack.push(action);
         this.futureActionsList.length = 0;
         let action = this.actionsStack[this.actionsStack.length - 1];
 
         let continueNow = action?.start();
-        if (continueNow) this.resolveTopAction();
+        if (continueNow) this.resolveTopAction(save);
+    }
+
+    private emptyStack(save: boolean = true) {
+        if (save) this.lastStartState = this.gameState.game;
+
+        if (this.game.phase === OathPhase.Over) {
+            this.game.archiveSave();
+        } else {
+            this.history.push(new HistoryNode(this, this.gameState.game, []));
+            if (!this.game.checkForOathkeeper()) new ActPhaseAction(this.game.currentPlayer).doNext();
+        }
     }
 
     public defer(save: boolean = true): ActionManagerReturn {
-        if (save) {
-            this.lastState = this.gameState.game;
-            if (this.game.phase !== OathPhase.Over) this.game.save();
-        }
+        if (save && this.game.phase !== OathPhase.Over) this.game.save();
 
         let action = this.actionsStack[this.actionsStack.length - 1];
         return {
             game: this.game.serialize(),
             appliedEffects: this.currentEffectsStack.map(e => e.serialize()).filter(e => e !== undefined),
-            over: this.game.phase === OathPhase.Over,
             activeAction: action?.serialize(),
-            startOptions: !action ? Object.keys(this.startOptions) : undefined,
             rollbackConsent: this.rollbackConsent,
             loaded: this.loaded
         };
-    }
-
-    public startAction(playerId: string, actionName: string, save: boolean = true) {
-        if (!this.loaded) return this.defer(false);
-
-        if (this.game.currentPlayer.id !== playerId) throw new InvalidActionResolution(`Cannot begin an action outside your turn`);
-        if (this.game.phase !== OathPhase.Act) throw new InvalidActionResolution(`Cannot begin an action outside the Act phase`);
-        if (this.actionsStack.length) throw new InvalidActionResolution("Cannot start an action while other actions are active");
-
-        const action = this.startOptions[actionName];
-        if (!action) throw new InvalidActionResolution("Invalid starting action name");
-
-        this.markEventAsOneWay = false;
-        this.currentEffectsStack.length = 0;
-        this.rollbackConsent = undefined;
-        new action(this.game.currentPlayer).doNext();
-
-        const gameState = this.gameState;
-        const event = new StartEvent(this, playerId, actionName);
-        this.history.push(new HistoryNode(this, gameState.game, [event]));
-        try {
-            this.checkForNextAction();
-            event.oneWay = this.markEventAsOneWay;
-            return this.defer(save);
-        } catch (e) {
-            this.authorizeCancel();
-            throw e;
-        }
     }
 
     public continueAction(playerId: string, values: Record<string, string[]>, save: boolean = true) {
@@ -290,11 +229,11 @@ export class OathActionManager {
         const events = this.history[this.history.length - 1]?.events;
         events?.push(event);
         try {
-            this.resolveTopAction();
+            this.resolveTopAction(save);
             event.oneWay = this.markEventAsOneWay;
             return this.defer(save);
         } catch (e) {
-            this.authorizeCancel();
+            this.authorizeCancel(save);
             throw e;
         }
     }
@@ -332,12 +271,12 @@ export class OathActionManager {
     }
 
     public stringify() {
-        return this.history.map(e => e.stringify()).join("\n\n") + "\n\n" + JSON.stringify(this.lastState);
+        return this.history.map(e => e.stringify()).join("\n\n") + "\n\n" + JSON.stringify(this.lastStartState);
     }
 
     public parse(chunks: string[]) {
         this.checkForNextAction();  // Flush the initial actions onto the stack
-        this.lastState = JSON.parse(chunks.pop()!);
+        this.lastStartState = JSON.parse(chunks.pop()!);
         try {
             for (const [i, nodeData] of chunks.entries()) {
                 console.log(`Resolving chunk ${i}`);
@@ -345,8 +284,8 @@ export class OathActionManager {
                 node.parse(nodeData, false);
             }
 
-            if (JSON.stringify(this.gameState.game) !== JSON.stringify(this.lastState))
-                console.warn(`Loading of game ${this.game.gameId} has conflicting final state`);
+            if (JSON.stringify(this.gameState.game) !== JSON.stringify(this.lastStartState))
+                console.warn(`Loading of game ${this.game.gameId} has conflicting final start state`);
         } catch (e) {
             this.loaded = false;
             console.error(`Loading of game ${this.game.gameId} failed:`, e);
@@ -359,15 +298,16 @@ export class OathActionManager {
         return this.defer();
     }
 
-    public reloadFromFinalState() {
+    public reloadFromFinalStartState() {
         if (this.loaded) throw new InvalidActionResolution("Game loading does not need resolution");
         try {
-            this.game.parse(this.lastState);
+            this.game.parse(this.lastStartState);
             this.history.length = 0;
             this.loaded = true;
+            this.emptyStack();
             return this.defer();
         } catch (e) {
-            console.warn("Reloading from final state failed. Reloading from history instead");
+            console.warn("Reloading from final start state failed. Reloading from history instead");
             return this.reloadFromHistory();
         }
     }

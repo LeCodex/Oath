@@ -46,7 +46,7 @@ export class OathService implements OnModuleInit {
     private _wrapper(gameId: number, func: (game: OathGame) => ActionManagerReturn) {
         try {
             const result = func(this._getGame(gameId));
-            if (result.over) this.games.delete(gameId);
+            if (!result.activeAction) this.games.delete(gameId);
             return result;
         } catch (e) {
             // TODO: Use exception filters
@@ -66,11 +66,7 @@ export class OathService implements OnModuleInit {
     }
 
     public reloadFromFinalState(gameId: number) {
-        return this._wrapper(gameId, (game) => game.actionManager.reloadFromFinalState());
-    }
-
-    public beginAction(gameId: number, playerId: string, actionName: string) {        
-        return this._wrapper(gameId, (game) => game.actionManager.startAction(playerId, actionName));
+        return this._wrapper(gameId, (game) => game.actionManager.reloadFromFinalStartState());
     }
 
     public getCurrentState(gameId: number) {
@@ -92,7 +88,7 @@ export class OathService implements OnModuleInit {
     public endGame(gameId: number) {
         const game = this._getGame(gameId);
         const obj = game.actionManager.defer();
-        obj.over = true;
+        delete obj.activeAction;
         this.games.delete(gameId);
         return obj;
     }

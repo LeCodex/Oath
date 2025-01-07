@@ -36,14 +36,7 @@ export class OathController {
     getGame(@Param('id', ParseIntPipe) gameId: number): ActionManagerReturn {
         return this.service.getCurrentState(gameId);
     }
-
-    @Post(":id/:player/start/:action")
-    @ApiOperation({ summary: "Start an action in an active game.", description: "The action stack must be empty (startOptions is defined)." })
-    @ApiActionResponses()
-    startAction(@Param('id', ParseIntPipe) gameId: number, @Param('player') playerId: string, @Param('action') action: string): ActionManagerReturn {
-        return this.service.beginAction(gameId, playerId, action);
-    }
-
+    
     @Post(":id/:player/continue")
     @UsePipes(new ValidationPipe({ transform: true }))
     @ApiOperation({ summary: "Continue an active action in an active game", description: "The action stack must not be empty (activeAction is defined)." })

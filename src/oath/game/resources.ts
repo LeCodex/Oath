@@ -176,10 +176,17 @@ export class ResourceCost {
         for (const [resource, amount] of other.burntResources) this.burntResources.set(resource, (this.burntResources.get(resource) ?? 0) + amount);
     }
 
-    serialize(): Record<string, any> {
+    serialize() {
         return {
             placedResources: Object.fromEntries([...this.placedResources.entries()].map(([k, v]) => [k.name, v])),
             burntResources: Object.fromEntries([...this.burntResources.entries()].map(([k, v]) => [k.name, v])),
         };
+    }
+
+    static parse(obj: ReturnType<ResourceCost["serialize"]>): ResourceCost {
+        const resourceClasses = { Favor, Secret };
+        const parseResources = (resources: { [k: string]: number }) =>
+            Object.entries(resources).map<[OathResourceType, number]>(([k, v]: [keyof typeof resourceClasses, number]) => [resourceClasses[k]!, v]);
+        return new this(parseResources(obj.placedResources), parseResources(obj.burntResources));
     }
 }

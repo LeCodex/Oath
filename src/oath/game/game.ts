@@ -265,17 +265,9 @@ export class OathGame extends TreeRoot<OathGame> {
         return instances;
     }
 
-    stackEmpty() {
-        if (this.phase === OathPhase.Over) {
-            this.archiveSave();
-        } else {
-            this.checkForOathkeeper();
-        }
-    }
-
     checkForOathkeeper() {
         const candidates = this.oath.getOathkeeperCandidates();
-        if (candidates.has(this.oathkeeper)) return;
+        if (candidates.has(this.oathkeeper)) return false;
         if (candidates.size) {
             new ChoosePlayersAction(
                 this.oathkeeper, "Choose the new Oathkeeper",
@@ -286,7 +278,9 @@ export class OathGame extends TreeRoot<OathGame> {
                 },
                 [candidates]
             ).doNext();
+            return true;
         }
+        return false;
     }
 
     empireWins() {

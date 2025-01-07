@@ -1,4 +1,4 @@
-import { CampaignKillWarbandsInForceAction } from ".";
+import { CampaignAction, CampaignKillWarbandsInForceAction, MoveWarbandsAction, MusterAction, PlayFacedownAdviserAction, RecoverAction, RestAction, SearchAction, TradeAction, TravelAction, UsePowerAction } from ".";
 import { Denizen } from "../cards";
 import { RollResult, AttackDie, DefenseDie } from "../dice";
 import { OathGame } from "../game";

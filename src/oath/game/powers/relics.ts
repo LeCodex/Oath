@@ -15,7 +15,7 @@ import { inclusiveRange, isExtended } from "../utils";
 export class GrandScepterSeize extends ActionModifier<GrandScepter, TakeOwnableObjectEffect> {
     modifiedAction = TakeOwnableObjectEffect;
     mustUse = true;
-    get name() { return "Lock the Grand Scepter"; }
+    get name() { return super.name + "_Lock"; }
 
     canUse(): boolean {
         return this.action.target === this.source;
@@ -26,7 +26,7 @@ export class GrandScepterSeize extends ActionModifier<GrandScepter, TakeOwnableO
     }
 }
 export class GrandScepterRest extends RestPower<GrandScepter> {
-    get name() { return "Unlock the Grand Scepter"; }
+    get name() { return super.name + "_Unlock"; }
 
     applyAfter(): void {
         new SetGrandScepterLockEffect(this.game, false).doNext();
@@ -38,7 +38,7 @@ export abstract class GrandScepterActive extends ActivePower<GrandScepter> {
     }
 }
 export class GrandScepterPeek extends GrandScepterActive {
-    get name() { return "Peek at the Reliquary"; }
+    get name() { return super.name + "_PeekAtTheReliquary"; }
 
     usePower(): void {
         for (const slotProxy of this.gameProxy.reliquary.children) 
@@ -47,7 +47,7 @@ export class GrandScepterPeek extends GrandScepterActive {
     }
 }
 export class GrandScepterGrantCitizenship extends GrandScepterActive {
-    get name() { return "Grant Citizenship"; }
+    get name() { return super.name + "_GrantCitizenship"; }
 
     canUse(): boolean {
         return super.canUse() && !!this.game.players.filter(e => e.board instanceof ExileBoard && !e.isImperial).length;
@@ -59,7 +59,7 @@ export class GrandScepterGrantCitizenship extends GrandScepterActive {
     }
 }
 export class GrandScepterExileCitizen extends GrandScepterActive {
-    get name() { return "Exile a Citizen"; }
+    get name() { return super.name + "_ExileACitizen"; }
 
     canUse(): boolean {
         return super.canUse() && !!this.game.players.filter(e => e.board instanceof ExileBoard && e.isImperial).length;

@@ -977,6 +977,44 @@ export class MoveWarbandsAction extends ModifiableAction {
     }
 }
 
+type StartableAction = typeof ActPhaseAction.startOptions[keyof typeof ActPhaseAction.startOptions];
+export class ActPhaseAction extends ModifiableAction {
+    readonly selects: { action: SelectNOf<StartableAction> };
+    readonly parameters: { action: StartableAction[] };
+    readonly autocompleteSelects: boolean = false;
+    readonly message = "Start an action";
+    
+    static readonly startOptions = {
+        "Muster": MusterAction,
+        "Trade": TradeAction,
+        "Travel": TravelAction,
+        "Recover": RecoverAction,
+        "Search": SearchAction,
+        "Campaign": CampaignAction,
+    
+        "Use": UsePowerAction,
+        "Reveal": PlayFacedownAdviserAction,
+        "Move warbands": MoveWarbandsAction,
+        "Rest": RestAction
+    };
+
+    next: OathAction;
+
+    start(): boolean {
+        this.selects.action = new SelectNOf("Action", Object.entries(ActPhaseAction.startOptions), { min: 1 });
+        return super.start();
+    }
+    
+    execute(): void {
+        this.next = new this.parameters.action[0]!(this.player);
+        super.execute();
+    }
+
+    modifiedExecution(): void {
+        this.next.doNext();
+    }
+}
+
 
 ////////////////////////////////////////////
 //              OTHER ACTIONS             //
