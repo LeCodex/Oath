@@ -277,9 +277,11 @@ export class OathActionManager {
     public parse(chunks: string[]) {
         this.checkForNextAction();  // Flush the initial actions onto the stack
         this.lastStartState = JSON.parse(chunks.pop()!);
+        let lastChunk = false;
         try {
             for (const [i, nodeData] of chunks.entries()) {
                 console.log(`Resolving chunk ${i}`);
+                if (i === chunks.length - 1) lastChunk = true;
                 const node = new HistoryNode(this, this.game.serialize(true) as SerializedNode<this["game"]>);
                 node.parse(nodeData, false);
             }
@@ -289,6 +291,10 @@ export class OathActionManager {
         } catch (e) {
             this.loaded = false;
             console.error(`Loading of game ${this.game.gameId} failed:`, e);
+            if (lastChunk) {
+                console.warn("Reloading was past last start state. Reloading from history");
+                this.reloadFromHistory();
+            }
         }
     }
 
