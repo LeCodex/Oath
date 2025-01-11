@@ -1,27 +1,28 @@
-import { SearchAction, CampaignAttackAction, CampaignDefenseAction, TradeAction, TakeFavorFromBankAction, ActAsIfAtSiteAction, MakeDecisionAction, CampaignAction, ChoosePlayersAction, ChooseCardsAction, ChooseSuitsAction, KillWarbandsOnTargetAction, MusterAction, TravelAction, SearchPlayOrDiscardAction, BrackenAction } from "../actions";
+import { SearchAction, CampaignAttackAction, CampaignDefenseAction, TradeAction, TakeFavorFromBankAction, ActAsIfAtSiteAction, MakeDecisionAction, CampaignAction, ChoosePlayersAction, ChooseCardsAction, ChooseSuitsAction, KillWarbandsOnTargetAction, MusterAction, TravelAction, SearchPlayOrDiscardAction, BrackenAction, TradeForSecretAction } from "../actions";
 import { InvalidActionResolution } from "../actions/base";
 import { Denizen, Edifice, GrandScepter, Relic, Site } from "../cards";
 import { BecomeCitizenEffect, DiscardCardEffect, DrawFromDeckEffect, FinishChronicleEffect, GainSupplyEffect, MoveDenizenToSiteEffect, MoveResourcesToTargetEffect, MoveWorldCardToAdvisersEffect, ParentToTargetEffect, PlayWorldCardEffect, RegionDiscardEffect, TakeOwnableObjectEffect } from "../actions/effects";
 import { CardRestriction, OathSuit } from "../enums";
 import { WithPowers } from "../interfaces";
 import { ExileBoard, OathPlayer } from "../player";
-import { Favor, Warband, ResourceCost, Secret } from "../resources";
-import { AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, RestPower, ActivePower, EnemyAttackerCampaignModifier, EnemyDefenderCampaignModifier, AccessedActionModifier, ActionModifier, EnemyActionModifier } from ".";
+import { Favor, Warband, ResourceCost, Secret, ResourceCostContext } from "../resources";
+import { AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, RestPower, ActivePower, EnemyAttackerCampaignModifier, EnemyDefenderCampaignModifier, Accessed, ActionModifier, EnemyActionModifier, BattlePlan, CostModifier } from ".";
 import { AttackDieSymbol, DefenseDieSymbol } from "../dice";
+import { clone } from "lodash";
 
 
 export class NatureWorshipAttack extends AttackerBattlePlan<Denizen> {
     cost = new ResourceCost([[Secret, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.atkPool += this.activator.suitAdviserCount(OathSuit.Beast);
+        this.action.campaignResult.atkPool += this.player.suitAdviserCount(OathSuit.Beast);
     }
 }
 export class NatureWorshipDefense extends DefenderBattlePlan<Denizen> {
     cost = new ResourceCost([[Secret, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.atkPool -= this.activator.suitAdviserCount(OathSuit.Beast);
+        this.action.campaignResult.atkPool -= this.player.suitAdviserCount(OathSuit.Beast);
     }
 }
 
@@ -61,7 +62,8 @@ export class WalledGarden extends DefenderBattlePlan<Denizen> {
     }
 }
 
-export class Bracken extends AccessedActionModifier<Denizen, SearchAction> {
+@Accessed
+export class Bracken extends ActionModifier<Denizen, SearchAction> {
     modifiedAction = SearchAction;
 
     applyBefore(): void {
@@ -69,7 +71,8 @@ export class Bracken extends AccessedActionModifier<Denizen, SearchAction> {
     }
 }
 
-export class ErrandBoy extends AccessedActionModifier<Denizen, SearchAction> {
+@Accessed
+export class ErrandBoy extends ActionModifier<Denizen, SearchAction> {
     modifiedAction = SearchAction;
     cost = new ResourceCost([[Favor, 1]]);
 
@@ -79,7 +82,8 @@ export class ErrandBoy extends AccessedActionModifier<Denizen, SearchAction> {
     }
 }
 
-export class ForestPaths extends AccessedActionModifier<Denizen, TravelAction> {
+@Accessed
+export class ForestPaths extends ActionModifier<Denizen, TravelAction> {
     modifiedAction = TravelAction;
     cost = new ResourceCost([[Favor, 1]]);
 
@@ -93,7 +97,8 @@ export class ForestPaths extends AccessedActionModifier<Denizen, TravelAction> {
     }
 }
 
-export class NewGrowth extends AccessedActionModifier<Denizen, SearchPlayOrDiscardAction> {
+@Accessed
+export class NewGrowth extends ActionModifier<Denizen, SearchPlayOrDiscardAction> {
     modifiedAction = SearchPlayOrDiscardAction;
 
     applyAtStart(): void {
@@ -106,7 +111,8 @@ export class NewGrowth extends AccessedActionModifier<Denizen, SearchPlayOrDisca
     }
 }
 
-export class WildCry extends AccessedActionModifier<Denizen, PlayWorldCardEffect> {
+@Accessed
+export class WildCry extends ActionModifier<Denizen, PlayWorldCardEffect> {
     modifiedAction = PlayWorldCardEffect;
 
     applyBefore(): void {
@@ -117,7 +123,8 @@ export class WildCry extends AccessedActionModifier<Denizen, PlayWorldCardEffect
     }
 }
 
-export class AnimalPlaymates extends AccessedActionModifier<Denizen, MusterAction> {
+@Accessed
+export class AnimalPlaymates extends ActionModifier<Denizen, MusterAction> {
     modifiedAction = MusterAction;
 
     applyBefore(): void {
@@ -126,7 +133,8 @@ export class AnimalPlaymates extends AccessedActionModifier<Denizen, MusterActio
     }
 }
 
-export class Birdsong extends AccessedActionModifier<Denizen, TradeAction> {
+@Accessed
+export class Birdsong extends ActionModifier<Denizen, TradeAction> {
     modifiedAction = TradeAction;
 
     applyBefore(): void {
@@ -135,22 +143,24 @@ export class Birdsong extends AccessedActionModifier<Denizen, TradeAction> {
     }
 }
 
-export class TheOldOak extends AccessedActionModifier<Denizen, TradeAction> {
-    modifiedAction = TradeAction;
+@Accessed
+export class TheOldOak extends ActionModifier<Denizen, TradeForSecretAction> {
+    modifiedAction = TradeForSecretAction;
     mustUse = true;
 
     applyBefore(): void {
-        if (this.action.cardProxy === this.sourceProxy && !this.action.forFavor && [...this.action.playerProxy.advisers].some(e => e instanceof Denizen && e.suit === OathSuit.Beast))
+        if (this.action.cardProxy === this.sourceProxy && [...this.action.playerProxy.advisers].some(e => e instanceof Denizen && e.suit === OathSuit.Beast))
             this.action.getting.set(Secret, (this.action.getting.get(Secret) ?? 0) + 1);
     }
 }
 
-export class Mushrooms extends AccessedActionModifier<Denizen, SearchAction> {
+@Accessed
+export class Mushrooms extends ActionModifier<Denizen, SearchAction> {
     modifiedAction = SearchAction;
     cost = new ResourceCost([[Secret, 1]]);
 
     applyBefore(): void {
-        const discard = this.activatorProxy.site.region?.discard;
+        const discard = this.playerProxy.site.region?.discard;
         if (!discard) return;
         this.action.amount -= 2;  // So it plays well with other amount modifiers
         this.action.deckProxy = discard;
@@ -194,30 +204,20 @@ export class GraspingVines extends EnemyActionModifier<Denizen, TravelAction> {
     }
 }
 
-export class InsectSwarmAttack extends EnemyAttackerCampaignModifier<Denizen> {
-    canUse(): boolean {
-        return this.action.campaignResult.defender === this.sourceProxy.ruler?.original;
+export class InsectSwarm extends CostModifier<Denizen> {
+    mustUse = true;
+
+    canUse(context: ResourceCostContext): boolean {
+        if (!(context.origin instanceof BattlePlan)) return false;
+        const campaignResult = (context.origin.action as CampaignAttackAction | CampaignDefenseAction).campaignResult;
+        const ruler = this.sourceProxy.ruler?.original;
+        return campaignResult.areEnemies(ruler, this.player);
     }
 
-    applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, CampaignAttackAction>>): Iterable<ActionModifier<WithPowers, CampaignAttackAction>> {
-        for (const modifier of modifiers)
-            if (modifier instanceof AttackerBattlePlan)
-                modifier.cost.add(new ResourceCost([], [[Favor, 1]]));
-
-        return [];
-    }
-}
-export class InsectSwarmDefense extends EnemyDefenderCampaignModifier<Denizen> {
-    canUse(): boolean {
-        return this.action.campaignResult.attacker === this.sourceProxy.ruler?.original;
-    }
-
-    applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, CampaignDefenseAction>>): Iterable<ActionModifier<WithPowers, CampaignDefenseAction>> {
-        for (const modifier of modifiers)
-            if (modifier instanceof DefenderBattlePlan)
-                modifier.cost.add(new ResourceCost([], [[Favor, 1]]));
-
-        return [];
+    modifyCostContext(context: ResourceCostContext): ResourceCostContext {
+        const copy = clone(context);
+        copy.cost.add(new ResourceCost([], [[Favor, 1]]));
+        return copy;
     }
 }
 
@@ -239,7 +239,8 @@ export class AnimalHost extends WhenPlayed<Denizen> {
     }
 }
 
-export class VowOfPoverty extends AccessedActionModifier<Denizen, TradeAction> {
+@Accessed
+export class VowOfPoverty extends ActionModifier<Denizen, TradeAction> {
     modifiedAction = TradeAction;
     mustUse = true;
 
@@ -249,12 +250,13 @@ export class VowOfPoverty extends AccessedActionModifier<Denizen, TradeAction> {
 }
 export class VowOfPovertyRest extends RestPower<Denizen> {
     applyAfter(): void {
-        if (this.activatorProxy.byClass(Favor).length === 0)
-            new TakeFavorFromBankAction(this.activator, 2).doNext();
+        if (this.playerProxy.byClass(Favor).length === 0)
+            new TakeFavorFromBankAction(this.player, 2).doNext();
     }
 }
 
-export class VowOfUnionAttack extends AccessedActionModifier<Denizen, CampaignAttackAction> {
+@Accessed
+export class VowOfUnionAttack extends ActionModifier<Denizen, CampaignAttackAction> {
     modifiedAction = CampaignAttackAction;
     mustUse = true;
 
@@ -264,17 +266,19 @@ export class VowOfUnionAttack extends AccessedActionModifier<Denizen, CampaignAt
                 this.action.campaignResult.atkForce.add(siteProxy.original);
     }
 }
-export class VowOfUnionTravel extends AccessedActionModifier<Denizen, TravelAction> {
+@Accessed
+export class VowOfUnionTravel extends ActionModifier<Denizen, TravelAction> {
     modifiedAction = TravelAction;
     mustUse = true;
 
     applyWhenApplied(): boolean {
         // Don't cause an error, just prevent the action
-        return !this.activatorProxy.site.getWarbands(this.activatorProxy.leader.board.original.key);
+        return !this.playerProxy.site.getWarbands(this.playerProxy.leader.board.original.key);
     }
 }
 
-export class VowOfBeastkin extends AccessedActionModifier<Denizen, MusterAction> {
+@Accessed
+export class VowOfBeastkin extends ActionModifier<Denizen, MusterAction> {
     modifiedAction = MusterAction;
     mustUse = true;
 
@@ -285,7 +289,8 @@ export class VowOfBeastkin extends AccessedActionModifier<Denizen, MusterAction>
     }
 }
 
-export class SmallFriends extends AccessedActionModifier<Denizen, TradeAction> {
+@Accessed
+export class SmallFriends extends ActionModifier<Denizen, TradeAction> {
     modifiedAction = TradeAction;
 
     applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, TradeAction>>): Iterable<ActionModifier<WithPowers, TradeAction>> {
@@ -296,12 +301,12 @@ export class SmallFriends extends AccessedActionModifier<Denizen, TradeAction> {
     applyWhenApplied(): boolean {
         const sites = new Set<Site>();
         for (const siteProxy of this.gameProxy.map.sites())
-            if (siteProxy !== this.activatorProxy.site)
+            if (siteProxy !== this.playerProxy.site)
                 for (const denizenProxy of siteProxy.denizens)
                     if (denizenProxy.suit === OathSuit.Beast)
                         sites.add(siteProxy.original);
 
-        new ActAsIfAtSiteAction(this.activator, this.action, sites).doNext();
+        new ActAsIfAtSiteAction(this.player, this.action, sites).doNext();
         return false;
     }
 }

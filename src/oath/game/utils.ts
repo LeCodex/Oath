@@ -1,12 +1,25 @@
 import { isMap, isSet, range } from "lodash";
 
-export type AbstractConstructor<T> = abstract new (...args: any) => T;
-export type Constructor<T> = new (...args: any) => T;
+export type AbstractConstructor<T> = abstract new(...args: any) => T;
+export type Constructor<T> = new(...args: any[]) => T;
 export const isExtended = <T>(constructor: Constructor<any>, type: AbstractConstructor<T>): constructor is Constructor<T> => { return constructor.prototype instanceof type };
 
 export type Enum<E> = Record<keyof E, number | string> & { [k: number]: string; };
 export function isEnumKey<E extends Enum<E>>(key: string | number | symbol, _enum: E): key is keyof E {
     return key in _enum;
+}
+
+export function allCombinations<T>(set: T[]): T[][] {
+    const combinations: T[][] = [[]];
+    for (const element of set) {
+        const length = combinations.length;
+        for (let i = 0; i < length; i++) {
+            const subset = combinations.shift()!;
+            combinations.push(subset);
+            combinations.push([...subset, element]);
+        }
+    }
+    return combinations;
 }
 
 export function MurmurHash3(str: string) {

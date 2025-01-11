@@ -77,7 +77,7 @@ export class DeepWoods extends HomelandSitePower {
 
 export abstract class AtSiteActionModifier<T extends ModifiableAction> extends ActionModifier<Site, T> {
     canUse(): boolean {
-        return this.activatorProxy.site === this.sourceProxy;
+        return this.playerProxy.site === this.sourceProxy;
     }
 }
 
@@ -156,7 +156,7 @@ export class NarrowPass extends ActionModifier<Site, TravelAction> {
     mustUse = true;
 
     applyAtStart(): void {
-        if (this.activatorProxy.site.region !== this.sourceProxy.region)
+        if (this.playerProxy.site.region !== this.sourceProxy.region)
             this.action.selects.siteProxy.filterChoices(e => e.original.powers.has(NarrowPass) || e.region !== this.sourceProxy.region);
     }
 }
@@ -196,7 +196,7 @@ export class OpportunitySite extends AtSiteActionModifier<WakeAction> {
     }
 
     applyBefore(): void {
-        if (!this.source.empty) new ChooseResourceToTakeAction(this.activator, this.source).doNext();
+        if (!this.source.empty) new ChooseResourceToTakeAction(this.player, this.source).doNext();
     }
 }
 
@@ -233,7 +233,7 @@ export class River extends AtSiteActionModifier<MusterAction> {
     mustUse = true;
 
     applyBefore(): void {
-        if (this.activatorProxy === this.sourceProxy.ruler) this.action.getting++;
+        if (this.playerProxy === this.sourceProxy.ruler) this.action.getting++;
     }
 }
 
@@ -252,7 +252,7 @@ export class GreatSlum extends AtSiteActionModifier<SearchPlayOrDiscardAction> {
 
     applyBefore(): void {
         if (this.action.siteProxy === this.sourceProxy)
-            new MayDiscardACardAction(this.activator, this.action.discardOptions, this.source.denizens).doNext();
+            new MayDiscardACardAction(this.player, this.action.discardOptions, this.source.denizens).doNext();
     }
 }
 

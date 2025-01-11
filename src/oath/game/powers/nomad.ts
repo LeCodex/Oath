@@ -3,12 +3,12 @@ import { InvalidActionResolution, ModifiableAction, ResolveCallbackEffect } from
 import { Region } from "../map";
 import { Denizen, Edifice, OathCard, Relic, Site, VisionBack, WorldCard } from "../cards";
 import { DiscardOptions } from "../cards/decks";
-import { PayCostToTargetEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PayPowerCostEffect, BecomeCitizenEffect, DrawFromDeckEffect, FlipEdificeEffect, MoveResourcesToTargetEffect, DiscardCardEffect, GainSupplyEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, PeekAtCardEffect, MoveWorldCardToAdvisersEffect, MoveDenizenToSiteEffect, DiscardCardGroupEffect, PlayVisionEffect, ParentToTargetEffect, BurnResourcesEffect, PutPawnAtSiteEffect, RecoverTargetEffect } from "../actions/effects";
+import { PayCostContextEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PayPowerCostEffect, BecomeCitizenEffect, DrawFromDeckEffect, FlipEdificeEffect, MoveResourcesToTargetEffect, DiscardCardEffect, GainSupplyEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, PeekAtCardEffect, MoveWorldCardToAdvisersEffect, MoveDenizenToSiteEffect, DiscardCardGroupEffect, PlayVisionEffect, ParentToTargetEffect, BurnResourcesEffect, PutPawnAtSiteEffect, RecoverTargetEffect } from "../actions/effects";
 import { BannerKey, OathSuit } from "../enums";
 import { isOwnable } from "../interfaces";
 import { ExileBoard, OathPlayer } from "../player";
-import { Favor, ResourceCost, Secret } from "../resources";
-import { ActivePower, CapacityModifier, AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, EnemyAttackerCampaignModifier, EnemyActionModifier, ActionModifier, gainPowerUntilActionResolves, BattlePlan, AccessedActionModifier } from ".";
+import { Favor, ResourceCost, ResourceCostContext, Secret } from "../resources";
+import { ActivePower, CapacityModifier, AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, EnemyAttackerCampaignModifier, EnemyActionModifier, ActionModifier, gainPowerUntilActionResolves, BattlePlan, Accessed } from ".";
 import { DefenseDieSymbol } from "../dice";
 
 
@@ -40,13 +40,13 @@ export class RivalKhanDefense extends DefenderBattlePlan<Denizen> {
 
 export class GreatCrusadeAttack extends AttackerBattlePlan<Denizen> {
     applyBefore(): void {
-        this.action.campaignResult.atkPool += this.activator.suitRuledCount(OathSuit.Nomad);
+        this.action.campaignResult.atkPool += this.player.suitRuledCount(OathSuit.Nomad);
         this.action.campaignResult.discardAtEnd(this.source);
     }
 }
 export class GreatCrusadeDefense extends DefenderBattlePlan<Denizen> {
     applyBefore(): void {
-        this.action.campaignResult.atkPool -= this.activator.suitRuledCount(OathSuit.Nomad);
+        this.action.campaignResult.atkPool -= this.player.suitRuledCount(OathSuit.Nomad);
         this.action.campaignResult.discardAtEnd(this.source);
     }
 }
@@ -56,7 +56,7 @@ export class MountainGiantAttack extends AttackerBattlePlan<Denizen> {
 
     applyBefore(): void {
         new MakeDecisionAction(
-            this.activator, "±1, or ±3 and discard at end?",
+            this.player, "±1, or ±3 and discard at end?",
             () => { this.action.campaignResult.atkPool++; },
             () => {
                 this.action.campaignResult.atkPool += 3;
@@ -69,7 +69,7 @@ export class MountainGiantAttack extends AttackerBattlePlan<Denizen> {
 export class MountainGiantDefense extends DefenderBattlePlan<Denizen> {
     applyBefore(): void {
         new MakeDecisionAction(
-            this.activator, "±1, or ±3 and discard at end?",
+            this.player, "±1, or ±3 and discard at end?",
             () => { this.action.campaignResult.atkPool--; },
             () => {
                 this.action.campaignResult.atkPool -= 3;
@@ -91,8 +91,8 @@ export class WildMountsReplace extends ActionModifier<Denizen, DiscardCardEffect
 
     static firstDiscardDone = false;
 
-    constructor(source: Denizen, action: DiscardCardEffect<OathCard>, activator: OathPlayer) {
-        super(source, action, activator);
+    constructor(source: Denizen, player: OathPlayer, action: DiscardCardEffect<OathCard>) {
+        super(source, player, action);
         this.mustUse = WildMountsReplace.firstDiscardDone;  // All future discards must be cancelled
     }
 
@@ -133,7 +133,7 @@ export class RainBoots extends AttackerBattlePlan<Denizen> {
 
 export class Lancers extends AttackerBattlePlan<Denizen> {
     applyBefore(): void {
-        this.action.next.next.applyModifiers([new LancersEnd(this.source, this.action.next.next, this.activator)]);
+        this.action.next.next.applyModifiers([new LancersEnd(this.source, this.player, this.action.next.next)]);
         this.action.campaignResult.discardAtEnd(this.source);
     }
 }
@@ -173,8 +173,10 @@ export class WayStation extends ActionModifier<Denizen, TravelAction> {
     applyBefore(): void {
         if (!this.sourceProxy.site) return;
         if (this.action.siteProxy === this.sourceProxy.site) {
-            if (!this.activatorProxy.rules(this.sourceProxy)) {
-                new PayCostToTargetEffect(this.game, this.activator, new ResourceCost([[Favor, 1]]), this.sourceProxy.ruler?.original).doNext(success => {
+            if (!this.playerProxy.rules(this.sourceProxy)) {
+                const ruler = this.sourceProxy.ruler?.original;
+                const costContext = new ResourceCostContext(this.player, this, new ResourceCost([[Favor, 1]]), ruler);
+                new PayCostContextEffect(this.game, this.player, costContext).doNext(success => {
                     if (!success) return;
                     this.action.noSupplyCost = true;
                 });
@@ -185,17 +187,19 @@ export class WayStation extends ActionModifier<Denizen, TravelAction> {
     }
 }
 
-export class Hospitality extends AccessedActionModifier<Denizen, TravelAction> {
+@Accessed
+export class Hospitality extends ActionModifier<Denizen, TravelAction> {
     modifiedAction = TravelAction;
 
     applyAfter(): void {
-        const adviserSuits = [...this.activatorProxy.advisers].filter(e => e instanceof Denizen).map(e => e.suit);
+        const adviserSuits = [...this.playerProxy.advisers].filter(e => e instanceof Denizen).map(e => e.suit);
         const suits = [...this.action.siteProxy.denizens].map(e => e.suit).filter(e => adviserSuits.includes(e));
-        if (suits.length) new TakeFavorFromBankAction(this.activator, 1, suits).doNext();
+        if (suits.length) new TakeFavorFromBankAction(this.player, 1, suits).doNext();
     }
 }
 
-export class Tents extends AccessedActionModifier<Denizen, TravelAction> {
+@Accessed
+export class Tents extends ActionModifier<Denizen, TravelAction> {
     modifiedAction = TravelAction;
     cost = new ResourceCost([[Favor, 1]]);
 
@@ -205,7 +209,8 @@ export class Tents extends AccessedActionModifier<Denizen, TravelAction> {
     }
 }
 
-export class SpecialEnvoy extends AccessedActionModifier<Denizen, TravelAction> {
+@Accessed
+export class SpecialEnvoy extends ActionModifier<Denizen, TravelAction> {
     modifiedAction = TravelAction;
 
     applyBefore(): void {
@@ -217,22 +222,24 @@ export class SpecialEnvoy extends AccessedActionModifier<Denizen, TravelAction> 
     }
 }
 
-export class AFastSteed extends AccessedActionModifier<Denizen, TravelAction> {
+@Accessed
+export class AFastSteed extends ActionModifier<Denizen, TravelAction> {
     modifiedAction = TravelAction;
     cost = new ResourceCost([[Favor, 1]]);
 
     applyBefore(): void {
-        if (this.activatorProxy.warbands.length <= 3)
+        if (this.playerProxy.warbands.length <= 3)
             this.action.noSupplyCost = true;
     }
 }
 
-export class RelicWorship extends AccessedActionModifier<Denizen, RecoverTargetEffect> {
+@Accessed
+export class RelicWorship extends ActionModifier<Denizen, RecoverTargetEffect> {
     modifiedAction = RecoverTargetEffect;
 
     applyAtEnd(): void {
         if (this.action.target instanceof Relic)
-            new GainSupplyEffect(this.activator, 2).doNext();
+            new GainSupplyEffect(this.player, 2).doNext();
     }
 }
 
@@ -260,7 +267,7 @@ export class AncientBloodline extends EnemyActionModifier<Denizen, ModifiableAct
 
     applyBefore(): void {
         for (const siteProxy of this.gameProxy.map.sites()) {
-            if (siteProxy.ruler !== this.activatorProxy) continue;
+            if (siteProxy.ruler !== this.playerProxy) continue;
             for (const denizenProxy of siteProxy.denizens)
                 denizenProxy.locked = true;
         }
@@ -351,19 +358,19 @@ export class AncientBinding extends ActivePower<Denizen> {
 
     usePower(): void {
         for (const player of this.game.players) {
-            new MoveResourcesToTargetEffect(this.game, player, Secret, player.byClass(Secret).length - (player === this.action.player ? 0 : 1), undefined).doNext();
+            new BurnResourcesEffect(this.game, player, Secret, player.byClass(Secret).length - (player === this.action.player ? 0 : 1)).doNext();
 
             for (const adviser of player.advisers)
-                new MoveResourcesToTargetEffect(this.game, player, Secret, Infinity, undefined, adviser).doNext();
+                new BurnResourcesEffect(this.game, player, Secret, Infinity, adviser).doNext();
 
             for (const relic of player.relics)
-                new MoveResourcesToTargetEffect(this.game, player, Secret, Infinity, undefined, relic).doNext();
+                new BurnResourcesEffect(this.game, player, Secret, Infinity, relic).doNext();
         }
 
         for (const site of this.game.map.sites())
             for (const denizen of site.denizens)
                 if (denizen !== this.source)
-                    new MoveResourcesToTargetEffect(this.game, this.action.player, Secret, Infinity, undefined, denizen).doNext();
+                    new BurnResourcesEffect(this.game, this.action.player, Secret, Infinity, denizen).doNext();
     }
 }
 

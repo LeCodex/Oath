@@ -2,15 +2,15 @@ import { OathAction, ModifiableAction, InvalidActionResolution, ChooseModifiers 
 import { Denizen, Edifice, OathCard, OwnableCard, Relic, Site, WorldCard } from "../cards";
 import { DiscardOptions, SearchableDeck } from "../cards/decks";
 import { AttackDieSymbol } from "../dice";
-import { MoveResourcesToTargetEffect, PayCostToTargetEffect, PlayWorldCardEffect, PutPawnAtSiteEffect, DiscardCardEffect, MoveOwnWarbandsEffect, SetPeoplesFavorMobState, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, FlipEdificeEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect, CheckCapacityEffect, CampaignJoinDefenderAlliesEffect, MoveWorldCardToAdvisersEffect, DiscardCardGroupEffect, ParentToTargetEffect, PaySupplyEffect, ThingsExchangeOfferEffect, SiteExchangeOfferEffect, SearchDrawEffect } from "./effects";
+import { MoveResourcesToTargetEffect, PayCostContextEffect, PlayWorldCardEffect, PutPawnAtSiteEffect, DiscardCardEffect, MoveOwnWarbandsEffect, SetPeoplesFavorMobState, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, FlipEdificeEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect, CheckCapacityEffect, CampaignJoinDefenderAlliesEffect, MoveWorldCardToAdvisersEffect, DiscardCardGroupEffect, ParentToTargetEffect, PaySupplyEffect, ThingsExchangeOfferEffect, SiteExchangeOfferEffect, SearchDrawEffect } from "./effects";
 import { ALL_OATH_SUITS, ALL_PLAYER_COLORS, CardRestriction, OathPhase, OathSuit, OathType, PlayerColor } from "../enums";
 import { ChancellorBoard, ExileBoard, OathPlayer, VisionSlot } from "../player";
 import { ActionModifier, ActivePower, CapacityModifier } from "../powers";
-import { Favor, OathResource, OathResourceType, ResourceCost, ResourcesAndWarbands, Secret } from "../resources";
+import { Favor, OathResource, OathResourceType, ResourceCost, ResourceCostContext, ResourcesAndWarbands, Secret } from "../resources";
 import { Banner, FavorBank, PeoplesFavor } from "../banks";
 import { Constructor, inclusiveRange, isExtended, MaskProxyManager, minInGroup } from "../utils";
 import { SelectNOf, SelectBoolean, SelectNumber, SelectWithName, SelectCard } from "./selects";
-import { CampaignActionTarget, RecoverActionTarget, WithPowers } from "../interfaces";
+import { CampaignActionTarget, hasCost, RecoverActionTarget, WithCost, WithPowers } from "../interfaces";
 import { Region } from "../map";
 import { OathGameObject } from "../gameObject";
 import { Citizenship } from "../parser/interfaces";
@@ -98,77 +98,84 @@ export abstract class MajorAction extends ModifiableAction {
     abstract majorAction(): void;
 }
 
-export abstract class PayDenizenAction extends MajorAction {
+export abstract class PayDenizenAction extends MajorAction implements WithCost {
     readonly selects: { cardProxy: SelectCard<Denizen> };
     readonly parameters: { cardProxy: Denizen[] };
 
     accessibleDenizenProxies: Denizen[] = [];
     cardProxy: Denizen;
     
+    abstract cost: ResourceCost;
+    costContext: ResourceCostContext;
+
+    validateCardProxies(cardProxies: Denizen[]) {
+        let validCardProxies = cardProxies.filter(e => e.suit !== OathSuit.None && e.empty)
+        validCardProxies = validCardProxies.filter(e => new ResourceCostContext(this.player, this, this.cost, e.original).payableCostsWithModifiers(this.maskProxyManager).length);
+        return validCardProxies;
+    }
+    
     start() {
         this.accessibleDenizenProxies.push(...this.playerProxy.site.denizens);
-        this.selects.cardProxy = new SelectCard("Card", this.player, this.accessibleDenizenProxies.filter(e => e.suit !== OathSuit.None && e.empty), { min: 1 });
+        let validCardProxies = this.validateCardProxies(this.accessibleDenizenProxies);
+        this.selects.cardProxy = new SelectCard("Card", this.player, validCardProxies, { min: 1 });
         return super.start();
     }
     
     execute() {
         this.cardProxy = this.parameters.cardProxy[0]!;
+        this.costContext = new ResourceCostContext(this.player, this, this.cost, this.cardProxy.original);
         super.execute();
     }
+
+    majorAction(): void {
+        new PayCostContextEffect(this.game, this.player, this.costContext).doNext(success => {
+            if (!success) throw this.cost.cannotPayError;
+            this.getReward();
+        });
+    }
+
+    abstract getReward(): void;
 }
 
 export class MusterAction extends PayDenizenAction {
     readonly message = "Put a favor on a card to muster";
     supplyCost = 1;
 
-    using: OathResourceType = Favor;
-    amount = 1;
+    cost = new ResourceCost([[Favor, 1]]);
     getting = 2;
 
-    majorAction() {
-        const cost = new ResourceCost([[this.using, this.amount]]);
-        new PayCostToTargetEffect(this.game, this.player, cost, this.cardProxy.original).doNext(success => {
-            if (!success) throw cost.cannotPayError;
-            new ParentToTargetEffect(this.game, this.player, this.playerProxy.leader.original.bag.get(this.getting)).doNext();
-        });
+    getReward() {
+        new ParentToTargetEffect(this.game, this.player, this.playerProxy.leader.original.bag.get(this.getting)).doNext();
     }
 }
 
-
-export class TradeAction extends PayDenizenAction {
+export abstract class TradeAction extends PayDenizenAction {
     readonly selects: PayDenizenAction["selects"] & { forFavor: SelectBoolean };
     readonly parameters: PayDenizenAction["parameters"] & { forFavor: boolean[] };
     readonly message = "Put resources on a card to trade";
     supplyCost = 1;
 
-    forFavor: boolean;
-    paying: ResourceCost;
-    getting: Map<OathResourceType, number>;
+    abstract getting: Map<OathResourceType, number>;
 
-    start() {
-        this.selects.forFavor = new SelectBoolean("Type", ["For favors", "For secrets"]);
-        return super.start();
+    getReward() {
+        for (const [resource, amount] of this.getting) {
+            this.getting.set(resource, amount + this.playerProxy.suitAdviserCount(this.cardProxy.suit));
+        }
+
+        const bank = this.gameProxy.favorBank(this.cardProxy.suit)?.original;
+        if (bank) new ParentToTargetEffect(this.game, this.player, bank.get(this.getting.get(Favor) ?? 0)).doNext();
+        new PutResourcesOnTargetEffect(this.game, this.player, Secret, this.getting.get(Secret) ?? 0).doNext();
     }
-
-    execute() {
-        this.forFavor = this.parameters.forFavor[0]!;
-        this.paying = new ResourceCost([[this.forFavor ? Secret : Favor, this.forFavor ? 1 : 2]]);
-        this.getting = new Map([[this.forFavor ? Favor : Secret, this.forFavor ? 1 : 0]]);
-        super.execute();
-    }
-
-    majorAction() {
-        new PayCostToTargetEffect(this.game, this.player, this.paying, this.cardProxy.original).doNext(success => {
-            if (!success) throw this.paying.cannotPayError;
-
-            const resource = this.forFavor ? Favor : Secret;
-            this.getting.set(resource, (this.getting.get(resource) ?? 0) + this.playerProxy.suitAdviserCount(this.cardProxy.suit));
-    
-            const bank = this.gameProxy.favorBank(this.cardProxy.suit)?.original;
-            if (bank) new ParentToTargetEffect(this.game, this.player, bank.get(this.getting.get(Favor) ?? 0)).doNext();
-            new PutResourcesOnTargetEffect(this.game, this.player, Secret, this.getting.get(Secret) ?? 0).doNext();
-        });
-    }
+}
+export class TradeForFavorAction extends TradeAction {
+    forFavor = true;
+    cost = new ResourceCost([[Secret, 1]]);
+    getting = new Map([[Favor, 1]]);
+}
+export class TradeForSecretAction extends TradeAction {
+    forFavor = false;
+    cost = new ResourceCost([[Favor, 2]]);
+    getting = new Map([[Secret, 0]]);
 }
 
 
@@ -422,14 +429,14 @@ export class SearchPlayOrDiscardAction extends ModifiableAction {
     static getCapacityInformation(maskProxyManager: MaskProxyManager, playerProxy: OathPlayer, siteProxy?: Site, playingProxy?: WorldCard): [number, WorldCard[], boolean] {
         const capacityModifiers: CapacityModifier<WorldCard>[] = [];
         for (const [sourceProxy, modifier] of playerProxy.game.getPowers(CapacityModifier)) {
-            const instance = new modifier(sourceProxy.original, maskProxyManager);
+            const instance = new modifier(sourceProxy.original, playerProxy.original, maskProxyManager);
             if (instance.canUse(playerProxy, siteProxy)) capacityModifiers.push(instance);
         }
 
         if (playingProxy && !playingProxy.facedown) {
             for (const modifier of playingProxy.powers) {
                 if (isExtended(modifier, CapacityModifier)) {
-                    const instance = new modifier(playingProxy.original, maskProxyManager);
+                    const instance = new modifier(playingProxy.original, playerProxy.original, maskProxyManager);
                     capacityModifiers.push(instance);  // Always assume the card influences the capacity
                 }
             }
@@ -874,7 +881,7 @@ export class UsePowerAction extends ModifiableAction {
     start() {
         const choices = new Map<string, ActivePower<OwnableCard>>();
         for (const [sourceProxy, power] of this.gameProxy.getPowers(ActivePower<OwnableCard>)) {
-            const instance = new power(sourceProxy.original, this);
+            const instance = new power(sourceProxy.original, this.player, this);
             if (instance.canUse()) choices.set(instance.name, instance);
         }
         this.selects.power = new SelectNOf("Power", choices, { min: 1 });
@@ -887,7 +894,7 @@ export class UsePowerAction extends ModifiableAction {
     }
 
     modifiedExecution(): void {
-        this.power.payCost(this.player, success => {
+        this.power.payCost(success => {
             if (!success) throw this.power.cost.cannotPayError;
             this.power.usePower();
         });
@@ -986,7 +993,8 @@ export class ActPhaseAction extends ModifiableAction {
     
     static readonly startOptions = {
         "Muster": MusterAction,
-        "Trade": TradeAction,
+        "TradeForFavor": TradeForFavorAction,
+        "TradeForSecret": TradeForSecretAction,
         "Travel": TravelAction,
         "Recover": RecoverAction,
         "Search": SearchAction,
@@ -994,14 +1002,15 @@ export class ActPhaseAction extends ModifiableAction {
     
         "Use": UsePowerAction,
         "Reveal": PlayFacedownAdviserAction,
-        "Move warbands": MoveWarbandsAction,
+        "MoveWarbands": MoveWarbandsAction,
         "Rest": RestAction
     };
 
     next: OathAction;
 
     start(): boolean {
-        this.selects.action = new SelectNOf("Action", Object.entries(ActPhaseAction.startOptions), { min: 1 });
+        const choices = Object.entries(ActPhaseAction.startOptions);
+        this.selects.action = new SelectNOf("Action", choices, { min: 1 });
         return super.start();
     }
     
@@ -1180,6 +1189,34 @@ export class ChooseRegionAction extends OathAction {
 
     execute(): void {
         this.callback(this.parameters.region[0]!);
+    }
+}
+
+
+export class ChooseCostContextAction extends ModifiableAction {
+    readonly selects: { costContext: SelectNOf<ResourceCostContext | undefined> };
+    readonly parameters: { costContext: (ResourceCostContext | undefined)[] };
+    readonly message: string;
+
+    constructor(
+        player: OathPlayer,
+        public costContext: ResourceCostContext,
+        public callback: (costContext: ResourceCostContext) => void
+    ) {
+        super(player);
+    }
+
+    start() {
+        const choices = new Map<string, ResourceCostContext>();
+        const payableCostContextsInfo = this.costContext.payableCostsWithModifiers(this.maskProxyManager);
+        for (const costContextInfo of payableCostContextsInfo)
+            choices.set(costContextInfo.context.cost.toString() + `(${costContextInfo.modifiers.map(e => e.name).join(", ") || "Base"})`, costContextInfo.context);
+        this.selects.costContext = new SelectNOf("Cost", choices, { min: 1 });
+        return super.start();
+    }
+
+    modifiedExecution(): void {
+        this.callback(this.parameters.costContext[0]!);
     }
 }
 

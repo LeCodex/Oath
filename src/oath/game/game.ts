@@ -258,7 +258,7 @@ export class OathGame extends TreeRoot<OathGame> {
     gatherModifiers<T extends ModifiableAction>(action: T, activator: OathPlayer): Set<ActionModifier<WithPowers, T>> {
         const instances = new Set<ActionModifier<WithPowers, T>>();
         for (const [sourceProxy, modifier] of action.gameProxy.getPowers(ActionModifier<WithPowers, T>)) {
-            const instance = new modifier(sourceProxy.original, action, activator);
+            const instance = new modifier(sourceProxy.original, activator, action, activator);
             if (action instanceof instance.modifiedAction && instance.canUse()) instances.add(instance);
         }
 

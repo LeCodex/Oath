@@ -134,6 +134,7 @@ export class OathActionManager {
     }
 
     private authorizeCancel(save: boolean = true) {
+        // console.log("Cancelling");
         const history = [...this.history];
         const gameState = this.gameState;
         try {
@@ -151,8 +152,10 @@ export class OathActionManager {
             if (this.history.length === 0) {
                 // console.log("Replaying from start");
                 this.game.initialActions();
-                this.checkForNextAction(save);  // Flush the initial actions onto the stack
+            } else {
+                this.emptyStack();
             }
+            this.checkForNextAction(save);  // Flush the initial actions onto the stack
             for (const [i, event] of node.events.entries()) {
                 // console.log(`Replaying event ${i}`);
                 event.replay(save);
@@ -233,6 +236,7 @@ export class OathActionManager {
             event.oneWay = this.markEventAsOneWay;
             return this.defer(save);
         } catch (e) {
+            console.log(e);
             this.authorizeCancel(save);
             throw e;
         }
@@ -275,7 +279,7 @@ export class OathActionManager {
     }
 
     public parse(chunks: string[]) {
-        this.checkForNextAction();  // Flush the initial actions onto the stack
+        this.checkForNextAction(false);  // Flush the initial actions onto the stack
         this.lastStartState = JSON.parse(chunks.pop()!);
         let lastChunk = false;
         try {

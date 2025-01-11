@@ -2,8 +2,11 @@ import { BurnResourcesEffect, ParentToTargetEffect } from "./actions/effects";
 import { OathGameObject, OathGameObjectLeaf } from "./gameObject";
 import { InvalidActionResolution } from "./actions/base";
 import { PlayerColor } from "./enums";
-import { isEnumKey } from "./utils";
-import { NodeGroup } from "./utils";
+import { allCombinations, isEnumKey, MaskProxyManager, NodeGroup } from "./utils";
+import { OathPlayer } from "./player";
+import { WithCost, WithPowers } from "./interfaces";
+import { CostModifier } from "./powers";
+import { clone } from "lodash";
 
 
 export abstract class OathResource extends OathGameObjectLeaf<number> {
@@ -134,6 +137,7 @@ export abstract class ResourcesAndWarbands<T = any> extends OathGameObject<T> {
     }
 }
 
+
 export class ResourceCost {
     placedResources: Map<OathResourceType, number>;
     burntResources: Map<OathResourceType, number>;
@@ -163,11 +167,7 @@ export class ResourceCost {
 
     get cannotPayError(): InvalidActionResolution {
         let message = "Cannot pay resource cost: ";
-        const printResources = function(resources: Map<OathResourceType, number>, suffix: string) {
-            if ([...resources].filter(([_, a]) => a > 0).length === 0) return undefined;
-            return [...resources].map(([resource, number]) => `${number} ${resource.name}(s)`).join(", ") + suffix;
-        }
-        message += [printResources(this.placedResources, " placed"), printResources(this.burntResources, " burnt")].filter(e => e !== undefined).join(", ");
+        message += this.toString();
         return new InvalidActionResolution(message);
     }
 
@@ -188,5 +188,59 @@ export class ResourceCost {
         const parseResources = (resources: { [k: string]: number }) =>
             Object.entries(resources).map<[OathResourceType, number]>(([k, v]: [keyof typeof resourceClasses, number]) => [resourceClasses[k]!, v]);
         return new this(parseResources(obj.placedResources), parseResources(obj.burntResources));
+    }
+
+    toString() {
+        const printResources = function(resources: Map<OathResourceType, number>, suffix: string) {
+            if ([...resources].filter(([_, a]) => a > 0).length === 0) return undefined;
+            return [...resources].map(([resource, number]) => `${number} ${resource.name}(s)`).join(", ") + suffix;
+        }
+        return [printResources(this.placedResources, " placed"), printResources(this.burntResources, " burnt")].filter(e => e !== undefined).join(", ");
+    }
+}
+
+export class ResourceCostContext {
+    source: OathGameObject;
+
+    constructor(
+        public player: OathPlayer,
+        public origin: WithCost,
+        public cost: ResourceCost,
+        public target: OathGameObject | undefined,
+        source?: OathGameObject
+    ) {
+        this.source = source || this.player;
+    }
+
+    payableCostsWithModifiers(maskProxyManager: MaskProxyManager) {
+        const modifiers: CostModifier<any>[] = [];
+        for (const [source, modifier] of maskProxyManager.get(this.player.game).getPowers(CostModifier)) {
+            const instance = new modifier(source, this.player, maskProxyManager);
+            if (instance.canUse(this)) modifiers.push(instance);
+        }
+
+        const mustUse = modifiers.filter(e => e.mustUse);
+        const canUse = modifiers.filter(e => !e.mustUse);
+        const combinations = allCombinations(canUse).map(e => [...mustUse, ...e]);
+        return combinations.map(combination => {
+            let context: ResourceCostContext = clone(this);
+            for (const modifier of combination) context = modifier.modifyCostContext(context);
+
+            console.log(this.origin.constructor.name, context.cost.totalResources);
+            for (const [resource, amount] of context.cost.totalResources)
+                if (context.source.byClass(resource).length < amount)
+                    return undefined;
+            
+            return { context, modifiers: combination };
+        }).filter(e => !!e);
+    }
+
+    modify(modifiers: Iterable<CostModifier<WithPowers>>) {
+        for (const modifier of modifiers) {
+            const newContext = modifier.modifyCostContext(this);
+            this.cost = newContext.cost;
+            this.source = newContext.source;
+            this.target = newContext.target;
+        }
     }
 }

@@ -10,7 +10,7 @@ export abstract class ReliquaryModifier<T extends ModifiableAction> extends Acti
     mustUse = true;
 
     canUse(): boolean {
-        return super.canUse() && this.activatorProxy === this.gameProxy.chancellor;
+        return super.canUse() && this.playerProxy === this.gameProxy.chancellor;
     }
 }
 
@@ -48,7 +48,7 @@ export class Decadent extends ReliquaryModifier<TravelAction> {
     modifiedAction = TravelAction;
 
     applyBefore(): void {
-        if (this.action.siteProxy.inRegion(RegionKey.Cradle) && !this.activatorProxy.site.inRegion(RegionKey.Cradle))
+        if (this.action.siteProxy.inRegion(RegionKey.Cradle) && !this.playerProxy.site.inRegion(RegionKey.Cradle))
             this.action.noSupplyCost = true;
 
         if (this.action.siteProxy.inRegion(RegionKey.Hinterland))

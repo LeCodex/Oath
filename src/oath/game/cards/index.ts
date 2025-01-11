@@ -1,13 +1,13 @@
 import { CampaignSeizeSiteAction, RecoverAction } from "../actions";
-import { RecoverActionTarget, WithPowers, AtSite, CampaignActionTarget, OwnableObject, HiddenInformation } from "../interfaces";
+import { RecoverActionTarget, WithPowers, AtSite, CampaignActionTarget, OwnableObject, HiddenInformation, WithCost } from "../interfaces";
 import { Region } from "../map";
-import { DiscardCardEffect, FlipSecretsEffect, MoveOwnWarbandsEffect, MoveResourcesToTargetEffect, ParentToTargetEffect, PayCostToBankEffect, RecoverTargetEffect, RevealCardEffect, TakeOwnableObjectEffect } from "../actions/effects";
+import { DiscardCardEffect, FlipSecretsEffect, MoveOwnWarbandsEffect, MoveResourcesToTargetEffect, ParentToTargetEffect, PayCostContextEffect, RecoverTargetEffect, RevealCardEffect, TakeOwnableObjectEffect } from "../actions/effects";
 import { CardRestriction, OathSuit, OathType, OathTypeVisionName, PlayerColor, RegionKey } from "../enums";
 import { Oath } from "../oaths";
 import { OathPlayer } from "../player";
 import { OathPower } from "../powers";
 import { ConspiracyWhenPlayed } from "../powers/visions";
-import { Favor, OathResource, ResourceCost, ResourcesAndWarbands, Secret } from "../resources";
+import { Favor, OathResource, ResourceCost, ResourceCostContext, ResourcesAndWarbands, Secret } from "../resources";
 import { Constructor } from "../utils";
 import { CardDeck, Discard, DiscardOptions, RelicDeck } from "./decks";
 import { denizenData, DenizenName } from "./denizens";
@@ -74,7 +74,7 @@ export abstract class OathCard extends ResourcesAndWarbands<string> implements H
 }
 
 
-export class Site extends OathCard implements CampaignActionTarget {
+export class Site extends OathCard implements CampaignActionTarget, WithCost {
     readonly id: SiteName;
     readonly type = "site";
     capacity: number;
@@ -82,7 +82,7 @@ export class Site extends OathCard implements CampaignActionTarget {
     startingResources: Map<typeof OathResource, number>;
     bandits = 1;
 
-    recoverCost: ResourceCost;
+    cost: ResourceCost;
     recoverSuit: OathSuit;
 
     defense = 1;
@@ -94,7 +94,7 @@ export class Site extends OathCard implements CampaignActionTarget {
         super(id, data[1]);
         this.capacity = data[0];
         this.startingRelics = data[2] ?? 0;
-        this.recoverCost = data[3] ?? new ResourceCost();
+        this.cost = data[3] ?? new ResourceCost();
         this.recoverSuit = data[4] ?? OathSuit.None;
         this.startingResources = new Map(data[5]);
     }
@@ -158,7 +158,7 @@ export class Site extends OathCard implements CampaignActionTarget {
         return {
             ...super.constSerialize(),
             _capacity: this.capacity,
-            _recoverCost: this.recoverCost.serialize(),
+            _recoverCost: this.cost.serialize(),
             _recoverSuit: this.recoverSuit
         };
     }
@@ -203,9 +203,9 @@ export class Relic extends OwnableCard implements RecoverActionTarget, CampaignA
 
     recover(player: OathPlayer): void {
         if (!this.site) return;
-        const cost = this.site.recoverCost;
-        new PayCostToBankEffect(this.game, player, cost, this.site.recoverSuit).doNext(success => {
-            if (!success) throw cost.cannotPayError;
+        const costContext = new ResourceCostContext(player, this.site, this.site.cost, this.game.favorBank(this.site.recoverSuit));
+        new PayCostContextEffect(this.game, player, costContext).doNext(success => {
+            if (!success) throw costContext.cost.cannotPayError;
             new RecoverTargetEffect(player, this).doNext();
         })
     }

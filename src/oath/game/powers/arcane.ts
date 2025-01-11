@@ -5,11 +5,12 @@ import { AttackDie, AttackDieSymbol, DefenseDie, RollResult } from "../dice";
 import { RegionDiscardEffect, PutResourcesOnTargetEffect, RollDiceEffect, BecomeCitizenEffect, DiscardCardEffect, PeekAtCardEffect, MoveResourcesToTargetEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, MoveWorldCardToAdvisersEffect, ParentToTargetEffect, BurnResourcesEffect } from "../actions/effects";
 import { BannerKey, OathSuit } from "../enums";
 import { ExileBoard, OathPlayer } from "../player";
-import { Favor, OathResourceType, ResourceCost, ResourcesAndWarbands, Secret } from "../resources";
-import { ActionModifier, AttackerBattlePlan, DefenderBattlePlan, ActivePower, WhenPlayed, AccessedActionModifier, EnemyAttackerCampaignModifier, EnemyDefenderCampaignModifier } from ".";
+import { Favor, OathResourceType, ResourceCost, ResourceCostContext, ResourcesAndWarbands, Secret } from "../resources";
+import { ActionModifier, AttackerBattlePlan, DefenderBattlePlan, ActivePower, WhenPlayed, Accessed, EnemyAttackerCampaignModifier, EnemyDefenderCampaignModifier, CostModifier, BattlePlan } from ".";
 import { inclusiveRange } from "../utils";
 import { WithPowers } from "../interfaces";
 import { DarkestSecret } from "../banks";
+import { clone } from "lodash";
 
 
 export class FireTalkersAttack extends AttackerBattlePlan<Denizen> {
@@ -17,7 +18,7 @@ export class FireTalkersAttack extends AttackerBattlePlan<Denizen> {
 
     applyBefore(): void {
         const darkestSecretProxy = this.gameProxy.banners.get(BannerKey.DarkestSecret);
-        if (darkestSecretProxy?.owner !== this.activatorProxy) return;
+        if (darkestSecretProxy?.owner !== this.playerProxy) return;
         this.action.campaignResult.atkPool += 3;
     }
 }
@@ -26,7 +27,7 @@ export class FireTalkersDefense extends DefenderBattlePlan<Denizen> {
 
     applyBefore(): void {
         const darkestSecretProxy = this.gameProxy.banners.get(BannerKey.DarkestSecret);
-        if (darkestSecretProxy?.owner !== this.activatorProxy) return;
+        if (darkestSecretProxy?.owner !== this.playerProxy) return;
         this.action.campaignResult.atkPool -= 3;
     }
 }
@@ -51,14 +52,14 @@ export class KindredWarriorsAttack extends AttackerBattlePlan<Denizen> {
 
     applyBefore(): void {
         this.action.campaignResult.atkRoll.ignore.add(AttackDieSymbol.Skull);
-        this.action.campaignResult.atkPool += (this.activator.ruledSuits - 1);
+        this.action.campaignResult.atkPool += (this.player.ruledSuits - 1);
     }
 }
 export class KindredWarriorsDefense extends DefenderBattlePlan<Denizen> {
     cost = new ResourceCost([[Secret, 1]]);
 
     applyBefore(): void {
-        this.action.campaignResult.atkPool -= (this.activator.ruledSuits - 1);
+        this.action.campaignResult.atkPool -= (this.player.ruledSuits - 1);
     }
 }
 
@@ -82,28 +83,25 @@ export class RustingRay extends DefenderBattlePlan<Denizen> {
 
     applyBefore(): void {
         const darkestSecretProxy = this.gameProxy.banners.get(BannerKey.DarkestSecret);
-        if (darkestSecretProxy?.owner !== this.activatorProxy) return;
+        if (darkestSecretProxy?.owner !== this.playerProxy) return;
         this.action.campaignResult.atkRoll.ignore.add(AttackDieSymbol.HollowSword);
     }
 }
 
-export class GleamingArmorAttack extends EnemyAttackerCampaignModifier<Denizen> {
-    applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, CampaignAttackAction>>): Iterable<ActionModifier<WithPowers, CampaignAttackAction>> {
-        for (const modifier of modifiers)
-            if (modifier instanceof AttackerBattlePlan)
-                modifier.cost.add(new ResourceCost([[Secret, 1]]));
+export class GleamingArmor extends CostModifier<Denizen> {
+    mustUse = true;
 
-        return [];
+    canUse(context: ResourceCostContext): boolean {
+        if (!(context.origin instanceof BattlePlan)) return false;
+        const campaignResult = (context.origin.action as CampaignAttackAction | CampaignDefenseAction).campaignResult;
+        const ruler = this.sourceProxy.ruler?.original;
+        return campaignResult.areEnemies(ruler, this.player);
     }
-}
-export class GleamingArmorDefense extends EnemyDefenderCampaignModifier<Denizen> {
-    
-    applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, CampaignDefenseAction>>): Iterable<ActionModifier<WithPowers, CampaignDefenseAction>> {
-        for (const modifier of modifiers)
-            if (modifier instanceof DefenderBattlePlan)
-                modifier.cost.add(new ResourceCost([[Secret, 1]]));
 
-        return [];
+    modifyCostContext(context: ResourceCostContext): ResourceCostContext {
+        const copy = clone(context);
+        copy.cost.add(new ResourceCost([[Secret, 1]]));
+        return copy;
     }
 }
 
@@ -183,7 +181,7 @@ export class Inquisitor extends ActivePower<Denizen> {
                 if (card instanceof Conspiracy)
                     new SearchPlayOrDiscardAction(this.action.player, card).doNext();
                 else
-                    new MoveResourcesToTargetEffect(this.game, this.action.player, Favor, 1, card.owner, this.source).doNext();
+                    new MoveResourcesToTargetEffect(this.game, this.action.player, Favor, 1, card.owner!, this.source).doNext();
             }
         ).doNext();
     }
@@ -258,7 +256,8 @@ export class BloodPact extends ActivePower<Denizen> {
     }
 }
 
-export class ActingTroupe extends AccessedActionModifier<Denizen, TradeAction> {
+@Accessed
+export class ActingTroupe extends ActionModifier<Denizen, TradeAction> {
     modifiedAction = TradeAction;
 
     applyBefore(): void {
@@ -282,7 +281,7 @@ export class Jinx extends ActionModifier<Denizen, RollDiceEffect<AttackDie | Def
         if (!(this.action.result.die instanceof AttackDie) || !(this.action.result.die instanceof DefenseDie)) return;
 
         new MakeDecisionAction(player, "Reroll " + this.action.result.rolls.map(e => e.join(" & ")).join(", ") + " ?", () => {
-            this.payCost(player, success => {
+            this.payCost(success => {
                 if (!success) return;
                 result.rolls = new RollResult(this.game.random, this.action.result.die).roll(this.action.amount).rolls;
             });
@@ -290,7 +289,8 @@ export class Jinx extends ActionModifier<Denizen, RollDiceEffect<AttackDie | Def
     }
 }
 
-export class Portal extends AccessedActionModifier<Denizen, TravelAction> {
+@Accessed
+export class Portal extends ActionModifier<Denizen, TravelAction> {
     modifiedAction = TravelAction;
     cost = new ResourceCost([[Secret, 1]]);
 
@@ -299,14 +299,15 @@ export class Portal extends AccessedActionModifier<Denizen, TravelAction> {
     }
 
     applyAtStart(): void {
-        if (this.activator.site !== this.source.site)
+        if (this.player.site !== this.source.site)
             this.action.selects.siteProxy.filterChoices(e => e.original === this.source.site);
 
         this.action.noSupplyCost = true;
     }
 }
 
-export class SecretSignal extends AccessedActionModifier<Denizen, TradeAction> {
+@Accessed
+export class SecretSignal extends ActionModifier<Denizen, TradeAction> {
     modifiedAction = TradeAction;
     
     applyAfter(): void {
@@ -316,12 +317,19 @@ export class SecretSignal extends AccessedActionModifier<Denizen, TradeAction> {
     }
 }
 
-export class InitiationRite extends AccessedActionModifier<Denizen, MusterAction> {
-    modifiedAction = MusterAction;
+@Accessed
+export class InitiationRite extends CostModifier<Denizen> {
     mustUse = true;
-    
-    applyBefore(): void {
-        this.action.using = Secret;
+
+    canUse(context: ResourceCostContext): boolean {
+        return context.origin instanceof MusterAction;
+    }
+
+    modifyCostContext(context: ResourceCostContext): ResourceCostContext {
+        const copy = clone(context);
+        copy.cost.placedResources.set(Secret, copy.cost.placedResources.get(Favor) || 0);
+        copy.cost.placedResources.set(Favor, 0);
+        return copy;
     }
 }
 
@@ -334,7 +342,8 @@ export class SealingWard extends EnemyAttackerCampaignModifier<Denizen> {
     }
 }
 
-export class Augury extends AccessedActionModifier<Denizen, SearchAction> {
+@Accessed
+export class Augury extends ActionModifier<Denizen, SearchAction> {
     modifiedAction = SearchAction;
     
     applyBefore(): void {
@@ -342,7 +351,8 @@ export class Augury extends AccessedActionModifier<Denizen, SearchAction> {
     }
 }
 
-export class Observatory extends AccessedActionModifier<Denizen, SearchAction> {
+@Accessed
+export class Observatory extends ActionModifier<Denizen, SearchAction> {
     modifiedAction = SearchAction;
     
     applyAtStart(): void {
@@ -352,7 +362,8 @@ export class Observatory extends AccessedActionModifier<Denizen, SearchAction> {
     }
 }
 
-export class MagiciansCode extends AccessedActionModifier<Denizen, RecoverBannerPitchAction> {
+@Accessed
+export class MagiciansCode extends ActionModifier<Denizen, RecoverBannerPitchAction> {
     modifiedAction = RecoverBannerPitchAction;  // Technically should be chosen at the time you recover, but this is way simpler
     cost = new ResourceCost([[Favor, 2]]);
 
@@ -372,7 +383,8 @@ export class MagiciansCode extends AccessedActionModifier<Denizen, RecoverBanner
     }
 }
 
-export class MapLibrary extends AccessedActionModifier<Denizen, TradeAction> {
+@Accessed
+export class MapLibrary extends ActionModifier<Denizen, TradeAction> {
     modifiedAction = TradeAction;
     
     applyWhenApplied(): boolean {
@@ -384,7 +396,8 @@ export class MapLibrary extends AccessedActionModifier<Denizen, TradeAction> {
     }
 }
 
-export class MasterOfDisguise extends AccessedActionModifier<Denizen,TradeAction> {
+@Accessed
+export class MasterOfDisguise extends ActionModifier<Denizen,TradeAction> {
     modifiedAction = TradeAction;
 
     applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, TradeAction>>): Iterable<ActionModifier<WithPowers, TradeAction>> {
@@ -395,7 +408,7 @@ export class MasterOfDisguise extends AccessedActionModifier<Denizen,TradeAction
 
     applyWhenApplied(): boolean {
         new ChoosePlayersAction(
-            this.activator, "Act as if you have another player's advisers instead",
+            this.player, "Act as if you have another player's advisers instead",
             (players: OathPlayer[]) => {
                 if (!players[0]) return;
                 for (const cardProxy of this.action.playerProxy.advisers) cardProxy.prune();
@@ -464,7 +477,8 @@ export class Revelation extends WhenPlayed<Denizen> {
     }
 }
 
-export class VowOfSilence extends AccessedActionModifier<Denizen, ParentToTargetEffect> {
+@Accessed
+export class VowOfSilence extends ActionModifier<Denizen, ParentToTargetEffect> {
     modifiedAction = ParentToTargetEffect;
     mustUse = true;
 
@@ -474,7 +488,8 @@ export class VowOfSilence extends AccessedActionModifier<Denizen, ParentToTarget
                 this.action.objects.delete(object);
     }
 }
-export class VowOfSilenceRecover extends AccessedActionModifier<Denizen, RecoverAction> {
+@Accessed
+export class VowOfSilenceRecover extends ActionModifier<Denizen, RecoverAction> {
     modifiedAction = RecoverAction;
     mustUse = true;
 
@@ -518,7 +533,8 @@ export class DreamThief extends ActivePower<Denizen> {
 }
 
 
-export class GreatSpire extends AccessedActionModifier<Edifice, SearchAction> {
+@Accessed
+export class GreatSpire extends ActionModifier<Edifice, SearchAction> {
     modifiedAction = SearchAction;
     cost = new ResourceCost([[Secret, 1]]);
 

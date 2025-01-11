@@ -5,11 +5,11 @@ import { FavorBank, PeoplesFavor } from "../banks";
 import { Region } from "../map";
 import { Denizen, Edifice, OathCard, Relic, Site, Vision, WorldCard } from "../cards";
 import { D6, DefenseDie } from "../dice";
-import { TakeOwnableObjectEffect, PutResourcesOnTargetEffect, MoveResourcesToTargetEffect, SetNewOathkeeperEffect, RollDiceEffect, DiscardCardEffect, BecomeCitizenEffect, PayCostToTargetEffect, PeekAtCardEffect, WinGameEffect, DrawFromDeckEffect, MoveWorldCardToAdvisersEffect, ParentToTargetEffect, BurnResourcesEffect } from "../actions/effects";
+import { TakeOwnableObjectEffect, PutResourcesOnTargetEffect, MoveResourcesToTargetEffect, SetNewOathkeeperEffect, RollDiceEffect, DiscardCardEffect, BecomeCitizenEffect, PayCostContextEffect, PeekAtCardEffect, WinGameEffect, DrawFromDeckEffect, MoveWorldCardToAdvisersEffect, ParentToTargetEffect, BurnResourcesEffect } from "../actions/effects";
 import { BannerKey, OathSuit } from "../enums";
 import { ExileBoard, OathPlayer } from "../player";
-import { Favor, ResourceCost, Secret } from "../resources";
-import { WhenPlayed, CapacityModifier, ActivePower, RestPower, AttackerBattlePlan, DefenderBattlePlan, ActionModifier, AccessedActionModifier, WakePower, EnemyActionModifier, EnemyAttackerCampaignModifier, EnemyDefenderCampaignModifier } from ".";
+import { Favor, ResourceCost, ResourceCostContext, Secret } from "../resources";
+import { WhenPlayed, CapacityModifier, ActivePower, RestPower, AttackerBattlePlan, DefenderBattlePlan, ActionModifier, Accessed, WakePower, EnemyActionModifier, EnemyAttackerCampaignModifier, EnemyDefenderCampaignModifier } from ".";
 import { minInGroup } from "../utils";
 
 
@@ -18,7 +18,7 @@ export class MercenariesAttack extends AttackerBattlePlan<Denizen> {
 
     applyBefore(): void {
         this.action.campaignResult.atkPool += 3;
-        this.action.campaignResult.onDefenseWin(new CampaignEndCallback(() => new DiscardCardEffect(this.activator, this.source).doNext(), this.source.name));
+        this.action.campaignResult.onDefenseWin(new CampaignEndCallback(() => new DiscardCardEffect(this.player, this.source).doNext(), this.source.name));
     }
 }
 export class MercenariesDefense extends DefenderBattlePlan<Denizen> {
@@ -26,7 +26,7 @@ export class MercenariesDefense extends DefenderBattlePlan<Denizen> {
 
     applyBefore(): void {
         this.action.campaignResult.atkPool -= 3;
-        this.action.campaignResult.onAttackWin(new CampaignEndCallback(() => new DiscardCardEffect(this.activator, this.source).doNext(), this.source.name));
+        this.action.campaignResult.onAttackWin(new CampaignEndCallback(() => new DiscardCardEffect(this.player, this.source).doNext(), this.source.name));
     }
 }
 
@@ -137,9 +137,9 @@ export class RelicThief extends EnemyActionModifier<Denizen, TakeOwnableObjectEf
             new MakeDecisionAction(
                 rulerProxy.original, "Try to steal " + this.action.target.name + "?",
                 () => {
-                    const cost = new ResourceCost([[Favor, 1], [Secret, 1]]);
-                    new PayCostToTargetEffect(this.game, rulerProxy.original, cost, this.source).doNext(success => {
-                        if (!success) throw cost.cannotPayError;
+                    const costContext = new ResourceCostContext(this.player, this, new ResourceCost([[Favor, 1], [Secret, 1]]), this.source);
+                    new PayCostContextEffect(this.game, rulerProxy.original, costContext).doNext(success => {
+                        if (!success) throw this.costContext.cost.cannotPayError;
                         new RollDiceEffect(this.game, rulerProxy.original, new DefenseDie(), 1).doNext(result => {
                             if (result.value === 0) new TakeOwnableObjectEffect(this.game, rulerProxy.original, this.action.target).doNext();
                         });
@@ -195,15 +195,15 @@ export class Assassin extends ActivePower<Denizen> {
 
 export class Insomnia extends RestPower<Denizen> {
     applyAfter(): void {
-        new PutResourcesOnTargetEffect(this.game, this.activator, Secret, 1).doNext();
+        new PutResourcesOnTargetEffect(this.game, this.player, Secret, 1).doNext();
     }
 }
 
 export class SilverTongue extends RestPower<Denizen> {
     applyAfter(): void {
         const suits: Set<OathSuit> = new Set();
-        for (const denizenProxy of this.activatorProxy.site.denizens) suits.add(denizenProxy.suit);
-        new TakeFavorFromBankAction(this.activator, 1, suits).doNext();
+        for (const denizenProxy of this.playerProxy.site.denizens) suits.add(denizenProxy.suit);
+        new TakeFavorFromBankAction(this.player, 1, suits).doNext();
     }
 }
 
@@ -219,7 +219,7 @@ export class SleightOfHand extends ActivePower<Denizen> {
 export class Naysayers extends RestPower<Denizen> {
     applyAfter(): void {
         if (!this.game.oathkeeper.isImperial)
-            new MoveResourcesToTargetEffect(this.game, this.activator, Favor, 1, this.activator, this.game.chancellor).doNext();
+            new MoveResourcesToTargetEffect(this.game, this.player, Favor, 1, this.player, this.game.chancellor).doNext();
     }
 }
 
@@ -227,6 +227,7 @@ export class ChaosCult extends EnemyActionModifier<Denizen, SetNewOathkeeperEffe
     modifiedAction = SetNewOathkeeperEffect;
 
     applyAfter(): void {
+        if (!this.source.ruler) return
         new MoveResourcesToTargetEffect(this.action.game, this.source.ruler, Favor, 1, this.source.ruler, this.action.executor).doNext();
     }
 }
@@ -420,7 +421,8 @@ export class SaltTheEarth extends CapacityModifier<Denizen> {
     }
 }
 
-export class Downtrodden extends AccessedActionModifier<Denizen, MusterAction> {
+@Accessed
+export class Downtrodden extends ActionModifier<Denizen, MusterAction> {
     modifiedAction = MusterAction;
 
     applyBefore(): void {
@@ -516,7 +518,8 @@ export class VowOfRenewal extends ActionModifier<Denizen, BurnResourcesEffect> {
         new PutResourcesOnTargetEffect(this.game, this.sourceProxy.ruler.original, Favor, this.action.result).doNext();
     }
 }
-export class VowOfRenewalRecover extends AccessedActionModifier<Denizen, RecoverAction> {
+@Accessed
+export class VowOfRenewalRecover extends ActionModifier<Denizen, RecoverAction> {
     modifiedAction = RecoverAction;
     mustUse = true;
 

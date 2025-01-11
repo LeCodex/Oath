@@ -1,10 +1,11 @@
+import { clone } from "lodash";
 import { CampaignAction, CampaignKillWarbandsInForceAction, MoveWarbandsAction, MusterAction, PlayFacedownAdviserAction, RecoverAction, RestAction, SearchAction, TradeAction, TravelAction, UsePowerAction } from ".";
 import { Denizen } from "../cards";
 import { RollResult, AttackDie, DefenseDie } from "../dice";
 import { OathGame } from "../game";
 import { CampaignActionTarget } from "../interfaces";
 import { OathPlayer, ExileBoard } from "../player";
-import { ResourcesAndWarbands } from "../resources";
+import { ResourceCostContext, ResourcesAndWarbands } from "../resources";
 import { MaskProxyManager } from "../utils";
 import { DiscardCardEffect, RollDiceEffect } from "./effects";
 
@@ -69,6 +70,13 @@ export class CampaignResult {
         return this.sacrificeValue === 0 ? diff > 0 ? Infinity : 0 : Math.ceil(diff / this.sacrificeValue);
     }
     get couldSacrifice() { return this.requiredSacrifice > 0 && this.requiredSacrifice <= this.totalAtkForce; }
+
+    areEnemies(player1: OathPlayer | undefined, player2: OathPlayer) {
+        return (
+            (player1 === this.defender || !!player1 && this.defenderAllies.has(player1)) && player2 === this.attacker ||
+            (player2 === this.defender || this.defenderAllies.has(player2)) && player1 === this.attacker
+        )
+    }
 
     atEnd(callback: CampaignEndCallback) {
         this.endCallbacks.push(callback);

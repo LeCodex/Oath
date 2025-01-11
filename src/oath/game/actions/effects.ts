@@ -3,12 +3,12 @@ import { Denizen, Edifice, OathCard, Relic, Site, Vision, VisionBack, WorldCard 
 import { ALL_OATH_SUITS, BannerKey, CardRestriction, OathPhase, OathSuit, PlayerColor } from "../enums";
 import { ExileBoard, OathPlayer } from "../player";
 import { OathPower, WhenPlayed } from "../powers";
-import { Favor, OathResource, OathResourceType, ResourceCost, ResourcesAndWarbands, Secret } from "../resources";
+import { Favor, OathResource, OathResourceType, ResourceCost, ResourceCostContext, ResourcesAndWarbands, Secret } from "../resources";
 import { Banner, FavorBank, PeoplesFavor } from "../banks";
 import { OwnableObject, RecoverActionTarget, WithPowers } from "../interfaces";
 import { OathGame } from "../game";
 import { OathGameObject } from "../gameObject";
-import { BuildOrRepairEdificeAction, ChooseNewCitizensAction, VowOathAction, RestAction, WakeAction, SearchDiscardAction, SearchPlayOrDiscardAction, ChooseSuitsAction, ChooseNumberAction } from ".";
+import { BuildOrRepairEdificeAction, ChooseNewCitizensAction, VowOathAction, RestAction, WakeAction, SearchDiscardAction, SearchPlayOrDiscardAction, ChooseSuitsAction, ChooseNumberAction, ChooseCostContextAction as ChoosePayableCostContextAction } from ".";
 import { DiscardOptions, SearchableDeck } from "../cards/decks";
 import { CardDeck } from "../cards/decks";
 import { Constructor, inclusiveRange, isExtended, maxInGroup } from "../utils";
@@ -122,10 +122,10 @@ export class PutResourcesOnTargetEffect extends OathEffect<number> {
 export class MoveResourcesToTargetEffect extends OathEffect<number> {
     resource: OathResourceType;
     amount: number;
-    target?: OathGameObject;
+    target: OathGameObject;
     source?: OathGameObject;
 
-    constructor(game: OathGame, player: OathPlayer | undefined, resource: OathResourceType, amount: number, target: OathGameObject | undefined, source?: OathGameObject) {
+    constructor(game: OathGame, player: OathPlayer | undefined, resource: OathResourceType, amount: number, target: OathGameObject, source?: OathGameObject) {
         super(game, player);
         this.resource = resource;
         this.amount = Math.max(0, amount);
@@ -189,73 +189,43 @@ export class BurnResourcesEffect extends OathEffect<number> {
     }
 }
 
-export class PayCostToTargetEffect extends OathEffect<boolean> {
-    cost: ResourceCost;
-    target?: ResourcesAndWarbands;
-    source?: ResourcesAndWarbands;
-
-    constructor(game: OathGame, player: OathPlayer | undefined, cost: ResourceCost, target: ResourcesAndWarbands | undefined, source?: ResourcesAndWarbands) {
+export class PayCostContextEffect extends OathEffect<boolean> {
+    constructor(game: OathGame, player: OathPlayer | undefined, public costContext: ResourceCostContext) {
         super(game, player);
-        this.cost = cost;
-        this.target = target;
-        this.source = source ?? this.executor;
     }
 
     resolve(): void {
-        if (!this.source) {
-            this.result = false;
-            return;
-        }
+        new ChoosePayableCostContextAction(
+            this.player, this.costContext,
+            (costContext: ResourceCostContext) => {
+                if (costContext.target instanceof Denizen && this.game.currentPlayer !== this.executor) {
+                    const bank = this.game.favorBank(costContext.target.suit);
+                    if (!bank) {
+                        this.result = false;
+                        return;
+                    }
+                    costContext.target = bank;
+                }
+                this.result = true;
 
-        if (this.target instanceof Denizen && this.game.currentPlayer !== this.executor) {
-            new PayCostToBankEffect(this.game, this.executor, this.cost, this.target.suit, this.source).doNext(result => this.result = result);
-            return;
-        }
+                if (!costContext.target) {
+                    costContext.cost.burntResources = new Map([...costContext.cost.burntResources].map(([k, v]) => [k, v + (costContext.cost.placedResources.get(k) ?? 0)]));
+                    costContext.cost.placedResources.clear()
+                }
 
-        this.result = true;
-        for (const [resource, amount] of this.cost.burntResources) {
-            new BurnResourcesEffect(this.game, this.executor, resource, amount, this.source).doNext(result => { if (result < amount) this.result = false; });
-        }
-
-        for (const [resource, amount] of this.cost.placedResources) {
-            new MoveResourcesToTargetEffect(this.game, this.executor, resource, amount, this.target, this.source).doNext(result => { if (result < amount) this.result = false; });
-        }
-    }
-}
-
-export class PayCostToBankEffect extends OathEffect<boolean> {
-    cost: ResourceCost;
-    suit: OathSuit | undefined;
-    source?: ResourcesAndWarbands;
-
-    constructor(game: OathGame, player: OathPlayer | undefined, cost: ResourceCost, suit: OathSuit | undefined, source?: ResourcesAndWarbands) {
-        super(game, player);
-        this.cost = cost;
-        this.suit = suit;
-        this.source = source ?? this.executor;
-    }
-
-    resolve(): void {
-        if (!this.source) {
-            this.result = false;
-            return;
-        }
-    
-        this.result = true;
-        for (const [resource, amount] of this.cost.burntResources) {
-            new BurnResourcesEffect(this.game, this.executor, resource, amount, this.source).doNext(result => { if (result < amount) this.result = false; });
-        }
-
-        if (this.suit) {
-            const bank = this.game.byClass(FavorBank).byKey(this.suit)[0];
-            if (bank) {
-                const favorsToGive = this.cost.placedResources.get(Favor) ?? 0;
-                new MoveResourcesToTargetEffect(this.game, this.executor, Favor, favorsToGive, bank, this.source).doNext(result => { if (result < favorsToGive) this.result = false; });
-            }
-        }
+                let cantReceiveSecrets = costContext.target instanceof FavorBank;
+                for (const [resource, amount] of costContext.cost.burntResources) {
+                    new BurnResourcesEffect(this.game, this.executor, resource, amount, costContext.source).doNext(result => { if (result < amount) this.result = false; });
+                }
         
-        const secretsToFlip = this.cost.placedResources.get(Secret) ?? 0;
-        new FlipSecretsEffect(this.game, this.executor, secretsToFlip, true, this.source).doNext(result => { if (result < secretsToFlip) this.result = false; });
+                for (const [resource, amount] of costContext.cost.placedResources) {
+                    if (resource === Secret && cantReceiveSecrets)
+                        new FlipSecretsEffect(this.game, this.player, amount, true, costContext.source);
+                    else
+                        new MoveResourcesToTargetEffect(this.game, this.executor, resource, amount, costContext.target!, costContext.source).doNext(result => { if (result < amount) this.result = false; });
+                }
+            }
+        ).doNext()
     }
 }
 
@@ -269,17 +239,17 @@ export class PayPowerCostEffect extends PlayerEffect<boolean> {
 
     resolve(): void {
         const target = this.power.source instanceof ResourcesAndWarbands ? this.power.source : undefined;
-        new PayCostToTargetEffect(this.game, this.executor, this.power.cost, target).doNext(result => this.result = result);
+        new PayCostContextEffect(this.game, this.executor, this.power.costContext).doNext(result => this.result = result);
     }
 }
 
 
 export class FlipSecretsEffect extends OathEffect<number> {
     amount: number;
-    source?: ResourcesAndWarbands;
+    source?: OathGameObject;
     facedown: boolean;
 
-    constructor(game: OathGame, player: OathPlayer | undefined, amount: number, facedown: boolean = true, source?: ResourcesAndWarbands) {
+    constructor(game: OathGame, player: OathPlayer | undefined, amount: number, facedown: boolean = true, source?: OathGameObject) {
         super(game, player);
         this.amount = Math.max(0, amount);
         this.facedown = facedown;
@@ -520,7 +490,7 @@ export class ApplyWhenPlayedEffect extends PlayerEffect {
 
     resolve(): void {
         for (const power of this.card.powers)
-            if (isExtended(power, WhenPlayed)) new power(this.card, this).whenPlayed();
+            if (isExtended(power, WhenPlayed)) new power(this.card, this.player, this).whenPlayed();
     }
 }
 

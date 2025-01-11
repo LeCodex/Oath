@@ -90,11 +90,13 @@ export class ChooseModifiers<T extends ModifiableAction> extends OathAction {
         const choices = new Map<string, ActionModifier<WithPowers, T>>();
         const defaults: string[] = []
         for (const modifier of this.game.gatherModifiers(this.action, this.player)) {
+            if (!modifier.costContext.payableCostsWithModifiers(this.action.maskProxyManager).length) continue;  // Modifier can't be payed for
+
             if (modifier.mustUse) {
-                this.persistentModifiers.add(modifier);
+                this.persistentModifiers.add(modifier);  // TODO: How to handle must-use modifiers with costs that you can't pay?
             } else {
                 choices.set(modifier.name, modifier);
-                if (modifier.cost.free) defaults.push(modifier.name);
+                if (modifier.costContext.cost.free) defaults.push(modifier.name);
             }
         }
         this.selects.modifiers = new SelectNOf("Modifiers", choices, { defaults });
@@ -148,7 +150,7 @@ export abstract class ModifiableAction extends OathAction {
 
         let shouldContinue = true;
         for (const modifier of modifiers) {
-            modifier.payCost(modifier.activator, success => {
+            modifier.payCost(success => {
                 if (!success) throw modifier.cost.cannotPayError;
             });
 

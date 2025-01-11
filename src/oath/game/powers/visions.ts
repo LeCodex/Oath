@@ -11,7 +11,7 @@ export class OathDefense extends ActionModifier<Oath, CampaignDefenseAction> {
     get name() { return "Oathkeeper"; }
 
     canUse(): boolean {
-        return this.activatorProxy === this.sourceProxy.parent;
+        return this.playerProxy === this.sourceProxy.parent;
     }
 
     applyBefore(): void {

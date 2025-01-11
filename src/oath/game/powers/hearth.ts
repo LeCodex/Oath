@@ -7,7 +7,7 @@ import { BannerKey, OathSuit, ALL_OATH_SUITS } from "../enums";
 import { WithPowers } from "../interfaces";
 import { Favor, ResourceCost, Secret } from "../resources";
 import { maxInGroup, minInGroup } from "../utils";
-import { DefenderBattlePlan, AccessedActionModifier, ActivePower, WhenPlayed, EnemyActionModifier, AttackerBattlePlan, ActionModifier, EnemyDefenderCampaignModifier } from ".";
+import { DefenderBattlePlan, Accessed, ActivePower, WhenPlayed, EnemyActionModifier, AttackerBattlePlan, ActionModifier, EnemyDefenderCampaignModifier } from ".";
 import { ExileBoard } from "../player";
 import { AttackDieSymbol } from "../dice";
 
@@ -16,7 +16,7 @@ export class TravelingDoctorAttack extends AttackerBattlePlan<Denizen> {
     applyBefore(): void {
         this.action.campaignResult.attackerKillsNoWarbands = true;
         this.action.campaignResult.onDefenseWin(new CampaignEndCallback(
-            () => new DiscardCardEffect(this.activator, this.source).doNext(),
+            () => new DiscardCardEffect(this.player, this.source).doNext(),
             this.source.name
         ));
     }
@@ -25,7 +25,7 @@ export class TravelingDoctorDefense extends DefenderBattlePlan<Denizen> {
     applyBefore(): void {
         this.action.campaignResult.defenderKillsNoWarbands = true;
         this.action.campaignResult.onAttackWin(new CampaignEndCallback(
-            () => new DiscardCardEffect(this.activator, this.source).doNext(),
+            () => new DiscardCardEffect(this.player, this.source).doNext(),
             this.source.name
         ));
     }
@@ -69,16 +69,16 @@ export class TheGreatLevyDefense extends DefenderBattlePlan<Denizen> {
 export class HospitalAttack extends AttackerBattlePlan<Denizen> {
     applyBefore(): void {
         this.action.campaignResult.atEnd(new CampaignEndCallback(() => {
-            if (this.sourceProxy.site?.ruler === this.activatorProxy.leader)
-                new ParentToTargetEffect(this.game, this.activator.leader, this.activatorProxy.leader.original.bag.get(this.action.campaignResult.attackerLoss), this.source.site).doNext();
+            if (this.sourceProxy.site?.ruler === this.playerProxy.leader)
+                new ParentToTargetEffect(this.game, this.player.leader, this.playerProxy.leader.original.bag.get(this.action.campaignResult.attackerLoss), this.source.site).doNext();
         }, this.source.name, false));
     }
 }
 export class HospitalDefense extends DefenderBattlePlan<Denizen> {
     applyBefore(): void {
         this.action.campaignResult.atEnd(new CampaignEndCallback(() => {
-            if (this.sourceProxy.site?.ruler === this.activatorProxy.leader)
-                new ParentToTargetEffect(this.game, this.activator.leader, this.activatorProxy.leader.original.bag.get(this.action.campaignResult.defenderLoss), this.source.site).doNext();
+            if (this.sourceProxy.site?.ruler === this.playerProxy.leader)
+                new ParentToTargetEffect(this.game, this.player.leader, this.playerProxy.leader.original.bag.get(this.action.campaignResult.defenderLoss), this.source.site).doNext();
         }, this.source.name, false));
     }
 }
@@ -90,7 +90,7 @@ export class HeartsAndMinds extends DefenderBattlePlan<Denizen> {
         this.action.campaignResult.successful = false;
         this.action.next.doNext();
 
-        if (this.gameProxy.banners.get(BannerKey.PeoplesFavor)?.owner !== this.activatorProxy)
+        if (this.gameProxy.banners.get(BannerKey.PeoplesFavor)?.owner !== this.playerProxy)
             this.action.campaignResult.discardAtEnd(this.source);
 
         return false;
@@ -105,18 +105,20 @@ export class ExtraProvisions extends DefenderBattlePlan<Denizen> {
     }
 }
 
-export class AwaitedReturn extends AccessedActionModifier<Denizen, TradeAction> {
+@Accessed
+export class AwaitedReturn extends ActionModifier<Denizen, TradeAction> {
     modifiedAction = TradeAction;
 
     applyBefore(): void {
-        if (this.activator.warbands.length) {
-            new KillWarbandsOnTargetAction(this.activator, this.activator, 1).doNext();
+        if (this.player.warbands.length) {
+            new KillWarbandsOnTargetAction(this.player, this.player, 1).doNext();
             this.action.noSupplyCost = true;
         }
     }
 }
 
-export class RowdyPub extends AccessedActionModifier<Denizen, MusterAction> {
+@Accessed
+export class RowdyPub extends ActionModifier<Denizen, MusterAction> {
     modifiedAction = MusterAction;
     mustUse = true;  // Nicer to have it automatically apply
 
@@ -126,17 +128,19 @@ export class RowdyPub extends AccessedActionModifier<Denizen, MusterAction> {
     }
 }
 
-export class CropRotation extends AccessedActionModifier<Denizen, SearchPlayOrDiscardAction> {
+@Accessed
+export class CropRotation extends ActionModifier<Denizen, SearchPlayOrDiscardAction> {
     modifiedAction = SearchPlayOrDiscardAction;
     mustUse = true;  // Nicer to have it automatically apply
 
     applyBefore(): void {
         if (this.action.siteProxy)
-            new MayDiscardACardAction(this.activator, this.action.discardOptions, this.action.siteProxy.denizens).doNext();
+            new MayDiscardACardAction(this.player, this.action.discardOptions, this.action.siteProxy.denizens).doNext();
     }
 }
 
-export class NewsFromAfar extends AccessedActionModifier<Denizen, SearchAction> {
+@Accessed
+export class NewsFromAfar extends ActionModifier<Denizen, SearchAction> {
     modifiedAction = SearchAction;
     cost = new ResourceCost([[Favor, 2]]);
 
@@ -192,7 +196,8 @@ export class FamilyHeirloom extends WhenPlayed<Denizen> {
     }
 }
 
-export class VowOfPeace extends AccessedActionModifier<Denizen, CampaignAttackAction> {
+@Accessed
+export class VowOfPeace extends ActionModifier<Denizen, CampaignAttackAction> {
     modifiedAction = CampaignAttackAction;
     mustUse = true;
 
@@ -257,7 +262,8 @@ export class Marriage extends ActionModifier<Denizen, ModifiableAction> {
     }
 }
 
-export class LandWarden extends AccessedActionModifier<Denizen, SearchChooseAction> {
+@Accessed
+export class LandWarden extends ActionModifier<Denizen, SearchChooseAction> {
     modifiedAction = SearchChooseAction;
     cost = new ResourceCost([[Favor, 1]]);
 
@@ -274,13 +280,14 @@ export class LandWarden extends AccessedActionModifier<Denizen, SearchChooseActi
     }
 }
 
-export class WelcomingParty extends AccessedActionModifier<Denizen, SearchChooseAction> {
+@Accessed
+export class WelcomingParty extends ActionModifier<Denizen, SearchChooseAction> {
     modifiedAction = SearchChooseAction;
 
     applyAfter(): void {
         for (const playAction of this.action.playActions)
             if (playAction.cardProxy instanceof Denizen)
-                playAction.applyModifiers([new WelcomingPartyPlay(this.source, playAction, this.activator)]);
+                playAction.applyModifiers([new WelcomingPartyPlay(this.source, this.player, playAction)]);
     }
 }
 export class WelcomingPartyPlay extends ActionModifier<Denizen, SearchPlayOrDiscardAction> {
@@ -289,7 +296,7 @@ export class WelcomingPartyPlay extends ActionModifier<Denizen, SearchPlayOrDisc
     applyAfter(): void {
         if (this.action.facedown) return;
         const bank = this.game.favorBank(OathSuit.Hearth);
-        if (bank) new ParentToTargetEffect(this.game, this.activator, bank.get(1)).doNext();
+        if (bank) new ParentToTargetEffect(this.game, this.player, bank.get(1)).doNext();
     }
 }
 
