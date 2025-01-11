@@ -89,7 +89,7 @@ export class ChooseModifiers<T extends ModifiableAction> extends OathAction {
         this.persistentModifiers = new Set();
         const choices = new Map<string, ActionModifier<WithPowers, T>>();
         const defaults: string[] = []
-        for (const modifier of this.game.gatherModifiers(this.action, this.player)) {
+        for (const modifier of this.game.gatherActionModifiers(this.action, this.player)) {
             if (!modifier.costContext.payableCostsWithModifiers(this.action.maskProxyManager).length) continue;  // Modifier can't be payed for
 
             if (modifier.mustUse) {

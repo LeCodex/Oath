@@ -3,13 +3,15 @@ import { InvalidActionResolution, ModifiableAction, ResolveCallbackEffect } from
 import { Region } from "../map";
 import { Denizen, Edifice, OathCard, Relic, Site, VisionBack, WorldCard } from "../cards";
 import { DiscardOptions } from "../cards/decks";
-import { PayCostContextEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PayPowerCostEffect, BecomeCitizenEffect, DrawFromDeckEffect, FlipEdificeEffect, MoveResourcesToTargetEffect, DiscardCardEffect, GainSupplyEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, PeekAtCardEffect, MoveWorldCardToAdvisersEffect, MoveDenizenToSiteEffect, DiscardCardGroupEffect, PlayVisionEffect, ParentToTargetEffect, BurnResourcesEffect, PutPawnAtSiteEffect, RecoverTargetEffect } from "../actions/effects";
+import { DoTransferContextEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PayPowerCostEffect, BecomeCitizenEffect, DrawFromDeckEffect, FlipEdificeEffect, DiscardCardEffect, GainSupplyEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, PeekAtCardEffect, MoveWorldCardToAdvisersEffect, MoveDenizenToSiteEffect, DiscardCardGroupEffect, PlayVisionEffect, ParentToTargetEffect, PutPawnAtSiteEffect, RecoverTargetEffect } from "../actions/effects";
 import { BannerKey, OathSuit } from "../enums";
 import { isOwnable } from "../interfaces";
 import { ExileBoard, OathPlayer } from "../player";
-import { Favor, ResourceCost, ResourceCostContext, Secret } from "../resources";
-import { ActivePower, CapacityModifier, AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, EnemyAttackerCampaignModifier, EnemyActionModifier, ActionModifier, gainPowerUntilActionResolves, BattlePlan, Accessed } from ".";
+import { Favor, Secret } from "../resources";
+import { ResourceCost, ResourceTransferContext } from "../costs";
+import { ActivePower, CapacityModifier, AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, EnemyAttackerCampaignModifier, EnemyActionModifier, ActionModifier, gainPowerUntilActionResolves, BattlePlan, Accessed, ResourceTransferModifier } from ".";
 import { DefenseDieSymbol } from "../dice";
+import { clone } from "lodash";
 
 
 export class HorseArchersAttack extends AttackerBattlePlan<Denizen> {
@@ -175,8 +177,8 @@ export class WayStation extends ActionModifier<Denizen, TravelAction> {
         if (this.action.siteProxy === this.sourceProxy.site) {
             if (!this.playerProxy.rules(this.sourceProxy)) {
                 const ruler = this.sourceProxy.ruler?.original;
-                const costContext = new ResourceCostContext(this.player, this, new ResourceCost([[Favor, 1]]), ruler);
-                new PayCostContextEffect(this.game, this.player, costContext).doNext(success => {
+                const costContext = new ResourceTransferContext(this.player, this, new ResourceCost([[Favor, 1]]), ruler);
+                new DoTransferContextEffect(this.game, costContext).doNext(success => {
                     if (!success) return;
                     this.action.noSupplyCost = true;
                 });
@@ -286,7 +288,7 @@ export class AncientBloodlineRelics extends EnemyActionModifier<Denizen, ParentT
 
 export class VowOfKinshipWhenPlayed extends WhenPlayed<Denizen> {
     whenPlayed(): void {
-        new ParentToTargetEffect(this.game, this.action.executor, this.action.executor.byClass(Favor).max(Infinity), this.game.favorBank(OathSuit.Nomad)).doNext();
+        new ParentToTargetEffect(this.game, this.action.executor, this.action.executor.byClass(Favor), this.game.favorBank(OathSuit.Nomad)).doNext();
     }
 }
 export class VowOfKinshipGain extends ActionModifier<Denizen, ParentToTargetEffect> {
@@ -297,7 +299,7 @@ export class VowOfKinshipGain extends ActionModifier<Denizen, ParentToTargetEffe
         const ruler = this.sourceProxy.ruler?.original;
         if (this.action.target !== ruler) return;
         const nomadBank = this.game.favorBank(OathSuit.Nomad);
-        if (!nomadBank) return;
+        if (!nomadBank || this.action.target === nomadBank) return;
 
         const favors: Favor[] = [];
         for (const object of this.action.objects) {
@@ -310,28 +312,19 @@ export class VowOfKinshipGain extends ActionModifier<Denizen, ParentToTargetEffe
         new ParentToTargetEffect(this.game, this.action.executor, favors, nomadBank).doNext();
     }
 }
-export class VowOfKinshipGive extends ActionModifier<Denizen, MoveResourcesToTargetEffect> {
-    modifiedAction = MoveResourcesToTargetEffect;
+export class VowOfKinship extends ResourceTransferModifier<Denizen> {
     mustUse = true;
 
-    applyBefore(): void {
-        if (this.action.resource !== Favor) return;
+    modifyCostContext(context: ResourceTransferContext): ResourceTransferContext {
         const ruler = this.sourceProxy.ruler?.original;
         const nomadBank = this.game.favorBank(OathSuit.Nomad);
-        if (!nomadBank) return;
-        if (this.action.executor === ruler && this.action.source === ruler) this.action.source = nomadBank;
-    }
-}
-export class VowOfKinshipBurn extends ActionModifier<Denizen, BurnResourcesEffect> {
-    modifiedAction = BurnResourcesEffect;
-    mustUse = true;
+        if (!nomadBank) return context;
 
-    applyBefore(): void {
-        if (this.action.resource !== Favor) return;
-        const ruler = this.sourceProxy.ruler?.original;
-        const nomadBank = this.game.favorBank(OathSuit.Nomad);
-        if (!nomadBank) return;
-        if (this.action.executor === ruler && this.action.source === ruler) this.action.source = nomadBank;
+        const copy = clone(context);
+        // TODO: Could split those to make it a choice
+        if (copy.source === ruler && copy.player === ruler) copy.source = nomadBank;
+        if (copy.target === ruler) copy.target = nomadBank;
+        return copy;
     }
 }
 
@@ -358,19 +351,19 @@ export class AncientBinding extends ActivePower<Denizen> {
 
     usePower(): void {
         for (const player of this.game.players) {
-            new BurnResourcesEffect(this.game, player, Secret, player.byClass(Secret).length - (player === this.action.player ? 0 : 1)).doNext();
+            new DoTransferContextEffect(this.game, new ResourceTransferContext(player, this, new ResourceCost([], [[Secret, player.byClass(Secret).length - (player === this.action.player ? 0 : 1)]]), undefined)).doNext();
 
             for (const adviser of player.advisers)
-                new BurnResourcesEffect(this.game, player, Secret, Infinity, adviser).doNext();
+                new DoTransferContextEffect(this.game, new ResourceTransferContext(player, this, new ResourceCost([], [[Secret, Infinity]]), undefined, adviser)).doNext();
 
             for (const relic of player.relics)
-                new BurnResourcesEffect(this.game, player, Secret, Infinity, relic).doNext();
+                new DoTransferContextEffect(this.game, new ResourceTransferContext(player, this, new ResourceCost([], [[Secret, Infinity]]), undefined, relic)).doNext();
         }
 
         for (const site of this.game.map.sites())
             for (const denizen of site.denizens)
                 if (denizen !== this.source)
-                    new BurnResourcesEffect(this.game, this.action.player, Secret, Infinity, denizen).doNext();
+                    new DoTransferContextEffect(this.game, new ResourceTransferContext(this.action.player, this, new ResourceCost([], [[Secret, Infinity]]), undefined, denizen)).doNext();
     }
 }
 

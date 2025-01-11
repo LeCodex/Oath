@@ -2,12 +2,13 @@ import { CampaignBanishPlayerAction } from "./actions";
 import { CampaignActionTarget, AtSite, OwnableObject } from "./interfaces";
 import { Denizen, OwnableCard, Relic, Site, Vision, WorldCard } from "./cards";
 import { DiscardOptions } from "./cards/decks";
-import { BurnResourcesEffect, FlipSecretsEffect, GainSupplyEffect } from "./actions/effects";
+import { DoTransferContextEffect, FlipSecretsEffect, GainSupplyEffect } from "./actions/effects";
 import { ALL_OATH_SUITS, OathSuit, PlayerColor } from "./enums";
 import { isEnumKey } from "./utils";
 import { Warband, ResourcesAndWarbands, Favor, OathResourceType } from "./resources";
 import { Container, OathGameObject } from "./gameObject";
 import { Banner } from "./banks";
+import { ResourceTransferContext, ResourceCost } from "./costs";
 
 export class WarbandsSupply extends Container<Warband, PlayerColor> {
     readonly type = "bag";
@@ -122,7 +123,7 @@ export class OathPlayer extends ResourcesAndWarbands<number> implements Campaign
     }
     
     seize(player: OathPlayer) {
-        new BurnResourcesEffect(this.game, this, Favor, Math.floor(this.byClass(Favor).length / 2)).doNext();
+        new DoTransferContextEffect(this.game, new ResourceTransferContext(this, this, new ResourceCost([], [[Favor, Math.floor(this.byClass(Favor).length / 2)]]), undefined)).doNext();
         new CampaignBanishPlayerAction(player, this).doNext();
     }
 

@@ -2,15 +2,16 @@ import { OathAction, ModifiableAction, InvalidActionResolution, ChooseModifiers 
 import { Denizen, Edifice, OathCard, OwnableCard, Relic, Site, WorldCard } from "../cards";
 import { DiscardOptions, SearchableDeck } from "../cards/decks";
 import { AttackDieSymbol } from "../dice";
-import { MoveResourcesToTargetEffect, PayCostContextEffect, PlayWorldCardEffect, PutPawnAtSiteEffect, DiscardCardEffect, MoveOwnWarbandsEffect, SetPeoplesFavorMobState, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, FlipEdificeEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect, CheckCapacityEffect, CampaignJoinDefenderAlliesEffect, MoveWorldCardToAdvisersEffect, DiscardCardGroupEffect, ParentToTargetEffect, PaySupplyEffect, ThingsExchangeOfferEffect, SiteExchangeOfferEffect, SearchDrawEffect } from "./effects";
+import { DoTransferContextEffect, PlayWorldCardEffect, PutPawnAtSiteEffect, DiscardCardEffect, MoveOwnWarbandsEffect, SetPeoplesFavorMobState, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, FlipEdificeEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect, CheckCapacityEffect, CampaignJoinDefenderAlliesEffect, MoveWorldCardToAdvisersEffect, DiscardCardGroupEffect, ParentToTargetEffect, PaySupplyEffect, ThingsExchangeOfferEffect, SiteExchangeOfferEffect, SearchDrawEffect } from "./effects";
 import { ALL_OATH_SUITS, ALL_PLAYER_COLORS, CardRestriction, OathPhase, OathSuit, OathType, PlayerColor } from "../enums";
 import { ChancellorBoard, ExileBoard, OathPlayer, VisionSlot } from "../player";
 import { ActionModifier, ActivePower, CapacityModifier } from "../powers";
-import { Favor, OathResource, OathResourceType, ResourceCost, ResourceCostContext, ResourcesAndWarbands, Secret } from "../resources";
+import { Favor, OathResource, OathResourceType, ResourcesAndWarbands, Secret } from "../resources";
+import { ResourceCost, ResourceTransferContext } from "../costs";
 import { Banner, FavorBank, PeoplesFavor } from "../banks";
 import { Constructor, inclusiveRange, isExtended, MaskProxyManager, minInGroup } from "../utils";
 import { SelectNOf, SelectBoolean, SelectNumber, SelectWithName, SelectCard } from "./selects";
-import { CampaignActionTarget, hasCost, RecoverActionTarget, WithCost, WithPowers } from "../interfaces";
+import { CampaignActionTarget, RecoverActionTarget, WithPowers } from "../interfaces";
 import { Region } from "../map";
 import { OathGameObject } from "../gameObject";
 import { Citizenship } from "../parser/interfaces";
@@ -98,7 +99,7 @@ export abstract class MajorAction extends ModifiableAction {
     abstract majorAction(): void;
 }
 
-export abstract class PayDenizenAction extends MajorAction implements WithCost {
+export abstract class PayDenizenAction extends MajorAction {
     readonly selects: { cardProxy: SelectCard<Denizen> };
     readonly parameters: { cardProxy: Denizen[] };
 
@@ -106,11 +107,11 @@ export abstract class PayDenizenAction extends MajorAction implements WithCost {
     cardProxy: Denizen;
     
     abstract cost: ResourceCost;
-    costContext: ResourceCostContext;
+    costContext: ResourceTransferContext;
 
     validateCardProxies(cardProxies: Denizen[]) {
         let validCardProxies = cardProxies.filter(e => e.suit !== OathSuit.None && e.empty)
-        validCardProxies = validCardProxies.filter(e => new ResourceCostContext(this.player, this, this.cost, e.original).payableCostsWithModifiers(this.maskProxyManager).length);
+        validCardProxies = validCardProxies.filter(e => new ResourceTransferContext(this.player, this, this.cost, e.original).payableCostsWithModifiers(this.maskProxyManager).length);
         return validCardProxies;
     }
     
@@ -123,12 +124,12 @@ export abstract class PayDenizenAction extends MajorAction implements WithCost {
     
     execute() {
         this.cardProxy = this.parameters.cardProxy[0]!;
-        this.costContext = new ResourceCostContext(this.player, this, this.cost, this.cardProxy.original);
+        this.costContext = new ResourceTransferContext(this.player, this, this.cost, this.cardProxy.original);
         super.execute();
     }
 
     majorAction(): void {
-        new PayCostContextEffect(this.game, this.player, this.costContext).doNext(success => {
+        new DoTransferContextEffect(this.game, this.costContext).doNext(success => {
             if (!success) throw this.cost.cannotPayError;
             this.getReward();
         });
@@ -645,7 +646,7 @@ export class CampaignAttackAction extends ModifiableAction {
 
         // Bandits use all battle plans that are free
         const modifiers: ActionModifier<WithPowers, CampaignDefenseAction>[] = [];
-        for (const modifier of this.game.gatherModifiers(this.next, this.player)) {
+        for (const modifier of this.game.gatherActionModifiers(this.next, this.player)) {
             if (modifier.mustUse || modifier.cost.free)
                 modifiers.push(modifier);
         }
@@ -1193,21 +1194,21 @@ export class ChooseRegionAction extends OathAction {
 }
 
 
-export class ChooseCostContextAction extends ModifiableAction {
-    readonly selects: { costContext: SelectNOf<ResourceCostContext | undefined> };
-    readonly parameters: { costContext: (ResourceCostContext | undefined)[] };
+export class ChooseTransferContextAction extends ModifiableAction {
+    readonly selects: { costContext: SelectNOf<ResourceTransferContext | undefined> };
+    readonly parameters: { costContext: (ResourceTransferContext | undefined)[] };
     readonly message: string;
 
     constructor(
         player: OathPlayer,
-        public costContext: ResourceCostContext,
-        public callback: (costContext: ResourceCostContext) => void
+        public costContext: ResourceTransferContext,
+        public callback: (costContext: ResourceTransferContext) => void
     ) {
         super(player);
     }
 
     start() {
-        const choices = new Map<string, ResourceCostContext>();
+        const choices = new Map<string, ResourceTransferContext>();
         const payableCostContextsInfo = this.costContext.payableCostsWithModifiers(this.maskProxyManager);
         for (const costContextInfo of payableCostContextsInfo)
             choices.set(costContextInfo.context.cost.toString() + `(${costContextInfo.modifiers.map(e => e.name).join(", ") || "Base"})`, costContextInfo.context);
@@ -1295,7 +1296,7 @@ export class PeoplesFavorWakeAction extends ChooseSuitsAction {
 
     putOrReturnFavor(suit: OathSuit | undefined): void {
         const bank = suit !== undefined ? this.game.favorBank(suit) : undefined;
-        new MoveResourcesToTargetEffect(this.game, this.player, Favor, 1, bank ?? this.banner, bank ? this.banner : this.player).doNext();
+        new DoTransferContextEffect(this.game, new ResourceTransferContext(this.player, this, new ResourceCost([[Favor, 1]]), bank ?? this.banner, bank ? this.banner : this.player)).doNext();
 
         if (this.banner.amount >= 6)
             new SetPeoplesFavorMobState(this.game, this.player, true).doNext();
@@ -1341,7 +1342,7 @@ export class TakeResourceFromPlayerAction extends ChoosePlayersAction {
             (targets: OathPlayer[]) => {
                 if (!targets[0]) return;
                 if (resource === Secret && targets[0].byClass(Secret).length <= 1) return;
-                new MoveResourcesToTargetEffect(this.game, player, resource, amount === undefined ? 1 : amount, player, targets[0]).doNext();
+                new DoTransferContextEffect(this.game, new ResourceTransferContext(player, this, new ResourceCost([[resource, amount === undefined ? 1 : amount]]), player, targets[0])).doNext();
             },
             players && [players]
         );

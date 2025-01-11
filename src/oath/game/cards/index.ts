@@ -1,13 +1,14 @@
 import { CampaignSeizeSiteAction, RecoverAction } from "../actions";
-import { RecoverActionTarget, WithPowers, AtSite, CampaignActionTarget, OwnableObject, HiddenInformation, WithCost } from "../interfaces";
+import { RecoverActionTarget, WithPowers, AtSite, CampaignActionTarget, OwnableObject, HiddenInformation } from "../interfaces";
 import { Region } from "../map";
-import { DiscardCardEffect, FlipSecretsEffect, MoveOwnWarbandsEffect, MoveResourcesToTargetEffect, ParentToTargetEffect, PayCostContextEffect, RecoverTargetEffect, RevealCardEffect, TakeOwnableObjectEffect } from "../actions/effects";
+import { DiscardCardEffect, FlipSecretsEffect, MoveOwnWarbandsEffect, ParentToTargetEffect, DoTransferContextEffect, RecoverTargetEffect, RevealCardEffect, TakeOwnableObjectEffect } from "../actions/effects";
 import { CardRestriction, OathSuit, OathType, OathTypeVisionName, PlayerColor, RegionKey } from "../enums";
 import { Oath } from "../oaths";
 import { OathPlayer } from "../player";
 import { OathPower } from "../powers";
 import { ConspiracyWhenPlayed } from "../powers/visions";
-import { Favor, OathResource, ResourceCost, ResourceCostContext, ResourcesAndWarbands, Secret } from "../resources";
+import { Favor, OathResource, ResourcesAndWarbands, Secret } from "../resources";
+import { ResourceCost, ResourceTransferContext } from "../costs";
 import { Constructor } from "../utils";
 import { CardDeck, Discard, DiscardOptions, RelicDeck } from "./decks";
 import { denizenData, DenizenName } from "./denizens";
@@ -49,7 +50,7 @@ export abstract class OathCard extends ResourcesAndWarbands<string> implements H
     returnResources() {
         const amount = this.byClass(Secret).length;
         if (amount) {
-            new MoveResourcesToTargetEffect(this.game, this.game.currentPlayer, Secret, amount, this.game.currentPlayer, this).doNext();
+            new DoTransferContextEffect(this.game, new ResourceTransferContext(this.game.currentPlayer, this, new ResourceCost([[Secret, amount]]), this.game.currentPlayer, this)).doNext();
             new FlipSecretsEffect(this.game, this.game.currentPlayer, amount).doNext();
         }
     }
@@ -74,7 +75,7 @@ export abstract class OathCard extends ResourcesAndWarbands<string> implements H
 }
 
 
-export class Site extends OathCard implements CampaignActionTarget, WithCost {
+export class Site extends OathCard implements CampaignActionTarget {
     readonly id: SiteName;
     readonly type = "site";
     capacity: number;
@@ -82,7 +83,7 @@ export class Site extends OathCard implements CampaignActionTarget, WithCost {
     startingResources: Map<typeof OathResource, number>;
     bandits = 1;
 
-    cost: ResourceCost;
+    recoverCost: ResourceCost;
     recoverSuit: OathSuit;
 
     defense = 1;
@@ -94,7 +95,7 @@ export class Site extends OathCard implements CampaignActionTarget, WithCost {
         super(id, data[1]);
         this.capacity = data[0];
         this.startingRelics = data[2] ?? 0;
-        this.cost = data[3] ?? new ResourceCost();
+        this.recoverCost = data[3] ?? new ResourceCost();
         this.recoverSuit = data[4] ?? OathSuit.None;
         this.startingResources = new Map(data[5]);
     }
@@ -158,7 +159,7 @@ export class Site extends OathCard implements CampaignActionTarget, WithCost {
         return {
             ...super.constSerialize(),
             _capacity: this.capacity,
-            _recoverCost: this.cost.serialize(),
+            _recoverCost: this.recoverCost.serialize(),
             _recoverSuit: this.recoverSuit
         };
     }
@@ -203,8 +204,8 @@ export class Relic extends OwnableCard implements RecoverActionTarget, CampaignA
 
     recover(player: OathPlayer): void {
         if (!this.site) return;
-        const costContext = new ResourceCostContext(player, this.site, this.site.cost, this.game.favorBank(this.site.recoverSuit));
-        new PayCostContextEffect(this.game, player, costContext).doNext(success => {
+        const costContext = new ResourceTransferContext(player, this.site, this.site.recoverCost, this.game.favorBank(this.site.recoverSuit));
+        new DoTransferContextEffect(this.game, costContext).doNext(success => {
             if (!success) throw costContext.cost.cannotPayError;
             new RecoverTargetEffect(player, this).doNext();
         })

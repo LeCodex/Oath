@@ -1,6 +1,7 @@
 import { OathSuit } from "../enums";
 import { AncientCity, BuriedGiant, CharmingValley, CoastalSite, DeepWoods, FertileValley, GreatSlum, Marshes, Mountain, NarrowPass, OpportunitySite, Plains, River, ShroudedWood, StandingStones, Steppe, TheHiddenPlaceCampaign, TheHiddenPlaceTravel, TheTribunal, Wastes } from "../powers/sites";
-import { Favor, ResourceCost, Secret } from "../resources";
+import { Favor, Secret } from "../resources";
+import { ResourceCost } from "../costs";
 
 export const sitesData = {
     Plains:         [3, [Plains]],

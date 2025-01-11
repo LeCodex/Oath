@@ -1,6 +1,6 @@
 import { ChooseSuitsAction, RecoverAction, RecoverBannerPitchAction } from "./actions";
 import { RecoverActionTarget, CampaignActionTarget, WithPowers, OwnableObject } from "./interfaces";
-import { TakeOwnableObjectEffect, SetPeoplesFavorMobState, ParentToTargetEffect, BurnResourcesEffect, MoveResourcesToTargetEffect, RecoverTargetEffect } from "./actions/effects";
+import { TakeOwnableObjectEffect, SetPeoplesFavorMobState, ParentToTargetEffect, RecoverTargetEffect, DoTransferContextEffect } from "./actions/effects";
 import { OathSuit } from "./enums";
 import { isEnumKey } from "./utils";
 import { OathPlayer } from "./player";
@@ -9,6 +9,7 @@ import { OathPower } from "./powers";
 import { Constructor } from "./utils";
 import { Favor, OathResource, OathResourceType, Secret } from "./resources";
 import { Container } from "./gameObject";
+import { ResourceCost, ResourceTransferContext } from "./costs";
 
 export class FavorBank extends Container<Favor, OathSuit> {
     readonly id: keyof typeof OathSuit;
@@ -56,7 +57,7 @@ export abstract class Banner<T extends OathResource = OathResource> extends Cont
 
     seize(player: OathPlayer) {
         new TakeOwnableObjectEffect(this.game, player, this).doNext();
-        new BurnResourcesEffect(this.game, player, this.cls as any, 2, this).doNext();
+        new DoTransferContextEffect(this.game, new ResourceTransferContext(player, this, new ResourceCost([], [[this.cls as any, 2]]), undefined, this)).doNext();
     }
 
     abstract handleRecovery(player: OathPlayer): void;
@@ -85,7 +86,7 @@ export class PeoplesFavor extends Banner<Favor> {
                 while (amount > 0) {
                     const bank = this.game.byClass(FavorBank).byKey(suit)[0];
                     if (bank) {
-                        new MoveResourcesToTargetEffect(this.game, player, bank.cls, 1, bank, this).doNext();
+                        new DoTransferContextEffect(this.game, new ResourceTransferContext(player, this, new ResourceCost([[bank.cls, 1]]), bank, this)).doNext();
                         amount--;
                     }
                     if (++suit > OathSuit.Nomad) suit = OathSuit.Discord;
@@ -131,7 +132,8 @@ export class DarkestSecret extends Banner<Secret> {
     }
 
     handleRecovery(player: OathPlayer) {
-        new MoveResourcesToTargetEffect(this.game, player, this.cls, 1, player, this).doNext();
-        if (this.owner) new MoveResourcesToTargetEffect(this.game, this.owner, this.cls, this.amount - 1, this).doNext();
+        new DoTransferContextEffect(this.game, new ResourceTransferContext(player, this, new ResourceCost([[this.cls, 1]]), player, this)).doNext();
+        if (this.owner)
+            new DoTransferContextEffect(this.game, new ResourceTransferContext(this.owner, this, new ResourceCost([[this.cls, this.amount - 1]]), this)).doNext();
     }
 }

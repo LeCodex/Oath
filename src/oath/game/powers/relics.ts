@@ -2,14 +2,16 @@ import { CitizenshipOfferAction, StartBindingExchangeAction, SkeletonKeyAction, 
 import { CampaignEndCallback } from "../actions/utils";
 import { InvalidActionResolution, ModifiableAction } from "../actions/base";
 import { Denizen, GrandScepter, OathCard, Relic, Site } from "../cards";
-import { TakeOwnableObjectEffect, PlayDenizenAtSiteEffect, MoveOwnWarbandsEffect, PeekAtCardEffect, SetGrandScepterLockEffect, GainSupplyEffect, DrawFromDeckEffect, RevealCardEffect, PayCostContextEffect, BecomeExileEffect, MoveResourcesToTargetEffect, MoveDenizenToSiteEffect, MoveWorldCardToAdvisersEffect, ParentToTargetEffect } from "../actions/effects";
+import { TakeOwnableObjectEffect, PlayDenizenAtSiteEffect, MoveOwnWarbandsEffect, PeekAtCardEffect, SetGrandScepterLockEffect, GainSupplyEffect, DrawFromDeckEffect, RevealCardEffect, DoTransferContextEffect, BecomeExileEffect, MoveDenizenToSiteEffect, MoveWorldCardToAdvisersEffect, ParentToTargetEffect } from "../actions/effects";
 import { BannerKey, PlayerColor } from "../enums";
 import { OathPlayer, ExileBoard } from "../player";
 import { isOwnable } from "../interfaces";
-import { Favor, Warband, ResourceCost, Secret, ResourceCostContext } from "../resources";
-import { EnemyActionModifier, AttackerBattlePlan, DefenderBattlePlan, ActionModifier, ActivePower, RestPower, BattlePlan, EnemyAttackerCampaignModifier, Accessed } from ".";
+import { Favor, Warband, Secret } from "../resources";
+import { ResourceCost, ResourceTransferContext } from "../costs";
+import { EnemyActionModifier, AttackerBattlePlan, DefenderBattlePlan, ActionModifier, ActivePower, RestPower, BattlePlan, EnemyAttackerCampaignModifier, Accessed, ResourceTransferModifier } from ".";
 import { DiscardOptions } from "../cards/decks";
 import { inclusiveRange, isExtended } from "../utils";
+import { clone } from "lodash";
 
 
 export class GrandScepterSeize extends ActionModifier<GrandScepter, TakeOwnableObjectEffect> {
@@ -80,8 +82,8 @@ export class GrandScepterExileCitizen extends GrandScepterActive {
                 if (target === this.game.oathkeeper) amount++;
                 if (target === peoplesFavor?.owner) amount++;
                 
-                const costContext = new ResourceCostContext(this.action.player, this, new ResourceCost([[Favor, amount]]), target);
-                new PayCostContextEffect(this.game, this.action.player, costContext).doNext(success => {
+                const costContext = new ResourceTransferContext(this.action.player, this, new ResourceCost([[Favor, amount]]), target);
+                new DoTransferContextEffect(this.game, costContext).doNext(success => {
                     if (!success) throw this.costContext.cost.cannotPayError;
                     new BecomeExileEffect(target).doNext();
                 });
@@ -98,7 +100,7 @@ export class StickyFireAttack extends AttackerBattlePlan<Relic> {
 
         this.action.campaignResult.onAttackWin(new CampaignEndCallback(() => new MakeDecisionAction(this.action.player, "Use Sticky Fire?", () => { 
             this.action.campaignResult.defenderKills(Infinity);
-            new MoveResourcesToTargetEffect(this.game, this.action.player, Favor, 1, defender).doNext();
+            new DoTransferContextEffect(this.game, new ResourceTransferContext(this.action.player, this, new ResourceCost([[Favor, 1]]), defender)).doNext();
         }).doNext(), this.source.name, false));
     }
 }
@@ -107,7 +109,7 @@ export class StickyFireDefense extends DefenderBattlePlan<Relic> {
         const attacker = this.action.campaignResult.attacker;
         this.action.campaignResult.onAttackWin(new CampaignEndCallback(() => new MakeDecisionAction(this.action.player, "Use Sticky Fire?", () => { 
             this.action.campaignResult.attackerKills(Infinity);
-            new MoveResourcesToTargetEffect(this.game, this.action.player, Favor, 1, attacker).doNext();
+            new DoTransferContextEffect(this.game, new ResourceTransferContext(this.action.player, this, new ResourceCost([[Favor, 1]]), attacker)).doNext();
         }).doNext(), this.source.name, false));
     }
 }
@@ -217,13 +219,19 @@ export class DragonskinDrum extends ActionModifier<Relic, TravelAction> {
 }
 
 @Accessed
-export class BookOfRecords extends ActionModifier<Relic, PlayDenizenAtSiteEffect> {
+export class BookOfRecords extends ResourceTransferModifier<Relic> {
     modifiedAction = PlayDenizenAtSiteEffect;
     mustUse = true;
 
-    applyBefore(): void {
-        this.action.getting.set(Secret, this.action.getting.get(Favor) ?? 0);
-        this.action.getting.delete(Favor);
+    canUse(context: ResourceTransferContext): boolean {
+        return context.origin instanceof PlayDenizenAtSiteEffect;
+    }
+
+    modifyCostContext(context: ResourceTransferContext): ResourceTransferContext {
+        const copy = clone(context);
+        copy.cost.placedResources.set(Secret, (copy.cost.placedResources.get(Secret) ?? 0) + (copy.cost.placedResources.get(Favor) ?? 0));
+        copy.cost.placedResources.delete(Favor);
+        return copy;
     }
 }
 
@@ -359,7 +367,7 @@ export class Whistle extends ActivePower<Relic> {
                 const travelAction = new TravelAction(targets[0], this.action.player, (site: Site) => site === this.action.player.site);
                 travelAction.noSupplyCost = true;
                 travelAction.doNext();
-                new MoveResourcesToTargetEffect(this.game, this.action.player, Secret, 1, targets[0], this.source).doNext();
+                new DoTransferContextEffect(this.game, new ResourceTransferContext(this.player, this, new ResourceCost([[Secret, 1]]), targets[0], this.source)).doNext();
             },
             [this.gameProxy.players.filter(e => e.site !== this.action.playerProxy.site).map(e => e.original)]
         ).doNext();

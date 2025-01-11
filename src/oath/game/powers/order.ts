@@ -2,12 +2,13 @@ import { TradeAction, TravelAction, SearchAction, SearchPlayOrDiscardAction, Tak
 import { CampaignResult, CampaignEndCallback } from "../actions/utils";
 import { InvalidActionResolution } from "../actions/base";
 import { Denizen, Edifice, Relic, Site, Vision } from "../cards";
-import { PayCostContextEffect, MoveResourcesToTargetEffect, GainSupplyEffect, BecomeCitizenEffect, PutPawnAtSiteEffect, MoveOwnWarbandsEffect, BecomeExileEffect, PlayVisionEffect, TakeOwnableObjectEffect, ParentToTargetEffect } from "../actions/effects";
+import { DoTransferContextEffect, GainSupplyEffect, BecomeCitizenEffect, PutPawnAtSiteEffect, MoveOwnWarbandsEffect, BecomeExileEffect, PlayVisionEffect, TakeOwnableObjectEffect, ParentToTargetEffect } from "../actions/effects";
 import { BannerKey, OathSuit } from "../enums";
 import { OathGameObject } from "../gameObject";
 import { CampaignActionTarget, WithPowers } from "../interfaces";
 import { ExileBoard, OathPlayer } from "../player";
-import { Favor, ResourceCost, ResourceCostContext } from "../resources";
+import { Favor } from "../resources";
+import { ResourceCost, ResourceTransferContext } from "../costs";
 import { AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, RestPower, ActivePower, ActionModifier, Accessed, EnemyActionModifier, BattlePlan } from ".";
 import { AttackDieSymbol } from "../dice";
 
@@ -145,11 +146,14 @@ export class PeaceEnvoyAttack extends AttackerBattlePlan<Denizen> {
     applyWhenApplied(): boolean {
         // TODO: This will mean no other modifiers get to do anything. Is this fine?
         if (this.action.campaignResultProxy.defender?.site === this.playerProxy.site) {
-            new MoveResourcesToTargetEffect(this.game, this.player, Favor, this.action.campaignResult.defPool, this.action.campaignResult.defender!).doNext(amount => {
-                if (amount === 0) return;
+            new DoTransferContextEffect(
+                this.game,
+                new ResourceTransferContext(this.player, this, new ResourceCost([[Favor, this.action.campaignResult.defPool]]), this.action.campaignResult.defender!)
+            ).doNext(success => {
+                if (!success) return;
                 this.action.campaignResult.successful = true;
                 this.action.campaignResult.ignoreKilling = true;
-                this.action.next.doNext();
+                this.action.next.next.doNext();
             });
         }
 
@@ -165,8 +169,11 @@ export class PeaceEnvoyDefense extends DefenderBattlePlan<Denizen> {
 
     applyWhenApplied(): boolean {
         if (this.action.campaignResultProxy.attacker.site === this.playerProxy.site) {
-            new MoveResourcesToTargetEffect(this.game, this.player, Favor, this.action.campaignResult.defPool, this.action.campaignResult.attacker).doNext(amount => {
-                if (amount === 0) return;
+            new DoTransferContextEffect(
+                this.game,
+                new ResourceTransferContext(this.player, this, new ResourceCost([[Favor, this.action.campaignResult.defPool]]), this.action.campaignResult.attacker)
+            ).doNext(success => {
+                if (!success) return;
                 this.action.campaignResult.successful = false;
                 this.action.campaignResult.ignoreKilling = true;
                 this.action.next.doNext();
@@ -285,8 +292,8 @@ export class Curfew extends EnemyActionModifier<Denizen, TradeAction> {
     }
 
     applyBefore(): void {
-        const costContext = new ResourceCostContext(this.player, this, new ResourceCost([[Favor, 1]]), this.sourceProxy.ruler?.original);
-        new PayCostContextEffect(this.game, this.player, costContext).doNext(success => {
+        const costContext = new ResourceTransferContext(this.player, this, new ResourceCost([[Favor, 1]]), this.sourceProxy.ruler?.original);
+        new DoTransferContextEffect(this.game, costContext).doNext(success => {
             if (!success) throw this.costContext.cost.cannotPayError;
         });
     }
@@ -297,8 +304,8 @@ export class TollRoads extends EnemyActionModifier<Denizen, TravelAction> {
 
     applyBefore(): void {
         if (this.action.siteProxy.ruler === this.sourceProxy.ruler) {
-            const costContext = new ResourceCostContext(this.player, this, new ResourceCost([[Favor, 1]]), this.sourceProxy.ruler?.original);
-            new PayCostContextEffect(this.game, this.player, costContext).doNext(success => {
+            const costContext = new ResourceTransferContext(this.player, this, new ResourceCost([[Favor, 1]]), this.sourceProxy.ruler?.original);
+            new DoTransferContextEffect(this.game, costContext).doNext(success => {
                 if (!success) throw this.costContext.cost.cannotPayError;
             });
         }
@@ -313,8 +320,8 @@ export class ForcedLabor extends EnemyActionModifier<Denizen, SearchAction> {
     }
 
     applyBefore(): void {
-        const costContext = new ResourceCostContext(this.player, this, new ResourceCost([[Favor, 1]]), this.sourceProxy.ruler?.original);
-        new PayCostContextEffect(this.game, this.player, costContext).doNext(success => {
+        const costContext = new ResourceTransferContext(this.player, this, new ResourceCost([[Favor, 1]]), this.sourceProxy.ruler?.original);
+        new DoTransferContextEffect(this.game, costContext).doNext(success => {
             if (!success) throw this.costContext.cost.cannotPayError;
         });
     }
@@ -417,7 +424,7 @@ export class RoyalTax extends WhenPlayed<Denizen> {
     whenPlayed(): void {
         for (const playerProxy of this.gameProxy.players) {
             if (playerProxy.site.ruler === this.action.executorProxy.leader)
-                new MoveResourcesToTargetEffect(this.game, this.action.executor, Favor, 2, this.action.executor, playerProxy).doNext();
+                new DoTransferContextEffect(this.game, new ResourceTransferContext(this.action.executor, this, new ResourceCost([[Favor, 2]]), this.action.executor, playerProxy)).doNext();
         }
     }
 }

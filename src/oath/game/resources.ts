@@ -1,12 +1,8 @@
-import { BurnResourcesEffect, ParentToTargetEffect } from "./actions/effects";
+import { DoTransferContextEffect, ParentToTargetEffect } from "./actions/effects";
 import { OathGameObject, OathGameObjectLeaf } from "./gameObject";
-import { InvalidActionResolution } from "./actions/base";
 import { PlayerColor } from "./enums";
-import { allCombinations, isEnumKey, MaskProxyManager, NodeGroup } from "./utils";
-import { OathPlayer } from "./player";
-import { WithCost, WithPowers } from "./interfaces";
-import { CostModifier } from "./powers";
-import { clone } from "lodash";
+import { isEnumKey, NodeGroup } from "./utils";
+import { ResourceTransferContext, ResourceCost } from "./costs";
 
 
 export abstract class OathResource extends OathGameObjectLeaf<number> {
@@ -130,117 +126,9 @@ export abstract class ResourcesAndWarbands<T = any> extends OathGameObject<T> {
 
     clear() {
         for (const resource of [Favor, Secret])
-            new BurnResourcesEffect(this.game, undefined, resource, Infinity, this).doNext();
+            new DoTransferContextEffect(this.game, new ResourceTransferContext(this.game.currentPlayer, this, new ResourceCost([], [[resource, Infinity]]), undefined, this)).doNext();
 
         for (const player of this.game.players)
             new ParentToTargetEffect(this.game, player, this.getWarbands(player.board.key), player.bag).doNext();
-    }
-}
-
-
-export class ResourceCost {
-    placedResources: Map<OathResourceType, number>;
-    burntResources: Map<OathResourceType, number>;
-
-    constructor(placedResources: Iterable<[OathResourceType, number]> = [], burntResources: Iterable<[OathResourceType, number]> = []) {
-        this.placedResources = new Map(placedResources);
-        this.burntResources = new Map(burntResources);
-    }
-
-    get totalResources() {
-        const total = new Map<OathResourceType, number>();
-        for (const [resource, amount] of this.placedResources) total.set(resource, amount);
-        for (const [resource, amount] of this.burntResources) total.set(resource, (total.get(resource) ?? 0) + amount);
-        return total;
-    }
-
-    get placesResources() {
-        for (const amount of this.placedResources.values()) if (amount) return true;
-        return false;
-    }
-
-    get free(): boolean {
-        for (const amount of this.placedResources.values()) if (amount) return false;
-        for (const amount of this.burntResources.values()) if (amount) return false;
-        return true;
-    }
-
-    get cannotPayError(): InvalidActionResolution {
-        let message = "Cannot pay resource cost: ";
-        message += this.toString();
-        return new InvalidActionResolution(message);
-    }
-
-    add(other: ResourceCost) {
-        for (const [resource, amount] of other.placedResources) this.placedResources.set(resource, (this.placedResources.get(resource) ?? 0) + amount);
-        for (const [resource, amount] of other.burntResources) this.burntResources.set(resource, (this.burntResources.get(resource) ?? 0) + amount);
-    }
-
-    serialize() {
-        return {
-            placedResources: Object.fromEntries([...this.placedResources.entries()].map(([k, v]) => [k.name, v])),
-            burntResources: Object.fromEntries([...this.burntResources.entries()].map(([k, v]) => [k.name, v])),
-        };
-    }
-
-    static parse(obj: ReturnType<ResourceCost["serialize"]>): ResourceCost {
-        const resourceClasses = { Favor, Secret };
-        const parseResources = (resources: { [k: string]: number }) =>
-            Object.entries(resources).map<[OathResourceType, number]>(([k, v]: [keyof typeof resourceClasses, number]) => [resourceClasses[k]!, v]);
-        return new this(parseResources(obj.placedResources), parseResources(obj.burntResources));
-    }
-
-    toString() {
-        const printResources = function(resources: Map<OathResourceType, number>, suffix: string) {
-            if ([...resources].filter(([_, a]) => a > 0).length === 0) return undefined;
-            return [...resources].map(([resource, number]) => `${number} ${resource.name}(s)`).join(", ") + suffix;
-        }
-        return [printResources(this.placedResources, " placed"), printResources(this.burntResources, " burnt")].filter(e => e !== undefined).join(", ");
-    }
-}
-
-export class ResourceCostContext {
-    source: OathGameObject;
-
-    constructor(
-        public player: OathPlayer,
-        public origin: WithCost,
-        public cost: ResourceCost,
-        public target: OathGameObject | undefined,
-        source?: OathGameObject
-    ) {
-        this.source = source || this.player;
-    }
-
-    payableCostsWithModifiers(maskProxyManager: MaskProxyManager) {
-        const modifiers: CostModifier<any>[] = [];
-        for (const [source, modifier] of maskProxyManager.get(this.player.game).getPowers(CostModifier)) {
-            const instance = new modifier(source, this.player, maskProxyManager);
-            if (instance.canUse(this)) modifiers.push(instance);
-        }
-
-        const mustUse = modifiers.filter(e => e.mustUse);
-        const canUse = modifiers.filter(e => !e.mustUse);
-        const combinations = allCombinations(canUse).map(e => [...mustUse, ...e]);
-        return combinations.map(combination => {
-            let context: ResourceCostContext = clone(this);
-            for (const modifier of combination) context = modifier.modifyCostContext(context);
-
-            console.log(this.origin.constructor.name, context.cost.totalResources);
-            for (const [resource, amount] of context.cost.totalResources)
-                if (context.source.byClass(resource).length < amount)
-                    return undefined;
-            
-            return { context, modifiers: combination };
-        }).filter(e => !!e);
-    }
-
-    modify(modifiers: Iterable<CostModifier<WithPowers>>) {
-        for (const modifier of modifiers) {
-            const newContext = modifier.modifyCostContext(this);
-            this.cost = newContext.cost;
-            this.source = newContext.source;
-            this.target = newContext.target;
-        }
     }
 }

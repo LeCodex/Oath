@@ -236,7 +236,6 @@ export class OathActionManager {
             event.oneWay = this.markEventAsOneWay;
             return this.defer(save);
         } catch (e) {
-            console.log(e);
             this.authorizeCancel(save);
             throw e;
         }

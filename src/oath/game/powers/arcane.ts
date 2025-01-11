@@ -1,12 +1,13 @@
-import { CampaignAttackAction, CampaignDefenseAction, TakeFavorFromBankAction, TradeAction, TravelAction, MakeDecisionAction, RestAction, ChooseCardsAction, SearchPlayOrDiscardAction, ChoosePlayersAction, ChooseSitesAction, ChooseNumberAction, SearchAction, KillWarbandsOnTargetAction, MusterAction, RecoverBannerPitchAction, ChooseRnWsAction, RecoverAction } from "../actions";
+import { CampaignAttackAction, CampaignDefenseAction, TakeFavorFromBankAction, TradeAction, TravelAction, MakeDecisionAction, RestAction, ChooseCardsAction, SearchPlayOrDiscardAction, ChoosePlayersAction, ChooseNumberAction, SearchAction, KillWarbandsOnTargetAction, MusterAction, RecoverBannerPitchAction, ChooseRnWsAction, RecoverAction } from "../actions";
 import { Conspiracy, Denizen, Edifice, Relic, Site, WorldCard } from "../cards";
 import { DiscardOptions } from "../cards/decks";
 import { AttackDie, AttackDieSymbol, DefenseDie, RollResult } from "../dice";
-import { RegionDiscardEffect, PutResourcesOnTargetEffect, RollDiceEffect, BecomeCitizenEffect, DiscardCardEffect, PeekAtCardEffect, MoveResourcesToTargetEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, MoveWorldCardToAdvisersEffect, ParentToTargetEffect, BurnResourcesEffect } from "../actions/effects";
+import { RegionDiscardEffect, PutResourcesOnTargetEffect, RollDiceEffect, BecomeCitizenEffect, DiscardCardEffect, PeekAtCardEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, MoveWorldCardToAdvisersEffect, ParentToTargetEffect, DoTransferContextEffect } from "../actions/effects";
 import { BannerKey, OathSuit } from "../enums";
 import { ExileBoard, OathPlayer } from "../player";
-import { Favor, OathResourceType, ResourceCost, ResourceCostContext, ResourcesAndWarbands, Secret } from "../resources";
-import { ActionModifier, AttackerBattlePlan, DefenderBattlePlan, ActivePower, WhenPlayed, Accessed, EnemyAttackerCampaignModifier, EnemyDefenderCampaignModifier, CostModifier, BattlePlan } from ".";
+import { Favor, OathResourceType, ResourcesAndWarbands, Secret } from "../resources";
+import { ResourceCost, ResourceTransferContext } from "../costs";
+import { ActionModifier, AttackerBattlePlan, DefenderBattlePlan, ActivePower, WhenPlayed, Accessed, EnemyAttackerCampaignModifier, BattlePlan, ResourceTransferModifier } from ".";
 import { inclusiveRange } from "../utils";
 import { WithPowers } from "../interfaces";
 import { DarkestSecret } from "../banks";
@@ -88,17 +89,17 @@ export class RustingRay extends DefenderBattlePlan<Denizen> {
     }
 }
 
-export class GleamingArmor extends CostModifier<Denizen> {
+export class GleamingArmor extends ResourceTransferModifier<Denizen> {
     mustUse = true;
 
-    canUse(context: ResourceCostContext): boolean {
+    canUse(context: ResourceTransferContext): boolean {
         if (!(context.origin instanceof BattlePlan)) return false;
         const campaignResult = (context.origin.action as CampaignAttackAction | CampaignDefenseAction).campaignResult;
         const ruler = this.sourceProxy.ruler?.original;
         return campaignResult.areEnemies(ruler, this.player);
     }
 
-    modifyCostContext(context: ResourceCostContext): ResourceCostContext {
+    modifyCostContext(context: ResourceTransferContext): ResourceTransferContext {
         const copy = clone(context);
         copy.cost.add(new ResourceCost([[Secret, 1]]));
         return copy;
@@ -153,7 +154,8 @@ export class TamingCharm extends ActivePower<Denizen> {
             (cards: Denizen[]) => {
                 if (!cards[0]) return;
                 const bank = this.game.favorBank(cards[0].suit);
-                if (bank) new MoveResourcesToTargetEffect(this.game, this.action.player, Favor, 2, this.action.player, bank).doNext();
+                if (bank)
+                    new DoTransferContextEffect(this.game, new ResourceTransferContext(this.action.player, this, new ResourceCost([[Favor, 2]]), this.action.player, bank)).doNext();
                 new DiscardCardEffect(this.action.player, cards[0]).doNext();
             }
         ).doNext();
@@ -181,7 +183,7 @@ export class Inquisitor extends ActivePower<Denizen> {
                 if (card instanceof Conspiracy)
                     new SearchPlayOrDiscardAction(this.action.player, card).doNext();
                 else
-                    new MoveResourcesToTargetEffect(this.game, this.action.player, Favor, 1, card.owner!, this.source).doNext();
+                    new DoTransferContextEffect(this.game, new ResourceTransferContext(this.action.player, this, new ResourceCost([[Favor, 1]]), card.owner!, this.source)).doNext();
             }
         ).doNext();
     }
@@ -235,7 +237,7 @@ export class ForgottenVault extends ActivePower<Denizen> {
         new MakeDecisionAction(
             this.action.player, "Put or remove a secret from the Darkest Secret?",
             () => new PutResourcesOnTargetEffect(this.game, this.action.player, Secret, 1, banner).doNext(),
-            () => new BurnResourcesEffect(this.game, this.action.player, Secret, 1, banner).doNext(),
+            () => new DoTransferContextEffect(this.game, new ResourceTransferContext(this.action.player, this, new ResourceCost([], [[Secret, 1]]), undefined, banner)).doNext(),
             ["Put", "Remove"]
         ).doNext();
     }
@@ -313,19 +315,19 @@ export class SecretSignal extends ActionModifier<Denizen, TradeAction> {
     applyAfter(): void {
         const bank = this.game.favorBank(this.action.cardProxy.suit);
         if (bank && this.action.getting.get(Favor) === 1)
-            new MoveResourcesToTargetEffect(this.game, this.action.player, Favor, 1, this.action.player.board, bank).doNext();
+            new DoTransferContextEffect(this.game, new ResourceTransferContext(this.action.player, this, new ResourceCost([[Favor, 1]]), this.action.player.board, bank)).doNext();
     }
 }
 
 @Accessed
-export class InitiationRite extends CostModifier<Denizen> {
+export class InitiationRite extends ResourceTransferModifier<Denizen> {
     mustUse = true;
 
-    canUse(context: ResourceCostContext): boolean {
+    canUse(context: ResourceTransferContext): boolean {
         return context.origin instanceof MusterAction;
     }
 
-    modifyCostContext(context: ResourceCostContext): ResourceCostContext {
+    modifyCostContext(context: ResourceTransferContext): ResourceTransferContext {
         const copy = clone(context);
         copy.cost.placedResources.set(Secret, copy.cost.placedResources.get(Favor) || 0);
         copy.cost.placedResources.set(Favor, 0);
@@ -441,9 +443,9 @@ export class WitchsBargain extends ActivePower<Denizen> {
                                 giving = -value, taking = -value * 2;
                             }
                             
-                            new MoveResourcesToTargetEffect(this.game, this.action.player, giftedResource, giving, player).doNext(amount => {
-                                if (amount > 0) return;
-                                new MoveResourcesToTargetEffect(this.game, this.action.player, takenResource, taking, this.action.player, player).doNext();
+                            new DoTransferContextEffect(this.game, new ResourceTransferContext(this.action.player, this, new ResourceCost([[giftedResource, giving]]), player)).doNext(success => {
+                                if (!success) return;
+                                new DoTransferContextEffect(this.game, new ResourceTransferContext(this.action.player, this, new ResourceCost([[takenResource, taking]]), this.action.player, player)).doNext();
                             });
                         }
                     ).doNext();
@@ -469,7 +471,7 @@ export class Revelation extends WhenPlayed<Denizen> {
             new ChooseNumberAction(
                 player, "Burn favor to gain secrets", inclusiveRange(player.byClass(Favor).length),
                 (value: number) => {
-                    new BurnResourcesEffect(this.game, player, Favor, value).doNext();
+                    new DoTransferContextEffect(this.game, new ResourceTransferContext(player, this, new ResourceCost([], [[Favor, value]]), undefined)).doNext();
                     new PutResourcesOnTargetEffect(this.game, player, Secret, value).doNext();
                 }
             ).doNext();

@@ -1,12 +1,13 @@
 import { SearchAction, CampaignAttackAction, CampaignDefenseAction, TradeAction, TakeFavorFromBankAction, ActAsIfAtSiteAction, MakeDecisionAction, CampaignAction, ChoosePlayersAction, ChooseCardsAction, ChooseSuitsAction, KillWarbandsOnTargetAction, MusterAction, TravelAction, SearchPlayOrDiscardAction, BrackenAction, TradeForSecretAction } from "../actions";
 import { InvalidActionResolution } from "../actions/base";
 import { Denizen, Edifice, GrandScepter, Relic, Site } from "../cards";
-import { BecomeCitizenEffect, DiscardCardEffect, DrawFromDeckEffect, FinishChronicleEffect, GainSupplyEffect, MoveDenizenToSiteEffect, MoveResourcesToTargetEffect, MoveWorldCardToAdvisersEffect, ParentToTargetEffect, PlayWorldCardEffect, RegionDiscardEffect, TakeOwnableObjectEffect } from "../actions/effects";
+import { BecomeCitizenEffect, DiscardCardEffect, DoTransferContextEffect, DrawFromDeckEffect, FinishChronicleEffect, GainSupplyEffect, MoveDenizenToSiteEffect, MoveWorldCardToAdvisersEffect, ParentToTargetEffect, PlayWorldCardEffect, RegionDiscardEffect, TakeOwnableObjectEffect } from "../actions/effects";
 import { CardRestriction, OathSuit } from "../enums";
 import { WithPowers } from "../interfaces";
 import { ExileBoard, OathPlayer } from "../player";
-import { Favor, Warband, ResourceCost, Secret, ResourceCostContext } from "../resources";
-import { AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, RestPower, ActivePower, EnemyAttackerCampaignModifier, EnemyDefenderCampaignModifier, Accessed, ActionModifier, EnemyActionModifier, BattlePlan, CostModifier } from ".";
+import { Favor, Warband, Secret } from "../resources";
+import { ResourceCost, ResourceTransferContext } from "../costs";
+import { AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, RestPower, ActivePower, EnemyAttackerCampaignModifier, EnemyDefenderCampaignModifier, Accessed, ActionModifier, EnemyActionModifier, BattlePlan, CostModifier, ResourceTransferModifier } from ".";
 import { AttackDieSymbol, DefenseDieSymbol } from "../dice";
 import { clone } from "lodash";
 
@@ -204,17 +205,17 @@ export class GraspingVines extends EnemyActionModifier<Denizen, TravelAction> {
     }
 }
 
-export class InsectSwarm extends CostModifier<Denizen> {
+export class InsectSwarm extends ResourceTransferModifier<Denizen> {
     mustUse = true;
 
-    canUse(context: ResourceCostContext): boolean {
+    canUse(context: ResourceTransferContext): boolean {
         if (!(context.origin instanceof BattlePlan)) return false;
         const campaignResult = (context.origin.action as CampaignAttackAction | CampaignDefenseAction).campaignResult;
         const ruler = this.sourceProxy.ruler?.original;
         return campaignResult.areEnemies(ruler, this.player);
     }
 
-    modifyCostContext(context: ResourceCostContext): ResourceCostContext {
+    modifyCostContext(context: ResourceTransferContext): ResourceTransferContext {
         const copy = clone(context);
         copy.cost.add(new ResourceCost([], [[Favor, 1]]));
         return copy;
@@ -393,7 +394,7 @@ export class PiedPiper extends ActivePower<Denizen> {
             this.action.player, "Send the Pied Piper to steal 2 favor",
             (targets: OathPlayer[]) => {
                 if (!targets[0]) return;
-                new MoveResourcesToTargetEffect(this.game, this.action.player, Favor, 2, this.action.player, targets[0]).doNext();
+                new DoTransferContextEffect(this.game, new ResourceTransferContext(this.action.player, this, new ResourceCost([[Favor, 2]]), this.action.player, targets[0])).doNext();
                 new MoveWorldCardToAdvisersEffect(this.game, this.action.player, this.source, targets[0]).doNext();
             }
         ).doNext();

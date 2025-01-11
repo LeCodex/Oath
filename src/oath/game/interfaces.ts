@@ -3,7 +3,8 @@ import { Site } from "./cards";
 import { OathGameObject } from "./gameObject";
 import { OathPlayer } from "./player";
 import { OathPower } from "./powers";
-import { ResourceCost, ResourcesAndWarbands } from "./resources";
+import { ResourcesAndWarbands } from "./resources";
+import { ResourceCost } from "./costs";
 import { Constructor } from "./utils";
 
 
@@ -15,13 +16,6 @@ export function hasPowers(obj: object): obj is WithPowers {
     return "powers" in obj;
 }
 export type SourceType<T extends OathPower<any>> = T extends OathPower<infer U> ? U : never;
-
-export interface WithCost {
-    cost: ResourceCost;
-}
-export function hasCost(obj: object): obj is WithCost {
-    return "cost" in obj;
-}
 
 export interface AtSite {
     site?: Site;

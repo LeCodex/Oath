@@ -5,7 +5,8 @@ import { RollResult, AttackDie, DefenseDie } from "../dice";
 import { OathGame } from "../game";
 import { CampaignActionTarget } from "../interfaces";
 import { OathPlayer, ExileBoard } from "../player";
-import { ResourceCostContext, ResourcesAndWarbands } from "../resources";
+import { ResourcesAndWarbands } from "../resources";
+import { ResourceTransferContext } from "../costs";
 import { MaskProxyManager } from "../utils";
 import { DiscardCardEffect, RollDiceEffect } from "./effects";
 

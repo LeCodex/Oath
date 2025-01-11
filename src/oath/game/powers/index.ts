@@ -2,17 +2,17 @@ import { RestAction, UsePowerAction, WakeAction, CampaignAttackAction, CampaignD
 import { ModifiableAction } from "../actions/base";
 import { ApplyWhenPlayedEffect, GainPowerEffect, LosePowerEffect, PayPowerCostEffect } from "../actions/effects";
 import { OathCard, OwnableCard, Site, WorldCard } from "../cards";
-import { ResourceCost, ResourceCostContext } from "../resources";
+import { CostContext, ResourceCost, ResourceTransferContext, SupplyCostContext } from "../costs";
 import { OathPlayer } from "../player";
 import { AbstractConstructor, Constructor, MaskProxyManager } from "../utils";
 import { OathGame } from "../game";
-import { WithCost, WithPowers } from "../interfaces";
+import { WithPowers } from "../interfaces";
 
 
 //////////////////////////////////////////////////
 //                BASE CLASSES                  //
 //////////////////////////////////////////////////
-export abstract class OathPower<T extends WithPowers> implements WithCost {
+export abstract class OathPower<T extends WithPowers> {
     cost: ResourceCost = new ResourceCost();
     
     constructor(
@@ -20,7 +20,7 @@ export abstract class OathPower<T extends WithPowers> implements WithCost {
         public player: OathPlayer
     ) { }
     
-    get costContext() { return new ResourceCostContext(this.player, this, this.cost, this.source) }
+    get costContext() { return new ResourceTransferContext(this.player, this, this.cost, this.source) }
     get name() { return this.source.name; }
     get game() { return this.source.game; }
 
@@ -65,15 +65,22 @@ export abstract class CapacityModifier<T extends WorldCard> extends PowerWithPro
     ignoreCapacity(cardProxy: WorldCard): boolean { return false; }
 }
 
-export abstract class CostModifier<T extends WithPowers> extends PowerWithProxy<T> {
+export abstract class CostModifier<T extends WithPowers, U extends CostContext<any>> extends PowerWithProxy<T> {
+    abstract modifiedContext: AbstractConstructor<U>;
     mustUse: boolean = false;
 
-    canUse(context: ResourceCostContext): boolean {
+    canUse(context: U): boolean {
         return true;
     }
 
-    abstract modifyCostContext(context: ResourceCostContext): ResourceCostContext;
+    abstract modifyCostContext(context: U): U;
 }
+export abstract class SupplyCostModifier<T extends WithPowers> extends CostModifier<T, SupplyCostContext> {
+    modifiedContext = SupplyCostContext;
+};
+export abstract class ResourceTransferModifier<T extends WithPowers> extends CostModifier<T, ResourceTransferContext> {
+    modifiedContext = ResourceTransferContext;
+};
 
 export abstract class WhenPlayed<T extends WorldCard> extends PowerWithProxy<T> {
     action: ApplyWhenPlayedEffect;
