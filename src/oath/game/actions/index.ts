@@ -2,14 +2,14 @@ import { OathAction, ModifiableAction, InvalidActionResolution, ChooseModifiers 
 import { Denizen, Edifice, OathCard, OwnableCard, Relic, Site, WorldCard } from "../cards";
 import { DiscardOptions, SearchableDeck } from "../cards/decks";
 import { AttackDieSymbol } from "../dice";
-import { DoTransferContextEffect, PlayWorldCardEffect, PutPawnAtSiteEffect, DiscardCardEffect, MoveOwnWarbandsEffect, SetPeoplesFavorMobState, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, FlipEdificeEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect, CheckCapacityEffect, CampaignJoinDefenderAlliesEffect, MoveWorldCardToAdvisersEffect, DiscardCardGroupEffect, ParentToTargetEffect, PaySupplyEffect, ThingsExchangeOfferEffect, SiteExchangeOfferEffect, SearchDrawEffect } from "./effects";
+import { TransferResourcesEffect, PlayWorldCardEffect, PutPawnAtSiteEffect, DiscardCardEffect, MoveOwnWarbandsEffect, SetPeoplesFavorMobState, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, FlipEdificeEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect, CheckCapacityEffect, CampaignJoinDefenderAlliesEffect, MoveWorldCardToAdvisersEffect, DiscardCardGroupEffect, ParentToTargetEffect, PaySupplyEffect, ThingsExchangeOfferEffect, SiteExchangeOfferEffect, SearchDrawEffect } from "./effects";
 import { ALL_OATH_SUITS, ALL_PLAYER_COLORS, CardRestriction, OathPhase, OathSuit, OathType, PlayerColor } from "../enums";
 import { ChancellorBoard, ExileBoard, OathPlayer, VisionSlot } from "../player";
 import { ActionModifier, ActivePower, CapacityModifier } from "../powers";
 import { Favor, OathResource, OathResourceType, ResourcesAndWarbands, Secret } from "../resources";
-import { ResourceCost, ResourceTransferContext } from "../costs";
+import { CostContext, ResourceCost, ResourceTransferContext, SupplyCost, SupplyCostContext } from "../costs";
 import { Banner, FavorBank, PeoplesFavor } from "../banks";
-import { Constructor, inclusiveRange, isExtended, MaskProxyManager, minInGroup } from "../utils";
+import { Constructor, inclusiveRange, isExtended, MaskProxyManager, minInGroup, NumberMap } from "../utils";
 import { SelectNOf, SelectBoolean, SelectNumber, SelectWithName, SelectCard } from "./selects";
 import { CampaignActionTarget, RecoverActionTarget, WithPowers } from "../interfaces";
 import { Region } from "../map";
@@ -23,8 +23,8 @@ import { CampaignEndCallback, CampaignResult } from "./utils";
 //                 SETUP                  //
 ////////////////////////////////////////////
 export class SetupChoosePlayerBoardAction extends OathAction {
-    readonly selects: { color: SelectNOf<PlayerColor> };
-    readonly parameters: { color: PlayerColor[] };
+    declare readonly selects: { color: SelectNOf<PlayerColor> };
+    declare readonly parameters: { color: PlayerColor[] };
     readonly message = "Choose a board to start with";
 
     start(): boolean {
@@ -51,8 +51,8 @@ export class SetupChoosePlayerBoardAction extends OathAction {
 }
 
 export class SetupChooseAdviserAction extends OathAction {
-    readonly selects: { card: SelectCard<WorldCard> };
-    readonly parameters: { card: Denizen[] };
+    declare readonly selects: { card: SelectCard<WorldCard> };
+    declare readonly parameters: { card: Denizen[] };
     readonly message = "Choose a card to start with";
 
     cards: WorldCard[];
@@ -82,16 +82,11 @@ export class SetupChooseAdviserAction extends OathAction {
 ////////////////////////////////////////////
 export abstract class MajorAction extends ModifiableAction {
     readonly autocompleteSelects: boolean = false;
-
-    supplyCost: number; // Set those if you're modifying the action before its start
-    supplyCostModifier: number = 0;
-    noSupplyCost: boolean = false;
-
-    get actualSupplyCost() { return this.noSupplyCost ? 0 : this.supplyCost + this.supplyCostModifier; }
+    abstract supplyCost: SupplyCost;
 
     modifiedExecution() {
-        new PaySupplyEffect(this.player, this.actualSupplyCost).doNext(success => {
-            if (!success) throw new InvalidActionResolution(`Cannot pay Supply cost (${this.actualSupplyCost}).`);
+        new PaySupplyEffect(this.player, new SupplyCostContext(this.player, this, this.supplyCost)).doNext(success => {
+            if (!success) throw new InvalidActionResolution(`Cannot pay Supply cost (${this.supplyCost.amount}).`);
             this.majorAction();
         });
     }
@@ -100,13 +95,13 @@ export abstract class MajorAction extends ModifiableAction {
 }
 
 export abstract class PayDenizenAction extends MajorAction {
-    readonly selects: { cardProxy: SelectCard<Denizen> };
-    readonly parameters: { cardProxy: Denizen[] };
+    declare readonly selects: { cardProxy: SelectCard<Denizen> };
+    declare readonly parameters: { cardProxy: Denizen[] };
 
     accessibleDenizenProxies: Denizen[] = [];
     cardProxy: Denizen;
     
-    abstract cost: ResourceCost;
+    readonly abstract cost: ResourceCost;
     costContext: ResourceTransferContext;
 
     validateCardProxies(cardProxies: Denizen[]) {
@@ -129,7 +124,7 @@ export abstract class PayDenizenAction extends MajorAction {
     }
 
     majorAction(): void {
-        new DoTransferContextEffect(this.game, this.costContext).doNext(success => {
+        new TransferResourcesEffect(this.game, this.costContext).doNext(success => {
             if (!success) throw this.cost.cannotPayError;
             this.getReward();
         });
@@ -140,9 +135,9 @@ export abstract class PayDenizenAction extends MajorAction {
 
 export class MusterAction extends PayDenizenAction {
     readonly message = "Put a favor on a card to muster";
-    supplyCost = 1;
+    supplyCost = new SupplyCost(1);
 
-    cost = new ResourceCost([[Favor, 1]]);
+    readonly cost = new ResourceCost([[Favor, 1]]);
     getting = 2;
 
     getReward() {
@@ -151,12 +146,12 @@ export class MusterAction extends PayDenizenAction {
 }
 
 export abstract class TradeAction extends PayDenizenAction {
-    readonly selects: PayDenizenAction["selects"] & { forFavor: SelectBoolean };
-    readonly parameters: PayDenizenAction["parameters"] & { forFavor: boolean[] };
+    declare readonly selects: PayDenizenAction["selects"] & { forFavor: SelectBoolean };
+    declare readonly parameters: PayDenizenAction["parameters"] & { forFavor: boolean[] };
     readonly message = "Put resources on a card to trade";
-    supplyCost = 1;
+    supplyCost = new SupplyCost(1);
 
-    abstract getting: Map<OathResourceType, number>;
+    readonly abstract getting: NumberMap<OathResourceType>;
 
     getReward() {
         for (const [resource, amount] of this.getting) {
@@ -164,28 +159,27 @@ export abstract class TradeAction extends PayDenizenAction {
         }
 
         const bank = this.gameProxy.favorBank(this.cardProxy.suit)?.original;
-        if (bank) new ParentToTargetEffect(this.game, this.player, bank.get(this.getting.get(Favor) ?? 0)).doNext();
-        new PutResourcesOnTargetEffect(this.game, this.player, Secret, this.getting.get(Secret) ?? 0).doNext();
+        if (bank)
+            new TransferResourcesEffect(this.game, new ResourceTransferContext(this.player, this, new ResourceCost(this.getting), this.player, bank)).doNext();
     }
 }
 export class TradeForFavorAction extends TradeAction {
-    forFavor = true;
-    cost = new ResourceCost([[Secret, 1]]);
-    getting = new Map([[Favor, 1]]);
+    readonly cost = new ResourceCost([[Secret, 1]]);
+    readonly getting = new NumberMap([[Favor, 1]]);
 }
 export class TradeForSecretAction extends TradeAction {
-    forFavor = false;
-    cost = new ResourceCost([[Favor, 2]]);
-    getting = new Map([[Secret, 0]]);
+    readonly cost = new ResourceCost([[Favor, 2]]);
+    readonly getting = new NumberMap([[Secret, 0]]);
 }
 
 
 export class TravelAction extends MajorAction {
-    readonly selects: { siteProxy: SelectCard<Site> };
-    readonly parameters: { siteProxy: Site[] };
+    declare readonly selects: { siteProxy: SelectCard<Site> };
+    declare readonly parameters: { siteProxy: Site[] };
     readonly message: string = "Travel to a site";
     readonly autocompleteSelects: boolean;
 
+    supplyCost: SupplyCost;
     travelling: OathPlayer;
     choosing: OathPlayer;
     siteProxy: Site;
@@ -212,9 +206,9 @@ export class TravelAction extends MajorAction {
         const fromRegionKey = this.playerProxy.site.region?.key;
         const toRegionKey = this.siteProxy.region?.key;
         if (fromRegionKey !== undefined && toRegionKey !== undefined)
-            this.supplyCost = this.gameProxy.map.travelCosts.get(fromRegionKey)?.get(toRegionKey) ?? 2;
+            this.supplyCost = new SupplyCost(this.gameProxy.map.travelCosts.get(fromRegionKey)?.get(toRegionKey) ?? 2);
         else
-            this.supplyCost = 2;
+            this.supplyCost = new SupplyCost(2);
         
         super.execute();
     }
@@ -226,10 +220,10 @@ export class TravelAction extends MajorAction {
 
 
 export class RecoverAction extends MajorAction {
-    readonly selects: { targetProxy: SelectWithName<OathGameObject & RecoverActionTarget> };
-    readonly parameters: { targetProxy: RecoverActionTarget[] };
+    declare readonly selects: { targetProxy: SelectWithName<OathGameObject & RecoverActionTarget> };
+    declare readonly parameters: { targetProxy: RecoverActionTarget[] };
     readonly message = "Choose a target to recover";
-    supplyCost = 1;
+    supplyCost = new SupplyCost(1);
 
     targetProxy: RecoverActionTarget;
 
@@ -249,8 +243,8 @@ export class RecoverAction extends MajorAction {
 }
 
 export class RecoverBannerPitchAction extends ModifiableAction {
-    readonly selects: { amount: SelectNumber };
-    readonly parameters: { amount: number[] };
+    declare readonly selects: { amount: SelectNumber };
+    declare readonly parameters: { amount: number[] };
     readonly message = "Put resources onto the banner";
 
     banner: Banner;
@@ -274,10 +268,11 @@ export class RecoverBannerPitchAction extends ModifiableAction {
 
 
 export class SearchAction extends MajorAction {
-    readonly selects: { deckProxy: SelectWithName<SearchableDeck> };
-    readonly parameters: { deckProxy: SearchableDeck[] };
+    declare readonly selects: { deckProxy: SelectWithName<SearchableDeck> };
+    declare readonly parameters: { deckProxy: SearchableDeck[] };
     readonly message = "Draw 3 cards from a deck";
 
+    supplyCost: SupplyCost;
     deckProxy: SearchableDeck;
     amount = 3;
     fromBottom = false;
@@ -294,7 +289,7 @@ export class SearchAction extends MajorAction {
 
     execute() {
         this.deckProxy = this.parameters.deckProxy[0]!;
-        this.supplyCost = this.deckProxy.searchCost;
+        this.supplyCost = new SupplyCost(this.deckProxy.searchCost);
         super.execute();
     }
 
@@ -307,8 +302,8 @@ export class SearchAction extends MajorAction {
 }
 
 export class SearchChooseAction extends ModifiableAction {
-    readonly selects: { cards: SelectCard<WorldCard> }
-    readonly parameters: { cards: WorldCard[] }
+    declare readonly selects: { cards: SelectCard<WorldCard> }
+    declare readonly parameters: { cards: WorldCard[] }
     readonly message = "Choose which card(s) to keep";
 
     cards: Set<WorldCard>;
@@ -350,8 +345,8 @@ export class SearchChooseAction extends ModifiableAction {
 }
 
 export class SearchDiscardAction extends ModifiableAction {
-    readonly selects: { cards: SelectCard<WorldCard> }
-    readonly parameters: { cards: WorldCard[] };
+    declare readonly selects: { cards: SelectCard<WorldCard> }
+    declare readonly parameters: { cards: WorldCard[] };
     readonly autocompleteSelects = false;  // What's important is the order
     readonly message = "Choose and order the discards";
 
@@ -384,8 +379,8 @@ export class SearchDiscardAction extends ModifiableAction {
 }
 
 export class SearchPlayOrDiscardAction extends ModifiableAction {
-    readonly selects: { choice: SelectNOf<Site | boolean | undefined>}
-    readonly parameters: { choice: (Site | boolean | undefined)[] }
+    declare readonly selects: { choice: SelectNOf<Site | boolean | undefined>}
+    declare readonly parameters: { choice: (Site | boolean | undefined)[] }
     readonly message: string;
     
     cardProxy: WorldCard;
@@ -477,8 +472,8 @@ export class SearchPlayOrDiscardAction extends ModifiableAction {
 }
 
 export class MayDiscardACardAction extends OathAction {
-    readonly selects: { card: SelectCard<Denizen> };
-    readonly parameters: { card: Denizen[] };
+    declare readonly selects: { card: SelectCard<Denizen> };
+    declare readonly parameters: { card: Denizen[] };
     readonly message = "You may discard a card";
 
     cards: Set<Denizen>;
@@ -512,10 +507,10 @@ export class MayDiscardACardAction extends OathAction {
 
 
 export class CampaignAction extends MajorAction {
-    readonly selects: { defenderProxy: SelectNOf<OathPlayer | undefined> };
-    readonly parameters: { defenderProxy: (OathPlayer | undefined)[] };
+    declare readonly selects: { defenderProxy: SelectNOf<OathPlayer | undefined> };
+    declare readonly parameters: { defenderProxy: (OathPlayer | undefined)[] };
     readonly message = "Choose a defender";
-    supplyCost = 2;
+    supplyCost = new SupplyCost(2);
 
     defenderProxy: OathPlayer | undefined;
 
@@ -544,8 +539,8 @@ export class CampaignAction extends MajorAction {
 }
 
 export class CampaignAttackAction extends ModifiableAction {
-    readonly selects: { targetProxies: SelectNOf<CampaignActionTarget>, pool: SelectNumber };
-    readonly parameters: { targetProxies: CampaignActionTarget[], pool: number[] };
+    declare readonly selects: { targetProxies: SelectNOf<CampaignActionTarget>, pool: SelectNumber };
+    declare readonly parameters: { targetProxies: CampaignActionTarget[], pool: number[] };
     readonly next: CampaignDefenseAction;
     readonly message = "Choose targets and attack pool";
 
@@ -695,8 +690,8 @@ export class CampaignDefenseAction extends ModifiableAction {
 }
 
 export class CampaignEndAction extends ModifiableAction {
-    readonly selects: { doSacrifice: SelectBoolean, callbacks: SelectWithName<CampaignEndCallback> };
-    readonly parameters: { doSacrifice: boolean[], callbacks: CampaignEndCallback[] };
+    declare readonly selects: { doSacrifice: SelectBoolean, callbacks: SelectWithName<CampaignEndCallback> };
+    declare readonly parameters: { doSacrifice: boolean[], callbacks: CampaignEndCallback[] };
     readonly message = "Handle the end of the campaign";
     
     campaignResult = new CampaignResult(this.game);
@@ -808,8 +803,8 @@ export class CampaignBanishPlayerAction extends TravelAction {
 }
 
 export class CampaignSeizeSiteAction extends OathAction {
-    readonly selects: { amount: SelectNumber };
-    readonly parameters: { amount: number[] };
+    declare readonly selects: { amount: SelectNumber };
+    declare readonly parameters: { amount: number[] };
     readonly message: string;
     readonly autocompleteSelects = false;
     
@@ -872,8 +867,8 @@ export class RestAction extends ModifiableAction {
 //              MINOR ACTIONS             //
 ////////////////////////////////////////////
 export class UsePowerAction extends ModifiableAction {
-    readonly selects: { power: SelectNOf<ActivePower<OwnableCard>> }
-    readonly parameters: { power: ActivePower<OwnableCard>[] };
+    declare readonly selects: { power: SelectNOf<ActivePower<OwnableCard>> }
+    declare readonly parameters: { power: ActivePower<OwnableCard>[] };
     readonly autocompleteSelects = false;
     readonly message = "Choose a power to use";
 
@@ -904,8 +899,8 @@ export class UsePowerAction extends ModifiableAction {
 
 
 export class PlayFacedownAdviserAction extends ModifiableAction {
-    readonly selects: { cardProxies: SelectCard<WorldCard> }
-    readonly parameters: { cardProxies: WorldCard[] }
+    declare readonly selects: { cardProxies: SelectCard<WorldCard> }
+    declare readonly parameters: { cardProxies: WorldCard[] }
     readonly message = "Choose an adviser to play";
 
     cardProxies: Set<WorldCard>;
@@ -930,8 +925,8 @@ export class PlayFacedownAdviserAction extends ModifiableAction {
 
 
 export class MoveWarbandsAction extends ModifiableAction {
-    readonly selects: { targetProxy: SelectWithName<Site | OathPlayer>, amount: SelectNumber, giving: SelectBoolean };
-    readonly parameters: { targetProxy: (Site | OathPlayer)[], amount: number[], giving: boolean[] };
+    declare readonly selects: { targetProxy: SelectWithName<Site | OathPlayer>, amount: SelectNumber, giving: SelectBoolean };
+    declare readonly parameters: { targetProxy: (Site | OathPlayer)[], amount: number[], giving: boolean[] };
     readonly message = "Give or take warbands";
 
     targetProxy: Site | OathPlayer;
@@ -987,8 +982,8 @@ export class MoveWarbandsAction extends ModifiableAction {
 
 type StartableAction = typeof ActPhaseAction.startOptions[keyof typeof ActPhaseAction.startOptions];
 export class ActPhaseAction extends ModifiableAction {
-    readonly selects: { action: SelectNOf<StartableAction> };
-    readonly parameters: { action: StartableAction[] };
+    declare readonly selects: { action: SelectNOf<StartableAction> };
+    declare readonly parameters: { action: StartableAction[] };
     readonly autocompleteSelects: boolean = false;
     readonly message = "Start an action";
     
@@ -1030,8 +1025,8 @@ export class ActPhaseAction extends ModifiableAction {
 //              OTHER ACTIONS             //
 ////////////////////////////////////////////
 export class MakeDecisionAction extends OathAction {
-    readonly selects: { allow: SelectBoolean };
-    readonly parameters: { allow: boolean[] };
+    declare readonly selects: { allow: SelectBoolean };
+    declare readonly parameters: { allow: boolean[] };
     readonly message;
 
     callback: () => void;
@@ -1098,8 +1093,8 @@ export class KillWarbandsOnTargetAction extends OathAction {
 
 
 export class ChooseNumberAction extends OathAction {
-    readonly selects: { value: SelectNumber };
-    readonly parameters: { value: number[] };
+    declare readonly selects: { value: SelectNumber };
+    declare readonly parameters: { value: number[] };
     readonly message: string;
 
     values: Set<number>;
@@ -1136,8 +1131,8 @@ export class TakeReliquaryRelicAction extends ChooseNumberAction {
 
 
 export class ChooseResourceToTakeAction extends OathAction {
-    readonly selects: { resource: SelectWithName<OathResource> };
-    readonly parameters: { resource: OathResource[] };
+    declare readonly selects: { resource: SelectWithName<OathResource> };
+    declare readonly parameters: { resource: OathResource[] };
     readonly message = "Take a resource";
 
     source: ResourcesAndWarbands;
@@ -1161,8 +1156,8 @@ export class ChooseResourceToTakeAction extends OathAction {
 
 
 export class ChooseRegionAction extends OathAction {
-    readonly selects: { region: SelectNOf<Region | undefined> };
-    readonly parameters: { region: (Region | undefined)[] };
+    declare readonly selects: { region: SelectNOf<Region | undefined> };
+    declare readonly parameters: { region: (Region | undefined)[] };
     readonly message: string;
 
     regions: Set<Region> | undefined;
@@ -1194,24 +1189,24 @@ export class ChooseRegionAction extends OathAction {
 }
 
 
-export class ChooseTransferContextAction extends ModifiableAction {
-    readonly selects: { costContext: SelectNOf<ResourceTransferContext | undefined> };
-    readonly parameters: { costContext: (ResourceTransferContext | undefined)[] };
+export class ChoosePayableCostContextAction<T extends CostContext<any>> extends ModifiableAction {
+    declare readonly selects: { costContext: SelectNOf<T | undefined> };
+    declare readonly parameters: { costContext: (T | undefined)[] };
     readonly message: string;
 
     constructor(
         player: OathPlayer,
-        public costContext: ResourceTransferContext,
-        public callback: (costContext: ResourceTransferContext) => void
+        public costContext: T,
+        public callback: (costContext: T) => void
     ) {
         super(player);
     }
 
     start() {
-        const choices = new Map<string, ResourceTransferContext>();
+        const choices = new Map<string, T>();
         const payableCostContextsInfo = this.costContext.payableCostsWithModifiers(this.maskProxyManager);
         for (const costContextInfo of payableCostContextsInfo)
-            choices.set(costContextInfo.context.cost.toString() + `(${costContextInfo.modifiers.map(e => e.name).join(", ") || "Base"})`, costContextInfo.context);
+            choices.set(costContextInfo.context.cost.toString() + `(${costContextInfo.modifiers.map(e => e.name).join(", ") || "Base"})`, costContextInfo.context as T);
         this.selects.costContext = new SelectNOf("Cost", choices, { min: 1 });
         return super.start();
     }
@@ -1223,8 +1218,8 @@ export class ChooseTransferContextAction extends ModifiableAction {
 
 
 export abstract class ChooseTsAction<T> extends OathAction {
-    readonly selects: Record<string, SelectNOf<T>>;
-    readonly parameters: Record<string, T[]>;
+    declare readonly selects: Record<string, SelectNOf<T>>;
+    declare readonly parameters: Record<string, T[]>;
     readonly message: string;
 
     choices: Set<T>[] | undefined;
@@ -1296,7 +1291,7 @@ export class PeoplesFavorWakeAction extends ChooseSuitsAction {
 
     putOrReturnFavor(suit: OathSuit | undefined): void {
         const bank = suit !== undefined ? this.game.favorBank(suit) : undefined;
-        new DoTransferContextEffect(this.game, new ResourceTransferContext(this.player, this, new ResourceCost([[Favor, 1]]), bank ?? this.banner, bank ? this.banner : this.player)).doNext();
+        new TransferResourcesEffect(this.game, new ResourceTransferContext(this.player, this, new ResourceCost([[Favor, 1]]), bank ?? this.banner, bank ? this.banner : this.player)).doNext();
 
         if (this.banner.amount >= 6)
             new SetPeoplesFavorMobState(this.game, this.player, true).doNext();
@@ -1342,7 +1337,7 @@ export class TakeResourceFromPlayerAction extends ChoosePlayersAction {
             (targets: OathPlayer[]) => {
                 if (!targets[0]) return;
                 if (resource === Secret && targets[0].byClass(Secret).length <= 1) return;
-                new DoTransferContextEffect(this.game, new ResourceTransferContext(player, this, new ResourceCost([[resource, amount === undefined ? 1 : amount]]), player, targets[0])).doNext();
+                new TransferResourcesEffect(this.game, new ResourceTransferContext(player, this, new ResourceCost([[resource, amount === undefined ? 1 : amount]]), player, targets[0])).doNext();
             },
             players && [players]
         );
@@ -1404,7 +1399,7 @@ export class MoveWarbandsBetweenBoardAndSitesAction extends ChooseSitesAction {
 
 
 export class ChooseCardsAction<T extends OathCard> extends ChooseTsAction<T> {
-    choices: Set<T>[];
+    declare choices: Set<T>[];
 
     constructor(player: OathPlayer, message: string, cards: Iterable<T>[], callback: (...choices: T[][]) => void, ranges: [number, number?][] = []) {
         super(player, message, callback, cards, ranges);
@@ -1419,8 +1414,8 @@ export class ChooseCardsAction<T extends OathCard> extends ChooseTsAction<T> {
 
 
 export class ConspiracyStealAction extends OathAction {
-    readonly selects: { taking: SelectNOf<Relic | Banner> };
-    readonly parameters: { taking: (Relic | Banner)[] };
+    declare readonly selects: { taking: SelectNOf<Relic | Banner> };
+    declare readonly parameters: { taking: (Relic | Banner)[] };
     readonly message = "Take a relic or banner";
 
     target: OathPlayer;
@@ -1446,8 +1441,8 @@ export class ConspiracyStealAction extends OathAction {
 
 
 export class MakeBindingExchangeOfferAction extends ModifiableAction {
-    readonly selects: { favors: SelectNumber, secrets: SelectNumber };
-    readonly parameters: { favors: number[], secrets: number[] };
+    declare readonly selects: { favors: SelectNumber, secrets: SelectNumber };
+    declare readonly parameters: { favors: number[], secrets: number[] };
     readonly message = "Choose what you want in the exchange";
 
     other: OathPlayer;
@@ -1486,8 +1481,8 @@ export class MakeBindingExchangeOfferAction extends ModifiableAction {
 }
 
 export class DeedWriterOfferAction extends MakeBindingExchangeOfferAction {
-    readonly selects: { favors: SelectNumber, secrets: SelectNumber, sites: SelectCard<Site> };
-    readonly parameters: { favors: number[], secrets: number[], sites: Site[] };
+    declare readonly selects: { favors: SelectNumber, secrets: SelectNumber, sites: SelectCard<Site> };
+    declare readonly parameters: { favors: number[], secrets: number[], sites: Site[] };
 
     effect: SiteExchangeOfferEffect;
 
@@ -1513,8 +1508,8 @@ export class DeedWriterOfferAction extends MakeBindingExchangeOfferAction {
 }
 
 export abstract class ThingsExchangeOfferAction<T extends OathGameObject> extends MakeBindingExchangeOfferAction {
-    readonly selects: { favors: SelectNumber, secrets: SelectNumber, things: SelectWithName<T> };
-    readonly parameters: { favors: number[], secrets: number[], things: T[] };
+    declare readonly selects: { favors: SelectNumber, secrets: SelectNumber, things: SelectWithName<T> };
+    declare readonly parameters: { favors: number[], secrets: number[], things: T[] };
 
     effect: ThingsExchangeOfferEffect<T>;
 
@@ -1566,8 +1561,8 @@ export class TheGatheringOfferAction extends ThingsExchangeOfferAction<Relic | W
 }
 
 export class CitizenshipOfferAction extends ThingsExchangeOfferAction<Relic | Banner> {
-    readonly selects: { favors: SelectNumber, secrets: SelectNumber, reliquaryRelic: SelectNumber, things: SelectNOf<Relic | Banner> };
-    readonly parameters: { favors: number[], secrets: number[], reliquaryRelic: number[], things: (Relic | Banner)[] };
+    declare readonly selects: { favors: SelectNumber, secrets: SelectNumber, reliquaryRelic: SelectNumber, things: SelectNOf<Relic | Banner> };
+    declare readonly parameters: { favors: number[], secrets: number[], reliquaryRelic: number[], things: (Relic | Banner)[] };
 
     effect: CitizenshipOfferEffect;
 
@@ -1602,8 +1597,8 @@ export class CitizenshipOfferAction extends ThingsExchangeOfferAction<Relic | Ba
 
 
 export class SkeletonKeyAction extends OathAction {
-    readonly selects: { index: SelectNumber };
-    readonly parameters: { index: number[] };
+    declare readonly selects: { index: SelectNumber };
+    declare readonly parameters: { index: number[] };
     readonly message = "Peek at a relic in the Reliquary";
 
     start(): boolean {
@@ -1626,8 +1621,8 @@ export class SkeletonKeyAction extends OathAction {
 
 
 export class BrackenAction extends OathAction {
-    readonly selects: { region: SelectWithName<Region>, onTop: SelectBoolean };
-    readonly parameters: { region: Region[], onTop: boolean[] };
+    declare readonly selects: { region: SelectWithName<Region>, onTop: SelectBoolean };
+    declare readonly parameters: { region: Region[], onTop: boolean[] };
     readonly message = "Choose where you'll discard";
 
     action: SearchAction;
@@ -1655,8 +1650,8 @@ export class BrackenAction extends OathAction {
 //             END OF THE GAME            //
 ////////////////////////////////////////////
 export class VowOathAction extends OathAction {
-    readonly selects: { oath: SelectNOf<OathType> };
-    readonly parameters: { oath: OathType[] };
+    declare readonly selects: { oath: SelectNOf<OathType> };
+    declare readonly parameters: { oath: OathType[] };
     readonly message = "Vow an Oath";
 
     start(): boolean {
@@ -1680,8 +1675,8 @@ export class VowOathAction extends OathAction {
 }
 
 export class ChooseNewCitizensAction extends OathAction {
-    readonly selects: { players: SelectWithName<OathPlayer> };
-    readonly parameters: { players: OathPlayer[] };
+    declare readonly selects: { players: SelectWithName<OathPlayer> };
+    declare readonly parameters: { players: OathPlayer[] };
     readonly message = "Propose Citizenship to other Exiles";
 
     start() {
@@ -1706,8 +1701,8 @@ export class ChooseNewCitizensAction extends OathAction {
 }
 
 export class BuildOrRepairEdificeAction extends OathAction {
-    readonly selects: { card: SelectCard<Denizen> };
-    readonly parameters: { card: Denizen[] };
+    declare readonly selects: { card: SelectCard<Denizen> };
+    declare readonly parameters: { card: Denizen[] };
     readonly message = "Build or repair an edifice";
 
     start(): boolean {

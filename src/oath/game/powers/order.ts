@@ -2,7 +2,7 @@ import { TradeAction, TravelAction, SearchAction, SearchPlayOrDiscardAction, Tak
 import { CampaignResult, CampaignEndCallback } from "../actions/utils";
 import { InvalidActionResolution } from "../actions/base";
 import { Denizen, Edifice, Relic, Site, Vision } from "../cards";
-import { DoTransferContextEffect, GainSupplyEffect, BecomeCitizenEffect, PutPawnAtSiteEffect, MoveOwnWarbandsEffect, BecomeExileEffect, PlayVisionEffect, TakeOwnableObjectEffect, ParentToTargetEffect } from "../actions/effects";
+import { TransferResourcesEffect, GainSupplyEffect, BecomeCitizenEffect, PutPawnAtSiteEffect, MoveOwnWarbandsEffect, BecomeExileEffect, PlayVisionEffect, TakeOwnableObjectEffect, ParentToTargetEffect } from "../actions/effects";
 import { BannerKey, OathSuit } from "../enums";
 import { OathGameObject } from "../gameObject";
 import { CampaignActionTarget, WithPowers } from "../interfaces";
@@ -146,7 +146,7 @@ export class PeaceEnvoyAttack extends AttackerBattlePlan<Denizen> {
     applyWhenApplied(): boolean {
         // TODO: This will mean no other modifiers get to do anything. Is this fine?
         if (this.action.campaignResultProxy.defender?.site === this.playerProxy.site) {
-            new DoTransferContextEffect(
+            new TransferResourcesEffect(
                 this.game,
                 new ResourceTransferContext(this.player, this, new ResourceCost([[Favor, this.action.campaignResult.defPool]]), this.action.campaignResult.defender!)
             ).doNext(success => {
@@ -169,7 +169,7 @@ export class PeaceEnvoyDefense extends DefenderBattlePlan<Denizen> {
 
     applyWhenApplied(): boolean {
         if (this.action.campaignResultProxy.attacker.site === this.playerProxy.site) {
-            new DoTransferContextEffect(
+            new TransferResourcesEffect(
                 this.game,
                 new ResourceTransferContext(this.player, this, new ResourceCost([[Favor, this.action.campaignResult.defPool]]), this.action.campaignResult.attacker)
             ).doNext(success => {
@@ -293,7 +293,7 @@ export class Curfew extends EnemyActionModifier<Denizen, TradeAction> {
 
     applyBefore(): void {
         const costContext = new ResourceTransferContext(this.player, this, new ResourceCost([[Favor, 1]]), this.sourceProxy.ruler?.original);
-        new DoTransferContextEffect(this.game, costContext).doNext(success => {
+        new TransferResourcesEffect(this.game, costContext).doNext(success => {
             if (!success) throw this.costContext.cost.cannotPayError;
         });
     }
@@ -305,7 +305,7 @@ export class TollRoads extends EnemyActionModifier<Denizen, TravelAction> {
     applyBefore(): void {
         if (this.action.siteProxy.ruler === this.sourceProxy.ruler) {
             const costContext = new ResourceTransferContext(this.player, this, new ResourceCost([[Favor, 1]]), this.sourceProxy.ruler?.original);
-            new DoTransferContextEffect(this.game, costContext).doNext(success => {
+            new TransferResourcesEffect(this.game, costContext).doNext(success => {
                 if (!success) throw this.costContext.cost.cannotPayError;
             });
         }
@@ -321,7 +321,7 @@ export class ForcedLabor extends EnemyActionModifier<Denizen, SearchAction> {
 
     applyBefore(): void {
         const costContext = new ResourceTransferContext(this.player, this, new ResourceCost([[Favor, 1]]), this.sourceProxy.ruler?.original);
-        new DoTransferContextEffect(this.game, costContext).doNext(success => {
+        new TransferResourcesEffect(this.game, costContext).doNext(success => {
             if (!success) throw this.costContext.cost.cannotPayError;
         });
     }
@@ -395,7 +395,7 @@ export class KnightsErrant extends ActionModifier<Denizen, MusterAction> {
         new MakeDecisionAction(this.action.player, "Start a campaign?",
             () => {
                 const campaignAction = new CampaignAction(this.action.player);
-                campaignAction.noSupplyCost = true;
+                campaignAction.supplyCost.multiplier = 0;
                 campaignAction.doNext();
             }
         ).doNext();
@@ -412,7 +412,7 @@ export class HuntingParty extends ActionModifier<Denizen, SearchAction> {
             new MakeDecisionAction(this.action.player, "Start a campaign?",
                 () => { 
                     const campaignAction = new CampaignAction(this.action.player);
-                    campaignAction.noSupplyCost = true;
+                    campaignAction.supplyCost.multiplier = 0;
                     campaignAction.doNext();
                 }
             ).doNext();
@@ -424,7 +424,7 @@ export class RoyalTax extends WhenPlayed<Denizen> {
     whenPlayed(): void {
         for (const playerProxy of this.gameProxy.players) {
             if (playerProxy.site.ruler === this.action.executorProxy.leader)
-                new DoTransferContextEffect(this.game, new ResourceTransferContext(this.action.executor, this, new ResourceCost([[Favor, 2]]), this.action.executor, playerProxy)).doNext();
+                new TransferResourcesEffect(this.game, new ResourceTransferContext(this.action.executor, this, new ResourceCost([[Favor, 2]]), this.action.executor, playerProxy)).doNext();
         }
     }
 }
@@ -470,7 +470,7 @@ export class Captains extends ActivePower<Denizen> {
 
     usePower(): void {
         const campaignAction = new CampaignAction(this.action.player);
-        campaignAction.noSupplyCost = true;
+        campaignAction.supplyCost.multiplier = 0;
 
         const sites = new Set<Site>();
         for (const siteProxy of this.gameProxy.map.sites())
@@ -515,7 +515,7 @@ export class Palanquin extends ActivePower<Denizen> {
                         if (!sites[0]) return;
                         new PutPawnAtSiteEffect(this.action.player, sites[0]).doNext();
                         const travelAction = new TravelAction(targets[0]!, this.action.player, (s: Site) => s === sites[0]);
-                        travelAction.noSupplyCost = true;
+                        travelAction.supplyCost.multiplier = 0;
                         travelAction.doNext();
                     }
                 ).doNext();

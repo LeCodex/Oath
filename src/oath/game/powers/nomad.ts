@@ -3,15 +3,14 @@ import { InvalidActionResolution, ModifiableAction, ResolveCallbackEffect } from
 import { Region } from "../map";
 import { Denizen, Edifice, OathCard, Relic, Site, VisionBack, WorldCard } from "../cards";
 import { DiscardOptions } from "../cards/decks";
-import { DoTransferContextEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PayPowerCostEffect, BecomeCitizenEffect, DrawFromDeckEffect, FlipEdificeEffect, DiscardCardEffect, GainSupplyEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, PeekAtCardEffect, MoveWorldCardToAdvisersEffect, MoveDenizenToSiteEffect, DiscardCardGroupEffect, PlayVisionEffect, ParentToTargetEffect, PutPawnAtSiteEffect, RecoverTargetEffect } from "../actions/effects";
+import { TransferResourcesEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PayPowerCostEffect, BecomeCitizenEffect, DrawFromDeckEffect, FlipEdificeEffect, DiscardCardEffect, GainSupplyEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, PeekAtCardEffect, MoveWorldCardToAdvisersEffect, MoveDenizenToSiteEffect, DiscardCardGroupEffect, PlayVisionEffect, ParentToTargetEffect, PutPawnAtSiteEffect, RecoverTargetEffect } from "../actions/effects";
 import { BannerKey, OathSuit } from "../enums";
 import { isOwnable } from "../interfaces";
 import { ExileBoard, OathPlayer } from "../player";
 import { Favor, Secret } from "../resources";
-import { ResourceCost, ResourceTransferContext } from "../costs";
-import { ActivePower, CapacityModifier, AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, EnemyAttackerCampaignModifier, EnemyActionModifier, ActionModifier, gainPowerUntilActionResolves, BattlePlan, Accessed, ResourceTransferModifier } from ".";
+import { ResourceCost, ResourceTransferContext, SupplyCostContext } from "../costs";
+import { ActivePower, CapacityModifier, AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, EnemyAttackerCampaignModifier, EnemyActionModifier, ActionModifier, gainPowerUntilActionResolves, BattlePlan, Accessed, ResourceTransferModifier, NoSupplyCostActionModifier, SupplyCostModifier } from ".";
 import { DefenseDieSymbol } from "../dice";
-import { clone } from "lodash";
 
 
 export class HorseArchersAttack extends AttackerBattlePlan<Denizen> {
@@ -178,16 +177,14 @@ export class WayStation extends ActionModifier<Denizen, TravelAction> {
             if (!this.playerProxy.rules(this.sourceProxy)) {
                 const ruler = this.sourceProxy.ruler?.original;
                 const costContext = new ResourceTransferContext(this.player, this, new ResourceCost([[Favor, 1]]), ruler);
-                new DoTransferContextEffect(this.game, costContext).doNext(success => {
-                    if (!success) return;
-                    this.action.noSupplyCost = true;
+                new TransferResourcesEffect(this.game, costContext).doNext(success => {
+                    if (!success) throw new InvalidActionResolution("Cannot pay the Way Station's ruler");
                 });
-            } else {
-                this.action.noSupplyCost = true;
             }
         }
     }
 }
+export class WayStationCost extends NoSupplyCostActionModifier(WayStation) { }
 
 @Accessed
 export class Hospitality extends ActionModifier<Denizen, TravelAction> {
@@ -201,13 +198,17 @@ export class Hospitality extends ActionModifier<Denizen, TravelAction> {
 }
 
 @Accessed
-export class Tents extends ActionModifier<Denizen, TravelAction> {
-    modifiedAction = TravelAction;
+export class Tents extends SupplyCostModifier<Denizen> {
     cost = new ResourceCost([[Favor, 1]]);
 
-    applyBefore(): void {
-        if (this.action.travelling.site.region === this.action.siteProxy.region?.original)
-            this.action.noSupplyCost = true;
+    canUse(context: SupplyCostContext): boolean {
+        return context.origin instanceof TravelAction;
+    }
+
+    apply(context: SupplyCostContext): void {
+        const action = context.origin as TravelAction;
+        if (action.travelling.site.region === action.siteProxy.region?.original)
+            context.cost.multiplier = 0;
     }
 }
 
@@ -215,23 +216,23 @@ export class Tents extends ActionModifier<Denizen, TravelAction> {
 export class SpecialEnvoy extends ActionModifier<Denizen, TravelAction> {
     modifiedAction = TravelAction;
 
-    applyBefore(): void {
-        this.action.noSupplyCost = true;
-    }
-
     applyAfter(): void {
         new RestAction(this.action.player).doNext();
     }
 }
+export class SpecialEnvoyCost extends NoSupplyCostActionModifier(SpecialEnvoy) { }
 
 @Accessed
-export class AFastSteed extends ActionModifier<Denizen, TravelAction> {
-    modifiedAction = TravelAction;
+export class AFastSteed extends SupplyCostModifier<Denizen> {
     cost = new ResourceCost([[Favor, 1]]);
 
-    applyBefore(): void {
+    canUse(context: SupplyCostContext): boolean {
+        return context.origin instanceof TravelAction;
+    }
+
+    apply(context: SupplyCostContext): void {
         if (this.playerProxy.warbands.length <= 3)
-            this.action.noSupplyCost = true;
+            context.cost.multiplier = 0;
     }
 }
 
@@ -315,16 +316,14 @@ export class VowOfKinshipGain extends ActionModifier<Denizen, ParentToTargetEffe
 export class VowOfKinship extends ResourceTransferModifier<Denizen> {
     mustUse = true;
 
-    modifyCostContext(context: ResourceTransferContext): ResourceTransferContext {
+    apply(context: ResourceTransferContext): void {
         const ruler = this.sourceProxy.ruler?.original;
         const nomadBank = this.game.favorBank(OathSuit.Nomad);
-        if (!nomadBank) return context;
+        if (!nomadBank) return;
 
-        const copy = clone(context);
         // TODO: Could split those to make it a choice
-        if (copy.source === ruler && copy.player === ruler) copy.source = nomadBank;
-        if (copy.target === ruler) copy.target = nomadBank;
-        return copy;
+        if (context.source === ruler && context.player === ruler) context.source = nomadBank;
+        if (context.target === ruler) context.target = nomadBank;
     }
 }
 
@@ -351,19 +350,19 @@ export class AncientBinding extends ActivePower<Denizen> {
 
     usePower(): void {
         for (const player of this.game.players) {
-            new DoTransferContextEffect(this.game, new ResourceTransferContext(player, this, new ResourceCost([], [[Secret, player.byClass(Secret).length - (player === this.action.player ? 0 : 1)]]), undefined)).doNext();
+            new TransferResourcesEffect(this.game, new ResourceTransferContext(player, this, new ResourceCost([], [[Secret, player.byClass(Secret).length - (player === this.action.player ? 0 : 1)]]), undefined)).doNext();
 
             for (const adviser of player.advisers)
-                new DoTransferContextEffect(this.game, new ResourceTransferContext(player, this, new ResourceCost([], [[Secret, Infinity]]), undefined, adviser)).doNext();
+                new TransferResourcesEffect(this.game, new ResourceTransferContext(player, this, new ResourceCost([], [[Secret, Infinity]]), undefined, adviser)).doNext();
 
             for (const relic of player.relics)
-                new DoTransferContextEffect(this.game, new ResourceTransferContext(player, this, new ResourceCost([], [[Secret, Infinity]]), undefined, relic)).doNext();
+                new TransferResourcesEffect(this.game, new ResourceTransferContext(player, this, new ResourceCost([], [[Secret, Infinity]]), undefined, relic)).doNext();
         }
 
         for (const site of this.game.map.sites())
             for (const denizen of site.denizens)
                 if (denizen !== this.source)
-                    new DoTransferContextEffect(this.game, new ResourceTransferContext(this.action.player, this, new ResourceCost([], [[Secret, Infinity]]), undefined, denizen)).doNext();
+                    new TransferResourcesEffect(this.game, new ResourceTransferContext(this.action.player, this, new ResourceCost([], [[Secret, Infinity]]), undefined, denizen)).doNext();
     }
 }
 
@@ -420,7 +419,7 @@ export class SpellBreaker extends EnemyActionModifier<Denizen, PayPowerCostEffec
     modifiedAction = PayPowerCostEffect;
 
     canUse(): boolean {
-        return super.canUse() && (this.action.power.cost.totalResources.get(Secret) ?? 0) > 0;
+        return super.canUse() && this.action.power.cost.totalResources.get(Secret) > 0;
     }
 
     applyBefore(): void {

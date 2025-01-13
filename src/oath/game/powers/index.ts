@@ -43,12 +43,12 @@ export abstract class PowerWithProxy<T extends WithPowers> extends OathPower<T> 
 }
 
 export function Accessed<T extends AbstractConstructor<PowerWithProxy<OwnableCard> & { canUse(...args: any[]): boolean }>>(Base: T) {
-    abstract class Accessed extends Base {
+    abstract class AccessedModifier extends Base {
         canUse(...args: any[]): boolean {
             return super.canUse(...args) && this.sourceProxy.accessibleBy(this.playerProxy) && (this.sourceProxy.empty || !this.cost.placesResources);
         }
     }
-    return Accessed
+    return AccessedModifier;
 }
 
 // TODO: Could maybe turn those into singletons? Something to consider
@@ -73,7 +73,7 @@ export abstract class CostModifier<T extends WithPowers, U extends CostContext<a
         return true;
     }
 
-    abstract modifyCostContext(context: U): U;
+    abstract apply(context: U): void;
 }
 export abstract class SupplyCostModifier<T extends WithPowers> extends CostModifier<T, SupplyCostContext> {
     modifiedContext = SupplyCostContext;
@@ -143,6 +143,25 @@ export abstract class ActionModifier<T extends WithPowers, U extends ModifiableA
     
     serialize() {
         return this.name;
+    }
+}
+
+export function ActionCostModifier<T extends WithPowers, U extends CostContext<any>>(base: Constructor<ActionModifier<T, ModifiableAction>>, costContext: Constructor<U>) {
+    abstract class ActionCostModifier extends CostModifier<T, U> {
+        modifiedContext = costContext;
+
+        canUse(context: U): boolean {
+            const instance = new base(this.source, this.player, context.origin);  // Actions can't have modifiedAction as static because of initialization order making it a pain
+            return context.origin instanceof instance.modifiedAction && (context.origin as ModifiableAction).modifiers.some(e => e instanceof base);
+        }
+    }
+    return ActionCostModifier;
+}
+export function NoSupplyCostActionModifier<T extends WithPowers>(base: Constructor<ActionModifier<T, ModifiableAction>>) {
+    return class NoSupplyCostActionModifier extends ActionCostModifier(base, SupplyCostContext) {
+        apply(context: SupplyCostContext): void {
+            context.cost.multiplier = 0;
+        }
     }
 }
 

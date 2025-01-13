@@ -1,4 +1,4 @@
-import { DoTransferContextEffect, ParentToTargetEffect } from "./actions/effects";
+import { TransferResourcesEffect, ParentToTargetEffect } from "./actions/effects";
 import { OathGameObject, OathGameObjectLeaf } from "./gameObject";
 import { PlayerColor } from "./enums";
 import { isEnumKey, NodeGroup } from "./utils";
@@ -6,7 +6,7 @@ import { ResourceTransferContext, ResourceCost } from "./costs";
 
 
 export abstract class OathResource extends OathGameObjectLeaf<number> {
-    static resourceId = 0;  // TOOD: Find better solution for unique ids
+    static resourceId = 0;  // TODO: Find better solution for unique ids
     readonly type = "resource";
 
     constructor(id?: string) {
@@ -126,7 +126,7 @@ export abstract class ResourcesAndWarbands<T = any> extends OathGameObject<T> {
 
     clear() {
         for (const resource of [Favor, Secret])
-            new DoTransferContextEffect(this.game, new ResourceTransferContext(this.game.currentPlayer, this, new ResourceCost([], [[resource, Infinity]]), undefined, this)).doNext();
+            new TransferResourcesEffect(this.game, new ResourceTransferContext(this.game.currentPlayer, this, new ResourceCost([], [[resource, Infinity]]), undefined, this)).doNext();
 
         for (const player of this.game.players)
             new ParentToTargetEffect(this.game, player, this.getWarbands(player.board.key), player.bag).doNext();

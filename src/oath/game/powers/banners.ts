@@ -1,18 +1,24 @@
 import { WakeAction, SearchPlayOrDiscardAction, MayDiscardACardAction, SearchAction, PeoplesFavorWakeAction } from "../actions";
-import { ModifiableAction } from "../actions/base";
-import { Banner, PeoplesFavor, DarkestSecret } from "../banks";
-import { ActionModifier } from ".";
+import { PeoplesFavor, DarkestSecret } from "../banks";
+import { ActionModifier, PowerWithProxy, SupplyCostModifier } from ".";
 import { Denizen } from "../cards";
 import { CardRestriction } from "../enums";
+import { AbstractConstructor } from "../utils";
+import { OwnableObject, WithPowers } from "../interfaces";
+import { SupplyCostContext } from "../costs";
 
 
-export abstract class BannerActionModifier<T extends Banner, U extends ModifiableAction> extends ActionModifier<T, U> {
-    canUse(): boolean {
-        return super.canUse() && this.playerProxy === this.sourceProxy.owner;
+export function Owned<T extends AbstractConstructor<PowerWithProxy<OwnableObject & WithPowers> & { canUse(...args: any[]): boolean }>>(Base: T) {
+    abstract class OwnedModifier extends Base {
+        canUse(...args: any[]): boolean {
+            return super.canUse(...args) && this.playerProxy === this.sourceProxy.owner;
+        }
     }
+    return OwnedModifier;
 }
 
-export class PeoplesFavorSearch extends BannerActionModifier<PeoplesFavor, SearchPlayOrDiscardAction> {
+@Owned
+export class PeoplesFavorSearch extends ActionModifier<PeoplesFavor, SearchPlayOrDiscardAction> {
     modifiedAction = SearchPlayOrDiscardAction;
     mustUse = true; // Not strictly true, but it involves a choice either way, so it's better to always include it
 
@@ -27,8 +33,8 @@ export class PeoplesFavorSearch extends BannerActionModifier<PeoplesFavor, Searc
         if (this.action.siteProxy) new MayDiscardACardAction(this.player, this.action.discardOptions).doNext();
     }
 }
-
-export class PeoplesFavorWake extends BannerActionModifier<PeoplesFavor, WakeAction> {
+@Owned
+export class PeoplesFavorWake extends ActionModifier<PeoplesFavor, WakeAction> {
     modifiedAction = WakeAction;
     mustUse = true;
 
@@ -40,12 +46,15 @@ export class PeoplesFavorWake extends BannerActionModifier<PeoplesFavor, WakeAct
     }
 }
 
-
-export class DarkestSecretPower extends BannerActionModifier<DarkestSecret, SearchAction> {
-    modifiedAction = SearchAction;
+@Owned
+export class DarkestSecretPower extends SupplyCostModifier<DarkestSecret> {
     mustUse = true;
 
-    applyBefore(): void {
-        this.action.supplyCost = 2;
+    canUse(context: SupplyCostContext): boolean {
+        return context instanceof SearchAction;
+    }
+
+    apply(context: SupplyCostContext): void {
+        context.cost.base = 2;
     }
 }

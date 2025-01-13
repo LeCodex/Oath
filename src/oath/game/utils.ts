@@ -9,6 +9,21 @@ export function isEnumKey<E extends Enum<E>>(key: string | number | symbol, _enu
     return key in _enum;
 }
 
+/** For a set of set of elements, returns all combinations of an element from the first set, then the second, and so on. */
+export function allChoices<T>(set: T[][]): T[][] {
+    const combinations: T[][] = [[]];
+    for (const choiceGroup of set) {
+        const length = combinations.length;
+        for (let i = 0; i < length; i++) {
+            const subset = combinations.shift()!;
+            for (const element of choiceGroup) {
+                combinations.push([...subset, element]);
+            }
+        }
+    }
+    return combinations;
+}
+/** For a set of elements, return all combinations of all sizes (including and excluding every elements). */
 export function allCombinations<T>(set: T[]): T[][] {
     const combinations: T[][] = [[]];
     for (const element of set) {
@@ -20,6 +35,12 @@ export function allCombinations<T>(set: T[]): T[][] {
         }
     }
     return combinations;
+}
+
+export class NumberMap<T> extends Map<T, number> {
+    get(key: T): number {
+        return super.get(key) ?? 0;
+    }
 }
 
 export function MurmurHash3(str: string) {
@@ -475,7 +496,7 @@ export abstract class TreeRoot<RootType extends TreeRoot<RootType>> extends Tree
 }
 
 export abstract class TreeLeaf<RootType extends TreeRoot<RootType>, KeyType = any> extends TreeNode<RootType, KeyType> {
-    children: NodeGroup<never>;
+    declare children: NodeGroup<never>;
 
     addChild<T extends TreeNode<RootType, any>>(child: T): T {
         throw TypeError("Cannot add children to leaf nodes");

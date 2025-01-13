@@ -5,13 +5,13 @@ import { FavorBank, PeoplesFavor } from "../banks";
 import { Region } from "../map";
 import { Denizen, Edifice, OathCard, Relic, Site, Vision, WorldCard } from "../cards";
 import { D6, DefenseDie } from "../dice";
-import { TakeOwnableObjectEffect, PutResourcesOnTargetEffect, SetNewOathkeeperEffect, RollDiceEffect, DiscardCardEffect, BecomeCitizenEffect, DoTransferContextEffect, PeekAtCardEffect, WinGameEffect, DrawFromDeckEffect, MoveWorldCardToAdvisersEffect, ParentToTargetEffect } from "../actions/effects";
+import { TakeOwnableObjectEffect, PutResourcesOnTargetEffect, SetNewOathkeeperEffect, RollDiceEffect, DiscardCardEffect, BecomeCitizenEffect, TransferResourcesEffect, PeekAtCardEffect, WinGameEffect, DrawFromDeckEffect, MoveWorldCardToAdvisersEffect, ParentToTargetEffect } from "../actions/effects";
 import { BannerKey, OathSuit } from "../enums";
 import { ExileBoard, OathPlayer } from "../player";
 import { Favor, Secret } from "../resources";
 import { ResourceCost, ResourceTransferContext } from "../costs";
 import { WhenPlayed, CapacityModifier, ActivePower, RestPower, AttackerBattlePlan, DefenderBattlePlan, ActionModifier, Accessed, WakePower, EnemyActionModifier, EnemyAttackerCampaignModifier, EnemyDefenderCampaignModifier, ResourceTransferModifier } from ".";
-import { minInGroup } from "../utils";
+import { AbstractConstructor, minInGroup, NumberMap } from "../utils";
 
 
 export class MercenariesAttack extends AttackerBattlePlan<Denizen> {
@@ -75,7 +75,7 @@ export class BookBurning extends AttackerBattlePlan<Denizen> {
         this.action.campaignResult.onSuccessful(true, new CampaignEndCallback(() => {
             const defender = this.action.campaignResult.defender;
             if (!defender) return;
-            new DoTransferContextEffect(this.game, new ResourceTransferContext(defender, this, new ResourceCost([], [[Secret, defender.byClass(Secret).length - 1]]), undefined)).doNext()
+            new TransferResourcesEffect(this.game, new ResourceTransferContext(defender, this, new ResourceCost([], [[Secret, defender.byClass(Secret).length - 1]]), undefined)).doNext()
         }, this.source.name));
     }
 }
@@ -87,7 +87,7 @@ export class Slander extends AttackerBattlePlan<Denizen> {
         this.action.campaignResult.onSuccessful(true, new CampaignEndCallback(() => {
             const defender = this.action.campaignResult.defender;
             if (!defender) return;
-            new DoTransferContextEffect(this.game, new ResourceTransferContext(defender, this, new ResourceCost([], [[Favor, Infinity]]), undefined)).doNext();
+            new TransferResourcesEffect(this.game, new ResourceTransferContext(defender, this, new ResourceCost([], [[Favor, Infinity]]), undefined)).doNext();
         }, this.source.name));
     }
 }
@@ -101,7 +101,7 @@ export class SecondWind extends AttackerBattlePlan<Denizen> {
                 this.action.player, "Take a Travel action?",
                 () => {
                     const travelAction = new TravelAction(this.action.player);
-                    travelAction.noSupplyCost = true;
+                    travelAction.supplyCost.multiplier = 0;
                     travelAction.doNext();
                 }
             ).doNext();
@@ -110,7 +110,7 @@ export class SecondWind extends AttackerBattlePlan<Denizen> {
                 this.action.player, "Take a Campaign action?",
                 () => {
                     const campaignAction = new CampaignAction(this.action.player);
-                    campaignAction.noSupplyCost = true;
+                    campaignAction.supplyCost.multiplier = 0;
                     campaignAction.doNext();
                 }
             ).doNext();
@@ -139,7 +139,7 @@ export class RelicThief extends EnemyActionModifier<Denizen, TakeOwnableObjectEf
                 rulerProxy.original, "Try to steal " + this.action.target.name + "?",
                 () => {
                     const costContext = new ResourceTransferContext(rulerProxy.original, this, new ResourceCost([[Favor, 1], [Secret, 1]]), this.source);
-                    new DoTransferContextEffect(this.game, costContext).doNext(success => {
+                    new TransferResourcesEffect(this.game, costContext).doNext(success => {
                         if (!success) throw this.costContext.cost.cannotPayError;
                         new RollDiceEffect(this.game, rulerProxy.original, new DefenseDie(), 1).doNext(result => {
                             if (result.value === 0) new TakeOwnableObjectEffect(this.game, rulerProxy.original, this.action.target).doNext();
@@ -220,7 +220,7 @@ export class SleightOfHand extends ActivePower<Denizen> {
 export class Naysayers extends RestPower<Denizen> {
     applyAfter(): void {
         if (!this.game.oathkeeper.isImperial)
-            new DoTransferContextEffect(this.game, new ResourceTransferContext(this.player, this, new ResourceCost([[Favor, 1]]), this.player, this.game.chancellor)).doNext();
+            new TransferResourcesEffect(this.game, new ResourceTransferContext(this.player, this, new ResourceCost([[Favor, 1]]), this.player, this.game.chancellor)).doNext();
     }
 }
 
@@ -229,7 +229,7 @@ export class ChaosCult extends EnemyActionModifier<Denizen, SetNewOathkeeperEffe
 
     applyAfter(): void {
         if (!this.source.ruler) return
-        new DoTransferContextEffect(this.action.game, new ResourceTransferContext(this.source.ruler, this, new ResourceCost([[Favor, 1]]), this.source.ruler, this.action.executor)).doNext();
+        new TransferResourcesEffect(this.action.game, new ResourceTransferContext(this.source.ruler, this, new ResourceCost([[Favor, 1]]), this.source.ruler, this.action.executor)).doNext();
     }
 }
 
@@ -257,7 +257,7 @@ export class Scryer extends ActivePower<Denizen> {
 export class Charlatan extends WhenPlayed<Denizen> {
     whenPlayed(): void {
         const banner = this.game.banners.get(BannerKey.DarkestSecret);
-        if (banner) new DoTransferContextEffect(this.game, new ResourceTransferContext(this.action.executor, this, new ResourceCost([], [[Secret, banner.amount - 1]]), undefined, banner)).doNext();
+        if (banner) new TransferResourcesEffect(this.game, new ResourceTransferContext(this.action.executor, this, new ResourceCost([], [[Secret, banner.amount - 1]]), undefined, banner)).doNext();
     }
 }
 
@@ -266,7 +266,7 @@ export class Dissent extends WhenPlayed<Denizen> {
         const peoplesFavorProxy = this.gameProxy.banners.get(BannerKey.PeoplesFavor);
         for (const playerProxy of this.gameProxy.players)
             if (peoplesFavorProxy?.owner !== playerProxy)
-                new DoTransferContextEffect(this.game, new ResourceTransferContext(playerProxy.original, this, new ResourceCost([[Favor, playerProxy.ruledSuits]]), this.source)).doNext();
+                new TransferResourcesEffect(this.game, new ResourceTransferContext(playerProxy.original, this, new ResourceCost([[Favor, playerProxy.ruledSuits]]), this.source)).doNext();
     }
 }
 
@@ -275,10 +275,10 @@ export class Riots extends WhenPlayed<Denizen> {
         const peoplesFavorProxy = this.gameProxy.banners.get(BannerKey.PeoplesFavor) as PeoplesFavor;
         if (!peoplesFavorProxy?.isMob) return;
 
-        const suitCounts = new Map<OathSuit, number>();
+        const suitCounts = new NumberMap<OathSuit>();
         for (const siteProxy of this.gameProxy.map.sites())
             for (const denizenProxy of siteProxy.denizens)
-                suitCounts.set(denizenProxy.suit, (suitCounts.get(denizenProxy.suit) ?? 0) + 1);
+                suitCounts.set(denizenProxy.suit, suitCounts.get(denizenProxy.suit) + 1);
         
         let max = 0;
         const suits = new Set<OathSuit>();
@@ -324,7 +324,7 @@ export class Blackmail extends WhenPlayed<Denizen> {
                     new MakeDecisionAction(
                         relic.owner, "Let " + this.action.executor.name + " take " + relic.name + ", or give them 3 favor?",
                         () => new TakeOwnableObjectEffect(this.game, this.action.executor, relic).doNext(),
-                        () => new DoTransferContextEffect(this.game, new ResourceTransferContext(relic.owner!, this, new ResourceCost([[Favor, 3]]), this.action.executor)).doNext(),
+                        () => new TransferResourcesEffect(this.game, new ResourceTransferContext(relic.owner!, this, new ResourceCost([[Favor, 3]]), this.action.executor)).doNext(),
                         ["Give the relic", "Give 3 favor"]
                     ).doNext();
             }
@@ -509,15 +509,15 @@ export class SneakAttack extends EnemyActionModifier<Denizen, CampaignEndAction>
     }
 }
 
-export class VowOfRenewal extends ResourceTransferModifier<Denizen> {
+export class VowOfRenewal extends ActionModifier<Denizen, TransferResourcesEffect> {
+    modifiedAction = TransferResourcesEffect;
     mustUse = true;
 
-    modifyCostContext(context: ResourceTransferContext): ResourceTransferContext {
-        if (!this.sourceProxy.ruler) return context;
-        const amount = this.costContext.cost.burntResources.get(Favor) ?? 0;
-        if (!amount) return context;
+    applyAtEnd(): void {
+        if (!this.sourceProxy.ruler) return;
+        const amount = this.action.costContext.cost.burntResources.get(Favor);
+        if (!amount) return;
         new PutResourcesOnTargetEffect(this.game, this.sourceProxy.ruler.original, Favor, amount).doNext();
-        return context;
     }
 }
 @Accessed

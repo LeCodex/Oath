@@ -28,7 +28,7 @@ export abstract class CardDeck<T extends OathCard, U = any> extends Container<T,
 }
 
 export class RelicDeck extends CardDeck<Relic, string> {
-    readonly id: "relicDeck";
+    declare readonly id: "relicDeck";
     name = "RelicDeck";
 
     constructor() {
@@ -54,7 +54,7 @@ export abstract class SearchableDeck<T = any> extends CardDeck<WorldCard, T> {
 }
 
 export class WorldDeck extends SearchableDeck<string> {
-    readonly id: "worldDeck";
+    declare readonly id: "worldDeck";
     name = "WorldDeck";
     visionsDrawn: number = 0;
     get searchCost() { return this.visionsDrawn < 3 ? this.visionsDrawn < 1 ? 2 : 3 : 4; }
@@ -85,7 +85,7 @@ export class WorldDeck extends SearchableDeck<string> {
 }
 
 export class Discard extends SearchableDeck<RegionKey> {
-    readonly id: keyof typeof RegionKey;
+    declare readonly id: keyof typeof RegionKey;
     
     constructor(id: keyof typeof RegionKey) {
         if (!isEnumKey(id, RegionKey)) throw TypeError(`${id} is not a valid region id`)

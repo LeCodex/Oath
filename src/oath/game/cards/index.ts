@@ -1,7 +1,7 @@
 import { CampaignSeizeSiteAction, RecoverAction } from "../actions";
 import { RecoverActionTarget, WithPowers, AtSite, CampaignActionTarget, OwnableObject, HiddenInformation } from "../interfaces";
 import { Region } from "../map";
-import { DiscardCardEffect, FlipSecretsEffect, MoveOwnWarbandsEffect, ParentToTargetEffect, DoTransferContextEffect, RecoverTargetEffect, RevealCardEffect, TakeOwnableObjectEffect } from "../actions/effects";
+import { DiscardCardEffect, FlipSecretsEffect, MoveOwnWarbandsEffect, ParentToTargetEffect, TransferResourcesEffect, RecoverTargetEffect, RevealCardEffect, TakeOwnableObjectEffect } from "../actions/effects";
 import { CardRestriction, OathSuit, OathType, OathTypeVisionName, PlayerColor, RegionKey } from "../enums";
 import { Oath } from "../oaths";
 import { OathPlayer } from "../player";
@@ -50,7 +50,7 @@ export abstract class OathCard extends ResourcesAndWarbands<string> implements H
     returnResources() {
         const amount = this.byClass(Secret).length;
         if (amount) {
-            new DoTransferContextEffect(this.game, new ResourceTransferContext(this.game.currentPlayer, this, new ResourceCost([[Secret, amount]]), this.game.currentPlayer, this)).doNext();
+            new TransferResourcesEffect(this.game, new ResourceTransferContext(this.game.currentPlayer, this, new ResourceCost([[Secret, amount]]), this.game.currentPlayer, this)).doNext();
             new FlipSecretsEffect(this.game, this.game.currentPlayer, amount).doNext();
         }
     }
@@ -76,7 +76,7 @@ export abstract class OathCard extends ResourcesAndWarbands<string> implements H
 
 
 export class Site extends OathCard implements CampaignActionTarget {
-    readonly id: SiteName;
+    declare readonly id: SiteName;
     readonly type = "site";
     capacity: number;
     startingRelics: number;
@@ -182,7 +182,7 @@ export abstract class OwnableCard extends OathCard implements OwnableObject  {
 }
 
 export class Relic extends OwnableCard implements RecoverActionTarget, CampaignActionTarget, AtSite {
-    readonly id: RelicName;
+    declare readonly id: RelicName;
     readonly type = "relic";
     defense: number;
     get force() { return this.owner; }
@@ -205,7 +205,7 @@ export class Relic extends OwnableCard implements RecoverActionTarget, CampaignA
     recover(player: OathPlayer): void {
         if (!this.site) return;
         const costContext = new ResourceTransferContext(player, this.site, this.site.recoverCost, this.game.favorBank(this.site.recoverSuit));
-        new DoTransferContextEffect(this.game, costContext).doNext(success => {
+        new TransferResourcesEffect(this.game, costContext).doNext(success => {
             if (!success) throw costContext.cost.cannotPayError;
             new RecoverTargetEffect(player, this).doNext();
         })
@@ -221,7 +221,7 @@ export class Relic extends OwnableCard implements RecoverActionTarget, CampaignA
 }
 
 export class GrandScepter extends Relic {
-    readonly id: "GrandScepter";
+    declare readonly id: "GrandScepter";
     seizedThisTurn = false;
 
     constructor() {
@@ -234,11 +234,11 @@ export abstract class WorldCard extends OwnableCard {
 }
 
 export class Denizen extends WorldCard implements AtSite {
-    readonly id: DenizenName;
+    declare readonly id: DenizenName;
     readonly type = "denizen";
     restriction: CardRestriction;
     locked: boolean;
-    powers: Set<Constructor<OathPower<Denizen>>>;
+    declare powers: Set<Constructor<OathPower<Denizen>>>;
 
     constructor(id: DenizenName) {
         const data = denizenData[id];
@@ -291,7 +291,7 @@ export abstract class VisionBack extends WorldCard {
 }
 
 export class Vision extends VisionBack {
-    readonly id: keyof typeof OathType;
+    declare readonly id: keyof typeof OathType;
     oath: Oath;
 
     constructor(id: keyof typeof OathType) {
@@ -304,7 +304,7 @@ export class Vision extends VisionBack {
 }
 
 export class Conspiracy extends VisionBack {
-    readonly id: "Conspiracy";
+    declare readonly id: "Conspiracy";
 
     constructor() {
         super("Conspiracy", [ConspiracyWhenPlayed]);

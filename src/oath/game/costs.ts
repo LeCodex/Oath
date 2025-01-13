@@ -5,22 +5,22 @@ import { WithPowers } from "./interfaces";
 import { OathPlayer } from "./player";
 import { CostModifier } from "./powers";
 import { Favor, OathResourceType, Secret } from "./resources";
-import { MaskProxyManager, allCombinations } from "./utils";
+import { MaskProxyManager, NumberMap, allChoices, allCombinations } from "./utils";
 
 
 export class ResourceCost {
-    placedResources: Map<OathResourceType, number>;
-    burntResources: Map<OathResourceType, number>;
+    placedResources: NumberMap<OathResourceType>;
+    burntResources: NumberMap<OathResourceType>;
 
     constructor(placedResources: Iterable<[OathResourceType, number]> = [], burntResources: Iterable<[OathResourceType, number]> = []) {
-        this.placedResources = new Map(placedResources);
-        this.burntResources = new Map(burntResources);
+        this.placedResources = new NumberMap(placedResources);
+        this.burntResources = new NumberMap(burntResources);
     }
 
     get totalResources() {
-        const total = new Map<OathResourceType, number>();
+        const total = new NumberMap<OathResourceType>();
         for (const [resource, amount] of this.placedResources) total.set(resource, amount);
-        for (const [resource, amount] of this.burntResources) total.set(resource, (total.get(resource) ?? 0) + amount);
+        for (const [resource, amount] of this.burntResources) total.set(resource, total.get(resource) + amount);
         return total;
     }
 
@@ -42,8 +42,8 @@ export class ResourceCost {
     }
 
     add(other: ResourceCost) {
-        for (const [resource, amount] of other.placedResources) this.placedResources.set(resource, (this.placedResources.get(resource) ?? 0) + amount);
-        for (const [resource, amount] of other.burntResources) this.burntResources.set(resource, (this.burntResources.get(resource) ?? 0) + amount);
+        for (const [resource, amount] of other.placedResources) this.placedResources.set(resource, this.placedResources.get(resource) + amount);
+        for (const [resource, amount] of other.burntResources) this.burntResources.set(resource, this.burntResources.get(resource) + amount);
     }
 
     serialize() {
@@ -62,23 +62,22 @@ export class ResourceCost {
     toString() {
         const printResources = function (resources: Map<OathResourceType, number>, suffix: string) {
             if ([...resources].filter(([_, a]) => a > 0).length === 0) return undefined;
-            return [...resources].map(([resource, number]) => `${number} ${resource.name}(s)`).join(", ") + suffix;
+            return [...resources].map(([resource, number]) => `${number} ${resource.name}${number > 1 ? "s" : ""}`).join(", ") + suffix;
         };
         return [printResources(this.placedResources, " placed"), printResources(this.burntResources, " burnt")].filter(e => e !== undefined).join(", ");
     }
 }
 
 export abstract class CostContext<T> {
-    source: OathGameObject;
-
     constructor(
-        public player: OathPlayer,
-        public origin: any,  // TODO: This sucks. Need to find a better way of differentiating contexts
-        public cost: T,
-        public target: OathGameObject | undefined,
-        source?: OathGameObject
-    ) {
-        this.source = source || this.player;
+        public readonly player: OathPlayer,
+        public readonly origin: any,  // TODO: This sucks. Need to find a better way of differentiating contexts
+        public cost: T
+    ) { }
+
+    modifiersCostContext(modifiers: CostModifier<WithPowers, CostContext<T>>[]) {
+        const contexts: ResourceTransferContext[] = modifiers.map(e => new ResourceTransferContext(this.player, this, e.cost, e.source));
+        return new MultiResourceTransferContext(this.player, this, contexts);
     }
 
     payableCostsWithModifiers(maskProxyManager: MaskProxyManager) {
@@ -90,40 +89,102 @@ export abstract class CostContext<T> {
 
         const mustUse = modifiers.filter(e => e.mustUse);
         const canUse = modifiers.filter(e => !e.mustUse);
-        const combinations = allCombinations(canUse).map(e => [...mustUse, ...e]);
-        return combinations.map(combination => {
+        return allCombinations(canUse).map(e => [...mustUse, ...e]).map(combination => {
             let context: CostContext<T> = clone(this);
-            for (const modifier of combination) context = modifier.modifyCostContext(context);
+            context.cost = clone(this.cost);
 
-            if (!this.isValid(context as this)) return undefined;
+            if (combination.length) {
+                context.modify(combination);
+                if (!this.modifiersCostContext(combination).payableCostsWithModifiers(maskProxyManager).length) return undefined;
+            }
+            if (!context.isValid()) return undefined;
+
             return { context, modifiers: combination };
         }).filter(e => !!e);
     }
 
     modify(modifiers: Iterable<CostModifier<WithPowers, this>>) {
         for (const modifier of modifiers) {
-            const newContext = modifier.modifyCostContext(this);
-            this.cost = newContext.cost;
-            this.source = newContext.source;
-            this.target = newContext.target;
+            modifier.apply(this);
         }
     }
 
-    abstract isValid(context: this): boolean;
+    abstract isValid(): boolean;
 }
 
 export class ResourceTransferContext extends CostContext<ResourceCost> {
-    isValid(context: this): boolean {
-        for (const [resource, amount] of context.cost.totalResources)
-            if (context.source.byClass(resource).length < amount)
+    source: OathGameObject;
+
+    constructor(
+        player: OathPlayer,
+        origin: any,
+        cost: ResourceCost,
+        public target: OathGameObject | undefined,
+        source?: OathGameObject
+    ) {
+        super(player, origin, cost);
+        this.source = source || this.player;
+    }
+
+    isValid(): boolean {
+        for (const [resource, amount] of this.cost.totalResources)
+            if (this.source.byClass(resource).length < amount)
                 return false;
 
         return true;
     }
 }
 
-export class SupplyCostContext extends CostContext<number> {
-    isValid(context: this): boolean {
-        return this.player.supply >= context.cost;
+export class MultiResourceTransferContext extends CostContext<ResourceCost[]> {
+    constructor(
+        player: OathPlayer,
+        origin: any,
+        public costContexts: ResourceTransferContext[]
+    ) {
+        super(player, origin, costContexts.map(e => e.cost));
+    }
+
+    payableCostsWithModifiers(maskProxyManager: MaskProxyManager) {
+        const payableCostsInfo = this.costContexts.map(e => e.payableCostsWithModifiers(maskProxyManager));
+        return allChoices(payableCostsInfo).map(choice => {
+            let context: MultiResourceTransferContext = clone(this);
+            context.costContexts = choice.map(e => e.context as ResourceTransferContext);
+            context.cost = context.costContexts.map(e => e.cost);
+
+            if (!context.isValid()) return undefined;
+            return { context, modifiers: [] };  // Technically, none of the modifiers are applied to the Multi (and none should, for now)
+        }).filter(e => !!e);
+    }
+
+    isValid(): boolean {
+        const totalCostBySource = new Map<OathGameObject, ResourceCost>();
+        for (const costContext of this.costContexts) {
+            if (!totalCostBySource.has(costContext.source))
+                totalCostBySource.set(costContext.source, new ResourceCost());
+            totalCostBySource.get(costContext.source)!.add(costContext.cost);
+        }
+
+        for (const [source, totalCost] of totalCostBySource)
+            for (const [resource, amount] of totalCost.totalResources)
+                if (source.byClass(resource).length < amount)
+                    return false;
+
+        return true;
+    }
+}
+
+export class SupplyCost {
+    constructor(
+        public base: number,
+        public modifier: number = 0,
+        public multiplier: number = 1
+    ) { }
+
+    get amount() { return (this.base + this.modifier) * this.multiplier; }
+}
+
+export class SupplyCostContext extends CostContext<SupplyCost> {
+    isValid(): boolean {
+        return this.player.supply >= this.cost.base;
     }
 }

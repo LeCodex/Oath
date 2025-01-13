@@ -11,7 +11,7 @@ import {
   Citizenship,
   OathGameData,
   PlayerCitizenship,
-  SiteName,
+  CompleteSiteName,
   SiteNameIndexes,
 } from './interfaces';
 
@@ -185,9 +185,9 @@ export function serializeOathGame(game: OathGameData): string {
 
   // See `mapDataString` in lua mod for format.
   const mapData: string[] = game.sites.map((site) => {
-    const siteId = SiteName[site.name]!;
+    const siteId = CompleteSiteName[site.name]!;
     const bytes: number[] = [siteId];
-    if (site.facedown && siteId !== SiteName.NONE) {
+    if (site.facedown && siteId !== CompleteSiteName.NONE) {
       bytes[0]! += 24;
     }
     site.cards.forEach((card) => {

@@ -71,8 +71,8 @@ export abstract class OathAction {
 }
 
 export class ChooseModifiers<T extends ModifiableAction> extends OathAction {
-    readonly selects: { modifiers: SelectNOf<ActionModifier<WithPowers, T>>; };
-    readonly parameters: { modifiers: ActionModifier<WithPowers, T>[]; };
+    declare readonly selects: { modifiers: SelectNOf<ActionModifier<WithPowers, T>>; };
+    declare readonly parameters: { modifiers: ActionModifier<WithPowers, T>[]; };
     readonly action: T;
     readonly next: T | ChooseModifiers<T>;
     readonly message = "Choose modifiers";
@@ -239,8 +239,8 @@ export abstract class OathEffect<T = never> extends ModifiableAction {
 }
 
 export abstract class PlayerEffect<T = never> extends OathEffect<T> {
-    executor: OathPlayer;
-    executorProxy: OathPlayer;
+    declare executor: OathPlayer;
+    declare executorProxy: OathPlayer;
 
     constructor(player: OathPlayer) {
         super(player.game, player);

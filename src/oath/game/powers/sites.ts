@@ -6,7 +6,9 @@ import { OathSuit } from "../enums";
 import { isAtSite, WithPowers } from "../interfaces";
 import { OathPlayer } from "../player";
 import { Secret } from "../resources";
-import { ActionModifier, ActivePower } from ".";
+import { ActionCostModifier, ActionModifier, ActivePower, NoSupplyCostActionModifier, PowerWithProxy, SupplyCostModifier } from ".";
+import { SupplyCostContext } from "../costs";
+import { AbstractConstructor } from "../utils";
 
 
 export abstract class HomelandSitePower extends ActionModifier<Site, PlayWorldCardEffect> {
@@ -75,13 +77,17 @@ export class DeepWoods extends HomelandSitePower {
 }
 
 
-export abstract class AtSiteActionModifier<T extends ModifiableAction> extends ActionModifier<Site, T> {
-    canUse(): boolean {
-        return this.playerProxy.site === this.sourceProxy;
+export function AtSite<T extends AbstractConstructor<PowerWithProxy<Site> & { canUse(...args: any[]): boolean }>>(Base: T) {
+    abstract class AtSiteModifier extends Base {
+        canUse(...args: any[]): boolean {
+            return super.canUse(...args) && this.playerProxy.site === this.sourceProxy;
+        }
     }
+    return AtSiteModifier;
 }
 
-export class CoastalSite extends AtSiteActionModifier<TravelAction> {
+@AtSite
+export class CoastalSite extends ActionModifier<Site, TravelAction> {
     modifiedAction = TravelAction;
 
     canUse(): boolean {
@@ -99,41 +105,46 @@ export class CoastalSite extends AtSiteActionModifier<TravelAction> {
     }
 
     applyAtStart(): void {
-        this.action.selects.siteProxy.filterChoices(e => e.facedown || e.powers.has(CoastalSite));
+        this.action.selects.siteProxy.filterChoices(e => !e.facedown && e.powers.has(CoastalSite));
     }
-
-    applyBefore(): void {
-        if (this.action.siteProxy.facedown) return;
-        this.action.supplyCost = 1;
+}
+export class CoastalSiteCost extends ActionCostModifier(CoastalSite, SupplyCostContext) {
+    apply(context: SupplyCostContext): void {
+        context.cost.base = 1;
     }
 }
 
-export class CharmingValley extends AtSiteActionModifier<TravelAction> {
-    modifiedAction = TravelAction;
+@AtSite
+export class CharmingValley extends SupplyCostModifier<Site> {
     mustUse = true;
 
-    applyBefore(): void {
-        this.action.supplyCostModifier += 1;
+    canUse(context: SupplyCostContext): boolean {
+        return context.origin instanceof TravelAction;
+    }
+
+    apply(context: SupplyCostContext): void {
+        context.cost.modifier += 1;
     }
 }
 
-export class BuriedGiant extends AtSiteActionModifier<TravelAction> {
+@AtSite
+export class BuriedGiant extends ActionModifier<Site, TravelAction> {
     modifiedAction = TravelAction;
 
     applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, TravelAction>>): Iterable<ActionModifier<WithPowers, TravelAction>> {
         return [...modifiers].filter(e => e instanceof NarrowPass);
     }
 
-    applyWhenApplied(): boolean {
-        new FlipSecretsEffect(this.game, this.action.player, 1, true).doNext(amount => {
+    applyBefore(): void {
+        new FlipSecretsEffect(this.game, this.player, 1, true).doNext(amount => {
             if (amount < 1) throw new InvalidActionResolution("Cannot flip a secret for Buried Giant");
-            this.action.noSupplyCost = true;
         });
-        return true;
     }
 }
+export class BuriedGiantCost extends NoSupplyCostActionModifier(BuriedGiant) { }
 
-export class ShroudedWood extends AtSiteActionModifier<TravelAction> {
+@AtSite
+export class ShroudedWood extends ActionModifier<Site, TravelAction> {
     modifiedAction = TravelAction;
     mustUse = true;
 
@@ -145,9 +156,10 @@ export class ShroudedWood extends AtSiteActionModifier<TravelAction> {
         if (this.sourceProxy.ruler) this.action.player = this.sourceProxy.ruler.original;
         return true;
     }
-
-    applyBefore(): void {
-        this.action.supplyCost = 2;
+}
+export class ShroudedWoodCost extends ActionCostModifier(ShroudedWood, SupplyCostContext) {
+    apply(context: SupplyCostContext): void {
+        context.cost.base = 2;
     }
 }
 
@@ -188,7 +200,8 @@ export class TheHiddenPlaceCampaign extends ActionModifier<Site, CampaignAttackA
     }
 }
 
-export class OpportunitySite extends AtSiteActionModifier<WakeAction> {
+@AtSite
+export class OpportunitySite extends ActionModifier<Site, WakeAction> {
     modifiedAction = WakeAction;
 
     canUse(): boolean {
@@ -200,7 +213,8 @@ export class OpportunitySite extends AtSiteActionModifier<WakeAction> {
     }
 }
 
-export class Plains extends AtSiteActionModifier<CampaignAttackAction> {
+@AtSite
+export class Plains extends ActionModifier<Site, CampaignAttackAction> {
     modifiedAction = CampaignAttackAction;
     mustUse = true;
 
@@ -214,7 +228,8 @@ export class Plains extends AtSiteActionModifier<CampaignAttackAction> {
     }
 }
 
-export class Mountain extends AtSiteActionModifier<CampaignAttackAction> {
+@AtSite
+export class Mountain extends ActionModifier<Site, CampaignAttackAction> {
     modifiedAction = CampaignAttackAction;
     mustUse = true;
 
@@ -228,7 +243,8 @@ export class Mountain extends AtSiteActionModifier<CampaignAttackAction> {
     }
 }
 
-export class River extends AtSiteActionModifier<MusterAction> {
+@AtSite
+export class River extends ActionModifier<Site, MusterAction> {
     modifiedAction = MusterAction;
     mustUse = true;
 
@@ -237,7 +253,8 @@ export class River extends AtSiteActionModifier<MusterAction> {
     }
 }
 
-export class Marshes extends AtSiteActionModifier<SearchAction> {
+@AtSite
+export class Marshes extends ActionModifier<Site, SearchAction> {
     modifiedAction = SearchAction;
     mustUse = true;
 
@@ -246,7 +263,8 @@ export class Marshes extends AtSiteActionModifier<SearchAction> {
     }
 }
 
-export class GreatSlum extends AtSiteActionModifier<SearchPlayOrDiscardAction> {
+@AtSite
+export class GreatSlum extends ActionModifier<Site, SearchPlayOrDiscardAction> {
     modifiedAction = SearchPlayOrDiscardAction;
     mustUse = true;
 
@@ -257,6 +275,10 @@ export class GreatSlum extends AtSiteActionModifier<SearchPlayOrDiscardAction> {
 }
 
 export class TheTribunal extends ActivePower<Site> {
+    canUse(): boolean {
+        return super.canUse() && (this.playerProxy.site === this.sourceProxy || this.sourceProxy.ruler === this.playerProxy.leader);
+    }
+
     usePower(): void {
         // Can't enforce future actions, so just do a basic binding exchange
         new StartBindingExchangeAction(this.action.player, MakeBindingExchangeOfferAction).doNext();

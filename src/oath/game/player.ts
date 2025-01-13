@@ -2,7 +2,7 @@ import { CampaignBanishPlayerAction } from "./actions";
 import { CampaignActionTarget, AtSite, OwnableObject } from "./interfaces";
 import { Denizen, OwnableCard, Relic, Site, Vision, WorldCard } from "./cards";
 import { DiscardOptions } from "./cards/decks";
-import { DoTransferContextEffect, FlipSecretsEffect, GainSupplyEffect } from "./actions/effects";
+import { TransferResourcesEffect, FlipSecretsEffect, GainSupplyEffect } from "./actions/effects";
 import { ALL_OATH_SUITS, OathSuit, PlayerColor } from "./enums";
 import { isEnumKey } from "./utils";
 import { Warband, ResourcesAndWarbands, Favor, OathResourceType } from "./resources";
@@ -12,7 +12,7 @@ import { ResourceTransferContext, ResourceCost } from "./costs";
 
 export class WarbandsSupply extends Container<Warband, PlayerColor> {
     readonly type = "bag";
-    readonly id: PlayerColor;
+    declare readonly id: PlayerColor;
     get hidden() { return true; }
 
     constructor(id: PlayerColor) {
@@ -123,7 +123,7 @@ export class OathPlayer extends ResourcesAndWarbands<number> implements Campaign
     }
     
     seize(player: OathPlayer) {
-        new DoTransferContextEffect(this.game, new ResourceTransferContext(this, this, new ResourceCost([], [[Favor, Math.floor(this.byClass(Favor).length / 2)]]), undefined)).doNext();
+        new TransferResourcesEffect(this.game, new ResourceTransferContext(this, this, new ResourceCost([], [[Favor, Math.floor(this.byClass(Favor).length / 2)]]), undefined)).doNext();
         new CampaignBanishPlayerAction(player, this).doNext();
     }
 
@@ -146,7 +146,7 @@ export class OathPlayer extends ResourcesAndWarbands<number> implements Campaign
 
 export abstract class PlayerBoard extends OathGameObject<PlayerColor> implements OwnableObject {
     readonly type = "board";
-    readonly id: PlayerColor;
+    declare readonly id: PlayerColor;
 
     bagAmount: number = 14;
     
@@ -171,7 +171,7 @@ export abstract class PlayerBoard extends OathGameObject<PlayerColor> implements
 }
 
 export class ChancellorBoard extends PlayerBoard {
-    readonly id: PlayerColor.Purple;
+    declare readonly id: PlayerColor.Purple;
     name = "Chancellor";
     bagAmount = 24;
 
@@ -196,7 +196,7 @@ export class ChancellorBoard extends PlayerBoard {
 
 export class VisionSlot extends Container<Vision, PlayerColor> {
     readonly type = "visionSlot";
-    readonly id: PlayerColor;
+    declare readonly id: PlayerColor;
 
     constructor(id: PlayerColor) {
         if (!isEnumKey(id, PlayerColor)) throw new TypeError(`${id} is not a valid player color`);

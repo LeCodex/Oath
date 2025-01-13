@@ -1,20 +1,27 @@
-import { ActionModifier } from ".";
+import { ActionModifier, PowerWithProxy, ResourceTransferModifier, SupplyCostModifier } from ".";
 import { CampaignAttackAction, SearchAction, TradeAction, TravelAction } from "../actions";
-import { InvalidActionResolution, ModifiableAction } from "../actions/base";
+import { InvalidActionResolution } from "../actions/base";
+import { ResourceTransferContext, SupplyCostContext } from "../costs";
 import { RegionKey } from "../enums";
 import { ReliquarySlot } from "../reliquary";
 import { Favor, Secret } from "../resources";
+import { AbstractConstructor } from "../utils";
 
 
-export abstract class ReliquaryModifier<T extends ModifiableAction> extends ActionModifier<ReliquarySlot, T> {
-    mustUse = true;
+// TODO: Could be using Accessed, but eh
+export function Reliquary<T extends AbstractConstructor<PowerWithProxy<ReliquarySlot> & { mustUse: boolean, canUse(...args: any[]): boolean }>>(Base: T) {
+    abstract class ReliquaryModifier extends Base {
+        mustUse = true;
 
-    canUse(): boolean {
-        return super.canUse() && this.playerProxy === this.gameProxy.chancellor;
+        canUse(...args: any[]): boolean {
+            return super.canUse(args) && this.playerProxy === this.gameProxy.chancellor;
+        }
     }
+    return ReliquaryModifier;
 }
 
-export class Brutal extends ReliquaryModifier<CampaignAttackAction> {
+@Reliquary
+export class Brutal extends ActionModifier<ReliquarySlot, CampaignAttackAction> {
     modifiedAction = CampaignAttackAction;
 
     applyBefore() {
@@ -23,7 +30,8 @@ export class Brutal extends ReliquaryModifier<CampaignAttackAction> {
     }
 }
 
-export class Greedy extends ReliquaryModifier<SearchAction> {
+@Reliquary
+export class Greedy extends ActionModifier<ReliquarySlot, SearchAction> {
     modifiedAction = SearchAction;
 
     applyBefore(): void {
@@ -31,27 +39,34 @@ export class Greedy extends ReliquaryModifier<SearchAction> {
     }
     
     applyAfter(): void {
-        if (this.action.actualSupplyCost > 2) throw new InvalidActionResolution("Cannot do a Greedy Search for more than 2 Supply.");
+        if (this.action.supplyCost.amount > 2) throw new InvalidActionResolution("Cannot do a Greedy Search for more than 2 Supply.");
     }
 }
 
-export class Careless extends ReliquaryModifier<TradeAction> {
-    modifiedAction = TradeAction;
+@Reliquary
+export class Careless extends ResourceTransferModifier<ReliquarySlot> {
+    canUse(context: ResourceTransferContext): boolean {
+        return context.origin instanceof TradeAction;
+    }
 
-    applyBefore(): void {
-        this.action.getting.set(Secret, (this.action.getting.get(Secret) ?? 0) - 1);
-        this.action.getting.set(Favor, (this.action.getting.get(Favor) ?? 0) + 1);
+    apply(context: ResourceTransferContext): void {
+        context.cost.placedResources.set(Secret, context.cost.placedResources.get(Secret) - 1);
+        context.cost.placedResources.set(Favor, context.cost.placedResources.get(Favor) + 1);
     }
 }
 
-export class Decadent extends ReliquaryModifier<TravelAction> {
-    modifiedAction = TravelAction;
+@Reliquary
+export class Decadent extends SupplyCostModifier<ReliquarySlot> {
+    canUse(context: SupplyCostContext): boolean {
+        return context.origin instanceof TravelAction;
+    }
 
-    applyBefore(): void {
-        if (this.action.siteProxy.inRegion(RegionKey.Cradle) && !this.playerProxy.site.inRegion(RegionKey.Cradle))
-            this.action.noSupplyCost = true;
-
-        if (this.action.siteProxy.inRegion(RegionKey.Hinterland))
-            this.action.supplyCostModifier += 1;
+    apply(context: SupplyCostContext): void {
+        const action = context.origin as TravelAction;
+        if (action.siteProxy.inRegion(RegionKey.Cradle) && !this.playerProxy.site.inRegion(RegionKey.Cradle))
+            context.cost.multiplier = 0;
+    
+        if (action.siteProxy.inRegion(RegionKey.Hinterland))
+            context.cost.modifier += 1;
     }
 }

@@ -6,9 +6,9 @@ import { PlayVisionEffect, PlayWorldCardEffect, PeekAtCardEffect, DiscardCardEff
 import { BannerKey, OathSuit, ALL_OATH_SUITS } from "../enums";
 import { WithPowers } from "../interfaces";
 import { Favor, Secret } from "../resources";
-import { ResourceCost } from "../costs";
+import { ResourceCost, SupplyCostContext } from "../costs";
 import { maxInGroup, minInGroup } from "../utils";
-import { DefenderBattlePlan, Accessed, ActivePower, WhenPlayed, EnemyActionModifier, AttackerBattlePlan, ActionModifier, EnemyDefenderCampaignModifier } from ".";
+import { DefenderBattlePlan, Accessed, ActivePower, WhenPlayed, EnemyActionModifier, AttackerBattlePlan, ActionModifier, EnemyDefenderCampaignModifier, NoSupplyCostActionModifier, SupplyCostModifier } from ".";
 import { ExileBoard } from "../player";
 import { AttackDieSymbol } from "../dice";
 
@@ -113,10 +113,10 @@ export class AwaitedReturn extends ActionModifier<Denizen, TradeAction> {
     applyBefore(): void {
         if (this.player.warbands.length) {
             new KillWarbandsOnTargetAction(this.player, this.player, 1).doNext();
-            this.action.noSupplyCost = true;
         }
     }
 }
+export class AwaitedReturnCost extends NoSupplyCostActionModifier(AwaitedReturn) { }
 
 @Accessed
 export class RowdyPub extends ActionModifier<Denizen, MusterAction> {
@@ -141,12 +141,15 @@ export class CropRotation extends ActionModifier<Denizen, SearchPlayOrDiscardAct
 }
 
 @Accessed
-export class NewsFromAfar extends ActionModifier<Denizen, SearchAction> {
-    modifiedAction = SearchAction;
-    cost = new ResourceCost([[Favor, 2]]);
+export class NewsFromAfar extends SupplyCostModifier<Denizen> {
+    cost = new ResourceCost([[Favor, 2]]);  // TODO: Do costs for cost modifiers
 
-    applyBefore(): void {
-        this.action.noSupplyCost = true;
+    canUse(context: SupplyCostContext): boolean {
+        return context.origin instanceof TradeAction;
+    }
+
+    apply(context: SupplyCostContext): void {
+        context.cost.multiplier = 0;
     }
 }
 

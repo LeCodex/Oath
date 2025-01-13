@@ -3,7 +3,7 @@ import { AbstractConstructor, NodeGroup, TreeLeaf, TreeNode } from "./utils";
 
 
 export abstract class OathGameObject<T = any> extends TreeNode<OathGame, T> {
-    children: NodeGroup<OathGameObject>;
+    declare children: NodeGroup<OathGameObject>;
     get game() { return this.root; }
 }
 
@@ -12,7 +12,7 @@ export abstract class OathGameObjectLeaf<T = any> extends TreeLeaf<OathGame, T> 
 }
 
 export abstract class Container<ChildrenType extends OathGameObject<any>, U = any> extends OathGameObject<U> {
-    children: NodeGroup<ChildrenType>;
+    declare children: NodeGroup<ChildrenType>;
 
     constructor(id: string, public cls: AbstractConstructor<ChildrenType>) {
         super(id);

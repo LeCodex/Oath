@@ -1,5 +1,5 @@
 
-export const CardName = {
+export const DenizenName = {
   Wrestlers: 0,
   BattleHonors: 1,
   BearTraps: 2,
@@ -197,7 +197,7 @@ export const CardName = {
   WalledGarden: 194,
   VowOfBeastkin: 195,
   Bracken: 196,
-  WildAllies: 197, 
+  WildAllies: 197,
 
   // Edifices and ruins
   SprawlingRampart: 198,
@@ -211,19 +211,24 @@ export const CardName = {
   GreatSpire: 206,
   FallenSpire: 207,
   AncientForge: 208,
-  BrokenForge: 209,  
+  BrokenForge: 209,
+}
 
-  // Visions
+export const VisionName = {
   Sanctuary: 210,
   Rebellion: 211,
   Conspiracy: 212,
   Faith: 213,
-  Conquest: 214,  
+  Conquest: 214,
+} as const;
 
+export const BannerName = {
   // Note that 215 and 216 were formerly reserved for privilege cards
   DarkestSecret: 215,
-  PeoplesFavor: 216,  
+  PeoplesFavor: 216,
+} as const;
 
+export const RelicName = {
   // Relics
   // Note that 217 was formerly the darkest secret
   StickyFire: 218,
@@ -246,12 +251,20 @@ export const CardName = {
   ObsidianCage: 235,
   BookOfRecords: 236,
   DragonskinDrum: 237,
-
-  // Additions not used by TTS
-  GrandScepter: 238,
   
-  NONE: 255
+  // Additions not used by TTS
+  GrandScepter: 238
+
 } as const;
+
+export const CardName = {
+  ...DenizenName,
+  ...VisionName,
+  ...BannerName,
+  ...RelicName,
+
+  NONE: 255
+}
 
 export const CardNameIndexes = Object.keys(CardName)
   .reduce((prev, cur: keyof typeof CardName) => {

@@ -1,6 +1,6 @@
 import { ChooseSuitsAction, RecoverAction, RecoverBannerPitchAction } from "./actions";
 import { RecoverActionTarget, CampaignActionTarget, WithPowers, OwnableObject } from "./interfaces";
-import { TakeOwnableObjectEffect, SetPeoplesFavorMobState, ParentToTargetEffect, RecoverTargetEffect, DoTransferContextEffect } from "./actions/effects";
+import { TakeOwnableObjectEffect, SetPeoplesFavorMobState, ParentToTargetEffect, RecoverTargetEffect, TransferResourcesEffect } from "./actions/effects";
 import { OathSuit } from "./enums";
 import { isEnumKey } from "./utils";
 import { OathPlayer } from "./player";
@@ -12,9 +12,9 @@ import { Container } from "./gameObject";
 import { ResourceCost, ResourceTransferContext } from "./costs";
 
 export class FavorBank extends Container<Favor, OathSuit> {
-    readonly id: keyof typeof OathSuit;
+    declare readonly id: keyof typeof OathSuit;
     readonly type = "favorBank";
-    cls: typeof Favor;
+    declare cls: typeof Favor;
 
     constructor(id: keyof typeof OathSuit) {
         if (!isEnumKey(id, OathSuit)) throw TypeError(`${id} is not a valid suit`);
@@ -57,17 +57,17 @@ export abstract class Banner<T extends OathResource = OathResource> extends Cont
 
     seize(player: OathPlayer) {
         new TakeOwnableObjectEffect(this.game, player, this).doNext();
-        new DoTransferContextEffect(this.game, new ResourceTransferContext(player, this, new ResourceCost([], [[this.cls as any, 2]]), undefined, this)).doNext();
+        new TransferResourcesEffect(this.game, new ResourceTransferContext(player, this, new ResourceCost([], [[this.cls as any, 2]]), undefined, this)).doNext();
     }
 
     abstract handleRecovery(player: OathPlayer): void;
 }
 
 export class PeoplesFavor extends Banner<Favor> {
-    readonly id: "peoplesFavor";
+    declare readonly id: "peoplesFavor";
     name = "PeoplesFavor";
     powers = new Set([PeoplesFavorSearch, PeoplesFavorWake]);
-    cls: typeof Favor;
+    declare cls: typeof Favor;
     isMob: boolean;
 
     constructor() {
@@ -86,7 +86,7 @@ export class PeoplesFavor extends Banner<Favor> {
                 while (amount > 0) {
                     const bank = this.game.byClass(FavorBank).byKey(suit)[0];
                     if (bank) {
-                        new DoTransferContextEffect(this.game, new ResourceTransferContext(player, this, new ResourceCost([[bank.cls, 1]]), bank, this)).doNext();
+                        new TransferResourcesEffect(this.game, new ResourceTransferContext(player, this, new ResourceCost([[bank.cls, 1]]), bank, this)).doNext();
                         amount--;
                     }
                     if (++suit > OathSuit.Nomad) suit = OathSuit.Discord;
@@ -109,10 +109,10 @@ export class PeoplesFavor extends Banner<Favor> {
 }
 
 export class DarkestSecret extends Banner<Secret> {
-    readonly id: "darkestSecret";
+    declare readonly id: "darkestSecret";
     name = "DarkestSecret";
     powers = new Set([DarkestSecretPower]);
-    cls: typeof Secret;
+    declare cls: typeof Secret;
 
     constructor() {
         super("darkestSecret", Secret);
@@ -132,8 +132,8 @@ export class DarkestSecret extends Banner<Secret> {
     }
 
     handleRecovery(player: OathPlayer) {
-        new DoTransferContextEffect(this.game, new ResourceTransferContext(player, this, new ResourceCost([[this.cls, 1]]), player, this)).doNext();
+        new TransferResourcesEffect(this.game, new ResourceTransferContext(player, this, new ResourceCost([[this.cls, 1]]), player, this)).doNext();
         if (this.owner)
-            new DoTransferContextEffect(this.game, new ResourceTransferContext(this.owner, this, new ResourceCost([[this.cls, this.amount - 1]]), this)).doNext();
+            new TransferResourcesEffect(this.game, new ResourceTransferContext(this.owner, this, new ResourceCost([[this.cls, this.amount - 1]]), this)).doNext();
     }
 }

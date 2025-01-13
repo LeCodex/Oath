@@ -1,4 +1,4 @@
-import { PRNG } from "./utils";
+import { NumberMap, PRNG } from "./utils";
 
 export class Die<T extends number> {
     readonly faces: T[][];
@@ -77,11 +77,11 @@ export class RollResult<T extends Die<number>> {
 
     constructor(public random: PRNG, public die: T) { }
 
-    get symbols(): Map<SymbolType<T>, number> {
-        const res = new Map<SymbolType<T>, number>();
+    get symbols() {
+        const res = new NumberMap<SymbolType<T>>();
         for (const roll of this.rolls)
             for (const symbol of roll)
-                res.set(symbol, (res.get(symbol) ?? 0) + 1);
+                res.set(symbol, res.get(symbol) + 1);
         
         return res;
     }
@@ -100,6 +100,6 @@ export class RollResult<T extends Die<number>> {
 
     get(key: SymbolType<T>): number {
         if (this.ignore.has(key)) return 0;
-        return this.symbols.get(key) ?? 0;
+        return this.symbols.get(key);
     }
 }

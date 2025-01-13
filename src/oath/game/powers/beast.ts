@@ -1,15 +1,14 @@
 import { SearchAction, CampaignAttackAction, CampaignDefenseAction, TradeAction, TakeFavorFromBankAction, ActAsIfAtSiteAction, MakeDecisionAction, CampaignAction, ChoosePlayersAction, ChooseCardsAction, ChooseSuitsAction, KillWarbandsOnTargetAction, MusterAction, TravelAction, SearchPlayOrDiscardAction, BrackenAction, TradeForSecretAction } from "../actions";
 import { InvalidActionResolution } from "../actions/base";
 import { Denizen, Edifice, GrandScepter, Relic, Site } from "../cards";
-import { BecomeCitizenEffect, DiscardCardEffect, DoTransferContextEffect, DrawFromDeckEffect, FinishChronicleEffect, GainSupplyEffect, MoveDenizenToSiteEffect, MoveWorldCardToAdvisersEffect, ParentToTargetEffect, PlayWorldCardEffect, RegionDiscardEffect, TakeOwnableObjectEffect } from "../actions/effects";
+import { BecomeCitizenEffect, DiscardCardEffect, TransferResourcesEffect, DrawFromDeckEffect, FinishChronicleEffect, GainSupplyEffect, MoveDenizenToSiteEffect, MoveWorldCardToAdvisersEffect, ParentToTargetEffect, PlayWorldCardEffect, RegionDiscardEffect, TakeOwnableObjectEffect } from "../actions/effects";
 import { CardRestriction, OathSuit } from "../enums";
 import { WithPowers } from "../interfaces";
 import { ExileBoard, OathPlayer } from "../player";
 import { Favor, Warband, Secret } from "../resources";
-import { ResourceCost, ResourceTransferContext } from "../costs";
-import { AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, RestPower, ActivePower, EnemyAttackerCampaignModifier, EnemyDefenderCampaignModifier, Accessed, ActionModifier, EnemyActionModifier, BattlePlan, CostModifier, ResourceTransferModifier } from ".";
+import { ResourceCost, ResourceTransferContext, SupplyCostContext } from "../costs";
+import { AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, RestPower, ActivePower, EnemyAttackerCampaignModifier, EnemyDefenderCampaignModifier, Accessed, ActionModifier, EnemyActionModifier, BattlePlan, ResourceTransferModifier, NoSupplyCostActionModifier, SupplyCostModifier } from ".";
 import { AttackDieSymbol, DefenseDieSymbol } from "../dice";
-import { clone } from "lodash";
 
 
 export class NatureWorshipAttack extends AttackerBattlePlan<Denizen> {
@@ -94,9 +93,9 @@ export class ForestPaths extends ActionModifier<Denizen, TravelAction> {
 
     applyAtStart(): void {
         this.action.selects.siteProxy.filterChoices(e => [...e.denizens].some(e => e.suit === OathSuit.Beast));
-        this.action.noSupplyCost = true;
     }
 }
+export class ForestPathsCost extends NoSupplyCostActionModifier(ForestPaths) { }
 
 @Accessed
 export class NewGrowth extends ActionModifier<Denizen, SearchPlayOrDiscardAction> {
@@ -125,33 +124,44 @@ export class WildCry extends ActionModifier<Denizen, PlayWorldCardEffect> {
 }
 
 @Accessed
-export class AnimalPlaymates extends ActionModifier<Denizen, MusterAction> {
-    modifiedAction = MusterAction;
+export class AnimalPlaymates extends SupplyCostModifier<Denizen> {
+    canUse(context: SupplyCostContext): boolean {
+        return context.origin instanceof MusterAction;
+    }
 
-    applyBefore(): void {
-        if (this.action.cardProxy.suit === OathSuit.Beast)
-            this.action.noSupplyCost = true;
+    apply(context: SupplyCostContext): void {
+        if ((context.origin as MusterAction).cardProxy.suit === OathSuit.Beast)
+            context.cost.multiplier = 0;
     }
 }
 
 @Accessed
-export class Birdsong extends ActionModifier<Denizen, TradeAction> {
-    modifiedAction = TradeAction;
+export class Birdsong extends SupplyCostModifier<Denizen> {
+    canUse(context: SupplyCostContext): boolean {
+        return context.origin instanceof TradeAction;
+    }
 
-    applyBefore(): void {
-        if (this.action.cardProxy.suit === OathSuit.Beast || this.action.cardProxy.suit === OathSuit.Nomad)
-            this.action.noSupplyCost = true;
+    apply(context: SupplyCostContext): void {
+        const action = context.origin as TradeAction;
+        if (action.cardProxy.suit === OathSuit.Beast || action.cardProxy.suit === OathSuit.Nomad)
+            context.cost.multiplier = 0;
     }
 }
 
 @Accessed
-export class TheOldOak extends ActionModifier<Denizen, TradeForSecretAction> {
-    modifiedAction = TradeForSecretAction;
+export class TheOldOak extends ResourceTransferModifier<Denizen> {
     mustUse = true;
 
+    canUse(context: ResourceTransferContext): boolean {
+        return context.origin instanceof TradeForSecretAction;
+    }
+
+    apply(context: ResourceTransferContext): void {
+        if (context.source === this.sourceProxy && [...this.playerProxy.advisers].some(e => e instanceof Denizen && e.suit === OathSuit.Beast))
+            context.cost.placedResources.set(Secret, context.cost.placedResources.get(Secret) + 1);
+    }
+
     applyBefore(): void {
-        if (this.action.cardProxy === this.sourceProxy && [...this.action.playerProxy.advisers].some(e => e instanceof Denizen && e.suit === OathSuit.Beast))
-            this.action.getting.set(Secret, (this.action.getting.get(Secret) ?? 0) + 1);
     }
 }
 
@@ -166,9 +176,9 @@ export class Mushrooms extends ActionModifier<Denizen, SearchAction> {
         this.action.amount -= 2;  // So it plays well with other amount modifiers
         this.action.deckProxy = discard;
         this.action.fromBottom = true;
-        this.action.noSupplyCost = true;
     }
 }
+export class MushroomsCost extends NoSupplyCostActionModifier(Mushrooms) { }
 
 export class MarshSpirit extends ActionModifier<Denizen, CampaignAttackAction> {
     modifiedAction = CampaignAttackAction;
@@ -215,10 +225,8 @@ export class InsectSwarm extends ResourceTransferModifier<Denizen> {
         return campaignResult.areEnemies(ruler, this.player);
     }
 
-    modifyCostContext(context: ResourceTransferContext): ResourceTransferContext {
-        const copy = clone(context);
-        copy.cost.add(new ResourceCost([], [[Favor, 1]]));
-        return copy;
+    apply(context: ResourceTransferContext): void {
+        context.cost.add(new ResourceCost([], [[Favor, 1]]));
     }
 }
 
@@ -358,7 +366,7 @@ export class WildAllies extends ActivePower<Denizen> {
 
     usePower(): void {
         const campaignAction = new CampaignAction(this.action.player);
-        campaignAction.noSupplyCost = true;
+        campaignAction.supplyCost.multiplier = 0;
 
         const sites = new Set<Site>();
         for (const siteProxy of this.gameProxy.map.sites()) {
@@ -394,7 +402,7 @@ export class PiedPiper extends ActivePower<Denizen> {
             this.action.player, "Send the Pied Piper to steal 2 favor",
             (targets: OathPlayer[]) => {
                 if (!targets[0]) return;
-                new DoTransferContextEffect(this.game, new ResourceTransferContext(this.action.player, this, new ResourceCost([[Favor, 2]]), this.action.player, targets[0])).doNext();
+                new TransferResourcesEffect(this.game, new ResourceTransferContext(this.action.player, this, new ResourceCost([[Favor, 2]]), this.action.player, targets[0])).doNext();
                 new MoveWorldCardToAdvisersEffect(this.game, this.action.player, this.source, targets[0]).doNext();
             }
         ).doNext();

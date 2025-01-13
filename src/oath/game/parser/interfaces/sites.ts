@@ -23,13 +23,17 @@ export const SiteName = {
   TheTribunal: 20,
   ShroudedWood: 21,
   TheHiddenPlace: 22,
+} as const;
+
+export const CompleteSiteName = {
+  ...SiteName,
   
   NONE: 255
 } as const;
 
-export const SiteNameIndexes = Object.keys(SiteName)
-  .reduce((prev, cur: keyof typeof SiteName) => {
-    prev[SiteName[cur]!] = cur;
-    prev[SiteName[cur]! + 24] = cur;
+export const SiteNameIndexes = Object.keys(CompleteSiteName)
+  .reduce((prev, cur: keyof typeof CompleteSiteName) => {
+    prev[CompleteSiteName[cur]!] = cur;
+    prev[CompleteSiteName[cur]! + 24] = cur;
     return prev;
-  }, {} as Record<number, keyof typeof SiteName>);
+  }, {} as Record<number, keyof typeof CompleteSiteName>);
