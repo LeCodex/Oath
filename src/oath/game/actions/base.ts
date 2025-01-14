@@ -1,8 +1,9 @@
+import { MultiResourceTransferContext } from "../costs";
 import { OathGame } from "../game";
 import { WithPowers } from "../interfaces";
 import { OathPlayer } from "../player";
 import { ActionModifier } from "../powers";
-import { Constructor, MaskProxyManager } from "../utils";
+import { allCombinations, Constructor, MaskProxyManager } from "../utils";
 import { SelectNOf } from "./selects";
 
 
@@ -71,13 +72,11 @@ export abstract class OathAction {
 }
 
 export class ChooseModifiers<T extends ModifiableAction> extends OathAction {
-    declare readonly selects: { modifiers: SelectNOf<ActionModifier<WithPowers, T>>; };
-    declare readonly parameters: { modifiers: ActionModifier<WithPowers, T>[]; };
+    declare readonly selects: { modifiers: SelectNOf<ActionModifier<WithPowers, T>[]>; };
+    declare readonly parameters: { modifiers: ActionModifier<WithPowers, T>[][]; };
     readonly action: T;
     readonly next: T | ChooseModifiers<T>;
     readonly message = "Choose modifiers";
-
-    persistentModifiers: Set<ActionModifier<WithPowers, T>>;
 
     constructor(next: T | ChooseModifiers<T>, chooser: OathPlayer = next.player) {
         super(chooser);
@@ -86,18 +85,23 @@ export class ChooseModifiers<T extends ModifiableAction> extends OathAction {
     }
 
     start() {
-        this.persistentModifiers = new Set();
-        const choices = new Map<string, ActionModifier<WithPowers, T>>();
-        const defaults: string[] = []
+        const defaults: string[] = [];
+        const persistentModifiers = new Set<ActionModifier<WithPowers, T>>();
+        const optionalModifiers = new Set<ActionModifier<WithPowers, T>>();
         for (const modifier of this.game.gatherActionModifiers(this.action, this.player)) {
-            if (!modifier.costContext.payableCostsWithModifiers(this.action.maskProxyManager).length) continue;  // Modifier can't be payed for
-
             if (modifier.mustUse) {
-                this.persistentModifiers.add(modifier);  // TODO: How to handle must-use modifiers with costs that you can't pay?
+                persistentModifiers.add(modifier);
             } else {
-                choices.set(modifier.name, modifier);
-                if (modifier.costContext.cost.free) defaults.push(modifier.name);
+                optionalModifiers.add(modifier);
             }
+        }
+
+        // TODO: Change to permutations to handle order (maybe have order agnosticity as a property)
+        const choices = new Map<string, ActionModifier<WithPowers, T>[]>();
+        for (const combination of allCombinations(optionalModifiers)) {
+            const totalContext = new MultiResourceTransferContext(this.player, this, [...persistentModifiers, ...combination].map(e => e.costContext));
+            if (!totalContext.payableCostsWithModifiers(this.action.maskProxyManager).length)
+                choices.set(combination.map(e => e.name).join(", "), combination);
         }
         this.selects.modifiers = new SelectNOf("Modifiers", choices, { defaults });
 
@@ -105,7 +109,7 @@ export class ChooseModifiers<T extends ModifiableAction> extends OathAction {
     }
 
     execute() {
-        const modifiers = new Set([...this.persistentModifiers, ...this.parameters.modifiers]);
+        const modifiers = new Set(this.parameters.modifiers[0]);
 
         // NOTE: For ignore loops, all powers in the loop are ignored.
         const ignore = new Set<ActionModifier<WithPowers, T>>();
