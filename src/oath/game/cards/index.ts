@@ -1,20 +1,27 @@
-import { CampaignSeizeSiteAction, RecoverAction } from "../actions";
-import { RecoverActionTarget, WithPowers, AtSite, CampaignActionTarget, OwnableObject, HiddenInformation } from "../interfaces";
+import type { RecoverAction } from "../actions";
+import { CampaignSeizeSiteAction } from "../actions";
+import type { RecoverActionTarget, WithPowers, AtSite, CampaignActionTarget, OwnableObject, HiddenInformation } from "../interfaces";
 import { Region } from "../map";
 import { DiscardCardEffect, FlipSecretsEffect, MoveOwnWarbandsEffect, ParentToTargetEffect, TransferResourcesEffect, RecoverTargetEffect, RevealCardEffect, TakeOwnableObjectEffect } from "../actions/effects";
-import { CardRestriction, OathSuit, OathType, OathTypeVisionName, PlayerColor, RegionKey } from "../enums";
+import type { PlayerColor, RegionKey } from "../enums";
+import { CardRestriction, OathSuit, OathType, OathTypeVisionName } from "../enums";
 import { Oath } from "../oaths";
 import { OathPlayer } from "../player";
-import { OathPower } from "../powers";
+import type { OathPower } from "../powers";
 import { ConspiracyWhenPlayed } from "../powers/visions";
-import { Favor, OathResource, ResourcesAndWarbands, Secret } from "../resources";
+import type { OathResource} from "../resources";
+import { Favor, ResourcesAndWarbands, Secret } from "../resources";
 import { ResourceCost, ResourceTransferContext } from "../costs";
-import { Constructor } from "../utils";
-import { CardDeck, Discard, DiscardOptions, RelicDeck } from "./decks";
-import { denizenData, DenizenName } from "./denizens";
+import type { Constructor } from "../utils";
+import type { CardDeck, Discard, RelicDeck } from "./decks";
+import { DiscardOptions } from "./decks";
+import type { DenizenName } from "./denizens";
+import { denizenData } from "./denizens";
 import { FavorBank } from "../banks";
-import { SiteName, sitesData } from "./sites";
-import { RelicName, relicsData } from "./relics";
+import type { SiteName} from "./sites";
+import { sitesData } from "./sites";
+import type { RelicName} from "./relics";
+import { relicsData } from "./relics";
 
 
 export abstract class OathCard extends ResourcesAndWarbands<string> implements HiddenInformation, WithPowers {

@@ -1,9 +1,9 @@
 import { DarkestSecret, PeoplesFavor } from "./banks";
 import { GrandScepter } from "./cards";
 import { OathType } from "./enums";
-import { OathGame } from "./game";
+import type { OathGame } from "./game";
 import { OathGameObjectLeaf } from "./gameObject";
-import { OwnableObject, WithPowers } from "./interfaces";
+import type { OwnableObject, WithPowers } from "./interfaces";
 import { OathPlayer } from "./player";
 import { OathDefense } from "./powers/visions";
 import { maxInGroup } from "./utils";

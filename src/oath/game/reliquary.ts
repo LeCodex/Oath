@@ -1,8 +1,8 @@
 import { Relic } from "./cards";
-import { WithPowers } from "./interfaces";
-import { OathPower } from "./powers";
+import type { WithPowers } from "./interfaces";
+import type { OathPower } from "./powers";
 import { Container } from "./gameObject";
-import { Constructor } from "./utils";
+import type { Constructor } from "./utils";
 import { Brutal, Decadent, Careless, Greedy } from "./powers/reliquary";
 import { OathPlayer } from "./player";
 

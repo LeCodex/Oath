@@ -427,7 +427,7 @@ export class Downtrodden extends ActionModifier<Denizen, MusterAction> {
     modifiedAction = MusterAction;
 
     applyBefore(): void {
-        let minSuits = minInGroup(this.game.byClass(FavorBank), "amount").map(e => e.key);
+        const minSuits = minInGroup(this.game.byClass(FavorBank), "amount").map(e => e.key);
         if (minSuits.length === 1 && minSuits[0] === this.action.cardProxy.suit)
             this.action.getting += 2;
     }

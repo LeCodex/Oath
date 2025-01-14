@@ -1,13 +1,14 @@
 import { clone } from "lodash";
 import { CampaignAction, CampaignKillWarbandsInForceAction, MoveWarbandsAction, MusterAction, PlayFacedownAdviserAction, RecoverAction, RestAction, SearchAction, TradeAction, TravelAction, UsePowerAction } from ".";
-import { Denizen } from "../cards";
+import type { Denizen } from "../cards";
 import { RollResult, AttackDie, DefenseDie } from "../dice";
-import { OathGame } from "../game";
-import { CampaignActionTarget } from "../interfaces";
-import { OathPlayer, ExileBoard } from "../player";
-import { ResourcesAndWarbands } from "../resources";
+import type { OathGame } from "../game";
+import type { CampaignActionTarget } from "../interfaces";
+import type { OathPlayer} from "../player";
+import { ExileBoard } from "../player";
+import type { ResourcesAndWarbands } from "../resources";
 import { ResourceTransferContext } from "../costs";
-import { MaskProxyManager } from "../utils";
+import type { MaskProxyManager } from "../utils";
 import { DiscardCardEffect, RollDiceEffect } from "./effects";
 
 

@@ -433,8 +433,10 @@ export class WitchsBargain extends ActivePower<Denizen> {
                             let giftedResource: OathResourceType = Favor, takenResource: OathResourceType = Secret;
                             let giving = value * 2, taking = value;
                             if (value < 0) {
-                                giftedResource = Secret, takenResource = Favor;
-                                giving = -value, taking = -value * 2;
+                                giftedResource = Secret;
+                                takenResource = Favor;
+                                giving = -value;
+                                taking = -value * 2;
                             }
                             
                             new TransferResourcesEffect(this.game, new ResourceTransferContext(this.action.player, this, new ResourceCost([[giftedResource, giving]]), player)).doNext(success => {

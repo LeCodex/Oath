@@ -1,7 +1,8 @@
 import { TransferResourcesEffect, ParentToTargetEffect } from "./actions/effects";
 import { OathGameObject, OathGameObjectLeaf } from "./gameObject";
 import { PlayerColor } from "./enums";
-import { isEnumKey, NodeGroup } from "./utils";
+import type { NodeGroup } from "./utils";
+import { isEnumKey } from "./utils";
 import { ResourceTransferContext, ResourceCost } from "./costs";
 
 

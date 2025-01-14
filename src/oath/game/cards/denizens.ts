@@ -6,10 +6,10 @@ import { BanditRampart, BattleHonorsAttack, BattleHonorsDefense, BearTraps, Capt
 import { ArmedMob, ARoundOfAle, AwaitedReturn, AwaitedReturnCost, BallotBox, BookBinders, CharmingFriend, CropRotation, DeedWriter, ExtraProvisions, FabledFeast, FamilyHeirloom, HallOfDebate, HallOfMockery, HeartsAndMinds, Herald, Homesteaders, HospitalAttack, HospitalDefense, LandWarden, Levelers, Marriage, MemoryOfHome, NewsFromAfar, RelicBreaker, RowdyPub, SaddleMakers, SaladDays, Storyteller, TavernSongs, TheGreatLevyAttack, TheGreatLevyDefense, TinkersFair, TravelingDoctorAttack, TravelingDoctorDefense, VillageConstableAttack, VillageConstableDefense, VowOfPeace, VowOfPeaceDefense, WaysideInn, WelcomingParty } from "../powers/hearth";
 import { AnimalHost, AnimalPlaymates, Birdsong, Bracken, ErrandBoy, FaeMerchant, ForestCouncilMuster, ForestCouncilTrade, ForestPaths, ForestTemple, GiantPython, GraspingVines, InsectSwarm, LongLostHeir, MarshSpirit, MemoryOfNature, Mushrooms, MushroomsCost, NatureWorshipAttack, NatureWorshipDefense, NewGrowth, PiedPiper, Rangers, RovingTerror, RuinedTemple, SecondChance, SmallFriends, TheOldOak, ThreateningRoar, TrueNamesAttack, TrueNamesDefense, VowOfBeastkin, VowOfPoverty, VowOfPovertyRest, VowOfUnionAttack, VowOfUnionTravel, WalledGarden, WarTortoiseAttack, WarTortoiseDefense, WildAllies, WildCry, Wolves } from "../powers/beast";
 import { AFastSteed, AncientBinding, AncientBloodline, AncientBloodlineRelics, AncientForge, AncientPact, BrokenForge, Convoys, Elders, FaithfulFriend, FamilyWagon, GreatCrusadeAttack, GreatCrusadeDefense, GreatHerd, HorseArchersAttack, HorseArchersDefense, Hospitality, Lancers, LostTongue, LostTongueCampaign, MountainGiantAttack, MountainGiantDefense, MountedPatrol, Oracle, Pilgrimage, RainBoots, RelicWorship, Resettle, RivalKhanAttack, RivalKhanDefense, SacredGround, SpecialEnvoy, SpellBreaker, StormCaller, Tents, TheGathering, TwinBrother, VowOfKinshipGain, VowOfKinship, VowOfKinshipWhenPlayed, WarningSignals, WayStation, WildMounts, WayStationCost, SpecialEnvoyCost } from "../powers/nomad";
-import { DenizenName } from "../parser/interfaces";
-import { Constructor } from "../utils";
-import { OathPower } from "../powers";
-import { Denizen } from ".";
+import type { DenizenName } from "../parser/interfaces";
+import type { Constructor } from "../utils";
+import type { OathPower } from "../powers";
+import type { Denizen } from ".";
 
 
 export type DenizenName = keyof typeof DenizenName;

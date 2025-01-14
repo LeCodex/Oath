@@ -1,11 +1,11 @@
-import { RecoverAction } from "./actions";
-import { Site } from "./cards";
-import { OathGameObject } from "./gameObject";
-import { OathPlayer } from "./player";
-import { OathPower } from "./powers";
-import { ResourcesAndWarbands } from "./resources";
+import type { RecoverAction } from "./actions";
+import type { Site } from "./cards";
+import type { OathGameObject } from "./gameObject";
+import type { OathPlayer } from "./player";
+import type { OathPower } from "./powers";
+import type { ResourcesAndWarbands } from "./resources";
 import { ResourceCost } from "./costs";
-import { Constructor } from "./utils";
+import type { Constructor } from "./utils";
 
 
 export interface WithPowers extends OathGameObject {

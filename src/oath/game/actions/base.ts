@@ -1,11 +1,11 @@
 import { MultiResourceTransferContext } from "../costs";
-import { OathGame } from "../game";
-import { WithPowers } from "../interfaces";
-import { OathPlayer } from "../player";
-import { ActionModifier } from "../powers";
-import { allCombinations, Constructor, MaskProxyManager } from "../utils";
+import type { OathGame } from "../game";
+import type { WithPowers } from "../interfaces";
+import type { OathPlayer } from "../player";
+import type { ActionModifier } from "../powers";
+import type { Constructor} from "../utils";
+import { allCombinations, MaskProxyManager } from "../utils";
 import { SelectNOf } from "./selects";
-
 
 
 //////////////////////////////////////////////////
@@ -99,9 +99,9 @@ export class ChooseModifiers<T extends ModifiableAction> extends OathAction {
         // TODO: Change to permutations to handle order (maybe have order agnosticity as a property)
         const choices = new Map<string, ActionModifier<WithPowers, T>[]>();
         for (const combination of allCombinations(optionalModifiers)) {
-            const totalContext = new MultiResourceTransferContext(this.player, this, [...persistentModifiers, ...combination].map(e => e.costContext));
-            if (!totalContext.payableCostsWithModifiers(this.action.maskProxyManager).length)
-                choices.set(combination.map(e => e.name).join(", "), combination);
+            // const totalContext = new MultiResourceTransferContext(this.player, this, [...persistentModifiers, ...combination].map(e => e.costContext));
+            // if (!totalContext.payableCostsWithModifiers(this.action.maskProxyManager).length)
+            //     choices.set(combination.map(e => e.name).join(", "), combination);
         }
         this.selects.modifiers = new SelectNOf("Modifiers", choices, { defaults });
 

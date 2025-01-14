@@ -1,23 +1,32 @@
 import { InvalidActionResolution, OathEffect, PlayerEffect } from "./base";
-import { Denizen, Edifice, OathCard, Relic, Site, Vision, VisionBack, WorldCard } from "../cards";
+import type { Relic, WorldCard } from "../cards";
+import { Denizen, Edifice, OathCard, Site, Vision, VisionBack } from "../cards";
 import { ALL_OATH_SUITS, BannerKey, CardRestriction, OathPhase, OathSuit, PlayerColor } from "../enums";
 import { ExileBoard, OathPlayer } from "../player";
-import { OathPower, WhenPlayed } from "../powers";
-import { Favor, OathResource, OathResourceType, ResourcesAndWarbands, Secret } from "../resources";
-import { ResourceCost, ResourceTransferContext, SupplyCostContext } from "../costs";
-import { Banner, FavorBank, PeoplesFavor } from "../banks";
-import { OwnableObject, RecoverActionTarget, WithPowers } from "../interfaces";
-import { OathGame } from "../game";
-import { OathGameObject } from "../gameObject";
+import type { OathPower} from "../powers";
+import { WhenPlayed } from "../powers";
+import type { OathResource, OathResourceType} from "../resources";
+import { Favor, ResourcesAndWarbands, Secret } from "../resources";
+import type { SupplyCostContext } from "../costs";
+import { ResourceCost, ResourceTransferContext } from "../costs";
+import type { Banner, PeoplesFavor } from "../banks";
+import { FavorBank } from "../banks";
+import type { OwnableObject, RecoverActionTarget, WithPowers } from "../interfaces";
+import type { OathGame } from "../game";
+import type { OathGameObject } from "../gameObject";
 import { BuildOrRepairEdificeAction, ChooseNewCitizensAction, VowOathAction, RestAction, WakeAction, SearchDiscardAction, SearchPlayOrDiscardAction, ChooseSuitsAction, ChooseNumberAction, ChoosePayableCostContextAction } from ".";
-import { DiscardOptions, SearchableDeck } from "../cards/decks";
-import { CardDeck } from "../cards/decks";
-import { Constructor, inclusiveRange, isExtended, maxInGroup, NumberMap } from "../utils";
-import { D6, RollResult, Die } from "../dice";
+import type { SearchableDeck , CardDeck } from "../cards/decks";
+import { DiscardOptions  } from "../cards/decks";
+import type { Constructor} from "../utils";
+import { inclusiveRange, isExtended, maxInGroup, NumberMap } from "../utils";
+import type { Die } from "../dice";
+import { D6, RollResult } from "../dice";
 import { Region } from "../map";
-import { denizenData, DenizenName, edificeFlipside } from "../cards/denizens";
-import { SiteName, sitesData } from "../cards/sites";
-import { CampaignResult } from "./utils";
+import type { DenizenName} from "../cards/denizens";
+import { denizenData, edificeFlipside } from "../cards/denizens";
+import type { SiteName} from "../cards/sites";
+import { sitesData } from "../cards/sites";
+import type { CampaignResult } from "./utils";
 
 
 
@@ -145,8 +154,8 @@ export class TransferResourcesEffect extends OathEffect<boolean> {
                     costContext.cost.placedResources.clear()
                 }
 
-                let cantGiveSecrets = costContext.source instanceof FavorBank;
-                let cantHaveSecrets = costContext.target instanceof FavorBank;
+                const cantGiveSecrets = costContext.source instanceof FavorBank;
+                const cantHaveSecrets = costContext.target instanceof FavorBank;
                 for (const [resource, amount] of costContext.cost.burntResources) {
                     const resources = costContext.source.byClass(resource).max(amount);
                     if (resources.length < amount) {
@@ -162,7 +171,7 @@ export class TransferResourcesEffect extends OathEffect<boolean> {
                     } else if (resource === Secret && cantGiveSecrets) {
                         new PutResourcesOnTargetEffect(this.game, this.player, resource, amount, costContext.target);
                     } else {
-                        let resources = resource.usable(costContext.source).max(amount);
+                        const resources = resource.usable(costContext.source).max(amount);
                         if (resources.length < amount) {
                             this.result = false;
                             return;
@@ -591,7 +600,7 @@ export class DiscardCardGroupEffect extends PlayerEffect {
 
     resolve(): void {
         const origins = new Set<Site | OathPlayer>();
-        for (let card of this.cards) {
+        for (const card of this.cards) {
             if (card instanceof Denizen && card.site)
                 origins.add(card.site);
             else if (card.owner)
@@ -1185,7 +1194,7 @@ export class FinishChronicleEffect extends PlayerEffect {
         }
         const total = this.game.map.byClass(Region).reduce((a, e) => a + e.size, 0) - storedSites.length - pushedSites.length;
         const sitesKey = [...sitesKeysSet];
-        for (var i = 0; i < total; i++) {
+        for (let i = 0; i < total; i++) {
             if (!sitesKey.length) throw Error("Not enough sites");
             const site = sitesKey.splice(this.game.random.nextInt(sitesKey.length), 1)[0]!;
             storedSites.push(new Site(site));
@@ -1220,7 +1229,7 @@ export class FinishChronicleEffect extends PlayerEffect {
         relicDeck.shuffle();
         for (const site of this.game.map.sites()) {
             if (site.facedown) continue;
-            for (i = site.relics.length; i < site.startingRelics; i++) {
+            for (let i = site.relics.length; i < site.startingRelics; i++) {
                 const relic = relicDeck.drawSingleCard();
                 if (relic) site.addChild(relic);
             }

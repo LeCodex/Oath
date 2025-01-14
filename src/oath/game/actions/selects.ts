@@ -1,5 +1,5 @@
-import { OathCard } from "../cards";
-import { OathPlayer } from "../player";
+import type { OathCard } from "../cards";
+import type { OathPlayer } from "../player";
 import { InvalidActionResolution } from "./base";
 
 
