@@ -1,8 +1,8 @@
-import { Relic } from ".";
-import { RelicName } from "../parser/interfaces";
-import { OathPower } from "../powers";
+import type { Relic } from ".";
+import type { RelicName } from "../parser/interfaces";
+import type { OathPower } from "../powers";
 import { BanditCrown, BookOfRecords, BrassHorse, CircletOfCommand, CrackedHorn, CupOfPlenty, CursedCauldronAttack, CursedCauldronDefense, DowsingSticks, DragonskinDrum, GrandMask, GrandScepterExileCitizen, GrandScepterGrantCitizenship, GrandScepterPeek, GrandScepterRest, GrandScepterSeize, HornedMask, IvoryEye, MapRelic, ObsidianCageActive, ObsidianCageAttack, ObsidianCageDefense, OracularPig, RingOfDevotionMuster, RingOfDevotionRestriction, SkeletonKey, StickyFireAttack, StickyFireDefense, TruthfulHarp, Whistle } from "../powers/relics";
-import { Constructor } from "../utils";
+import type { Constructor } from "../utils";
 
 
 export type RelicName = keyof typeof RelicName;

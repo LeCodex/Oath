@@ -1,4 +1,5 @@
-import { NumberMap, PRNG } from "./utils";
+import type { PRNG } from "./utils";
+import { NumberMap } from "./utils";
 
 export class Die<T extends number> {
     readonly faces: T[][];

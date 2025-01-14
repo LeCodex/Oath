@@ -1,25 +1,34 @@
 import { ChoosePlayersAction, SetupChooseAdviserAction, WakeAction, ChooseSitesAction, SetupChoosePlayerBoardAction } from "./actions";
-import { InvalidActionResolution, ModifiableAction, ResolveCallbackEffect } from "./actions/base";
+import type { ModifiableAction} from "./actions/base";
+import { InvalidActionResolution, ResolveCallbackEffect } from "./actions/base";
 import { HistoryNode, OathActionManager } from "./actions/manager";
 import { DrawFromDeckEffect, PutPawnAtSiteEffect, SetNewOathkeeperEffect, SetUsurperEffect, WinGameEffect } from "./actions/effects";
-import { ActionModifier, OathPower } from "./powers";
+import type { OathPower } from "./powers";
+import { ActionModifier } from "./powers";
 import { OathMap, Region } from "./map";
 import { Discard, RelicDeck, WorldDeck } from "./cards/decks";
-import { denizenData, DenizenName, edificeFlipside } from "./cards/denizens";
-import { RelicName, relicsData } from "./cards/relics";
+import type { DenizenName} from "./cards/denizens";
+import { denizenData, edificeFlipside } from "./cards/denizens";
+import type { RelicName} from "./cards/relics";
+import { relicsData } from "./cards/relics";
 import { OathPhase, OathSuit, RegionKey, PlayerColor, ALL_OATH_SUITS, BannerKey } from "./enums";
 import { Oath } from "./oaths";
 import { Conspiracy, Denizen, Edifice, GrandScepter, Relic, Site, Vision } from "./cards";
-import { ExileBoard, OathPlayer, PlayerBoard, WarbandsSupply } from "./player";
-import { Banner, DarkestSecret, FavorBank, PeoplesFavor } from "./banks";
-import { AbstractConstructor, Constructor, isExtended, MurmurHash3, PRNG, TreeNode, TreeRoot } from "./utils";
+import type { PlayerBoard} from "./player";
+import { ExileBoard, OathPlayer, WarbandsSupply } from "./player";
+import type { Banner} from "./banks";
+import { DarkestSecret, FavorBank, PeoplesFavor } from "./banks";
+import type { AbstractConstructor, Constructor, TreeNode} from "./utils";
+import { isExtended, MurmurHash3, PRNG, TreeRoot } from "./utils";
 import { parseOathTTSSavefileString, serializeOathGame } from "./parser";
-import { CardName, Citizenship, PlayerCitizenship } from "./parser/interfaces";
-import { hasPowers, SourceType, WithPowers } from "./interfaces";
+import type { CardName, PlayerCitizenship } from "./parser/interfaces";
+import { Citizenship } from "./parser/interfaces";
+import type { SourceType, WithPowers } from "./interfaces";
+import { hasPowers } from "./interfaces";
 import { Favor, Warband, Secret } from "./resources";
 import { Reliquary, ReliquarySlot } from "./reliquary";
 import { constant, times } from "lodash";
-import { SiteName } from "./cards/sites";
+import type { SiteName } from "./cards/sites";
 import classIndex from "./classIndex";
 import * as fs from "fs";
 
@@ -95,7 +104,7 @@ export class OathGame extends TreeRoot<OathGame> {
                 continue;
             }
 
-            let card = {
+            const card = {
                 Conspiracy: new Conspiracy(),
                 Sanctuary: new Vision("Protection"),
                 Rebellion: new Vision("ThePeople"),
@@ -244,7 +253,7 @@ export class OathGame extends TreeRoot<OathGame> {
     }
 
     *getPowers<T extends OathPower<WithPowers>>(type: AbstractConstructor<T>): Generator<[SourceType<T>, Constructor<T>], void> {
-        let stack: TreeNode<any>[] = [this];
+        const stack: TreeNode<any>[] = [this];
         while (stack.length) {
             const node = stack.pop()!;
             stack.push(...node.children);

@@ -4,13 +4,14 @@
 */
 
 import { OathType, PlayerColor } from '../enums';
-import {
+import type {
   CardData,
+  OathGameData,
+  PlayerCitizenship} from './interfaces';
+import {
   CardName,
   CardNameIndexes,
   Citizenship,
-  OathGameData,
-  PlayerCitizenship,
   CompleteSiteName,
   SiteNameIndexes,
 } from './interfaces';
@@ -147,7 +148,7 @@ function hex(num: number, width: number): string {
 // The first byte is the size of the deck, and each subsequent byte is the id of
 // a card in the deck, in order.
 function serializeDeck(deck: CardData[]): string {
-  let bytes = [deck.length, ...deck.map((card) => CardName[card.name]!)];
+  const bytes = [deck.length, ...deck.map((card) => CardName[card.name]!)];
   return bytes.map((byte) => hex(byte, 2)).join('');
 }
 
@@ -317,7 +318,7 @@ export function parseOathTTSSavefileString(saveDataString: string): OathGameData
     game.suitOrder = [];
     const { start: suitOrderStart, end: suitOrderEnd } = getStartEndByIndex(SavefileDataType.SuitOrder);
     for (let i = suitOrderStart; i < suitOrderEnd; i++) {
-      let suit = getHexFromStringAsNumber(i, i + 1);
+      const suit = getHexFromStringAsNumber(i, i + 1);
       game.suitOrder.push(suit);
     }
 

@@ -65,23 +65,6 @@ export abstract class CapacityModifier<T extends WorldCard> extends PowerWithPro
     ignoreCapacity(cardProxy: WorldCard): boolean { return false; }
 }
 
-export abstract class CostModifier<T extends WithPowers, U extends CostContext<any>> extends PowerWithProxy<T> {
-    abstract modifiedContext: AbstractConstructor<U>;
-    mustUse: boolean = false;
-
-    canUse(context: U): boolean {
-        return true;
-    }
-
-    abstract apply(context: U): void;
-}
-export abstract class SupplyCostModifier<T extends WithPowers> extends CostModifier<T, SupplyCostContext> {
-    modifiedContext = SupplyCostContext;
-};
-export abstract class ResourceTransferModifier<T extends WithPowers> extends CostModifier<T, ResourceTransferContext> {
-    modifiedContext = ResourceTransferContext;
-};
-
 export abstract class WhenPlayed<T extends WorldCard> extends PowerWithProxy<T> {
     action: ApplyWhenPlayedEffect;
 
@@ -143,25 +126,6 @@ export abstract class ActionModifier<T extends WithPowers, U extends ModifiableA
     
     serialize() {
         return this.name;
-    }
-}
-
-export function ActionCostModifier<T extends WithPowers, U extends CostContext<any>>(base: Constructor<ActionModifier<T, ModifiableAction>>, costContext: Constructor<U>) {
-    abstract class ActionCostModifier extends CostModifier<T, U> {
-        modifiedContext = costContext;
-
-        canUse(context: U): boolean {
-            const instance = new base(this.source, this.player, context.origin);  // Actions can't have modifiedAction as static because of initialization order making it a pain
-            return context.origin instanceof instance.modifiedAction && (context.origin as ModifiableAction).modifiers.some(e => e instanceof base);
-        }
-    }
-    return ActionCostModifier;
-}
-export function NoSupplyCostActionModifier<T extends WithPowers>(base: Constructor<ActionModifier<T, ModifiableAction>>) {
-    return class NoSupplyCostActionModifier extends ActionCostModifier(base, SupplyCostContext) {
-        apply(context: SupplyCostContext): void {
-            context.cost.multiplier = 0;
-        }
     }
 }
 
@@ -233,3 +197,40 @@ export abstract class EnemyDefenderCampaignModifier<T extends OwnableCard> exten
         return this.action.campaignResult.areEnemies(ruler, this.player);
     }
 }
+
+export abstract class CostModifier<T extends WithPowers, U extends CostContext<any>> extends PowerWithProxy<T> {
+    abstract modifiedContext: AbstractConstructor<U>;
+    mustUse: boolean = false;
+
+    canUse(context: U): boolean {
+        return true;
+    }
+
+    abstract apply(context: U): void;
+}
+export abstract class SupplyCostModifier<T extends WithPowers> extends CostModifier<T, SupplyCostContext> {
+    modifiedContext = SupplyCostContext;
+}
+export abstract class ResourceTransferModifier<T extends WithPowers> extends CostModifier<T, ResourceTransferContext> {
+    modifiedContext = ResourceTransferContext;
+}
+
+export function ActionCostModifier<T extends WithPowers, U extends CostContext<any>>(base: Constructor<ActionModifier<T, ModifiableAction>>, costContext: Constructor<U>) {
+    abstract class ActionCostModifier extends CostModifier<T, U> {
+        modifiedContext = costContext;
+
+        canUse(context: U): boolean {
+            const instance = new base(this.source, this.player, context.origin); // Actions can't have modifiedAction as static because of initialization order making it a pain
+            return context.origin instanceof instance.modifiedAction && (context.origin as ModifiableAction).modifiers.some(e => e instanceof base);
+        }
+    }
+    return ActionCostModifier;
+}
+export function NoSupplyCostActionModifier<T extends WithPowers>(base: Constructor<ActionModifier<T, ModifiableAction>>) {
+    return class NoSupplyCostActionModifier extends ActionCostModifier(base, SupplyCostContext) {
+        apply(context: SupplyCostContext): void {
+            context.cost.multiplier = 0;
+        }
+    };
+}
+

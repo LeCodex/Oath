@@ -1,4 +1,5 @@
-import { ActionModifier, PowerWithProxy, ResourceTransferModifier, SupplyCostModifier } from ".";
+import { ActionModifier, PowerWithProxy , ResourceTransferModifier, SupplyCostModifier } from ".";
+
 import { CampaignAttackAction, SearchAction, TradeAction, TravelAction } from "../actions";
 import { InvalidActionResolution } from "../actions/base";
 import { ResourceTransferContext, SupplyCostContext } from "../costs";

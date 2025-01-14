@@ -1,11 +1,11 @@
 import { WakeAction, SearchPlayOrDiscardAction, MayDiscardACardAction, SearchAction, PeoplesFavorWakeAction } from "../actions";
-import { PeoplesFavor, DarkestSecret } from "../banks";
-import { ActionModifier, PowerWithProxy, SupplyCostModifier } from ".";
+import { type PeoplesFavor, type DarkestSecret } from "../banks";
+import { type SupplyCostContext } from "../costs";
+import { SupplyCostModifier, ActionModifier, PowerWithProxy } from ".";
 import { Denizen } from "../cards";
 import { CardRestriction } from "../enums";
 import { AbstractConstructor } from "../utils";
 import { OwnableObject, WithPowers } from "../interfaces";
-import { SupplyCostContext } from "../costs";
 
 
 export function Owned<T extends AbstractConstructor<PowerWithProxy<OwnableObject & WithPowers> & { canUse(...args: any[]): boolean }>>(Base: T) {

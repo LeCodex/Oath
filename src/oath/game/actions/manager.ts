@@ -183,9 +183,9 @@ export class OathActionManager {
 
         for (const action of this.futureActionsList) this.actionsStack.push(action);
         this.futureActionsList.length = 0;
-        let action = this.actionsStack[this.actionsStack.length - 1];
+        const action = this.actionsStack[this.actionsStack.length - 1];
 
-        let continueNow = action?.start();
+        const continueNow = action?.start();
         if (continueNow) this.resolveTopAction(save);
     }
 
@@ -203,7 +203,7 @@ export class OathActionManager {
     public defer(save: boolean = true): ActionManagerReturn {
         if (save && this.game.phase !== OathPhase.Over) this.game.save();
 
-        let action = this.actionsStack[this.actionsStack.length - 1];
+        const action = this.actionsStack[this.actionsStack.length - 1];
         return {
             game: this.game.serialize(),
             appliedEffects: this.currentEffectsStack.map(e => e.serialize()).filter(e => e !== undefined),
@@ -253,7 +253,7 @@ export class OathActionManager {
             lastNode = this.history[this.history.length - 2];
         }
         if (!lastNode || lastNode.events.length === 0) throw new InvalidActionResolution("Cannot roll back");
-        let lastEvent = lastNode.events[lastNode.events.length - 1]!;
+        const lastEvent = lastNode.events[lastNode.events.length - 1]!;
         if (lastEvent.player !== this.activePlayer.id || lastEvent.oneWay) {
             this.rollbackConsent = Object.fromEntries(this.game.players.map(e => [e.id, e.id === playerId]));
             return this.defer();

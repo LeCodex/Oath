@@ -1,4 +1,4 @@
-import { PlayerColor } from "../../enums";
+import type { PlayerColor } from "../../enums";
 
 export enum Suit {
   Discord = 0,

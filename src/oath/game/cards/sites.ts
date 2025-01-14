@@ -1,11 +1,12 @@
 import { OathSuit } from "../enums";
 import { AncientCity, BuriedGiant, BuriedGiantCost, CharmingValley, CoastalSite, CoastalSiteCost, DeepWoods, FertileValley, GreatSlum, Marshes, Mountain, NarrowPass, OpportunitySite, Plains, River, ShroudedWood, ShroudedWoodCost, StandingStones, Steppe, TheHiddenPlaceCampaign, TheHiddenPlaceTravel, TheTribunal, Wastes } from "../powers/sites";
-import { Favor, OathResourceType, Secret } from "../resources";
+import type { OathResourceType} from "../resources";
+import { Favor, Secret } from "../resources";
 import { ResourceCost } from "../costs";
-import { SiteName } from "../parser/interfaces";
-import { Constructor } from "../utils";
-import { OathPower } from "../powers";
-import { Site } from ".";
+import type { SiteName } from "../parser/interfaces";
+import type { Constructor } from "../utils";
+import type { OathPower } from "../powers";
+import type { Site } from ".";
 
 
 export type SiteName = keyof typeof SiteName;

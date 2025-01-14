@@ -9,9 +9,11 @@ import { TakeOwnableObjectEffect, PutResourcesOnTargetEffect, SetNewOathkeeperEf
 import { BannerKey, OathSuit } from "../enums";
 import { ExileBoard, OathPlayer } from "../player";
 import { Favor, Secret } from "../resources";
-import { ResourceCost, ResourceTransferContext } from "../costs";
-import { WhenPlayed, CapacityModifier, ActivePower, RestPower, AttackerBattlePlan, DefenderBattlePlan, ActionModifier, Accessed, WakePower, EnemyActionModifier, EnemyAttackerCampaignModifier, EnemyDefenderCampaignModifier, ResourceTransferModifier } from ".";
-import { AbstractConstructor, minInGroup, NumberMap } from "../utils";
+import { ResourceCost , ResourceTransferContext } from "../costs";
+
+import { WhenPlayed, CapacityModifier, ActivePower, RestPower, AttackerBattlePlan, DefenderBattlePlan, ActionModifier, Accessed, WakePower, EnemyActionModifier, EnemyAttackerCampaignModifier, EnemyDefenderCampaignModifier , ResourceTransferModifier } from ".";
+
+import { minInGroup, NumberMap } from "../utils";
 
 
 export class MercenariesAttack extends AttackerBattlePlan<Denizen> {
@@ -427,7 +429,7 @@ export class Downtrodden extends ActionModifier<Denizen, MusterAction> {
     modifiedAction = MusterAction;
 
     applyBefore(): void {
-        let minSuits = minInGroup(this.game.byClass(FavorBank), "amount").map(e => e.key);
+        const minSuits = minInGroup(this.game.byClass(FavorBank), "amount").map(e => e.key);
         if (minSuits.length === 1 && minSuits[0] === this.action.cardProxy.suit)
             this.action.getting += 2;
     }

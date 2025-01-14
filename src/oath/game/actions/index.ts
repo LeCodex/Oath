@@ -1,21 +1,29 @@
+import type { CostContext} from "../costs";
+import { ResourceTransferContext, SupplyCostContext , ResourceCost, SupplyCost } from "../costs";
 import { OathAction, ModifiableAction, InvalidActionResolution, ChooseModifiers } from "./base";
-import { Denizen, Edifice, OathCard, OwnableCard, Relic, Site, WorldCard } from "../cards";
-import { DiscardOptions, SearchableDeck } from "../cards/decks";
+import type { OathCard, OwnableCard, Relic, WorldCard } from "../cards";
+import { Denizen, Edifice, Site } from "../cards";
+import type { SearchableDeck } from "../cards/decks";
+import { DiscardOptions } from "../cards/decks";
 import { AttackDieSymbol } from "../dice";
-import { TransferResourcesEffect, PlayWorldCardEffect, PutPawnAtSiteEffect, DiscardCardEffect, MoveOwnWarbandsEffect, SetPeoplesFavorMobState, ChangePhaseEffect, NextTurnEffect, PutResourcesOnTargetEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, FlipEdificeEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect, CheckCapacityEffect, CampaignJoinDefenderAlliesEffect, MoveWorldCardToAdvisersEffect, DiscardCardGroupEffect, ParentToTargetEffect, PaySupplyEffect, ThingsExchangeOfferEffect, SiteExchangeOfferEffect, SearchDrawEffect } from "./effects";
+import { TransferResourcesEffect, PlayWorldCardEffect, PutPawnAtSiteEffect, DiscardCardEffect, MoveOwnWarbandsEffect, SetPeoplesFavorMobState, ChangePhaseEffect, NextTurnEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, FlipEdificeEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect, CheckCapacityEffect, CampaignJoinDefenderAlliesEffect, MoveWorldCardToAdvisersEffect, DiscardCardGroupEffect, ParentToTargetEffect, PaySupplyEffect, ThingsExchangeOfferEffect, SiteExchangeOfferEffect, SearchDrawEffect } from "./effects";
 import { ALL_OATH_SUITS, ALL_PLAYER_COLORS, CardRestriction, OathPhase, OathSuit, OathType, PlayerColor } from "../enums";
 import { ChancellorBoard, ExileBoard, OathPlayer, VisionSlot } from "../player";
-import { ActionModifier, ActivePower, CapacityModifier } from "../powers";
-import { Favor, OathResource, OathResourceType, ResourcesAndWarbands, Secret } from "../resources";
-import { CostContext, ResourceCost, ResourceTransferContext, SupplyCost, SupplyCostContext } from "../costs";
-import { Banner, FavorBank, PeoplesFavor } from "../banks";
-import { Constructor, inclusiveRange, isExtended, MaskProxyManager, minInGroup, NumberMap } from "../utils";
+import type { ActionModifier} from "../powers";
+import { ActivePower, CapacityModifier } from "../powers";
+import type { OathResource, OathResourceType, ResourcesAndWarbands} from "../resources";
+import { Favor, Secret } from "../resources";
+import type { Banner, PeoplesFavor } from "../banks";
+import { FavorBank } from "../banks";
+import type { Constructor, MaskProxyManager} from "../utils";
+import { inclusiveRange, isExtended, minInGroup, NumberMap } from "../utils";
 import { SelectNOf, SelectBoolean, SelectNumber, SelectWithName, SelectCard } from "./selects";
-import { CampaignActionTarget, RecoverActionTarget, WithPowers } from "../interfaces";
-import { Region } from "../map";
-import { OathGameObject } from "../gameObject";
+import type { CampaignActionTarget, RecoverActionTarget, WithPowers } from "../interfaces";
+import type { Region } from "../map";
+import type { OathGameObject } from "../gameObject";
 import { Citizenship } from "../parser/interfaces";
-import { CampaignEndCallback, CampaignResult } from "./utils";
+import type { CampaignEndCallback} from "./utils";
+import { CampaignResult } from "./utils";
 
 
 
@@ -112,7 +120,7 @@ export abstract class PayDenizenAction extends MajorAction {
     
     start() {
         this.accessibleDenizenProxies.push(...this.playerProxy.site.denizens);
-        let validCardProxies = this.validateCardProxies(this.accessibleDenizenProxies);
+        const validCardProxies = this.validateCardProxies(this.accessibleDenizenProxies);
         this.selects.cardProxy = new SelectCard("Card", this.player, validCardProxies, { min: 1 });
         return super.start();
     }
@@ -440,7 +448,7 @@ export class SearchPlayOrDiscardAction extends ModifiableAction {
 
         let capacity = siteProxy ? siteProxy.capacity : 3;
         let ignoresCapacity = false;
-        let takesNoSpaceProxies = new Set<WorldCard>();
+        const takesNoSpaceProxies = new Set<WorldCard>();
         const targetProxy = siteProxy ? siteProxy.denizens : playerProxy.advisers;
 
         for (const capacityModifier of capacityModifiers) {

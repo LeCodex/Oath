@@ -4,7 +4,7 @@ import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { ActionManagerReturn } from './game/actions/manager';
 
 function ApiActionResponses(invalidAction: boolean = true): MethodDecorator {
-    return (target: Object, propertyKey: string | symbol, descriptor: TypedPropertyDescriptor<any>) => {
+    return (target: object, propertyKey: string | symbol, descriptor: TypedPropertyDescriptor<any>) => {
         ApiResponse({ status: 200, description: "Game state", type: ActionManagerReturn })(target, propertyKey, descriptor);
         ApiResponse({ status: 404, description: "Not found" })(target, propertyKey, descriptor);
         if (invalidAction)

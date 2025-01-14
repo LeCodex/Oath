@@ -1,7 +1,8 @@
 import { CampaignDefenseAction, ChoosePlayersAction, ConspiracyStealAction } from "../actions";
-import { Conspiracy, Denizen } from "../cards";
-import { Oath } from "../oaths";
-import { OathPlayer } from "../player";
+import type { Conspiracy} from "../cards";
+import { Denizen } from "../cards";
+import type { Oath } from "../oaths";
+import type { OathPlayer } from "../player";
 import { ActionModifier, WhenPlayed } from ".";
 
 

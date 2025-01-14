@@ -1,13 +1,16 @@
-import { ChooseSuitsAction, RecoverAction, RecoverBannerPitchAction } from "./actions";
-import { RecoverActionTarget, CampaignActionTarget, WithPowers, OwnableObject } from "./interfaces";
+import type { RecoverAction} from "./actions";
+import { ChooseSuitsAction, RecoverBannerPitchAction } from "./actions";
+import type { RecoverActionTarget, CampaignActionTarget, WithPowers, OwnableObject } from "./interfaces";
 import { TakeOwnableObjectEffect, SetPeoplesFavorMobState, ParentToTargetEffect, RecoverTargetEffect, TransferResourcesEffect } from "./actions/effects";
 import { OathSuit } from "./enums";
-import { isEnumKey } from "./utils";
+import type { Constructor } from "./utils";
+import { isEnumKey  } from "./utils";
 import { OathPlayer } from "./player";
 import { PeoplesFavorSearch, PeoplesFavorWake, DarkestSecretPower } from "./powers/banners";
-import { OathPower } from "./powers";
-import { Constructor } from "./utils";
-import { Favor, OathResource, OathResourceType, Secret } from "./resources";
+import type { OathPower } from "./powers";
+
+import type { OathResource} from "./resources";
+import { Favor, Secret } from "./resources";
 import { Container } from "./gameObject";
 import { ResourceCost, ResourceTransferContext } from "./costs";
 

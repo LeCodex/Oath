@@ -1,14 +1,18 @@
 import { CampaignBanishPlayerAction } from "./actions";
-import { CampaignActionTarget, AtSite, OwnableObject } from "./interfaces";
-import { Denizen, OwnableCard, Relic, Site, Vision, WorldCard } from "./cards";
+import type { CampaignActionTarget, AtSite, OwnableObject } from "./interfaces";
+import type { OwnableCard, Site} from "./cards";
+import { Denizen, Relic, Vision, WorldCard } from "./cards";
 import { DiscardOptions } from "./cards/decks";
 import { TransferResourcesEffect, FlipSecretsEffect, GainSupplyEffect } from "./actions/effects";
-import { ALL_OATH_SUITS, OathSuit, PlayerColor } from "./enums";
+import type { OathSuit} from "./enums";
+import { ALL_OATH_SUITS, PlayerColor } from "./enums";
 import { isEnumKey } from "./utils";
-import { Warband, ResourcesAndWarbands, Favor, OathResourceType } from "./resources";
+import type { OathResourceType } from "./resources";
+import { Warband, ResourcesAndWarbands, Favor } from "./resources";
 import { Container, OathGameObject } from "./gameObject";
 import { Banner } from "./banks";
-import { ResourceTransferContext, ResourceCost } from "./costs";
+import { ResourceCost , ResourceTransferContext } from "./costs";
+
 
 export class WarbandsSupply extends Container<Warband, PlayerColor> {
     readonly type = "bag";

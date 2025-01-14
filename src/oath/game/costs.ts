@@ -1,11 +1,13 @@
 import { clone } from "lodash";
 import { InvalidActionResolution } from "./actions/base";
-import { OathGameObject } from "./gameObject";
-import { WithPowers } from "./interfaces";
-import { OathPlayer } from "./player";
+import { type OathGameObject } from "./gameObject";
+import { type WithPowers } from "./interfaces";
+import { type OathPlayer } from "./player";
 import { CostModifier } from "./powers";
-import { Favor, OathResourceType, Secret } from "./resources";
-import { MaskProxyManager, NumberMap, allChoices, allCombinations } from "./utils";
+import type { OathResourceType} from "./resources";
+import { Favor, Secret } from "./resources";
+import type { MaskProxyManager} from "./utils";
+import { NumberMap, allChoices, allCombinations } from "./utils";
 
 
 export class ResourceCost {
@@ -76,7 +78,7 @@ export abstract class CostContext<T> {
     ) { }
 
     modifiersCostContext(modifiers: CostModifier<WithPowers, CostContext<T>>[]) {
-        const contexts: ResourceTransferContext[] = modifiers.map(e => new ResourceTransferContext(this.player, this, e.cost, e.source));
+        const contexts: ResourceTransferContext[] = modifiers.map(e => e.costContext);
         return new MultiResourceTransferContext(this.player, this, contexts);
     }
 
@@ -90,7 +92,7 @@ export abstract class CostContext<T> {
         const mustUse = modifiers.filter(e => e.mustUse);
         const canUse = modifiers.filter(e => !e.mustUse);
         return allCombinations(canUse).map(e => [...mustUse, ...e]).map(combination => {
-            let context: CostContext<T> = clone(this);
+            const context: CostContext<T> = clone(this);
             context.cost = clone(this.cost);
 
             if (combination.length) {
@@ -147,7 +149,7 @@ export class MultiResourceTransferContext extends CostContext<ResourceCost[]> {
     payableCostsWithModifiers(maskProxyManager: MaskProxyManager) {
         const payableCostsInfo = this.costContexts.map(e => e.payableCostsWithModifiers(maskProxyManager));
         return allChoices(payableCostsInfo).map(choice => {
-            let context: MultiResourceTransferContext = clone(this);
+            const context: MultiResourceTransferContext = clone(this);
             context.costContexts = choice.map(e => e.context as ResourceTransferContext);
             context.cost = context.costContexts.map(e => e.cost);
 

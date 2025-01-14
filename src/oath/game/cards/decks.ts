@@ -1,7 +1,8 @@
 import { RegionKey } from "../enums";
 import { isEnumKey } from "../utils";
 import { Container } from "../gameObject";
-import { WorldCard, VisionBack, OathCard, Relic } from ".";
+import type { OathCard} from ".";
+import { WorldCard, VisionBack, Relic } from ".";
 
 
 export abstract class CardDeck<T extends OathCard, U = any> extends Container<T, U> {

@@ -1,5 +1,6 @@
-import { OathGame } from "./game";
-import { AbstractConstructor, NodeGroup, TreeLeaf, TreeNode } from "./utils";
+import type { OathGame } from "./game";
+import type { AbstractConstructor, NodeGroup} from "./utils";
+import { TreeLeaf, TreeNode } from "./utils";
 
 
 export abstract class OathGameObject<T = any> extends TreeNode<OathGame, T> {

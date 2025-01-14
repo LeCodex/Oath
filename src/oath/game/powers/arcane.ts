@@ -6,8 +6,11 @@ import { RegionDiscardEffect, PutResourcesOnTargetEffect, RollDiceEffect, Become
 import { BannerKey, OathSuit } from "../enums";
 import { ExileBoard, OathPlayer } from "../player";
 import { Favor, OathResourceType, ResourcesAndWarbands, Secret } from "../resources";
-import { ResourceCost, ResourceTransferContext, SupplyCostContext } from "../costs";
-import { ActionModifier, AttackerBattlePlan, DefenderBattlePlan, ActivePower, WhenPlayed, Accessed, EnemyAttackerCampaignModifier, BattlePlan, ResourceTransferModifier, NoSupplyCostActionModifier } from ".";
+import { ResourceCost , ResourceTransferContext, SupplyCostContext } from "../costs";
+
+import { ActionModifier, AttackerBattlePlan, DefenderBattlePlan, ActivePower, WhenPlayed, Accessed, EnemyAttackerCampaignModifier, BattlePlan , NoSupplyCostActionModifier , ResourceTransferModifier } from ".";
+
+
 import { inclusiveRange } from "../utils";
 import { WithPowers } from "../interfaces";
 import { DarkestSecret } from "../banks";
@@ -433,8 +436,10 @@ export class WitchsBargain extends ActivePower<Denizen> {
                             let giftedResource: OathResourceType = Favor, takenResource: OathResourceType = Secret;
                             let giving = value * 2, taking = value;
                             if (value < 0) {
-                                giftedResource = Secret, takenResource = Favor;
-                                giving = -value, taking = -value * 2;
+                                giftedResource = Secret;
+                                takenResource = Favor;
+                                giving = -value;
+                                taking = -value * 2;
                             }
                             
                             new TransferResourcesEffect(this.game, new ResourceTransferContext(this.action.player, this, new ResourceCost([[giftedResource, giving]]), player)).doNext(success => {

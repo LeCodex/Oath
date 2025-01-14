@@ -6,7 +6,9 @@ import { OathSuit } from "../enums";
 import { isAtSite, WithPowers } from "../interfaces";
 import { OathPlayer } from "../player";
 import { Secret } from "../resources";
-import { ActionCostModifier, ActionModifier, ActivePower, NoSupplyCostActionModifier, PowerWithProxy, SupplyCostModifier } from ".";
+import { ActionModifier, ActivePower, PowerWithProxy , ActionCostModifier, NoSupplyCostActionModifier , SupplyCostModifier } from ".";
+
+
 import { SupplyCostContext } from "../costs";
 import { AbstractConstructor } from "../utils";
 

@@ -8,7 +8,8 @@ import { OathGameObject } from "../gameObject";
 import { CampaignActionTarget, WithPowers } from "../interfaces";
 import { ExileBoard, OathPlayer } from "../player";
 import { Favor } from "../resources";
-import { ResourceCost, ResourceTransferContext } from "../costs";
+import { ResourceCost , ResourceTransferContext } from "../costs";
+
 import { AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, RestPower, ActivePower, ActionModifier, Accessed, EnemyActionModifier, BattlePlan } from ".";
 import { AttackDieSymbol } from "../dice";
 

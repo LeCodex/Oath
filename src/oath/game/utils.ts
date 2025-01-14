@@ -24,7 +24,7 @@ export function allChoices<T>(set: T[][]): T[][] {
     return combinations;
 }
 /** For a set of elements, return all combinations of all sizes (including and excluding every elements). */
-export function allCombinations<T>(set: T[]): T[][] {
+export function allCombinations<T>(set: Iterable<T>): T[][] {
     const combinations: T[][] = [[]];
     for (const element of set) {
         const length = combinations.length;
@@ -46,7 +46,7 @@ export class NumberMap<T> extends Map<T, number> {
 export function MurmurHash3(str: string) {
     let hash = 1779033703 ^ str.length
     for (let i = 0; i < str.length; i++) {
-        let bitwise_xor_from_character = hash ^ str.charCodeAt(i);
+        const bitwise_xor_from_character = hash ^ str.charCodeAt(i);
         hash = Math.imul(bitwise_xor_from_character, 3432918353);
         hash = hash << 13 | hash >>> 19;
     }
@@ -68,7 +68,7 @@ export class PRNG {
         min = min ?? 0;
 
         this.seed = (this.seed * 9301 + 49297) % 233280;
-        var rnd = this.seed / 233280;
+        const rnd = this.seed / 233280;
 
         return min + rnd * (max - min);
     }
@@ -93,7 +93,7 @@ export class PRNG {
     public shuffleArray(array: any[]) {
         let currentIndex = array.length;
         while (currentIndex != 0) {
-            let randomIndex = this.nextInt(currentIndex);
+            const randomIndex = this.nextInt(currentIndex);
             currentIndex--;
             [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
         }
@@ -421,7 +421,7 @@ export abstract class TreeNode<RootType extends TreeRoot<RootType>, KeyType = an
         const confirmedChildren = new Set<TreeNode<RootType>>();
         // Ugly type casting, since recursive types with generic parameters cause "type serialization is too deep" errors,
         // and I want the child classes to use ReturnType<this["liteSerialize"]> and using it here causes issues with the recursivity
-        let objWithChildren = obj as SerializedNode<this>;
+        const objWithChildren = obj as SerializedNode<this>;
         if (objWithChildren.children) {
             for (const [i, child] of objWithChildren.children.entries()) {
                 let node = this.root.search(child.type, child.id);
@@ -487,7 +487,7 @@ export abstract class TreeRoot<RootType extends TreeRoot<RootType>> extends Tree
         return new this.classIndex[cls](id);
     }
 
-    // @ts-expect-error
+    // @ts-expect-error T["constructor"]["name"] is valid but TS refuses it
     searchOrCreate<T extends TreeNode<RootType>>(cls: T["constructor"]["name"], type: T["type"], id: T["id"]): T {
         const found = this.search(type, id);
         if (found) return found;
