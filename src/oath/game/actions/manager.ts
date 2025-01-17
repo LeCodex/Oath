@@ -1,10 +1,15 @@
-import { OathAction, OathEffect, InvalidActionResolution } from "./base";
-import { OathPhase } from "../enums";
-import { OathGame } from "../game";
-import { SerializedNode } from "../utils";
+import { OathAction, OathEffect, ResolveCallbackEffect } from "./base";
+import { InvalidActionResolution } from "./utils";
+import { OathPhase, OathSuit, RegionKey } from "../enums";
+import { type OathGame } from "../model/game";
+import { SerializedNode } from "../model/utils";
 import { clone } from "lodash";
 import { ApiProperty } from "@nestjs/swagger";
-import { ActPhaseAction } from ".";
+import { ActPhaseAction, ChoosePlayersAction, ChooseSitesAction, SetupChooseAdviserAction, SetupChoosePlayerBoardAction, WakeAction } from ".";
+import { ExileBoard, OathPlayer, WarbandsSupply } from "../model/player";
+import { DrawFromDeckEffect, PutPawnAtSiteEffect, SetNewOathkeeperEffect, SetUsurperEffect, WinGameEffect } from "./effects";
+import { Site, Denizen } from "../model/cards";
+import { Warband, Favor, Secret } from "../model/resources";
 
 
 export class HistoryNode<T extends OathActionManager> {
@@ -123,9 +128,9 @@ export class OathActionManager {
     }
 
     private resolveTopAction(save: boolean = false) {
-        const action = this.game.actionManager.actionsStack.pop();
+        const action = this.actionsStack.pop();
         if (!action) {
-            this.game.actionManager.currentEffectsStack.pop();
+            this.currentEffectsStack.pop();
             return this.checkForNextAction(save);
         }
 
@@ -151,7 +156,7 @@ export class OathActionManager {
             this.game.parse(node.game, true);
             if (this.history.length === 0) {
                 // console.log("Replaying from start");
-                this.game.initialActions();
+                this.initialActions();
             } else {
                 this.emptyStack();
             }
@@ -189,6 +194,56 @@ export class OathActionManager {
         if (continueNow) this.resolveTopAction(save);
     }
 
+    public initialActions() {
+        for (const player of this.game.players) {
+            new SetupChoosePlayerBoardAction(player).doNext();
+        }
+
+        new ResolveCallbackEffect(this.game, () => {
+            if (!this.game.chancellor) throw new InvalidActionResolution("The Chancellor is in every game and demands your respect!");
+            
+            this.game.order = [];
+            for (const player of this.game.players) {
+                player.addChild(new WarbandsSupply(player.board.id));
+                for (let i = 0; i < player.board.bagAmount; i++) player.bag.addChild(new Warband().colorize(player.board.key));
+                if (player !== this.game.chancellor) this.game.order.push(player.key);
+            }
+            this.game.random.shuffleArray(this.game.order);
+            this.game.order.unshift(this.game.chancellor.key);
+            
+            for (const player of this.game.players) {
+                player.putResources(Favor, player === this.game.chancellor ? 2 : 1);
+                player.putResources(Secret, 1);
+                player.leader.bag.moveChildrenTo(player, 3);
+                new DrawFromDeckEffect(player, this.game.worldDeck, 3, true).doNext(cards => {
+                    if (player !== this.game.chancellor)
+                        new ChooseSitesAction(
+                            player, "Put your pawn at a faceup site (Hand: " + cards.map(e => e.name).join(", ") + ")",  // TODO: Find a better solution for this
+                            (sites: Site[]) => { if (sites[0]) new PutPawnAtSiteEffect(player, sites[0]).doNext(); }
+                        ).doNext();
+                    else
+                        new PutPawnAtSiteEffect(player, topCradleSite).doNext();
+                
+                    new SetupChooseAdviserAction(player, cards).doNext();
+                });
+            }
+
+            const topCradleSite = this.game.map.children.byKey(RegionKey.Cradle)[0]!.byClass(Site)[0]!;
+            this.game.chancellor.bag.moveChildrenTo(topCradleSite, 3);
+            for (const site of this.game.map.sites())
+                if (site !== topCradleSite && site.byClass(Denizen).filter(e => e.suit !== OathSuit.None).length)
+                    this.game.chancellor.bag.moveChildrenTo(site, 1);
+
+            this.game.chancellor.addChild(this.game.grandScepter).turnFaceup();
+            this.game.chancellor.addChild(this.game.oath).setup();
+            this.game.chancellor.addChild(this.game.reliquary);
+
+            new WakeAction(this.game.currentPlayer).doNext();
+        }).doNext();  
+
+        this.history.push(new HistoryNode(this, this.game.serialize(true) as SerializedNode<typeof this["game"]>));
+    }
+
     private emptyStack(save: boolean = true) {
         if (save) this.lastStartState = this.gameState.game;
 
@@ -196,8 +251,37 @@ export class OathActionManager {
             this.game.archiveSave();
         } else {
             this.history.push(new HistoryNode(this, this.gameState.game, []));
-            if (!this.game.checkForOathkeeper()) new ActPhaseAction(this.game.currentPlayer).doNext();
+            if (!this.checkForOathkeeper()) new ActPhaseAction(this.game.currentPlayer).doNext();
         }
+    }
+
+    checkForOathkeeper() {
+        const candidates = this.game.oath.getOathkeeperCandidates();
+        if (candidates.has(this.game.oathkeeper)) return false;
+        if (candidates.size) {
+            new ChoosePlayersAction(
+                this.game.oathkeeper, "Choose the new Oathkeeper",
+                (targets: OathPlayer[]) => {
+                    if (!targets[0]) return;
+                    new SetUsurperEffect(this.game, false).doNext();
+                    new SetNewOathkeeperEffect(targets[0]).doNext();
+                },
+                [candidates]
+            ).doNext();
+            return true;
+        }
+        return false;
+    }
+
+    empireWins() {
+        const candidates = this.game.oath.getSuccessorCandidates();
+        if (candidates.has(this.game.chancellor)) return new WinGameEffect(this.game.chancellor).doNext();
+
+        new ChoosePlayersAction(
+            this.game.chancellor, "Choose a Successor",
+            (targets: OathPlayer[]) => { if (targets[0]) new WinGameEffect(targets[0]).doNext(); },
+            [[...candidates].filter(e => e.board instanceof ExileBoard && e.board.isCitizen)]
+        ).doNext();
     }
 
     public defer(save: boolean = true): ActionManagerReturn {

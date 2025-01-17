@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { OathModule } from './oath/oath.module';
+import { OathNestModule } from './oath/oath.module';
 
 @Module({
-    imports: [OathModule],
+    imports: [OathNestModule],
     controllers: [AppController],
     providers: [AppService],
 })

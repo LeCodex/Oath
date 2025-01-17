@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
-import { OathController } from './oath.controller';
-import { OathService } from './oath.service';
+import { OathNestController } from './oath.controller';
+import { OathNestService } from './oath.service';
 
 @Module({
     imports: [],
-    controllers: [OathController],
-    providers: [OathService],
+    controllers: [OathNestController],
+    providers: [OathNestService],
 })
-export class OathModule {}
+export class OathNestModule {}

@@ -1,24 +1,11 @@
-import { ActionModifier, PowerWithProxy, ResourceTransferModifier, SupplyCostModifier } from ".";
+import { ActionModifier, Reliquary, ResourceTransferModifier, SupplyCostModifier } from ".";
 import { CampaignAttackAction, SearchAction, TradeAction, TravelAction } from "../actions";
-import { InvalidActionResolution } from "../actions/base";
+import { InvalidActionResolution } from "../actions/utils";
 import { ResourceTransferContext, SupplyCostContext } from "../costs";
 import { RegionKey } from "../enums";
-import { ReliquarySlot } from "../reliquary";
-import { Favor, Secret } from "../resources";
-import { AbstractConstructor } from "../utils";
+import { ReliquarySlot } from "../model/reliquary";
+import { Favor, Secret } from "../model/resources";
 
-
-// TODO: Could be using Accessed, but eh
-export function Reliquary<T extends AbstractConstructor<PowerWithProxy<ReliquarySlot> & { mustUse: boolean, canUse(...args: any[]): boolean }>>(Base: T) {
-    abstract class ReliquaryModifier extends Base {
-        mustUse = true;
-
-        canUse(...args: any[]): boolean {
-            return super.canUse(args) && this.playerProxy === this.gameProxy.chancellor;
-        }
-    }
-    return ReliquaryModifier;
-}
 
 @Reliquary
 export class Brutal extends ActionModifier<ReliquarySlot, CampaignAttackAction> {

@@ -1,48 +1,42 @@
 import type { RecoverAction } from "../actions";
-import { CampaignSeizeSiteAction } from "../actions";
-import type { RecoverActionTarget, WithPowers, AtSite, CampaignActionTarget, OwnableObject, HiddenInformation } from "../interfaces";
-import { Region } from "../map";
-import { DiscardCardEffect, FlipSecretsEffect, MoveOwnWarbandsEffect, ParentToTargetEffect, TransferResourcesEffect, RecoverTargetEffect, RevealCardEffect, TakeOwnableObjectEffect } from "../actions/effects";
+import type { RecoverActionTarget, WithPowers, AtSite, CampaignActionTarget, OwnableObject, HiddenInformation } from "./interfaces";
+import { Region } from "./map";
 import type { PlayerColor, RegionKey } from "../enums";
 import { CardRestriction, OathSuit, OathType, OathTypeVisionName } from "../enums";
-import { Oath } from "../oaths";
-import { OathPlayer } from "../player";
-import type { OathPower } from "../powers";
-import { ConspiracyWhenPlayed } from "../powers/visions";
-import type { OathResource} from "../resources";
-import { Favor, ResourcesAndWarbands, Secret } from "../resources";
-import { ResourceCost, ResourceTransferContext } from "../costs";
-import type { Constructor } from "../utils";
+import { oathData } from "./utils";
+import { OathPlayer } from "./player";
+import type { OathResource} from "./resources";
+import { ResourcesAndWarbands } from "./resources";
+import { ResourceCost } from "../costs";
 import type { CardDeck, Discard, RelicDeck } from "./decks";
-import { DiscardOptions } from "./decks";
-import type { DenizenName } from "./denizens";
-import { denizenData } from "./denizens";
-import { FavorBank } from "../banks";
-import type { SiteName} from "./sites";
-import { sitesData } from "./sites";
-import type { RelicName} from "./relics";
-import { relicsData } from "./relics";
+import type { DenizenName } from "../cards/denizens";
+import { denizenData } from "../cards/denizens";
+import type { SiteName } from "../cards/sites";
+import { sitesData } from "../cards/sites";
+import type { RelicName } from "../cards/relics";
+import { relicsData } from "../cards/relics";
+import type { CardPowerName, DenizenPowerName, RelicPowerName, SitePowerName, VisionPowerName } from "../powers/classIndex";
 
 
 export abstract class OathCard extends ResourcesAndWarbands<string> implements HiddenInformation, WithPowers {
     facedown: boolean = true;
     seenBy: Set<OathPlayer> = new Set();
-    powers: Set<Constructor<OathPower<OathCard>>>;
+    powers: CardPowerName[];
 
     get key() { return this.id; }
     get name() { return this.id; }
     get active(): boolean { return !this.facedown; }
 
-    constructor(id: string, powers: Iterable<Constructor<OathPower<OathCard>>>) {
+    constructor(id: string, powers: Iterable<CardPowerName>) {
         super(id);
-        this.powers = new Set(powers);
+        this.powers = [...powers];
     }
 
     abstract get facedownName(): string;
     abstract get discard(): CardDeck<OathCard> | undefined;
     
     turnFaceup() {
-        new RevealCardEffect(this.game, undefined, this).doNext();
+        // new RevealCardEffect(this.game, undefined, this).doNext();
         this.facedown = false;
     }
     
@@ -54,13 +48,13 @@ export abstract class OathCard extends ResourcesAndWarbands<string> implements H
         return this.facedown && (!player || !this.seenBy.has(player)) ? this.facedownName : this.name;
     }
 
-    returnResources() {
-        const amount = this.byClass(Secret).length;
-        if (amount) {
-            new TransferResourcesEffect(this.game, new ResourceTransferContext(this.game.currentPlayer, this, new ResourceCost([[Secret, amount]]), this.game.currentPlayer, this)).doNext();
-            new FlipSecretsEffect(this.game, this.game.currentPlayer, amount).doNext();
-        }
-    }
+    // returnResources() {
+    //     const amount = this.byClass(Secret).length;
+    //     if (amount) {
+    //         new TransferResourcesEffect(this.game, new ResourceTransferContext(this.game.currentPlayer, this, new ResourceCost([[Secret, amount]]), this.game.currentPlayer, this)).doNext();
+    //         new FlipSecretsEffect(this.game, this.game.currentPlayer, amount).doNext();
+    //     }
+    // }
 
     abstract accessibleBy(player: OathPlayer): boolean;
 
@@ -85,6 +79,7 @@ export abstract class OathCard extends ResourcesAndWarbands<string> implements H
 export class Site extends OathCard implements CampaignActionTarget {
     declare readonly id: SiteName;
     readonly type = "site";
+    declare powers: SitePowerName[];
     capacity: number;
     startingRelics: number;
     startingResources: Map<typeof OathResource, number>;
@@ -157,10 +152,10 @@ export class Site extends OathCard implements CampaignActionTarget {
         return this.region?.key === regionKey;
     }
 
-    seize(player: OathPlayer) {
-        if (this.ruler) new MoveOwnWarbandsEffect(this.ruler.leader, this, this.ruler).doNext();
-        new CampaignSeizeSiteAction(player, this).doNext();
-    }
+    // seize(player: OathPlayer) {
+    //     if (this.ruler) new MoveOwnWarbandsEffect(this.ruler.leader, this, this.ruler).doNext();
+    //     new CampaignSeizeSiteAction(player, this).doNext();
+    // }
 
     constSerialize(): Record<`_${string}`, any> {
         return {
@@ -191,6 +186,7 @@ export abstract class OwnableCard extends OathCard implements OwnableObject  {
 export class Relic extends OwnableCard implements RecoverActionTarget, CampaignActionTarget, AtSite {
     declare readonly id: RelicName;
     readonly type = "relic";
+    declare powers: RelicPowerName[];
     defense: number;
     get force() { return this.owner; }
 
@@ -209,22 +205,22 @@ export class Relic extends OwnableCard implements RecoverActionTarget, CampaignA
         return !!this.site;
     }
 
-    recover(player: OathPlayer): void {
-        if (!this.site) return;
-        const costContext = new ResourceTransferContext(player, this.site, this.site.recoverCost, this.game.favorBank(this.site.recoverSuit));
-        new TransferResourcesEffect(this.game, costContext).doNext(success => {
-            if (!success) throw costContext.cost.cannotPayError;
-            new RecoverTargetEffect(player, this).doNext();
-        })
-    }
+    // recover(player: OathPlayer): void {
+    //     if (!this.site) return;
+    //     const costContext = new ResourceTransferContext(player, this.site, this.site.recoverCost, this.game.favorBank(this.site.recoverSuit));
+    //     new TransferResourcesEffect(this.game, costContext).doNext(success => {
+    //         if (!success) throw costContext.cost.cannotPayError;
+    //         new RecoverTargetEffect(player, this).doNext();
+    //     })
+    // }
 
-    seize(player: OathPlayer) {
-        new TakeOwnableObjectEffect(this.game, player, this).doNext();
-    }
+    // seize(player: OathPlayer) {
+    //     new TakeOwnableObjectEffect(this.game, player, this).doNext();
+    // }
 
-    putOnBottom(player: OathPlayer) {
-        new DiscardCardEffect(player, this, new DiscardOptions(this.game.relicDeck, true)).doNext();
-    }
+    // putOnBottom(player: OathPlayer) {
+    //     new DiscardCardEffect(player, this, new DiscardOptions(this.game.relicDeck, true)).doNext();
+    // }
 }
 
 export class GrandScepter extends Relic {
@@ -243,9 +239,9 @@ export abstract class WorldCard extends OwnableCard {
 export class Denizen extends WorldCard implements AtSite {
     declare readonly id: DenizenName;
     readonly type = "denizen";
+    declare powers: DenizenPowerName[];
     restriction: CardRestriction;
     locked: boolean;
-    declare powers: Set<Constructor<OathPower<Denizen>>>;
 
     constructor(id: DenizenName) {
         const data = denizenData[id];
@@ -269,12 +265,12 @@ export class Denizen extends WorldCard implements AtSite {
         return super.accessibleBy(player) || player.leader === this.site?.ruler || this.site === player.site;
     }
 
-    returnResources(): void {
-        super.returnResources();
-        const favor = this.byClass(Favor);
-        if (favor.length)
-            new ParentToTargetEffect(this.game, this.game.currentPlayer, favor, this.game.byClass(FavorBank).byKey(this.suit)[0]).doNext();
-    }
+    // returnResources(): void {
+    //     super.returnResources();
+    //     const favor = this.byClass(Favor);
+    //     if (favor.length)
+    //         new ParentToTargetEffect(this.game, this.game.currentPlayer, favor, this.game.byClass(FavorBank).byKey(this.suit)[0]).doNext();
+    // }
 
     constSerialize(): Record<`_${string}`, any> {
         return {
@@ -293,18 +289,23 @@ export class Edifice extends Denizen {
 
 export abstract class VisionBack extends WorldCard {
     readonly type = "vision";
+    declare powers: VisionPowerName[];
+
+    constructor(id: string, powers: Iterable<VisionPowerName>) {
+        super(id, powers);
+    }
 
     get facedownName(): string { return super.facedownName + "vision"; }
 }
 
 export class Vision extends VisionBack {
     declare readonly id: keyof typeof OathType;
-    oath: Oath;
 
     constructor(id: keyof typeof OathType) {
         super(id, []);
-        this.oath = new Oath().setType(OathType[id]);
     }
+
+    get oathData() { return oathData[OathType[this.id]]; }
 
     get name() { return `VisionOf${this.key}` }
     get key() { return OathTypeVisionName[this.id]; }
@@ -314,6 +315,6 @@ export class Conspiracy extends VisionBack {
     declare readonly id: "Conspiracy";
 
     constructor() {
-        super("Conspiracy", [ConspiracyWhenPlayed]);
+        super("Conspiracy", ["ConspiracyWhenPlayed"]);
     }
 }

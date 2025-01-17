@@ -1,10 +1,8 @@
 import { Relic } from "./cards";
 import type { WithPowers } from "./interfaces";
-import type { OathPower } from "./powers";
 import { Container } from "./gameObject";
-import type { Constructor } from "./utils";
-import { Brutal, Decadent, Careless, Greedy } from "./powers/reliquary";
 import { OathPlayer } from "./player";
+import type { ReliquaryPowerName } from "../powers/classIndex";
 
 
 export class Reliquary extends Container<ReliquarySlot, string> {
@@ -30,12 +28,12 @@ export class Reliquary extends Container<ReliquarySlot, string> {
     }
 }
 
-export const reliquarySlotPowers = [Brutal, Decadent, Careless, Greedy];
+export const reliquarySlotPowers: ReliquaryPowerName[] = ["Brutal", "Decadent", "Careless", "Greedy"];
 
 export class ReliquarySlot extends Container<Relic, number> implements WithPowers {
     name: string;
     readonly type = "reliquarySlot";
-    powers: Set<Constructor<OathPower<ReliquarySlot>>>;
+    powers: ReliquaryPowerName[];
 
     get active(): boolean { return !this.children[0]; }
 
@@ -43,8 +41,8 @@ export class ReliquarySlot extends Container<Relic, number> implements WithPower
         const power = reliquarySlotPowers[Number(id)];
         if (!power) throw TypeError(`${id} is not a valid Reliquary slot`);
         super(id, Relic);
-        this.name = power.name;
-        this.powers = new Set([power]);
+        this.name = power;
+        this.powers = [power];
     }
     
     getRelic() {

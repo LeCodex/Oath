@@ -1,18 +1,16 @@
-import { MultiResourceTransferContext } from "../costs";
-import type { OathGame } from "../game";
-import type { WithPowers } from "../interfaces";
-import type { OathPlayer } from "../player";
+import type { OathGame } from "../model/game";
+import type { WithPowers } from "../model/interfaces";
+import type { OathPlayer } from "../model/player";
 import type { ActionModifier } from "../powers";
 import type { Constructor} from "../utils";
 import { allCombinations, MaskProxyManager } from "../utils";
 import { SelectNOf } from "./selects";
+import { InvalidActionResolution } from "./utils";
 
 
 //////////////////////////////////////////////////
 //                   ACTIONS                    //
 //////////////////////////////////////////////////
-export class InvalidActionResolution extends Error { }
-
 export abstract class OathAction {
     game: OathGame;
     readonly selects: Record<string, SelectNOf<any>> = {};

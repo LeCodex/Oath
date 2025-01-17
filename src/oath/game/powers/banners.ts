@@ -1,21 +1,10 @@
 import { WakeAction, SearchPlayOrDiscardAction, MayDiscardACardAction, SearchAction, PeoplesFavorWakeAction } from "../actions";
-import { PeoplesFavor, DarkestSecret } from "../banks";
-import { ActionModifier, PowerWithProxy, SupplyCostModifier } from ".";
-import { Denizen } from "../cards";
+import { PeoplesFavor, DarkestSecret } from "../model/banks";
+import { ActionModifier, SupplyCostModifier } from ".";
+import { Denizen } from "../model/cards";
 import { CardRestriction } from "../enums";
-import { AbstractConstructor } from "../utils";
-import { OwnableObject, WithPowers } from "../interfaces";
 import { SupplyCostContext } from "../costs";
-
-
-export function Owned<T extends AbstractConstructor<PowerWithProxy<OwnableObject & WithPowers> & { canUse(...args: any[]): boolean }>>(Base: T) {
-    abstract class OwnedModifier extends Base {
-        canUse(...args: any[]): boolean {
-            return super.canUse(...args) && this.playerProxy === this.sourceProxy.owner;
-        }
-    }
-    return OwnedModifier;
-}
+import { Owned } from ".";
 
 @Owned
 export class PeoplesFavorSearch extends ActionModifier<PeoplesFavor, SearchPlayOrDiscardAction> {

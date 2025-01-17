@@ -1,16 +1,16 @@
 import { CampaignAttackAction, CampaignDefenseAction, TakeFavorFromBankAction, TradeAction, TravelAction, MakeDecisionAction, RestAction, ChooseCardsAction, SearchPlayOrDiscardAction, ChoosePlayersAction, ChooseNumberAction, SearchAction, KillWarbandsOnTargetAction, MusterAction, RecoverBannerPitchAction, ChooseRnWsAction, RecoverAction } from "../actions";
-import { Conspiracy, Denizen, Edifice, Relic, Site, WorldCard } from "../cards";
-import { DiscardOptions } from "../cards/decks";
+import { Conspiracy, Denizen, Edifice, Relic, Site, WorldCard } from "../model/cards";
+import { DiscardOptions } from "../model/decks";
 import { AttackDie, AttackDieSymbol, DefenseDie, RollResult } from "../dice";
 import { RegionDiscardEffect, PutResourcesOnTargetEffect, RollDiceEffect, BecomeCitizenEffect, DiscardCardEffect, PeekAtCardEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, MoveWorldCardToAdvisersEffect, ParentToTargetEffect, TransferResourcesEffect } from "../actions/effects";
 import { BannerKey, OathSuit } from "../enums";
-import { ExileBoard, OathPlayer } from "../player";
-import { Favor, OathResourceType, ResourcesAndWarbands, Secret } from "../resources";
+import { ExileBoard, OathPlayer } from "../model/player";
+import { Favor, OathResourceType, ResourcesAndWarbands, Secret } from "../model/resources";
 import { ResourceCost, ResourceTransferContext, SupplyCostContext } from "../costs";
 import { ActionModifier, AttackerBattlePlan, DefenderBattlePlan, ActivePower, WhenPlayed, Accessed, EnemyAttackerCampaignModifier, BattlePlan, ResourceTransferModifier, NoSupplyCostActionModifier } from ".";
 import { inclusiveRange } from "../utils";
-import { WithPowers } from "../interfaces";
-import { DarkestSecret } from "../banks";
+import { WithPowers } from "../model/interfaces";
+import { DarkestSecret } from "../model/banks";
 
 
 export class FireTalkersAttack extends AttackerBattlePlan<Denizen> {

@@ -1,5 +1,6 @@
 import type { OathGame } from "./game";
-import type { AbstractConstructor, NodeGroup} from "./utils";
+import type { AbstractConstructor} from "../utils";
+import type { NodeGroup } from "./utils";
 import { TreeLeaf, TreeNode } from "./utils";
 
 

@@ -1,12 +1,13 @@
 import { RestAction, UsePowerAction, WakeAction, CampaignAttackAction, CampaignDefenseAction } from "../actions";
 import { ModifiableAction } from "../actions/base";
 import { ApplyWhenPlayedEffect, GainPowerEffect, LosePowerEffect, PayPowerCostEffect } from "../actions/effects";
-import { OathCard, OwnableCard, Site, WorldCard } from "../cards";
+import { OathCard, OwnableCard, Site, WorldCard } from "../model/cards";
 import { CostContext, ResourceCost, ResourceTransferContext, SupplyCostContext } from "../costs";
-import { OathPlayer } from "../player";
+import { OathPlayer } from "../model/player";
 import { AbstractConstructor, Constructor, MaskProxyManager } from "../utils";
-import { OathGame } from "../game";
-import { WithPowers } from "../interfaces";
+import { OathGame } from "../model/game";
+import { OwnableObject, WithPowers } from "../model/interfaces";
+import { ReliquarySlot } from "../model/reliquary";
 
 
 //////////////////////////////////////////////////
@@ -233,3 +234,34 @@ export abstract class EnemyDefenderCampaignModifier<T extends OwnableCard> exten
         return this.action.campaignResult.areEnemies(ruler, this.player);
     }
 }
+
+export function Owned<T extends AbstractConstructor<PowerWithProxy<OwnableObject & WithPowers> & { canUse(...args: any[]): boolean; }>>(Base: T) {
+    abstract class OwnedModifier extends Base {
+        canUse(...args: any[]): boolean {
+            return super.canUse(...args) && this.playerProxy === this.sourceProxy.owner;
+        }
+    }
+    return OwnedModifier;
+}
+
+// TODO: Could be using Accessed, but eh
+export function Reliquary<T extends AbstractConstructor<PowerWithProxy<ReliquarySlot> & { mustUse: boolean; canUse(...args: any[]): boolean; }>>(Base: T) {
+    abstract class ReliquaryModifier extends Base {
+        mustUse = true;
+
+        canUse(...args: any[]): boolean {
+            return super.canUse(args) && this.playerProxy === this.gameProxy.chancellor;
+        }
+    }
+    return ReliquaryModifier;
+}
+
+export function AtSite<T extends AbstractConstructor<PowerWithProxy<Site> & { canUse(...args: any[]): boolean; }>>(Base: T) {
+    abstract class AtSiteModifier extends Base {
+        canUse(...args: any[]): boolean {
+            return super.canUse(...args) && this.playerProxy.site === this.sourceProxy;
+        }
+    }
+    return AtSiteModifier;
+}
+

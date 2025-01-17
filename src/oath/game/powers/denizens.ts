@@ -1,5 +1,5 @@
-import type { Denizen, Site, WorldCard } from "../cards";
-import type { OathPlayer } from "../player";
+import type { Denizen, Site, WorldCard } from "../model/cards";
+import type { OathPlayer } from "../model/player";
 import { CapacityModifier } from ".";
 
 

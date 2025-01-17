@@ -1,15 +1,16 @@
 import { CitizenshipOfferAction, StartBindingExchangeAction, SkeletonKeyAction, TradeAction, MusterAction, TravelAction, MakeDecisionAction, ChoosePlayersAction, SearchAction, ChooseCardsAction, ChooseNumberAction } from "../actions";
 import { CampaignEndCallback } from "../actions/utils";
-import { InvalidActionResolution, ModifiableAction } from "../actions/base";
-import { Denizen, GrandScepter, OathCard, Relic, Site } from "../cards";
+import { ModifiableAction } from "../actions/base";
+import { InvalidActionResolution } from "../actions/utils";
+import { Denizen, GrandScepter, OathCard, Relic, Site } from "../model/cards";
 import { TakeOwnableObjectEffect, PlayDenizenAtSiteEffect, MoveOwnWarbandsEffect, PeekAtCardEffect, SetGrandScepterLockEffect, GainSupplyEffect, DrawFromDeckEffect, RevealCardEffect, TransferResourcesEffect, BecomeExileEffect, MoveDenizenToSiteEffect, MoveWorldCardToAdvisersEffect, ParentToTargetEffect } from "../actions/effects";
 import { BannerKey, PlayerColor } from "../enums";
-import { OathPlayer, ExileBoard } from "../player";
-import { isOwnable } from "../interfaces";
-import { Favor, Warband, Secret } from "../resources";
+import { OathPlayer, ExileBoard } from "../model/player";
+import { isOwnable } from "../model/interfaces";
+import { Favor, Warband, Secret } from "../model/resources";
 import { ResourceCost, ResourceTransferContext, SupplyCostContext } from "../costs";
 import { EnemyActionModifier, AttackerBattlePlan, DefenderBattlePlan, ActionModifier, ActivePower, RestPower, BattlePlan, EnemyAttackerCampaignModifier, Accessed, ResourceTransferModifier, SupplyCostModifier } from ".";
-import { DiscardOptions } from "../cards/decks";
+import { DiscardOptions } from "../model/decks";
 import { inclusiveRange, isExtended } from "../utils";
 
 

@@ -1,15 +1,16 @@
 import { TradeAction, TakeResourceFromPlayerAction, TakeFavorFromBankAction, CampaignEndAction, MakeDecisionAction, CampaignAttackAction, ChooseSuitsAction, ChooseCardsAction, MusterAction, SearchPlayOrDiscardAction, MayDiscardACardAction, SearchAction, SearchChooseAction, KillWarbandsOnTargetAction, TinkersFairOfferAction, StartBindingExchangeAction, DeedWriterOfferAction } from "../actions";
 import { CampaignEndCallback } from "../actions/utils";
-import { ModifiableAction, InvalidActionResolution } from "../actions/base";
-import { Denizen, Edifice, Relic, WorldCard } from "../cards";
+import { ModifiableAction } from "../actions/base";
+import { InvalidActionResolution } from "../actions/utils";
+import { Denizen, Edifice, Relic, WorldCard } from "../model/cards";
 import { PlayVisionEffect, PlayWorldCardEffect, PeekAtCardEffect, DiscardCardEffect, BecomeCitizenEffect, SetPeoplesFavorMobState, GainSupplyEffect, DrawFromDeckEffect, TakeOwnableObjectEffect, MoveDenizenToSiteEffect, ParentToTargetEffect, PutResourcesOnTargetEffect, RecoverTargetEffect } from "../actions/effects";
 import { BannerKey, OathSuit, ALL_OATH_SUITS } from "../enums";
-import { WithPowers } from "../interfaces";
-import { Favor, Secret } from "../resources";
+import { WithPowers } from "../model/interfaces";
+import { Favor, Secret } from "../model/resources";
 import { ResourceCost, SupplyCostContext } from "../costs";
 import { maxInGroup, minInGroup } from "../utils";
 import { DefenderBattlePlan, Accessed, ActivePower, WhenPlayed, EnemyActionModifier, AttackerBattlePlan, ActionModifier, EnemyDefenderCampaignModifier, NoSupplyCostActionModifier, SupplyCostModifier } from ".";
-import { ExileBoard } from "../player";
+import { ExileBoard } from "../model/player";
 import { AttackDieSymbol } from "../dice";
 
 

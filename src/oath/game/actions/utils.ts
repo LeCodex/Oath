@@ -1,13 +1,11 @@
-import { clone } from "lodash";
-import { CampaignAction, CampaignKillWarbandsInForceAction, MoveWarbandsAction, MusterAction, PlayFacedownAdviserAction, RecoverAction, RestAction, SearchAction, TradeAction, TravelAction, UsePowerAction } from ".";
-import type { Denizen } from "../cards";
+import { CampaignKillWarbandsInForceAction } from ".";
+import type { Denizen } from "../model/cards";
 import { RollResult, AttackDie, DefenseDie } from "../dice";
-import type { OathGame } from "../game";
-import type { CampaignActionTarget } from "../interfaces";
-import type { OathPlayer} from "../player";
-import { ExileBoard } from "../player";
-import type { ResourcesAndWarbands } from "../resources";
-import { ResourceTransferContext } from "../costs";
+import type { OathGame } from "../model/game";
+import type { CampaignActionTarget } from "../model/interfaces";
+import type { OathPlayer} from "../model/player";
+import { ExileBoard } from "../model/player";
+import type { ResourcesAndWarbands } from "../model/resources";
 import type { MaskProxyManager } from "../utils";
 import { DiscardCardEffect, RollDiceEffect } from "./effects";
 
@@ -126,3 +124,5 @@ export class CampaignResult {
         new RollDiceEffect(this.game, this.defender, this.defRoll, pool).doNext(callback);
     }
 }
+
+export class InvalidActionResolution extends Error { }

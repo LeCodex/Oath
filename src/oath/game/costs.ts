@@ -1,13 +1,8 @@
-import { clone } from "lodash";
-import { InvalidActionResolution } from "./actions/base";
-import type { OathGameObject } from "./gameObject";
-import type { WithPowers } from "./interfaces";
-import type { OathPlayer } from "./player";
-import { CostModifier } from "./powers";
-import type { OathResourceType} from "./resources";
-import { Favor, Secret } from "./resources";
-import type { MaskProxyManager} from "./utils";
-import { NumberMap, allChoices, allCombinations } from "./utils";
+import type { OathGameObject } from "./model/gameObject";
+import type { OathPlayer } from "./model/player";
+import type { OathResourceType} from "./model/resources";
+import { Favor, Secret } from "./model/resources";
+import { NumberMap } from "./utils";
 
 
 export class ResourceCost {
@@ -37,11 +32,11 @@ export class ResourceCost {
         return true;
     }
 
-    get cannotPayError(): InvalidActionResolution {
-        let message = "Cannot pay resource cost: ";
-        message += this.toString();
-        return new InvalidActionResolution(message);
-    }
+    // get cannotPayError(): InvalidActionResolution {
+    //     let message = "Cannot pay resource cost: ";
+    //     message += this.toString();
+    //     return new InvalidActionResolution(message);
+    // }
 
     add(other: ResourceCost) {
         for (const [resource, amount] of other.placedResources) this.placedResources.set(resource, this.placedResources.get(resource) + amount);
@@ -77,39 +72,39 @@ export abstract class CostContext<T> {
         public cost: T
     ) { }
 
-    modifiersCostContext(modifiers: CostModifier<WithPowers, CostContext<T>>[]) {
-        const contexts: ResourceTransferContext[] = modifiers.map(e => new ResourceTransferContext(this.player, this, e.cost, e.source));
-        return new MultiResourceTransferContext(this.player, this, contexts);
-    }
+    // modifiersCostContext(modifiers: CostModifier<WithPowers, CostContext<T>>[]) {
+    //     const contexts: ResourceTransferContext[] = modifiers.map(e => new ResourceTransferContext(this.player, this, e.cost, e.source));
+    //     return new MultiResourceTransferContext(this.player, this, contexts);
+    // }
 
-    payableCostsWithModifiers(maskProxyManager: MaskProxyManager) {
-        const modifiers: CostModifier<WithPowers, CostContext<T>>[] = [];
-        for (const [source, modifier] of maskProxyManager.get(this.player.game).getPowers(CostModifier)) {
-            const instance = new modifier(source, this.player, maskProxyManager);
-            if (this instanceof instance.modifiedContext && instance.canUse(this)) modifiers.push(instance);
-        }
+    // payableCostsWithModifiers(maskProxyManager: MaskProxyManager) {
+    //     const modifiers: CostModifier<WithPowers, CostContext<T>>[] = [];
+    //     for (const [source, modifier] of maskProxyManager.get(this.player.game).getPowers(CostModifier)) {
+    //         const instance = new modifier(source, this.player, maskProxyManager);
+    //         if (this instanceof instance.modifiedContext && instance.canUse(this)) modifiers.push(instance);
+    //     }
 
-        const mustUse = modifiers.filter(e => e.mustUse);
-        const canUse = modifiers.filter(e => !e.mustUse);
-        return allCombinations(canUse).map(e => [...mustUse, ...e]).map(combination => {
-            const context: CostContext<T> = clone(this);
-            context.cost = clone(this.cost);
+    //     const mustUse = modifiers.filter(e => e.mustUse);
+    //     const canUse = modifiers.filter(e => !e.mustUse);
+    //     return allCombinations(canUse).map(e => [...mustUse, ...e]).map(combination => {
+    //         const context: CostContext<T> = clone(this);
+    //         context.cost = clone(this.cost);
 
-            if (combination.length) {
-                context.modify(combination);
-                if (!this.modifiersCostContext(combination).payableCostsWithModifiers(maskProxyManager).length) return undefined;
-            }
-            if (!context.isValid()) return undefined;
+    //         if (combination.length) {
+    //             context.modify(combination);
+    //             if (!this.modifiersCostContext(combination).payableCostsWithModifiers(maskProxyManager).length) return undefined;
+    //         }
+    //         if (!context.isValid()) return undefined;
 
-            return { context, modifiers: combination };
-        }).filter(e => !!e);
-    }
+    //         return { context, modifiers: combination };
+    //     }).filter(e => !!e);
+    // }
 
-    modify(modifiers: Iterable<CostModifier<WithPowers, this>>) {
-        for (const modifier of modifiers) {
-            modifier.apply(this);
-        }
-    }
+    // modify(modifiers: Iterable<CostModifier<WithPowers, this>>) {
+    //     for (const modifier of modifiers) {
+    //         modifier.apply(this);
+    //     }
+    // }
 
     abstract isValid(): boolean;
 }
@@ -146,17 +141,17 @@ export class MultiResourceTransferContext extends CostContext<ResourceCost[]> {
         super(player, origin, costContexts.map(e => e.cost));
     }
 
-    payableCostsWithModifiers(maskProxyManager: MaskProxyManager) {
-        const payableCostsInfo = this.costContexts.map(e => e.payableCostsWithModifiers(maskProxyManager));
-        return allChoices(payableCostsInfo).map(choice => {
-            const context: MultiResourceTransferContext = clone(this);
-            context.costContexts = choice.map(e => e.context as ResourceTransferContext);
-            context.cost = context.costContexts.map(e => e.cost);
+    // payableCostsWithModifiers(maskProxyManager: MaskProxyManager) {
+    //     const payableCostsInfo = this.costContexts.map(e => e.payableCostsWithModifiers(maskProxyManager));
+    //     return allChoices(payableCostsInfo).map(choice => {
+    //         const context: MultiResourceTransferContext = clone(this);
+    //         context.costContexts = choice.map(e => e.context as ResourceTransferContext);
+    //         context.cost = context.costContexts.map(e => e.cost);
 
-            if (!context.isValid()) return undefined;
-            return { context, modifiers: [] };  // Technically, none of the modifiers are applied to the Multi (and none should, for now)
-        }).filter(e => !!e);
-    }
+    //         if (!context.isValid()) return undefined;
+    //         return { context, modifiers: [] };  // Technically, none of the modifiers are applied to the Multi (and none should, for now)
+    //     }).filter(e => !!e);
+    // }
 
     isValid(): boolean {
         const totalCostBySource = new Map<OathGameObject, ResourceCost>();

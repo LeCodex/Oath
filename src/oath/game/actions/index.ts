@@ -1,29 +1,29 @@
-import { OathAction, ModifiableAction, InvalidActionResolution, ChooseModifiers } from "./base";
-import type { OathCard, OwnableCard, Relic, WorldCard } from "../cards";
-import { Denizen, Edifice, Site } from "../cards";
-import type { SearchableDeck } from "../cards/decks";
-import { DiscardOptions } from "../cards/decks";
+import { OathAction, ModifiableAction, ChooseModifiers } from "./base";
+import type { OathCard, OwnableCard, Relic, WorldCard } from "../model/cards";
+import { Denizen, Edifice, Site } from "../model/cards";
+import type { SearchableDeck } from "../model/decks";
+import { DiscardOptions } from "../model/decks";
 import { AttackDieSymbol } from "../dice";
 import { TransferResourcesEffect, PlayWorldCardEffect, PutPawnAtSiteEffect, DiscardCardEffect, MoveOwnWarbandsEffect, SetPeoplesFavorMobState, ChangePhaseEffect, NextTurnEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, FlipEdificeEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect, CheckCapacityEffect, CampaignJoinDefenderAlliesEffect, MoveWorldCardToAdvisersEffect, DiscardCardGroupEffect, ParentToTargetEffect, PaySupplyEffect, ThingsExchangeOfferEffect, SiteExchangeOfferEffect, SearchDrawEffect } from "./effects";
 import { ALL_OATH_SUITS, ALL_PLAYER_COLORS, CardRestriction, OathPhase, OathSuit, OathType, PlayerColor } from "../enums";
-import { ChancellorBoard, ExileBoard, OathPlayer, VisionSlot } from "../player";
+import { ChancellorBoard, ExileBoard, OathPlayer, VisionSlot } from "../model/player";
 import type { ActionModifier} from "../powers";
 import { ActivePower, CapacityModifier } from "../powers";
-import type { OathResource, OathResourceType, ResourcesAndWarbands} from "../resources";
-import { Favor, Secret } from "../resources";
+import type { OathResource, OathResourceType, ResourcesAndWarbands} from "../model/resources";
+import { Favor, Secret } from "../model/resources";
 import type { CostContext} from "../costs";
 import { ResourceCost, ResourceTransferContext, SupplyCost, SupplyCostContext } from "../costs";
-import type { Banner, PeoplesFavor } from "../banks";
-import { FavorBank } from "../banks";
+import type { Banner, PeoplesFavor } from "../model/banks";
+import { FavorBank } from "../model/banks";
 import type { Constructor, MaskProxyManager} from "../utils";
 import { inclusiveRange, isExtended, minInGroup, NumberMap } from "../utils";
 import { SelectNOf, SelectBoolean, SelectNumber, SelectWithName, SelectCard } from "./selects";
-import type { CampaignActionTarget, RecoverActionTarget, WithPowers } from "../interfaces";
-import type { Region } from "../map";
-import type { OathGameObject } from "../gameObject";
+import type { CampaignActionTarget, RecoverActionTarget, WithPowers } from "../model/interfaces";
+import type { Region } from "../model/map";
+import type { OathGameObject } from "../model/gameObject";
 import { Citizenship } from "../parser/interfaces";
-import type { CampaignEndCallback} from "./utils";
-import { CampaignResult } from "./utils";
+import type { CampaignEndCallback } from "./utils";
+import { CampaignResult, InvalidActionResolution } from "./utils";
 
 
 

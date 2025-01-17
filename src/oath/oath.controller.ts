@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, UsePipes, ValidationPipe } from '@nestjs/common';
-import { OathService } from './oath.service';
+import { OathNestService } from './oath.service';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { ActionManagerReturn } from './game/actions/manager';
 
@@ -13,8 +13,8 @@ function ApiActionResponses(invalidAction: boolean = true): MethodDecorator {
 }
 
 @Controller("/oath")
-export class OathController {
-    constructor(private readonly service: OathService) {}
+export class OathNestController {
+    constructor(private readonly service: OathNestService) {}
 
     @Get()
     @ApiOperation({ summary: "Get a list of all games" })

@@ -1,14 +1,15 @@
-import { BadRequestException, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
-import { OathGame } from './game/game';
 import { ActionManagerReturn } from './game/actions/manager';
-import { InvalidActionResolution } from "./game/actions/base";
+import { InvalidActionResolution } from "./game/actions/utils";
 import * as fs from "fs";
 import { range } from 'lodash';
+import { OathController } from './game/controller';
+import { Injectable, OnModuleInit, BadRequestException, NotFoundException } from '@nestjs/common';
+import { OathGame } from './game/model/game';
 
 
 @Injectable()
-export class OathService implements OnModuleInit {
-    games = new Map<number, OathGame>();
+export class OathNestService implements OnModuleInit {
+    games = new Map<number, OathController>();
 
     onModuleInit() {
         console.log(`Loading games`);
@@ -19,8 +20,8 @@ export class OathService implements OnModuleInit {
             const match = file.match(/save(\d+)\.jsonl/);
             if (match) {
                 const id = Number(match[1]);
-                const game = OathGame.load(id, fs.readFileSync("data/oath/" + file).toString());
-                this.games.set(id, game);
+                const controller = OathController.load(id, fs.readFileSync("data/oath/" + file).toString());
+                this.games.set(id, controller);
                 console.log(`Loaded game ${id}`);
             }
         }
@@ -34,16 +35,16 @@ export class OathService implements OnModuleInit {
         const id = (this.games.size ? Math.max(...this.games.keys()) : 0) + 1;
 
         // TEMP: Forcefully set the number of players
-        const game = new OathGame(id, [seed, range(4).map(e => "Player" + e)]);
-        this.games.set(id, game);
+        const controller = new OathController(id, [seed, range(4).map(e => "Player" + e)]);
+        this.games.set(id, controller);
         
-        game.actionManager.checkForNextAction()
-        const obj = game.actionManager.defer() as ActionManagerReturn & { id: number };
+        controller.actionManager.checkForNextAction()
+        const obj = controller.actionManager.defer() as ActionManagerReturn & { id: number };
         obj.id = id;
         return obj;
     }
 
-    private _wrapper(gameId: number, func: (game: OathGame) => ActionManagerReturn) {
+    private _wrapper(gameId: number, func: (game: OathController) => ActionManagerReturn) {
         try {
             const result = func(this._getGame(gameId));
             if (!result.activeAction) this.games.delete(gameId);
@@ -55,39 +56,39 @@ export class OathService implements OnModuleInit {
         }
     }
 
-    private _getGame(id: number): OathGame {
-        const game = this.games.get(id);
-        if (!game) throw new NotFoundException(`Game not found with id ${id}`);
-        return game;
+    private _getGame(id: number): OathController {
+        const controller = this.games.get(id);
+        if (!controller) throw new NotFoundException(`Game not found with id ${id}`);
+        return controller;
     }
 
     public reloadFromHistory(gameId: number) {
-        return this._wrapper(gameId, (game) => game.actionManager.reloadFromHistory());
+        return this._wrapper(gameId, (controller) => controller.actionManager.reloadFromHistory());
     }
 
     public reloadFromFinalState(gameId: number) {
-        return this._wrapper(gameId, (game) => game.actionManager.reloadFromFinalStartState());
+        return this._wrapper(gameId, (controller) => controller.actionManager.reloadFromFinalStartState());
     }
 
     public getCurrentState(gameId: number) {
-        return this._wrapper(gameId, (game) => game.actionManager.defer(false));
+        return this._wrapper(gameId, (controller) => controller.actionManager.defer(false));
     }
 
     public continueAction(gameId: number, playerId: string, values: Record<string, string[]>) {
-        return this._wrapper(gameId, (game) => game.actionManager.continueAction(playerId, values));
+        return this._wrapper(gameId, (controller) => controller.actionManager.continueAction(playerId, values));
     }
 
     public cancelAction(gameId: number, playerId: string) {
-        return this._wrapper(gameId, (game) => game.actionManager.cancelAction(playerId));
+        return this._wrapper(gameId, (controller) => controller.actionManager.cancelAction(playerId));
     }
 
     public consentToRollback(gameId: number, playerId: string) {
-        return this._wrapper(gameId, (game) => game.actionManager.consentToRollback(playerId));
+        return this._wrapper(gameId, (controller) => controller.actionManager.consentToRollback(playerId));
     }
 
     public endGame(gameId: number) {
-        const game = this._getGame(gameId);
-        const obj = game.actionManager.defer();
+        const controller = this._getGame(gameId);
+        const obj = controller.actionManager.defer();
         delete obj.activeAction;
         this.games.delete(gameId);
         return obj;

@@ -1,15 +1,14 @@
-import type { RecoverAction } from "./actions";
+import type { RecoverAction } from "../actions";
 import type { Site } from "./cards";
 import type { OathGameObject } from "./gameObject";
 import type { OathPlayer } from "./player";
-import type { OathPower } from "./powers";
+import type { OathPower } from "../powers";
 import type { ResourcesAndWarbands } from "./resources";
-import { ResourceCost } from "./costs";
-import type { Constructor } from "./utils";
+import type { PowerName } from "../powers/classIndex";
 
 
 export interface WithPowers extends OathGameObject {
-    powers: Set<Constructor<OathPower<WithPowers>>>;
+    powers: PowerName[];
     active: boolean;
 }
 export function hasPowers(obj: object): obj is WithPowers {
@@ -44,11 +43,9 @@ export function isOwnable(obj: OathGameObject): obj is OwnableObject {
 export interface CampaignActionTarget extends OathGameObject {
     defense: number;
     force: ResourcesAndWarbands<any> | undefined;
-    seize(player: OathPlayer): void;
 }
 
 export interface RecoverActionTarget extends OathGameObject, OwnableObject {
-    canRecover(action: RecoverAction): boolean;
-    recover(player: OathPlayer): void;
+    canRecover(action: RecoverAction): boolean;  // TODO: Potentially change this
 }
 

@@ -1,11 +1,11 @@
 import { SearchAction, CampaignAttackAction, CampaignDefenseAction, TradeAction, TakeFavorFromBankAction, ActAsIfAtSiteAction, MakeDecisionAction, CampaignAction, ChoosePlayersAction, ChooseCardsAction, ChooseSuitsAction, KillWarbandsOnTargetAction, MusterAction, TravelAction, SearchPlayOrDiscardAction, BrackenAction, TradeForSecretAction } from "../actions";
-import { InvalidActionResolution } from "../actions/base";
-import { Denizen, Edifice, GrandScepter, Relic, Site } from "../cards";
+import { InvalidActionResolution } from "../actions/utils";
+import { Denizen, Edifice, GrandScepter, Relic, Site } from "../model/cards";
 import { BecomeCitizenEffect, DiscardCardEffect, TransferResourcesEffect, DrawFromDeckEffect, FinishChronicleEffect, GainSupplyEffect, MoveDenizenToSiteEffect, MoveWorldCardToAdvisersEffect, ParentToTargetEffect, PlayWorldCardEffect, RegionDiscardEffect, TakeOwnableObjectEffect } from "../actions/effects";
 import { CardRestriction, OathSuit } from "../enums";
-import { WithPowers } from "../interfaces";
-import { ExileBoard, OathPlayer } from "../player";
-import { Favor, Warband, Secret } from "../resources";
+import { WithPowers } from "../model/interfaces";
+import { ExileBoard, OathPlayer } from "../model/player";
+import { Favor, Warband, Secret } from "../model/resources";
 import { ResourceCost, ResourceTransferContext, SupplyCostContext } from "../costs";
 import { AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, RestPower, ActivePower, EnemyAttackerCampaignModifier, EnemyDefenderCampaignModifier, Accessed, ActionModifier, EnemyActionModifier, BattlePlan, ResourceTransferModifier, NoSupplyCostActionModifier, SupplyCostModifier } from ".";
 import { AttackDieSymbol, DefenseDieSymbol } from "../dice";

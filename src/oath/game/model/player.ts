@@ -1,17 +1,14 @@
-import { CampaignBanishPlayerAction } from "./actions";
 import type { CampaignActionTarget, AtSite, OwnableObject } from "./interfaces";
-import type { OwnableCard, Site} from "./cards";
+import type { OwnableCard, Site } from "./cards";
 import { Denizen, Relic, Vision, WorldCard } from "./cards";
-import { DiscardOptions } from "./cards/decks";
-import { TransferResourcesEffect, FlipSecretsEffect, GainSupplyEffect } from "./actions/effects";
-import type { OathSuit} from "./enums";
-import { ALL_OATH_SUITS, PlayerColor } from "./enums";
-import { isEnumKey } from "./utils";
+import { DiscardOptions } from "./decks";
+import type { OathSuit } from "../enums";
+import { ALL_OATH_SUITS, PlayerColor } from "../enums";
+import { isEnumKey } from "../utils";
 import type { OathResourceType } from "./resources";
-import { Warband, ResourcesAndWarbands, Favor } from "./resources";
+import { Warband, ResourcesAndWarbands } from "./resources";
 import { Container, OathGameObject } from "./gameObject";
 import { Banner } from "./banks";
-import { ResourceTransferContext, ResourceCost } from "./costs";
 
 export class WarbandsSupply extends Container<Warband, PlayerColor> {
     readonly type = "bag";
@@ -109,26 +106,26 @@ export class OathPlayer extends ResourcesAndWarbands<number> implements Campaign
         return true;
     }
 
-    returnResources() {
-        for (const site of this.game.map.sites())
-            for (const denizen of site.denizens)
-                denizen.returnResources();
+    // returnResources() {
+    //     for (const site of this.game.map.sites())
+    //         for (const denizen of site.denizens)
+    //             denizen.returnResources();
 
-        for (const player of this.game.players) {
-            for (const adviser of player.advisers)
-                adviser.returnResources();
+    //     for (const player of this.game.players) {
+    //         for (const adviser of player.advisers)
+    //             adviser.returnResources();
 
-            for (const relic of player.relics)
-                relic.returnResources();
-        }
+    //         for (const relic of player.relics)
+    //             relic.returnResources();
+    //     }
 
-        new FlipSecretsEffect(this.game, this, Infinity, false).doNext();
-    }
+    //     new FlipSecretsEffect(this.game, this, Infinity, false).doNext();
+    // }
     
-    seize(player: OathPlayer) {
-        new TransferResourcesEffect(this.game, new ResourceTransferContext(this, this, new ResourceCost([], [[Favor, Math.floor(this.byClass(Favor).length / 2)]]), undefined)).doNext();
-        new CampaignBanishPlayerAction(player, this).doNext();
-    }
+    // seize(player: OathPlayer) {
+    //     new TransferResourcesEffect(this.game, new ResourceTransferContext(this, this, new ResourceCost([], [[Favor, Math.floor(this.byClass(Favor).length / 2)]]), undefined)).doNext();
+    //     new CampaignBanishPlayerAction(player, this).doNext();
+    // }
 
     liteSerialize() {
         return {
@@ -168,9 +165,7 @@ export abstract class PlayerBoard extends OathGameObject<PlayerColor> implements
         player?.addChild(this);
     }
 
-    rest() {
-        this.owner.returnResources();
-    }
+    abstract get restAmount(): number;
 }
 
 export class ChancellorBoard extends PlayerBoard {
@@ -184,16 +179,11 @@ export class ChancellorBoard extends PlayerBoard {
 
     get isImperial() { return true; }
 
-    rest() {
-        super.rest();
-
-        let amount: number;
-        if (this.owner.bag.amount >= 18) amount = 6;
-        else if (this.owner.bag.amount >= 11) amount = 5;
-        else if (this.owner.bag.amount >= 4) amount = 4;
-        else amount = 3;
-
-        new GainSupplyEffect(this.owner, amount).doNext();
+    get restAmount() {
+        if (this.owner.bag.amount >= 18) return 6;
+        if (this.owner.bag.amount >= 11) return 5;
+        if (this.owner.bag.amount >= 4) return 4;
+        return 3;
     }
 }
 
@@ -229,20 +219,11 @@ export class ExileBoard extends PlayerBoard {
         return oldVision;
     }
 
-    rest() {
-        super.rest();
-
-        if (this.isImperial) {
-            new GainSupplyEffect(this.owner, this.game.chancellor.supply).doNext();
-            return;
-        }
-
-        let amount: number;
-        if (this.owner.bag.amount >= 9) amount = 6;
-        else if (this.owner.bag.amount >= 4) amount = 5;
-        else amount = 4;
-
-        new GainSupplyEffect(this.owner, amount).doNext();
+    get restAmount() {
+        if (this.isImperial) return this.game.chancellor.supply;
+        if (this.owner.bag.amount >= 9) return 6;
+        if (this.owner.bag.amount >= 4) return 5;
+        return 4;
     }
 
     liteSerialize() {

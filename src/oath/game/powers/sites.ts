@@ -1,14 +1,14 @@
 import { ChooseResourceToTakeAction, WakeAction, TravelAction, CampaignAttackAction, MusterAction, SearchAction, StartBindingExchangeAction, MakeBindingExchangeOfferAction, SearchPlayOrDiscardAction, MayDiscardACardAction } from "../actions";
-import { InvalidActionResolution, ModifiableAction } from "../actions/base";
-import { Site, Denizen } from "../cards";
+import { ModifiableAction } from "../actions/base";
+import { InvalidActionResolution } from "../actions/utils";
+import { Site, Denizen } from "../model/cards";
 import { PlayWorldCardEffect, PutResourcesOnTargetEffect, FlipSecretsEffect, ParentToTargetEffect, RecoverTargetEffect } from "../actions/effects";
 import { OathSuit } from "../enums";
-import { isAtSite, WithPowers } from "../interfaces";
-import { OathPlayer } from "../player";
-import { Secret } from "../resources";
-import { ActionCostModifier, ActionModifier, ActivePower, NoSupplyCostActionModifier, PowerWithProxy, SupplyCostModifier } from ".";
+import { isAtSite, WithPowers } from "../model/interfaces";
+import { OathPlayer } from "../model/player";
+import { Secret } from "../model/resources";
+import { ActionCostModifier, ActionModifier, ActivePower, AtSite, NoSupplyCostActionModifier, SupplyCostModifier } from ".";
 import { SupplyCostContext } from "../costs";
-import { AbstractConstructor } from "../utils";
 
 
 export abstract class HomelandSitePower extends ActionModifier<Site, PlayWorldCardEffect> {
@@ -76,15 +76,6 @@ export class DeepWoods extends HomelandSitePower {
     }
 }
 
-
-export function AtSite<T extends AbstractConstructor<PowerWithProxy<Site> & { canUse(...args: any[]): boolean }>>(Base: T) {
-    abstract class AtSiteModifier extends Base {
-        canUse(...args: any[]): boolean {
-            return super.canUse(...args) && this.playerProxy.site === this.sourceProxy;
-        }
-    }
-    return AtSiteModifier;
-}
 
 @AtSite
 export class CoastalSite extends ActionModifier<Site, TravelAction> {
