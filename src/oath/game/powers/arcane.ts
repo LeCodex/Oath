@@ -6,7 +6,8 @@ import { RegionDiscardEffect, PutResourcesOnTargetEffect, RollDiceEffect, Become
 import { BannerKey, OathSuit } from "../enums";
 import { ExileBoard, OathPlayer } from "../model/player";
 import { Favor, OathResourceType, ResourcesAndWarbands, Secret } from "../model/resources";
-import { ResourceCost, ResourceTransferContext, SupplyCostContext } from "../costs";
+import { ResourceCost } from "../costs";
+import { ResourceTransferContext, SupplyCostContext } from "./context";
 import { ActionModifier, AttackerBattlePlan, DefenderBattlePlan, ActivePower, WhenPlayed, Accessed, EnemyAttackerCampaignModifier, BattlePlan, ResourceTransferModifier, NoSupplyCostActionModifier } from ".";
 import { inclusiveRange } from "../utils";
 import { WithPowers } from "../model/interfaces";

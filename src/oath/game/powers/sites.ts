@@ -1,29 +1,15 @@
 import { ChooseResourceToTakeAction, WakeAction, TravelAction, CampaignAttackAction, MusterAction, SearchAction, StartBindingExchangeAction, MakeBindingExchangeOfferAction, SearchPlayOrDiscardAction, MayDiscardACardAction } from "../actions";
-import { ModifiableAction } from "../actions/base";
 import { InvalidActionResolution } from "../actions/utils";
-import { Site, Denizen } from "../model/cards";
-import { PlayWorldCardEffect, PutResourcesOnTargetEffect, FlipSecretsEffect, ParentToTargetEffect, RecoverTargetEffect } from "../actions/effects";
+import { Site } from "../model/cards";
+import { PutResourcesOnTargetEffect, FlipSecretsEffect, ParentToTargetEffect, RecoverTargetEffect } from "../actions/effects";
 import { OathSuit } from "../enums";
 import { isAtSite, WithPowers } from "../model/interfaces";
 import { OathPlayer } from "../model/player";
 import { Secret } from "../model/resources";
 import { ActionCostModifier, ActionModifier, ActivePower, AtSite, NoSupplyCostActionModifier, SupplyCostModifier } from ".";
-import { SupplyCostContext } from "../costs";
+import { SupplyCostContext } from "./context";
+import { HomelandSitePower } from "./base";
 
-
-export abstract class HomelandSitePower extends ActionModifier<Site, PlayWorldCardEffect> {
-    modifiedAction = PlayWorldCardEffect;
-    abstract suit: OathSuit;
-    mustUse = true;
-
-    applyAfter(): void {
-        // TODO: "and if you have not discarded a <suit> card here during this turn"
-        if (this.action.site === this.source && this.action.card instanceof Denizen && this.action.card.suit === this.suit)
-            this.giveReward(this.action.executorProxy);
-    }
-
-    abstract giveReward(player: OathPlayer): void;
-}
 
 export class Wastes extends HomelandSitePower {
     suit = OathSuit.Discord;
@@ -84,9 +70,8 @@ export class CoastalSite extends ActionModifier<Site, TravelAction> {
     canUse(): boolean {
         for (const siteProxy of this.gameProxy.map.sites())
             if (!siteProxy.facedown && siteProxy !== this.sourceProxy)
-                for (const power of siteProxy.powers)
-                    if (power === CoastalSite)
-                        return super.canUse();
+                if (siteProxy.powers.has("CoastalSite"))
+                    return super.canUse();
 
         return false;
     }
@@ -96,7 +81,7 @@ export class CoastalSite extends ActionModifier<Site, TravelAction> {
     }
 
     applyAtStart(): void {
-        this.action.selects.siteProxy.filterChoices(e => !e.facedown && e.powers.has(CoastalSite));
+        this.action.selects.siteProxy.filterChoices(e => !e.facedown && e.powers.has("CoastalSite"));
     }
 }
 export class CoastalSiteCost extends ActionCostModifier(CoastalSite, SupplyCostContext) {
@@ -160,7 +145,7 @@ export class NarrowPass extends ActionModifier<Site, TravelAction> {
 
     applyAtStart(): void {
         if (this.playerProxy.site.region !== this.sourceProxy.region)
-            this.action.selects.siteProxy.filterChoices(e => e.original.powers.has(NarrowPass) || e.region !== this.sourceProxy.region);
+            this.action.selects.siteProxy.filterChoices(e => e.original.powers.has("NarrowPass") || e.region !== this.sourceProxy.region);
     }
 }
 

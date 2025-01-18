@@ -21,7 +21,7 @@ import type { CardPowerName, DenizenPowerName, RelicPowerName, SitePowerName, Vi
 export abstract class OathCard extends ResourcesAndWarbands<string> implements HiddenInformation, WithPowers {
     facedown: boolean = true;
     seenBy: Set<OathPlayer> = new Set();
-    powers: CardPowerName[];
+    powers: Set<CardPowerName>;
 
     get key() { return this.id; }
     get name() { return this.id; }
@@ -29,7 +29,7 @@ export abstract class OathCard extends ResourcesAndWarbands<string> implements H
 
     constructor(id: string, powers: Iterable<CardPowerName>) {
         super(id);
-        this.powers = [...powers];
+        this.powers = new Set(powers);
     }
 
     abstract get facedownName(): string;
@@ -79,7 +79,7 @@ export abstract class OathCard extends ResourcesAndWarbands<string> implements H
 export class Site extends OathCard implements CampaignActionTarget {
     declare readonly id: SiteName;
     readonly type = "site";
-    declare powers: SitePowerName[];
+    declare powers: Set<SitePowerName>;
     capacity: number;
     startingRelics: number;
     startingResources: Map<typeof OathResource, number>;
@@ -186,7 +186,7 @@ export abstract class OwnableCard extends OathCard implements OwnableObject  {
 export class Relic extends OwnableCard implements RecoverActionTarget, CampaignActionTarget, AtSite {
     declare readonly id: RelicName;
     readonly type = "relic";
-    declare powers: RelicPowerName[];
+    declare powers: Set<RelicPowerName>;
     defense: number;
     get force() { return this.owner; }
 
@@ -217,10 +217,6 @@ export class Relic extends OwnableCard implements RecoverActionTarget, CampaignA
     // seize(player: OathPlayer) {
     //     new TakeOwnableObjectEffect(this.game, player, this).doNext();
     // }
-
-    // putOnBottom(player: OathPlayer) {
-    //     new DiscardCardEffect(player, this, new DiscardOptions(this.game.relicDeck, true)).doNext();
-    // }
 }
 
 export class GrandScepter extends Relic {
@@ -239,7 +235,7 @@ export abstract class WorldCard extends OwnableCard {
 export class Denizen extends WorldCard implements AtSite {
     declare readonly id: DenizenName;
     readonly type = "denizen";
-    declare powers: DenizenPowerName[];
+    declare powers: Set<DenizenPowerName>;
     restriction: CardRestriction;
     locked: boolean;
 
@@ -289,7 +285,7 @@ export class Edifice extends Denizen {
 
 export abstract class VisionBack extends WorldCard {
     readonly type = "vision";
-    declare powers: VisionPowerName[];
+    declare powers: Set<VisionPowerName>;
 
     constructor(id: string, powers: Iterable<VisionPowerName>) {
         super(id, powers);

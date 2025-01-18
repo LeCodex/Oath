@@ -33,7 +33,7 @@ export const reliquarySlotPowers: ReliquaryPowerName[] = ["Brutal", "Decadent", 
 export class ReliquarySlot extends Container<Relic, number> implements WithPowers {
     name: string;
     readonly type = "reliquarySlot";
-    powers: ReliquaryPowerName[];
+    powers: Set<ReliquaryPowerName>;
 
     get active(): boolean { return !this.children[0]; }
 
@@ -42,7 +42,7 @@ export class ReliquarySlot extends Container<Relic, number> implements WithPower
         if (!power) throw TypeError(`${id} is not a valid Reliquary slot`);
         super(id, Relic);
         this.name = power;
-        this.powers = [power];
+        this.powers = new Set([power]);
     }
     
     getRelic() {

@@ -9,8 +9,6 @@ export function isEnumKey<E extends Enum<E>>(key: string | number | symbol, _enu
     return key in _enum;
 }
 
-export function literals<T extends unknown[]>(...args: T): T { return args; }
-
 /** For a set of set of elements, returns all combinations of an element from the first set, then the second, and so on. */
 export function allChoices<T>(set: T[][]): T[][] {
     const combinations: T[][] = [[]];

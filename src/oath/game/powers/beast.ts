@@ -6,7 +6,8 @@ import { CardRestriction, OathSuit } from "../enums";
 import { WithPowers } from "../model/interfaces";
 import { ExileBoard, OathPlayer } from "../model/player";
 import { Favor, Warband, Secret } from "../model/resources";
-import { ResourceCost, ResourceTransferContext, SupplyCostContext } from "../costs";
+import { ResourceCost } from "../costs";
+import { ResourceTransferContext, SupplyCostContext } from "./context";
 import { AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, RestPower, ActivePower, EnemyAttackerCampaignModifier, EnemyDefenderCampaignModifier, Accessed, ActionModifier, EnemyActionModifier, BattlePlan, ResourceTransferModifier, NoSupplyCostActionModifier, SupplyCostModifier } from ".";
 import { AttackDieSymbol, DefenseDieSymbol } from "../dice";
 

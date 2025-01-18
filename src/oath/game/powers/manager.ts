@@ -1,7 +1,7 @@
 import type { OathPower } from ".";
 import { ActionModifier } from ".";
 import type { ModifiableAction } from "../actions/base";
-import { OathActionManager } from "../actions/manager";
+import type { OathActionManager } from "../actions/manager";
 import type { OathGame } from "../model/game";
 import type { WithPowers, SourceType } from "../model/interfaces";
 import { hasPowers } from "../model/interfaces";
@@ -9,6 +9,7 @@ import type { OathPlayer } from "../model/player";
 import type { TreeNode } from "../model/utils";
 import type { AbstractConstructor, Constructor } from "../utils";
 import { isExtended } from "../utils";
+import { powersIndex } from "./classIndex";
 
 export class OathPowersManager {
     constructor(
@@ -21,10 +22,13 @@ export class OathPowersManager {
         while (stack.length) {
             const node = stack.pop()!;
             stack.push(...node.children);
-            if (hasPowers(node) && node.active)
-                for (const power of node.powers)
-                    if (isExtended(power, type))
-                        yield [node as SourceType<T>, power];
+            if (hasPowers(node) && node.active) {
+                for (const power of node.powers) {
+                    const powerCls = powersIndex[power];
+                    if (isExtended(powerCls, type))
+                        yield [node as SourceType<T>, powerCls];
+                }
+            }
         }
     }
 

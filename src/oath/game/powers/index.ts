@@ -2,7 +2,8 @@ import { RestAction, UsePowerAction, WakeAction, CampaignAttackAction, CampaignD
 import { ModifiableAction } from "../actions/base";
 import { ApplyWhenPlayedEffect, GainPowerEffect, LosePowerEffect, PayPowerCostEffect } from "../actions/effects";
 import { OathCard, OwnableCard, Site, WorldCard } from "../model/cards";
-import { CostContext, ResourceCost, ResourceTransferContext, SupplyCostContext } from "../costs";
+import { ResourceCost } from "../costs";
+import { CostContext, ResourceTransferContext, SupplyCostContext } from "./context";
 import { OathPlayer } from "../model/player";
 import { AbstractConstructor, Constructor, MaskProxyManager } from "../utils";
 import { OathGame } from "../model/game";

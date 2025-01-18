@@ -11,9 +11,6 @@ export class OathController {
         this.game = new OathGame(gameId, setupData);
         this.actionManager = new OathActionManager(this.game);
         this.powersManager = new OathPowersManager(this.game, this.actionManager);
-    }
-
-    start() {
         this.actionManager.initialActions();
     }
 

@@ -2,7 +2,7 @@ import { OathType } from "../enums";
 import { OathGameObjectLeaf } from "./gameObject";
 import type { OwnableObject, WithPowers } from "./interfaces";
 import { OathPlayer } from "./player";
-import { maxInGroup, literals } from "../utils";
+import { maxInGroup } from "../utils";
 import type { PowerName } from "../powers/classIndex";
 import { oathData } from "./utils";
 
@@ -10,7 +10,7 @@ import { oathData } from "./utils";
 export class Oath extends OathGameObjectLeaf<string> implements OwnableObject, WithPowers {
     readonly type = "oath";
     declare readonly id: "Oath";
-    powers = literals<PowerName[]>("OathDefense");
+    powers = new Set<PowerName>(["OathDefense"]);
     active = true;
 
     oathType: OathType;

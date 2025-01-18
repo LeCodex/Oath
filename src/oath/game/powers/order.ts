@@ -1,6 +1,6 @@
 import { TradeAction, TravelAction, SearchAction, SearchPlayOrDiscardAction, TakeFavorFromBankAction, CampaignKillWarbandsInForceAction, MakeDecisionAction, CampaignAction, ActAsIfAtSiteAction, CampaignDefenseAction, ChooseSitesAction, ChoosePlayersAction, KillWarbandsOnTargetAction, MusterAction, MoveWarbandsBetweenBoardAndSitesAction, CampaignAttackAction } from "../actions";
-import { CampaignResult, CampaignEndCallback } from "../actions/utils";
-import { InvalidActionResolution } from "../actions/utils";
+import { CampaignResult, CampaignEndCallback , InvalidActionResolution } from "../actions/utils";
+
 import { Denizen, Edifice, Relic, Site, Vision } from "../model/cards";
 import { TransferResourcesEffect, GainSupplyEffect, BecomeCitizenEffect, PutPawnAtSiteEffect, MoveOwnWarbandsEffect, BecomeExileEffect, PlayVisionEffect, TakeOwnableObjectEffect, ParentToTargetEffect } from "../actions/effects";
 import { BannerKey, OathSuit } from "../enums";
@@ -8,7 +8,8 @@ import { OathGameObject } from "../model/gameObject";
 import { CampaignActionTarget, WithPowers } from "../model/interfaces";
 import { ExileBoard, OathPlayer } from "../model/player";
 import { Favor } from "../model/resources";
-import { ResourceCost, ResourceTransferContext } from "../costs";
+import { ResourceCost } from "../costs";
+import { ResourceTransferContext } from "./context";
 import { AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, RestPower, ActivePower, ActionModifier, Accessed, EnemyActionModifier, BattlePlan } from ".";
 import { AttackDieSymbol } from "../dice";
 

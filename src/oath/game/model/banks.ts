@@ -1,7 +1,7 @@
 import type { RecoverAction } from "../actions";
 import type { RecoverActionTarget, CampaignActionTarget, WithPowers, OwnableObject } from "./interfaces";
 import { OathSuit } from "../enums";
-import { isEnumKey, literals } from "../utils";
+import { isEnumKey } from "../utils";
 import { OathPlayer } from "./player";
 import type { OathResource } from "./resources";
 import { Favor, Secret } from "./resources";
@@ -24,7 +24,7 @@ export class FavorBank extends Container<Favor, OathSuit> {
 
 export abstract class Banner<T extends OathResource = OathResource> extends Container<T, string> implements RecoverActionTarget, CampaignActionTarget, WithPowers, OwnableObject {
     readonly type = "banner";
-    abstract powers: BannerPowerName[];
+    abstract powers: Set<BannerPowerName>;
     active = true;
     min = 1;
 
@@ -61,7 +61,7 @@ export abstract class Banner<T extends OathResource = OathResource> extends Cont
 export class PeoplesFavor extends Banner<Favor> {
     declare readonly id: "peoplesFavor";
     name = "PeoplesFavor";
-    powers = literals<BannerPowerName[]>("PeoplesFavorSearch", "PeoplesFavorWake");
+    powers = new Set<BannerPowerName>(["PeoplesFavorSearch" ,"PeoplesFavorWake"]);
     declare cls: typeof Favor;
     isMob: boolean;
 
@@ -106,7 +106,7 @@ export class PeoplesFavor extends Banner<Favor> {
 export class DarkestSecret extends Banner<Secret> {
     declare readonly id: "darkestSecret";
     name = "DarkestSecret";
-    powers = literals<BannerPowerName[]>("DarkestSecretPower");
+    powers = new Set<BannerPowerName>(["DarkestSecretPower"]);
     declare cls: typeof Secret;
 
     constructor() {

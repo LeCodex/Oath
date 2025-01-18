@@ -1,7 +1,7 @@
 import { ActionModifier, Reliquary, ResourceTransferModifier, SupplyCostModifier } from ".";
 import { CampaignAttackAction, SearchAction, TradeAction, TravelAction } from "../actions";
 import { InvalidActionResolution } from "../actions/utils";
-import { ResourceTransferContext, SupplyCostContext } from "../costs";
+import { ResourceTransferContext, SupplyCostContext } from "./context";
 import { RegionKey } from "../enums";
 import { ReliquarySlot } from "../model/reliquary";
 import { Favor, Secret } from "../model/resources";

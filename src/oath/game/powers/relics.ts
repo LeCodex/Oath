@@ -1,17 +1,19 @@
 import { CitizenshipOfferAction, StartBindingExchangeAction, SkeletonKeyAction, TradeAction, MusterAction, TravelAction, MakeDecisionAction, ChoosePlayersAction, SearchAction, ChooseCardsAction, ChooseNumberAction } from "../actions";
-import { CampaignEndCallback } from "../actions/utils";
+import { CampaignEndCallback, cannotPayError, InvalidActionResolution } from "../actions/utils";
 import { ModifiableAction } from "../actions/base";
-import { InvalidActionResolution } from "../actions/utils";
 import { Denizen, GrandScepter, OathCard, Relic, Site } from "../model/cards";
-import { TakeOwnableObjectEffect, PlayDenizenAtSiteEffect, MoveOwnWarbandsEffect, PeekAtCardEffect, SetGrandScepterLockEffect, GainSupplyEffect, DrawFromDeckEffect, RevealCardEffect, TransferResourcesEffect, BecomeExileEffect, MoveDenizenToSiteEffect, MoveWorldCardToAdvisersEffect, ParentToTargetEffect } from "../actions/effects";
+import { TakeOwnableObjectEffect, PlayDenizenAtSiteEffect, MoveOwnWarbandsEffect, PeekAtCardEffect, SetGrandScepterLockEffect, GainSupplyEffect, DrawFromDeckEffect, RevealCardEffect, TransferResourcesEffect, BecomeExileEffect, MoveDenizenToSiteEffect, MoveWorldCardToAdvisersEffect, ParentToTargetEffect, DiscardCardEffect } from "../actions/effects";
 import { BannerKey, PlayerColor } from "../enums";
 import { OathPlayer, ExileBoard } from "../model/player";
 import { isOwnable } from "../model/interfaces";
 import { Favor, Warband, Secret } from "../model/resources";
-import { ResourceCost, ResourceTransferContext, SupplyCostContext } from "../costs";
+import { ResourceCost } from "../costs";
+import { ResourceTransferContext, SupplyCostContext } from "./context";
 import { EnemyActionModifier, AttackerBattlePlan, DefenderBattlePlan, ActionModifier, ActivePower, RestPower, BattlePlan, EnemyAttackerCampaignModifier, Accessed, ResourceTransferModifier, SupplyCostModifier } from ".";
 import { DiscardOptions } from "../model/decks";
 import { inclusiveRange, isExtended } from "../utils";
+import { powersIndex } from "./classIndex";
+import { GrandScepterActive } from "./base";
 
 
 export class GrandScepterSeize extends ActionModifier<GrandScepter, TakeOwnableObjectEffect> {
@@ -32,11 +34,6 @@ export class GrandScepterRest extends RestPower<GrandScepter> {
 
     applyAfter(): void {
         new SetGrandScepterLockEffect(this.game, false).doNext();
-    }
-}
-export abstract class GrandScepterActive extends ActivePower<GrandScepter> {
-    canUse(): boolean {
-        return super.canUse() && !this.sourceProxy.seizedThisTurn;
     }
 }
 export class GrandScepterPeek extends GrandScepterActive {
@@ -84,7 +81,7 @@ export class GrandScepterExileCitizen extends GrandScepterActive {
                 
                 const costContext = new ResourceTransferContext(this.action.player, this, new ResourceCost([[Favor, amount]]), target);
                 new TransferResourcesEffect(this.game, costContext).doNext(success => {
-                    if (!success) throw this.costContext.cost.cannotPayError;
+                    if (!success) throw cannotPayError(this.costContext.cost);
                     new BecomeExileEffect(target).doNext();
                 });
             },
@@ -272,7 +269,7 @@ export class DowsingSticks extends ActivePower<Relic> {
             new MakeDecisionAction(
                 this.action.player, "Keep the relic?",
                 () => new TakeOwnableObjectEffect(this.game, this.action.player, relic).doNext(),
-                () => relic.putOnBottom(this.action.player)
+                () => new DiscardCardEffect(this.action.player, relic, new DiscardOptions(this.game.relicDeck, true)).doNext()
             ).doNext();
         });
     }
@@ -280,7 +277,7 @@ export class DowsingSticks extends ActivePower<Relic> {
 
 export class MapRelic extends ActivePower<Relic> {
     usePower(): void {
-        this.source.putOnBottom(this.action.player);
+        new DiscardCardEffect(this.action.player, this.source, new DiscardOptions(this.game.relicDeck, true)).doNext()
         new GainSupplyEffect(this.action.player, 4).doNext();
     }
 }
@@ -427,7 +424,8 @@ export class GrandMask extends ActionModifier<Relic, ModifiableAction> {
             for (const denizenProxy of siteProxy.denizens) {
                 let isBattlePlan = false;
                 for (const power of denizenProxy.powers) {
-                    if (isExtended(power, BattlePlan)) {
+                    const powerCls = powersIndex[power];
+                    if (isExtended(powerCls, BattlePlan)) {
                         isBattlePlan = true;
                         break;
                     }

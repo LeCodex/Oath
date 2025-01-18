@@ -1,7 +1,7 @@
 import { MakeDecisionAction, ChooseCardsAction, ChooseRegionAction, TakeFavorFromBankAction, TakeResourceFromPlayerAction, ChooseSuitsAction, SearchPlayOrDiscardAction, MusterAction, TravelAction, CampaignAction, KillWarbandsOnTargetAction, CampaignAttackAction, CampaignEndAction, TakeReliquaryRelicAction, ChooseNumberAction, StartBindingExchangeAction, FestivalDistrictOfferAction, RecoverAction } from "../actions";
-import { CampaignEndCallback } from "../actions/utils";
+import { CampaignEndCallback , InvalidActionResolution } from "../actions/utils";
 import { ModifiableAction } from "../actions/base";
-import { InvalidActionResolution } from "../actions/utils";
+
 import { FavorBank, PeoplesFavor } from "../model/banks";
 import { Region } from "../model/map";
 import { Denizen, Edifice, OathCard, Relic, Site, Vision, WorldCard } from "../model/cards";
@@ -10,7 +10,8 @@ import { TakeOwnableObjectEffect, PutResourcesOnTargetEffect, SetNewOathkeeperEf
 import { BannerKey, OathSuit } from "../enums";
 import { ExileBoard, OathPlayer } from "../model/player";
 import { Favor, Secret } from "../model/resources";
-import { ResourceCost, ResourceTransferContext } from "../costs";
+import { ResourceCost } from "../costs";
+import { ResourceTransferContext } from "./context";
 import { WhenPlayed, CapacityModifier, ActivePower, RestPower, AttackerBattlePlan, DefenderBattlePlan, ActionModifier, Accessed, WakePower, EnemyActionModifier, EnemyAttackerCampaignModifier, EnemyDefenderCampaignModifier, ResourceTransferModifier } from ".";
 import { AbstractConstructor, minInGroup, NumberMap } from "../utils";
 

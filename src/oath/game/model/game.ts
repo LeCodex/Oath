@@ -51,6 +51,7 @@ export class OathGame extends TreeRoot<OathGame> {
     }
 
     // References for quick access to "static" elements
+    /* eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain */
     get chancellor() { return this.search<PlayerBoard>("board", PlayerColor.Purple)?.typedParent(OathPlayer)!; }
     get oath() { return this.search<Oath>("oath", "Oath")!; }
     get reliquary() { return this.search<Reliquary>("reliquary", "reliquary")!; }

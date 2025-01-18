@@ -8,7 +8,7 @@ import type { PowerName } from "../powers/classIndex";
 
 
 export interface WithPowers extends OathGameObject {
-    powers: PowerName[];
+    powers: Set<PowerName>;
     active: boolean;
 }
 export function hasPowers(obj: object): obj is WithPowers {

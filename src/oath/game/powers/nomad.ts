@@ -9,7 +9,8 @@ import { BannerKey, OathSuit } from "../enums";
 import { isOwnable } from "../model/interfaces";
 import { ExileBoard, OathPlayer } from "../model/player";
 import { Favor, Secret } from "../model/resources";
-import { ResourceCost, ResourceTransferContext, SupplyCostContext } from "../costs";
+import { ResourceCost } from "../costs";
+import { ResourceTransferContext, SupplyCostContext } from "./context";
 import { ActivePower, CapacityModifier, AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, EnemyAttackerCampaignModifier, EnemyActionModifier, ActionModifier, gainPowerUntilActionResolves, BattlePlan, Accessed, ResourceTransferModifier, NoSupplyCostActionModifier, SupplyCostModifier } from ".";
 import { DefenseDieSymbol } from "../dice";
 

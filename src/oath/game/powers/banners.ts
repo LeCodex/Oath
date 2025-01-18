@@ -1,10 +1,10 @@
 import { WakeAction, SearchPlayOrDiscardAction, MayDiscardACardAction, SearchAction, PeoplesFavorWakeAction } from "../actions";
 import { PeoplesFavor, DarkestSecret } from "../model/banks";
-import { ActionModifier, SupplyCostModifier } from ".";
+import { ActionModifier, SupplyCostModifier , Owned } from ".";
 import { Denizen } from "../model/cards";
 import { CardRestriction } from "../enums";
-import { SupplyCostContext } from "../costs";
-import { Owned } from ".";
+import { SupplyCostContext } from "./context";
+
 
 @Owned
 export class PeoplesFavorSearch extends ActionModifier<PeoplesFavor, SearchPlayOrDiscardAction> {

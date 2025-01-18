@@ -8,6 +8,7 @@ import { ExileBoard } from "../model/player";
 import type { ResourcesAndWarbands } from "../model/resources";
 import type { MaskProxyManager } from "../utils";
 import { DiscardCardEffect, RollDiceEffect } from "./effects";
+import type { ResourceCost } from "../costs";
 
 
 export class CampaignEndCallback {
@@ -126,3 +127,9 @@ export class CampaignResult {
 }
 
 export class InvalidActionResolution extends Error { }
+
+export function cannotPayError(cost: ResourceCost) {
+    let message = "Cannot pay resource cost: ";
+    message += cost.toString();
+    return new InvalidActionResolution(message);
+}
