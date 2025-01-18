@@ -1,10 +1,12 @@
 import { TravelAction, MakeDecisionAction, ChooseRegionAction, SearchPlayOrDiscardAction, ChooseCardsAction, TakeFavorFromBankAction, ChooseSitesAction, MoveWarbandsBetweenBoardAndSitesAction, RestAction, TakeReliquaryRelicAction, CampaignEndAction, StartBindingExchangeAction, TheGatheringOfferAction } from "../actions";
-import { ModifiableAction, ResolveCallbackEffect } from "../actions/base";
+import { ResolveCallbackEffect } from "../actions/base";
+import { ActionWithProxy } from "../actions/base";
 import { InvalidActionResolution } from "../actions/utils";
 import { Region } from "../model/map";
 import { Denizen, Edifice, OathCard, Relic, Site, VisionBack, WorldCard } from "../model/cards";
 import { DiscardOptions } from "../model/decks";
-import { TransferResourcesEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, PayPowerCostEffect, BecomeCitizenEffect, DrawFromDeckEffect, FlipEdificeEffect, DiscardCardEffect, GainSupplyEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, PeekAtCardEffect, MoveWorldCardToAdvisersEffect, MoveDenizenToSiteEffect, DiscardCardGroupEffect, PlayVisionEffect, ParentToTargetEffect, PutPawnAtSiteEffect, RecoverTargetEffect } from "../actions/effects";
+import { TransferResourcesEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, BecomeCitizenEffect, DrawFromDeckEffect, FlipEdificeEffect, DiscardCardEffect, GainSupplyEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, PeekAtCardEffect, MoveWorldCardToAdvisersEffect, MoveDenizenToSiteEffect, DiscardCardGroupEffect, PlayVisionEffect, ParentToTargetEffect, PutPawnAtSiteEffect, RecoverTargetEffect } from "../actions/effects";
+import { PayPowerCostEffect } from "./actions";
 import { BannerKey, OathSuit } from "../enums";
 import { isOwnable } from "../model/interfaces";
 import { ExileBoard, OathPlayer } from "../model/player";
@@ -13,6 +15,7 @@ import { ResourceCost } from "../costs";
 import { ResourceTransferContext, SupplyCostContext } from "./context";
 import { ActivePower, CapacityModifier, AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, EnemyAttackerCampaignModifier, EnemyActionModifier, ActionModifier, gainPowerUntilActionResolves, BattlePlan, Accessed, ResourceTransferModifier, NoSupplyCostActionModifier, SupplyCostModifier } from ".";
 import { DefenseDieSymbol } from "../dice";
+import { powersIndex } from "./classIndex";
 
 
 export class HorseArchersAttack extends AttackerBattlePlan<Denizen> {
@@ -100,7 +103,7 @@ export class WildMountsReplace extends ActionModifier<Denizen, DiscardCardEffect
     }
 
     applyWhenApplied(): boolean {
-        if (this.action.card instanceof Denizen && this.action.card.suit === OathSuit.Nomad && [...this.action.card.powers].some(e => e instanceof BattlePlan)) {
+        if (this.action.card instanceof Denizen && this.action.card.suit === OathSuit.Nomad && [...this.action.card.powers].some(e => powersIndex[e] instanceof BattlePlan)) {
             if (!WildMountsReplace.firstDiscardDone) {
                 WildMountsReplace.firstDiscardDone = true;
 
@@ -267,8 +270,8 @@ export class LostTongueCampaign extends EnemyAttackerCampaignModifier<Denizen> {
     }
 }
 
-export class AncientBloodline extends EnemyActionModifier<Denizen, ModifiableAction> {
-    modifiedAction = ModifiableAction;
+export class AncientBloodline extends EnemyActionModifier<Denizen, ActionWithProxy> {
+    modifiedAction = ActionWithProxy;
 
     applyBefore(): void {
         for (const siteProxy of this.gameProxy.map.sites()) {
@@ -569,7 +572,7 @@ export class AncientForge extends ActivePower<Edifice> {
             new MakeDecisionAction(
                 this.action.player, "Keep the relic?",
                 () => new TakeOwnableObjectEffect(this.game, this.action.player, relic).doNext(),
-                () => relic.putOnBottom(this.action.player)
+                () => new DiscardCardEffect(this.action.player, relic, new DiscardOptions(this.game.relicDeck, true)).doNext()
             ).doNext();
         });
     }

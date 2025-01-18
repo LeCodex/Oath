@@ -1,4 +1,3 @@
-import { CampaignKillWarbandsInForceAction } from ".";
 import type { Denizen } from "../model/cards";
 import { RollResult, AttackDie, DefenseDie } from "../dice";
 import type { OathGame } from "../model/game";
@@ -7,8 +6,9 @@ import type { OathPlayer} from "../model/player";
 import { ExileBoard } from "../model/player";
 import type { ResourcesAndWarbands } from "../model/resources";
 import type { MaskProxyManager } from "../utils";
-import { DiscardCardEffect, RollDiceEffect } from "./effects";
 import type { ResourceCost } from "../costs";
+import { CampaignKillWarbandsInForceAction } from ".";
+import { DiscardCardEffect, RollDiceEffect } from "./effects";
 
 
 export class CampaignEndCallback {

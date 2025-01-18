@@ -3,13 +3,13 @@ import { InvalidActionResolution } from "./utils";
 import { OathPhase, OathSuit, RegionKey } from "../enums";
 import { type OathGame } from "../model/game";
 import { SerializedNode } from "../model/utils";
-import { clone } from "lodash";
-import { ApiProperty } from "@nestjs/swagger";
 import { ActPhaseAction, ChoosePlayersAction, ChooseSitesAction, SetupChooseAdviserAction, SetupChoosePlayerBoardAction, WakeAction } from ".";
 import { ExileBoard, OathPlayer, WarbandsSupply } from "../model/player";
 import { DrawFromDeckEffect, PutPawnAtSiteEffect, SetNewOathkeeperEffect, SetUsurperEffect, WinGameEffect } from "./effects";
 import { Site, Denizen } from "../model/cards";
 import { Warband, Favor, Secret } from "../model/resources";
+import { clone } from "lodash";
+import { ApiProperty } from "@nestjs/swagger";
 
 
 export class HistoryNode<T extends OathActionManager> {
@@ -77,7 +77,7 @@ const eventsIndex = {
 }
 
 export class ActionManagerReturn {
-    @ApiProperty({ example: { seed: "122345", children: [] }, description: "Serialized game data" })
+    @ApiProperty({ example: { seed: "12345", children: [] }, description: "Serialized game data" })
     game: Record<string, any>
 
     @ApiProperty({ example: [{}], description: "Effects applied since the last action" })
@@ -235,7 +235,7 @@ export class OathActionManager {
                     this.game.chancellor.bag.moveChildrenTo(site, 1);
 
             this.game.chancellor.addChild(this.game.grandScepter).turnFaceup();
-            this.game.chancellor.addChild(this.game.oath).setup();
+            this.game.chancellor.addChild(this.game.oathkeeperLabel).oath.setup();
             this.game.chancellor.addChild(this.game.reliquary);
 
             new WakeAction(this.game.currentPlayer).doNext();
@@ -256,7 +256,7 @@ export class OathActionManager {
     }
 
     checkForOathkeeper() {
-        const candidates = this.game.oath.getOathkeeperCandidates();
+        const candidates = this.game.oathkeeperLabel.oath.getOathkeeperCandidates();
         if (candidates.has(this.game.oathkeeper)) return false;
         if (candidates.size) {
             new ChoosePlayersAction(
@@ -274,7 +274,7 @@ export class OathActionManager {
     }
 
     empireWins() {
-        const candidates = this.game.oath.getSuccessorCandidates();
+        const candidates = this.game.oathkeeperLabel.oath.getSuccessorCandidates();
         if (candidates.has(this.game.chancellor)) return new WinGameEffect(this.game.chancellor).doNext();
 
         new ChoosePlayersAction(

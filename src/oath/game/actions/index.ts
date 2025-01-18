@@ -1,30 +1,27 @@
-import { OathAction, ModifiableAction, ChooseModifiers } from "./base";
-import type { OathCard, OwnableCard, Relic, WorldCard } from "../model/cards";
+import { ActionWithProxy, OathAction } from "./base";
+import type { OathCard, Relic, WorldCard } from "../model/cards";
 import { Denizen, Edifice, Site } from "../model/cards";
 import type { SearchableDeck } from "../model/decks";
 import { DiscardOptions } from "../model/decks";
 import { AttackDieSymbol } from "../dice";
-import { TransferResourcesEffect, PlayWorldCardEffect, PutPawnAtSiteEffect, DiscardCardEffect, MoveOwnWarbandsEffect, SetPeoplesFavorMobState, ChangePhaseEffect, NextTurnEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, FlipEdificeEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect, CheckCapacityEffect, CampaignJoinDefenderAlliesEffect, MoveWorldCardToAdvisersEffect, DiscardCardGroupEffect, ParentToTargetEffect, PaySupplyEffect, ThingsExchangeOfferEffect, SiteExchangeOfferEffect, SearchDrawEffect } from "./effects";
+import { TransferResourcesEffect, PlayWorldCardEffect, PutPawnAtSiteEffect, DiscardCardEffect, MoveOwnWarbandsEffect, SetPeoplesFavorMobState, ChangePhaseEffect, NextTurnEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, FlipEdificeEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect, CheckCapacityEffect, CampaignJoinDefenderAlliesEffect, MoveWorldCardToAdvisersEffect, DiscardCardGroupEffect, ParentToTargetEffect, PaySupplyEffect, ThingsExchangeOfferEffect, SiteExchangeOfferEffect, SearchDrawEffect, RecoverTargetEffect, ReturnResourcesEffect, FlipSecretsEffect, GainSupplyEffect, SeizeTargetEffect } from "./effects";
 import { ALL_OATH_SUITS, ALL_PLAYER_COLORS, CardRestriction, OathPhase, OathSuit, OathType, PlayerColor } from "../enums";
 import { ChancellorBoard, ExileBoard, OathPlayer, VisionSlot } from "../model/player";
-import type { ActionModifier} from "../powers";
-import { ActivePower, CapacityModifier } from "../powers";
 import type { OathResource, OathResourceType, ResourcesAndWarbands} from "../model/resources";
 import { Favor, Secret } from "../model/resources";
-import type { CostContext } from "../powers/context";
 import { ResourceCost, SupplyCost } from "../costs";
-import { ResourceTransferContext, SupplyCostContext } from "../powers/context";
 import type { Banner, PeoplesFavor } from "../model/banks";
 import { FavorBank } from "../model/banks";
-import type { Constructor, MaskProxyManager} from "../utils";
-import { inclusiveRange, isExtended, minInGroup, NumberMap } from "../utils";
+import type { Constructor} from "../utils";
+import { inclusiveRange, minInGroup, NumberMap } from "../utils";
 import { SelectNOf, SelectBoolean, SelectNumber, SelectWithName, SelectCard } from "./selects";
-import type { CampaignActionTarget, RecoverActionTarget, WithPowers } from "../model/interfaces";
+import type { CampaignActionTarget, RecoverActionTarget } from "../model/interfaces";
 import type { Region } from "../model/map";
 import type { OathGameObject } from "../model/gameObject";
 import { Citizenship } from "../parser/interfaces";
 import type { CampaignEndCallback } from "./utils";
-import { CampaignResult, InvalidActionResolution } from "./utils";
+import { CampaignResult, cannotPayError, InvalidActionResolution } from "./utils";
+import { OathActionManager } from "./manager";
 
 
 
@@ -66,8 +63,8 @@ export class SetupChooseAdviserAction extends OathAction {
 
     cards: WorldCard[];
 
-    constructor(player: OathPlayer, cards: Iterable<WorldCard>) {
-        super(player);
+    constructor(actionManager: OathActionManager, player: OathPlayer, cards: Iterable<WorldCard>) {
+        super(actionManager, player);
         this.cards = [...cards];
     }
 
@@ -79,8 +76,8 @@ export class SetupChooseAdviserAction extends OathAction {
     execute(): void {
         const card = this.parameters.card[0];
         if (!card) return;
-        new MoveWorldCardToAdvisersEffect(this.game, this.player, card).doNext();
-        new DiscardCardGroupEffect(this.player, this.cards.filter(e => e !== card)).doNext();
+        new MoveWorldCardToAdvisersEffect(this.actionManager, this.player, card).doNext();
+        new DiscardCardGroupEffect(this.actionManager, this.player, this.cards.filter(e => e !== card)).doNext();
     }
 }
 
@@ -89,12 +86,12 @@ export class SetupChooseAdviserAction extends OathAction {
 ////////////////////////////////////////////
 //              MAJOR ACTIONS             //
 ////////////////////////////////////////////
-export abstract class MajorAction extends ModifiableAction {
+export abstract class MajorAction extends ActionWithProxy {
     readonly autocompleteSelects: boolean = false;
     abstract supplyCost: SupplyCost;
 
     modifiedExecution() {
-        new PaySupplyEffect(this.player, new SupplyCostContext(this.player, this, this.supplyCost)).doNext(success => {
+        new PaySupplyEffect(this.actionManager, this.player, this.supplyCost).doNext(success => {
             if (!success) throw new InvalidActionResolution(`Cannot pay Supply cost (${this.supplyCost.amount}).`);
             this.majorAction();
         });
@@ -111,12 +108,10 @@ export abstract class PayDenizenAction extends MajorAction {
     cardProxy: Denizen;
     
     readonly abstract cost: ResourceCost;
-    costContext: ResourceTransferContext;
 
     validateCardProxies(cardProxies: Denizen[]) {
-        let validCardProxies = cardProxies.filter(e => e.suit !== OathSuit.None && e.empty)
-        validCardProxies = validCardProxies.filter(e => new ResourceTransferContext(this.player, this, this.cost, e.original).payableCostsWithModifiers(this.maskProxyManager).length);
-        return validCardProxies;
+        // validCardProxies = validCardProxies.filter(e => new ResourceTransferContext(this.player, this, this.cost, e.original).payableCostsWithModifiers(this.maskProxyManager).length);
+        return cardProxies.filter(e => e.suit !== OathSuit.None && e.empty);
     }
     
     start() {
@@ -128,13 +123,12 @@ export abstract class PayDenizenAction extends MajorAction {
     
     execute() {
         this.cardProxy = this.parameters.cardProxy[0]!;
-        this.costContext = new ResourceTransferContext(this.player, this, this.cost, this.cardProxy.original);
         super.execute();
     }
 
     majorAction(): void {
-        new TransferResourcesEffect(this.game, this.costContext).doNext(success => {
-            if (!success) throw this.cost.cannotPayError;
+        new TransferResourcesEffect(this.actionManager, this.player, this.cost, this.cardProxy.original).doNext(success => {
+            if (!success) throw cannotPayError(this.cost);
             this.getReward();
         });
     }
@@ -150,7 +144,7 @@ export class MusterAction extends PayDenizenAction {
     getting = 2;
 
     getReward() {
-        new ParentToTargetEffect(this.game, this.player, this.playerProxy.leader.original.bag.get(this.getting)).doNext();
+        new ParentToTargetEffect(this.actionManager, this.player, this.playerProxy.leader.original.bag.get(this.getting)).doNext();
     }
 }
 
@@ -169,7 +163,7 @@ export abstract class TradeAction extends PayDenizenAction {
 
         const bank = this.gameProxy.favorBank(this.cardProxy.suit)?.original;
         if (bank)
-            new TransferResourcesEffect(this.game, new ResourceTransferContext(this.player, this, new ResourceCost(this.getting), this.player, bank)).doNext();
+            new TransferResourcesEffect(this.actionManager, this.player, new ResourceCost(this.getting), this.player, bank).doNext();
     }
 }
 export class TradeForFavorAction extends TradeAction {
@@ -194,8 +188,8 @@ export class TravelAction extends MajorAction {
     siteProxy: Site;
     restriction: (s: Site) => boolean;
 
-    constructor(travelling: OathPlayer, choosing: OathPlayer = travelling, restriction?: (site: Site) => boolean) {
-        super(travelling);
+    constructor(actionManager: OathActionManager, travelling: OathPlayer, choosing: OathPlayer = travelling, restriction?: (site: Site) => boolean) {
+        super(actionManager, travelling);
         this.autocompleteSelects = !!restriction;
         this.restriction = restriction ?? ((_: Site) => true);
         this.choosing = choosing;
@@ -218,12 +212,12 @@ export class TravelAction extends MajorAction {
             this.supplyCost = new SupplyCost(this.gameProxy.map.travelCosts.get(fromRegionKey)?.get(toRegionKey) ?? 2);
         else
             this.supplyCost = new SupplyCost(2);
-        
+
         super.execute();
     }
 
     majorAction() {
-        new PutPawnAtSiteEffect(this.player, this.siteProxy.original).doNext();
+        new PutPawnAtSiteEffect(this.actionManager, this.player, this.siteProxy.original).doNext();
     }
 }
 
@@ -247,11 +241,11 @@ export class RecoverAction extends MajorAction {
     }
 
     majorAction() {
-        this.targetProxy.original.recover(this.player);
+        new RecoverTargetEffect(this.actionManager, this.player, this.targetProxy.original).doNext();
     }
 }
 
-export class RecoverBannerPitchAction extends ModifiableAction {
+export class RecoverBannerPitchAction extends ActionWithProxy {
     declare readonly selects: { amount: SelectNumber };
     declare readonly parameters: { amount: number[] };
     readonly message = "Put resources onto the banner";
@@ -259,8 +253,8 @@ export class RecoverBannerPitchAction extends ModifiableAction {
     banner: Banner;
     amount: number;
 
-    constructor(player: OathPlayer, banner: Banner) {
-        super(player);
+    constructor(actionManager: OathActionManager, player: OathPlayer, banner: Banner) {
+        super(actionManager, player);
         this.banner = banner;
     }
 
@@ -271,7 +265,7 @@ export class RecoverBannerPitchAction extends ModifiableAction {
 
     modifiedExecution() {
         this.amount = this.parameters.amount[0]!;
-        this.banner.original.finishRecovery(this.player, this.amount);
+        new ParentToTargetEffect(this.actionManager, this.player, this.player.byClass(this.banner.cls).max(this.amount), this.banner).doNext();
     }
 }
 
@@ -303,14 +297,14 @@ export class SearchAction extends MajorAction {
     }
 
     majorAction() {
-        new SearchDrawEffect(this.player, this.deckProxy.original, this.amount, this.fromBottom).doNext(cards => {
+        new SearchDrawEffect(this.actionManager, this.player, this.deckProxy.original, this.amount, this.fromBottom).doNext(cards => {
             this.cards = new Set(cards);
-            new SearchChooseAction(this.player, this.cards, this.discardOptions).doNext();
+            new SearchChooseAction(this.actionManager, this.player, this.cards, this.discardOptions).doNext();
         });
     }
 }
 
-export class SearchChooseAction extends ModifiableAction {
+export class SearchChooseAction extends ActionWithProxy {
     declare readonly selects: { cards: SelectCard<WorldCard> }
     declare readonly parameters: { cards: WorldCard[] }
     readonly message = "Choose which card(s) to keep";
@@ -322,8 +316,8 @@ export class SearchChooseAction extends ModifiableAction {
 
     playActions: SearchPlayOrDiscardAction[] = [];
 
-    constructor(player: OathPlayer, cards: Iterable<WorldCard>, discardOptions?: DiscardOptions<OathCard>, amount: number = 1) {
-        super(player);
+    constructor(actionManager: OathActionManager, player: OathPlayer, cards: Iterable<WorldCard>, discardOptions?: DiscardOptions<OathCard>, amount: number = 1) {
+        super(actionManager, player);
         this.discardOptions = discardOptions || this.player.discardOptions;
         this.cards = new Set(cards);
         this.playingAmount = Math.min(amount, this.cards.size);
@@ -342,18 +336,18 @@ export class SearchChooseAction extends ModifiableAction {
     modifiedExecution(): void {
         const discarding = new Set(this.cards);
         for (const card of this.playing) discarding.delete(card);
-        new SearchDiscardAction(this.player, discarding, Infinity, this.discardOptions).doNext();
+        new SearchDiscardAction(this.actionManager, this.player, discarding, Infinity, this.discardOptions).doNext();
         
         this.playActions.length = 0;
         for (const card of this.playing) {
-            const playAction = new SearchPlayOrDiscardAction(this.player, card.original, this.discardOptions);
+            const playAction = new SearchPlayOrDiscardAction(this.actionManager, this.player, card.original, this.discardOptions);
             this.playActions.push(playAction);
             playAction.doNext();
         }
     }
 }
 
-export class SearchDiscardAction extends ModifiableAction {
+export class SearchDiscardAction extends ActionWithProxy {
     declare readonly selects: { cards: SelectCard<WorldCard> }
     declare readonly parameters: { cards: WorldCard[] };
     readonly autocompleteSelects = false;  // What's important is the order
@@ -364,8 +358,8 @@ export class SearchDiscardAction extends ModifiableAction {
     amount: number;
     discardOptions: DiscardOptions<OathCard>;
 
-    constructor(player: OathPlayer, cards: Iterable<WorldCard>, amount?: number, discardOptions?: DiscardOptions<OathCard>) {
-        super(player);
+    constructor(actionManager: OathActionManager, player: OathPlayer, cards: Iterable<WorldCard>, amount?: number, discardOptions?: DiscardOptions<OathCard>) {
+        super(actionManager, player);
         this.cards = new Set(cards);
         this.amount = Math.min(this.cards.size, amount || this.cards.size);
         this.discardOptions = discardOptions || this.player.discardOptions;
@@ -383,11 +377,12 @@ export class SearchDiscardAction extends ModifiableAction {
 
     modifiedExecution(): void {
         for (const card of this.discarding)
-            new DiscardCardEffect(this.player, card, this.discardOptions).doNext();
+            new DiscardCardEffect(this.actionManager, this.player, card, this.discardOptions).doNext();
     }
 }
 
-export class SearchPlayOrDiscardAction extends ModifiableAction {
+export type CapacityInformation = [number, WorldCard[], boolean];
+export class SearchPlayOrDiscardAction extends ActionWithProxy {
     declare readonly selects: { choice: SelectNOf<Site | boolean | undefined>}
     declare readonly parameters: { choice: (Site | boolean | undefined)[] }
     readonly message: string;
@@ -398,8 +393,10 @@ export class SearchPlayOrDiscardAction extends ModifiableAction {
     discardOptions: DiscardOptions<OathCard>;
     canReplace: boolean;
 
-    constructor(player: OathPlayer, card: WorldCard, discardOptions?: DiscardOptions<OathCard>) {
-        super(player);
+    capacityInformation: CapacityInformation;
+
+    constructor(actionManager: OathActionManager, player: OathPlayer, card: WorldCard, discardOptions?: DiscardOptions<OathCard>) {
+        super(actionManager, player);
         this.cardProxy = this.maskProxyManager.get(card);
         this.message = "Play or discard " + this.cardProxy.name;
         this.discardOptions = discardOptions || this.player.discardOptions;
@@ -421,7 +418,7 @@ export class SearchPlayOrDiscardAction extends ModifiableAction {
     execute() {
         const choice = this.parameters.choice[0]!;
         if (choice === undefined) {
-            new DiscardCardEffect(this.player, this.cardProxy, this.discardOptions).doNext();
+            new DiscardCardEffect(this.actionManager, this.player, this.cardProxy, this.discardOptions).doNext();
             return;
         }
 
@@ -431,40 +428,40 @@ export class SearchPlayOrDiscardAction extends ModifiableAction {
         super.execute();
     }
 
-    static getCapacityInformation(maskProxyManager: MaskProxyManager, playerProxy: OathPlayer, siteProxy?: Site, playingProxy?: WorldCard): [number, WorldCard[], boolean] {
-        const capacityModifiers: CapacityModifier<WorldCard>[] = [];
-        for (const [sourceProxy, modifier] of playerProxy.game.getPowers(CapacityModifier)) {
-            const instance = new modifier(sourceProxy.original, playerProxy.original, maskProxyManager);
-            if (instance.canUse(playerProxy, siteProxy)) capacityModifiers.push(instance);
-        }
+    static getCapacityInformation(playerProxy: OathPlayer, siteProxy?: Site): CapacityInformation {
+        // const capacityModifiers: CapacityModifier<WorldCard>[] = [];
+        // for (const [sourceProxy, modifier] of playerProxy.game.getPowers(CapacityModifier)) {
+        //     const instance = new modifier(sourceProxy.original, playerProxy.original, maskProxyManager);
+        //     if (instance.canUse(playerProxy, siteProxy)) capacityModifiers.push(instance);
+        // }
 
-        if (playingProxy && !playingProxy.facedown) {
-            for (const modifier of playingProxy.powers) {
-                if (isExtended(modifier, CapacityModifier)) {
-                    const instance = new modifier(playingProxy.original, playerProxy.original, maskProxyManager);
-                    capacityModifiers.push(instance);  // Always assume the card influences the capacity
-                }
-            }
-        }
+        // if (playingProxy && !playingProxy.facedown) {
+        //     for (const modifier of playingProxy.powers) {
+        //         if (isExtended(modifier, CapacityModifier)) {
+        //             const instance = new modifier(playingProxy.original, playerProxy.original, maskProxyManager);
+        //             capacityModifiers.push(instance);  // Always assume the card influences the capacity
+        //         }
+        //     }
+        // }
 
-        let capacity = siteProxy ? siteProxy.capacity : 3;
-        let ignoresCapacity = false;
+        const capacity = siteProxy ? siteProxy.capacity : 3;
+        const ignoresCapacity = false;
         const takesNoSpaceProxies = new Set<WorldCard>();
         const targetProxy = siteProxy ? siteProxy.denizens : playerProxy.advisers;
 
-        for (const capacityModifier of capacityModifiers) {
-            const [cap, noSpaceProxy] = capacityModifier.updateCapacityInformation(targetProxy);
-            capacity = Math.min(capacity, cap);
-            for (const cardProxy of noSpaceProxy) takesNoSpaceProxies.add(cardProxy);
-            if (playingProxy) ignoresCapacity ||= capacityModifier.ignoreCapacity(playingProxy);
-        }
+        // for (const capacityModifier of capacityModifiers) {
+        //     const [cap, noSpaceProxy] = capacityModifier.updateCapacityInformation(targetProxy);
+        //     capacity = Math.min(capacity, cap);
+        //     for (const cardProxy of noSpaceProxy) takesNoSpaceProxies.add(cardProxy);
+        //     if (playingProxy) ignoresCapacity ||= capacityModifier.ignoreCapacity(playingProxy);
+        // }
 
         return [capacity, [...targetProxy].filter(e => !takesNoSpaceProxies.has(e)), ignoresCapacity];
     }
 
     modifiedExecution() {
         this.cardProxy.facedown = this.facedown;  // Editing the copy to reflect the new state
-        const [capacity, takesSpaceInTargetProxies, ignoresCapacity] = SearchPlayOrDiscardAction.getCapacityInformation(this.maskProxyManager, this.playerProxy, this.siteProxy, this.cardProxy);
+        const [capacity, takesSpaceInTargetProxies, ignoresCapacity] = SearchPlayOrDiscardAction.getCapacityInformation(this.playerProxy, this.siteProxy);
 
         const excess = Math.max(0, takesSpaceInTargetProxies.length - capacity + 1);  // +1 because we are playing a card there
         const discardable = takesSpaceInTargetProxies.filter(e => !(e instanceof Denizen && e.activelyLocked)).map(e => e.original);
@@ -473,10 +470,10 @@ export class SearchPlayOrDiscardAction extends ModifiableAction {
             if (!this.canReplace || excess > discardable.length)
                 throw new InvalidActionResolution("Target is full and cards there cannot be replaced");
             else
-                new SearchDiscardAction(this.player, discardable, excess, this.discardOptions).doNext();
+                new SearchDiscardAction(this.actionManager, this.player, discardable, excess, this.discardOptions).doNext();
         
-        new PlayWorldCardEffect(this.player, this.cardProxy.original, this.facedown, this.siteProxy?.original).doNext();
-        new CheckCapacityEffect(this.player, [this.siteProxy?.original || this.player], this.discardOptions).doNext();
+        new PlayWorldCardEffect(this.actionManager, this.player, this.cardProxy.original, this.facedown, this.siteProxy?.original).doNext();
+        new CheckCapacityEffect(this.actionManager, this.player, [this.siteProxy?.original || this.player], this.discardOptions).doNext();
     }
 }
 
@@ -488,8 +485,8 @@ export class MayDiscardACardAction extends OathAction {
     cards: Set<Denizen>;
     discardOptions: DiscardOptions<OathCard>;
 
-    constructor(player: OathPlayer, discardOptions?: DiscardOptions<OathCard>, cards?: Iterable<Denizen>) {
-        super(player);
+    constructor(actionManager: OathActionManager, player: OathPlayer, discardOptions?: DiscardOptions<OathCard>, cards?: Iterable<Denizen>) {
+        super(actionManager, player);
         this.discardOptions = discardOptions || this.player.discardOptions;
         if (cards) {
             this.cards = new Set(cards);
@@ -510,7 +507,7 @@ export class MayDiscardACardAction extends OathAction {
     execute(): void {
         const card = this.parameters.card[0]!;
         if (!card) return;
-        new DiscardCardEffect(this.player, card, this.discardOptions).doNext();
+        new DiscardCardEffect(this.actionManager, this.player, card, this.discardOptions).doNext();
     }
 }
 
@@ -541,13 +538,14 @@ export class CampaignAction extends MajorAction {
     }
 
     majorAction() {
-        const next = new CampaignAttackAction(this.player, this.defenderProxy?.original);
-        if (this.defenderProxy?.isImperial) new CampaignJoinDefenderAlliesEffect(next.campaignResult, this.gameProxy.chancellor.original).doNext();
+        const next = new CampaignAttackAction(this.actionManager, this.player, this.defenderProxy?.original);
+        if (this.defenderProxy?.isImperial)
+            new CampaignJoinDefenderAlliesEffect(this.actionManager, next.campaignResult, this.gameProxy.chancellor.original).doNext();
         next.doNext();
     }
 }
 
-export class CampaignAttackAction extends ModifiableAction {
+export class CampaignAttackAction extends ActionWithProxy {
     declare readonly selects: { targetProxies: SelectNOf<CampaignActionTarget>, pool: SelectNumber };
     declare readonly parameters: { targetProxies: CampaignActionTarget[], pool: number[] };
     readonly next: CampaignDefenseAction;
@@ -556,9 +554,9 @@ export class CampaignAttackAction extends ModifiableAction {
     defender: OathPlayer | undefined;
     defenderProxy: OathPlayer | undefined;
 
-    constructor(player: OathPlayer, defender: OathPlayer | undefined) {
-        super(player);
-        this.next = new CampaignDefenseAction(defender || player, player);
+    constructor(actionManager: OathActionManager, player: OathPlayer, defender: OathPlayer | undefined) {
+        super(actionManager, player);
+        this.next = new CampaignDefenseAction(actionManager, defender || player, player);
         this.campaignResult.attacker = player;
         this.campaignResult.defender = defender;
         this.defender = defender;
@@ -614,7 +612,10 @@ export class CampaignAttackAction extends ModifiableAction {
             const ally = allyProxy.original;
             console.log("Trying allying with", ally.name);
             if (!this.campaignResult.defenderAllies.has(ally) && allyProxy.leader === this.defenderProxy?.leader)
-                new MakeDecisionAction(ally, "Join as an Imperial Ally?", () => new CampaignJoinDefenderAlliesEffect(this.campaignResult, ally).doNext()).doNext();
+                new MakeDecisionAction(
+                    this.actionManager, ally, "Join as an Imperial Ally?",
+                    () => new CampaignJoinDefenderAlliesEffect(this.actionManager, this.campaignResult, ally).doNext()
+                ).doNext();
         }
 
         super.execute();
@@ -643,45 +644,41 @@ export class CampaignAttackAction extends ModifiableAction {
         
         this.campaignResult.atkForce = new Set([this.player]);
 
-        if (this.campaignResult.defender) {
-            this.next.doNext();
-            return;
-        }
-
+        this.next.doNext();
         // Bandits use all battle plans that are free
-        const modifiers: ActionModifier<WithPowers, CampaignDefenseAction>[] = [];
-        for (const modifier of this.game.gatherActionModifiers(this.next, this.player)) {
-            if (modifier.mustUse || modifier.cost.free)
-                modifiers.push(modifier);
-        }
+        // const modifiers: ActionModifier<WithPowers, CampaignDefenseAction>[] = [];
+        // for (const modifier of this.game.gatherActionModifiers(this.next, this.player)) {
+        //     if (modifier.mustUse || modifier.cost.free)
+        //         modifiers.push(modifier);
+        // }
 
         // If any powers cost something, then the attacker pays. Shouldn't happen though
-        if (this.next.applyModifiers(modifiers)) {
-            this.next.doNextWithoutModifiers();
-        }
+        // if (this.next.applyModifiers(modifiers)) {
+        //     this.next.doNextWithoutModifiers();
+        // }
     }
 }
 
-export class CampaignDefenseAction extends ModifiableAction {
+export class CampaignDefenseAction extends ActionWithProxy {
     readonly next: CampaignEndAction;
     readonly message = "";
 
-    constructor(player: OathPlayer, attacker: OathPlayer) {
-        super(player);
-        this.next = new CampaignEndAction(attacker);
+    constructor(actionManager: OathActionManager, player: OathPlayer, attacker: OathPlayer) {
+        super(actionManager, player);
+        this.next = new CampaignEndAction(actionManager, attacker);
         this.campaignResult.checkForImperialInfighting(this.maskProxyManager);
     }
 
     get campaignResult() { return this.next.campaignResult; }
     get campaignResultProxy() { return this.next.campaignResultProxy; }
 
-    doNext(): void {
-        let next = new ChooseModifiers(this);
-        for (const ally of this.campaignResult.defenderAllies) 
-            if (ally !== this.player)
-                next = new ChooseModifiers(next, ally);
-        next.doNext();
-    }
+    // doNext(): void {
+        // let next = new ChooseModifiers(actionManager, this);
+        // for (const ally of this.campaignResult.defenderAllies) 
+        //     if (ally !== this.player)
+        //         next = new ChooseModifiers(next, ally);
+        // next.doNext();
+    // }
 
     execute() {
         super.execute();
@@ -698,7 +695,7 @@ export class CampaignDefenseAction extends ModifiableAction {
     }
 }
 
-export class CampaignEndAction extends ModifiableAction {
+export class CampaignEndAction extends ActionWithProxy {
     declare readonly selects: { doSacrifice: SelectBoolean, callbacks: SelectWithName<CampaignEndCallback> };
     declare readonly parameters: { doSacrifice: boolean[], callbacks: CampaignEndCallback[] };
     readonly message = "Handle the end of the campaign";
@@ -707,8 +704,8 @@ export class CampaignEndAction extends ModifiableAction {
     campaignResultProxy = this.maskProxyManager.get(this.campaignResult);
     doSacrifice: boolean;
 
-    constructor(player: OathPlayer) {
-        super(player);
+    constructor(actionManager: OathActionManager, player: OathPlayer) {
+        super(actionManager, player);
         this.campaignResult.checkForImperialInfighting(this.maskProxyManager);
     }
 
@@ -741,7 +738,8 @@ export class CampaignEndAction extends ModifiableAction {
             this.campaignResult.loserKills(Math.floor(this.campaignResultProxy.loserTotalForce / (this.campaignResult.loserKillsEntireForce ? 1 : 2)));
 
         if (this.campaignResult.successful)
-            for (const target of this.campaignResult.targets) target.seize(this.campaignResult.attacker);
+            for (const target of this.campaignResult.targets)
+                new SeizeTargetEffect(this.actionManager, this.campaignResult.attacker, target).doNext();
 
         for (const callback of this.campaignResult.endCallbacks)
             callback.resolve();
@@ -761,8 +759,8 @@ export class CampaignKillWarbandsInForceAction extends OathAction {
     attacker: boolean;
     amount: number;
 
-    constructor(result: CampaignResult, attacker: boolean, amount: number) {
-        super(attacker ? result.attacker.leader : result.defender?.leader || result.attacker.leader);
+    constructor(actionManager: OathActionManager, result: CampaignResult, attacker: boolean, amount: number) {
+        super(actionManager, attacker ? result.attacker.leader : result.defender?.leader || result.attacker.leader);
         this.message = `Kill ${amount} warbands`;
         this.result = result;
         this.owner = attacker ? result.attacker.leader : result.defender?.leader;
@@ -792,7 +790,7 @@ export class CampaignKillWarbandsInForceAction extends OathAction {
         
         for (const source of this.force) {
             const warbands = source.getWarbands(this.owner.leader.board.key, this.parameters[source.name]![0]);
-            new ParentToTargetEffect(this.game, this.player, warbands, this.owner.leader.bag).doNext();
+            new ParentToTargetEffect(this.actionManager, this.player, warbands, this.owner.leader.bag).doNext();
             if (this.attacker)
                 this.result.attackerLoss += warbands.length;
             else
@@ -805,8 +803,8 @@ export class CampaignBanishPlayerAction extends TravelAction {
     readonly message: string;
     noSupplyCost = true;
 
-    constructor(player: OathPlayer, banished: OathPlayer) {
-        super(banished, player);
+    constructor(actionManager: OathActionManager, player: OathPlayer, banished: OathPlayer) {
+        super(actionManager, banished, player);
         this.message = "Choose where to banish " + banished.name;
     }
 }
@@ -819,8 +817,8 @@ export class CampaignSeizeSiteAction extends OathAction {
     
     site: Site;
 
-    constructor(player: OathPlayer, site: Site) {
-        super(player);
+    constructor(actionManager: OathActionManager, player: OathPlayer, site: Site) {
+        super(actionManager, player);
         this.site = site;
         this.message = "Choose how many warbands to move to " + site.visualName(player);
     }
@@ -831,43 +829,55 @@ export class CampaignSeizeSiteAction extends OathAction {
     }
 
     execute() {
-        new MoveOwnWarbandsEffect(this.player.leader, this.player, this.site, this.parameters.amount[0]!).doNext();
+        new MoveOwnWarbandsEffect(this.actionManager, this.player.leader, this.player, this.site, this.parameters.amount[0]!).doNext();
     }
 }
 
 
-export class WakeAction extends ModifiableAction {
+export class WakeAction extends ActionWithProxy {
     readonly message = "";
 
     modifiedExecution(): void {
         if (this.gameProxy.oathkeeper === this.playerProxy && !this.playerProxy.isImperial)
             if (this.gameProxy.isUsurper)
-                return new WinGameEffect(this.player).doNext();
+                return new WinGameEffect(this.actionManager, this.player).doNext();
             else
-                new SetUsurperEffect(this.game, true).doNext();
+                new SetUsurperEffect(this.actionManager, true).doNext();
         
         if (this.playerProxy.board instanceof ExileBoard && this.playerProxy.board.vision && this.gameProxy.worldDeck.visionsDrawn >= 3) {
             const candidates = this.playerProxy.board.vision.oath.getOathkeeperCandidates();
             if (candidates.size === 1 && candidates.has(this.playerProxy))
-                return new WinGameEffect(this.player).doNext();
+                return new WinGameEffect(this.actionManager, this.player).doNext();
         }
         
-        new ChangePhaseEffect(this.game, OathPhase.Act).doNext();
+        new ChangePhaseEffect(this.actionManager, OathPhase.Act).doNext();
     }
 }
 
 
-export class RestAction extends ModifiableAction {
+export class RestAction extends ActionWithProxy {
     readonly message = "";
 
     execute(): void {
-        super.execute();
-        new NextTurnEffect(this.game).doNext();
+        new NextTurnEffect(this.actionManager).doNext();
     }
 
     modifiedExecution(): void {
-        new ChangePhaseEffect(this.game, OathPhase.Rest).doNext();
-        this.player.board.rest();
+        new ChangePhaseEffect(this.actionManager, OathPhase.Rest).doNext();
+        for (const site of this.game.map.sites())
+            for (const denizen of site.denizens)
+                new ReturnResourcesEffect(this.actionManager, denizen).doNext();
+
+        for (const player of this.game.players) {
+            for (const adviser of player.advisers)
+                new ReturnResourcesEffect(this.actionManager, adviser).doNext();
+
+            for (const relic of player.relics)
+                new ReturnResourcesEffect(this.actionManager, relic).doNext();
+        }
+
+        new FlipSecretsEffect(this.actionManager, this.player, Infinity, false).doNext();
+        new GainSupplyEffect(this.actionManager, this.player, this.player.board.restAmount);
     }
 }
 
@@ -875,39 +885,7 @@ export class RestAction extends ModifiableAction {
 ////////////////////////////////////////////
 //              MINOR ACTIONS             //
 ////////////////////////////////////////////
-export class UsePowerAction extends ModifiableAction {
-    declare readonly selects: { power: SelectNOf<ActivePower<OwnableCard>> }
-    declare readonly parameters: { power: ActivePower<OwnableCard>[] };
-    readonly autocompleteSelects = false;
-    readonly message = "Choose a power to use";
-
-    power: ActivePower<OwnableCard>;
-
-    start() {
-        const choices = new Map<string, ActivePower<OwnableCard>>();
-        for (const [sourceProxy, power] of this.gameProxy.getPowers(ActivePower<OwnableCard>)) {
-            const instance = new power(sourceProxy.original, this.player, this);
-            if (instance.canUse()) choices.set(instance.name, instance);
-        }
-        this.selects.power = new SelectNOf("Power", choices, { min: 1 });
-        return super.start();
-    }
-
-    execute(): void {
-        this.power = this.parameters.power[0]!;
-        super.execute();
-    }
-
-    modifiedExecution(): void {
-        this.power.payCost(success => {
-            if (!success) throw this.power.cost.cannotPayError;
-            this.power.usePower();
-        });
-    }
-}
-
-
-export class PlayFacedownAdviserAction extends ModifiableAction {
+export class PlayFacedownAdviserAction extends ActionWithProxy {
     declare readonly selects: { cardProxies: SelectCard<WorldCard> }
     declare readonly parameters: { cardProxies: WorldCard[] }
     readonly message = "Choose an adviser to play";
@@ -928,12 +906,12 @@ export class PlayFacedownAdviserAction extends ModifiableAction {
 
     modifiedExecution(): void {
         this.playing.prune();  // Otherwise capacity calculations count the card twice
-        new SearchPlayOrDiscardAction(this.player, this.playing).doNext();
+        new SearchPlayOrDiscardAction(this.actionManager, this.player, this.playing).doNext();
     }
 }
 
 
-export class MoveWarbandsAction extends ModifiableAction {
+export class MoveWarbandsAction extends ActionWithProxy {
     declare readonly selects: { targetProxy: SelectWithName<Site | OathPlayer>, amount: SelectNumber, giving: SelectBoolean };
     declare readonly parameters: { targetProxy: (Site | OathPlayer)[], amount: number[], giving: boolean[] };
     readonly message = "Give or take warbands";
@@ -979,10 +957,15 @@ export class MoveWarbandsAction extends ModifiableAction {
         if (from instanceof Site && from.getWarbandsAmount(this.playerProxy.leader.board.original.key) - this.amount < 1)
             throw new InvalidActionResolution("Cannot take the last warband off a site.");
 
-        const effect = new MoveOwnWarbandsEffect(this.playerProxy.leader.original, from, to, this.amount);
+        const effect = new MoveOwnWarbandsEffect(this.actionManager, this.playerProxy.leader.original, from, to, this.amount);
         if (this.targetProxy instanceof OathPlayer || this.targetProxy.ruler && this.targetProxy.ruler !== this.playerProxy) {
             const askTo = this.targetProxy instanceof OathPlayer ? this.targetProxy : this.targetProxy.ruler;
-            if (askTo) new MakeDecisionAction(askTo.original, `Allow ${this.amount} warbands to move from ${from.name} to ${to.name}?`, () => effect.doNext()).doNext();
+            if (askTo)
+                new MakeDecisionAction(
+                    this.actionManager, askTo.original,
+                    `Allow ${this.amount} warbands to move from ${from.name} to ${to.name}?`,
+                    () => effect.doNext()
+                ).doNext();
         } else {
             effect.doNext();
         }
@@ -990,7 +973,7 @@ export class MoveWarbandsAction extends ModifiableAction {
 }
 
 type StartableAction = typeof ActPhaseAction.startOptions[keyof typeof ActPhaseAction.startOptions];
-export class ActPhaseAction extends ModifiableAction {
+export class ActPhaseAction extends ActionWithProxy {
     declare readonly selects: { action: SelectNOf<StartableAction> };
     declare readonly parameters: { action: StartableAction[] };
     readonly autocompleteSelects: boolean = false;
@@ -1004,8 +987,7 @@ export class ActPhaseAction extends ModifiableAction {
         "Recover": RecoverAction,
         "Search": SearchAction,
         "Campaign": CampaignAction,
-    
-        "Use": UsePowerAction,
+
         "Reveal": PlayFacedownAdviserAction,
         "MoveWarbands": MoveWarbandsAction,
         "Rest": RestAction
@@ -1020,7 +1002,7 @@ export class ActPhaseAction extends ModifiableAction {
     }
     
     execute(): void {
-        this.next = new this.parameters.action[0]!(this.player);
+        this.next = new this.parameters.action[0]!(this.actionManager, this.player);
         super.execute();
     }
 
@@ -1042,8 +1024,8 @@ export class MakeDecisionAction extends OathAction {
     negativeCallback?: () => void;
     options: [string, string];
 
-    constructor(player: OathPlayer, message: string, callback: () => void, negativeCallback?: () => void, options: [string, string] = ["Yes", "No"]) {
-        super(player);
+    constructor(actionManager: OathActionManager, player: OathPlayer, message: string, callback: () => void, negativeCallback?: () => void, options: [string, string] = ["Yes", "No"]) {
+        super(actionManager, player);
         this.callback = callback;
         this.negativeCallback = negativeCallback;
         this.message = message;
@@ -1071,8 +1053,8 @@ export class KillWarbandsOnTargetAction extends OathAction {
     target: ResourcesAndWarbands;
     amount: number;
 
-    constructor(player: OathPlayer, target: ResourcesAndWarbands, amount: number) {
-        super(player);
+    constructor(actionManager: OathActionManager, player: OathPlayer, target: ResourcesAndWarbands, amount: number) {
+        super(actionManager, player);
         this.message = `Kill ${amount} warbands`;
         this.target = target;
         this.amount = amount;
@@ -1096,7 +1078,7 @@ export class KillWarbandsOnTargetAction extends OathAction {
         
         for (const owner of this.game.players)
             if (this.parameters[owner.name])
-                new ParentToTargetEffect(this.game, this.player, this.target.getWarbands(owner.board.key, this.parameters[owner.name]![0]), owner.leader.bag).doNext();
+                new ParentToTargetEffect(this.actionManager, this.player, this.target.getWarbands(owner.board.key, this.parameters[owner.name]![0]), owner.leader.bag).doNext();
     }
 }
 
@@ -1109,8 +1091,8 @@ export class ChooseNumberAction extends OathAction {
     values: Set<number>;
     callback: (value: number) => void;
 
-    constructor(player: OathPlayer, message: string, values: Iterable<number>, callback: (value: number) => void) {
-        super(player);
+    constructor(actionManager: OathActionManager, player: OathPlayer, message: string, values: Iterable<number>, callback: (value: number) => void) {
+        super(actionManager, player);
         this.message = message;
         this.callback = callback;
         this.values = new Set(values);
@@ -1127,13 +1109,11 @@ export class ChooseNumberAction extends OathAction {
 }
 
 export class TakeReliquaryRelicAction extends ChooseNumberAction {
-    constructor(player: OathPlayer) {
+    constructor(actionManager: OathActionManager, player: OathPlayer) {
         super(
-            player, "Take a Reliquary relic",
+            actionManager, player, "Take a Reliquary relic",
             player.game.reliquary.children.filter(e => e.children[0]).map((_, i) => i),
-            (index: number) => {
-                new TakeReliquaryRelicEffect(player, index).doNext();
-            }
+            (index: number) => new TakeReliquaryRelicEffect(actionManager, player, index).doNext()
         )
     }
 }
@@ -1146,8 +1126,8 @@ export class ChooseResourceToTakeAction extends OathAction {
 
     source: ResourcesAndWarbands;
 
-    constructor(player: OathPlayer, source: ResourcesAndWarbands) {
-        super(player);
+    constructor(actionManager: OathActionManager, player: OathPlayer, source: ResourcesAndWarbands) {
+        super(actionManager, player);
         this.source = source;
     }
 
@@ -1159,7 +1139,7 @@ export class ChooseResourceToTakeAction extends OathAction {
     execute(): void {
         const resource = this.parameters.resource[0];
         if (!resource || !this.player) return;
-        new ParentToTargetEffect(this.game, this.player, [resource]).doNext();   
+        new ParentToTargetEffect(this.actionManager, this.player, [resource]).doNext();   
     }
 }
 
@@ -1173,8 +1153,8 @@ export class ChooseRegionAction extends OathAction {
     none: string | undefined;
     callback: (region: Region | undefined) => void;
 
-    constructor(player: OathPlayer, message: string, callback: (region: Region | undefined) => void, regions?: Iterable<Region>, none?: string) {
-        super(player);
+    constructor(actionManager: OathActionManager, player: OathPlayer, message: string, callback: (region: Region | undefined) => void, regions?: Iterable<Region>, none?: string) {
+        super(actionManager, player);
         this.message = message;
         this.callback = callback;
         this.regions = regions && new Set(regions);
@@ -1198,34 +1178,6 @@ export class ChooseRegionAction extends OathAction {
 }
 
 
-export class ChoosePayableCostContextAction<T extends CostContext<any>> extends ModifiableAction {
-    declare readonly selects: { costContext: SelectNOf<T | undefined> };
-    declare readonly parameters: { costContext: (T | undefined)[] };
-    readonly message: string;
-
-    constructor(
-        player: OathPlayer,
-        public costContext: T,
-        public callback: (costContext: T) => void
-    ) {
-        super(player);
-    }
-
-    start() {
-        const choices = new Map<string, T>();
-        const payableCostContextsInfo = this.costContext.payableCostsWithModifiers(this.maskProxyManager);
-        for (const costContextInfo of payableCostContextsInfo)
-            choices.set(costContextInfo.context.cost.toString() + `(${costContextInfo.modifiers.map(e => e.name).join(", ") || "Base"})`, costContextInfo.context as T);
-        this.selects.costContext = new SelectNOf("Cost", choices, { min: 1 });
-        return super.start();
-    }
-
-    modifiedExecution(): void {
-        this.callback(this.parameters.costContext[0]!);
-    }
-}
-
-
 export abstract class ChooseTsAction<T> extends OathAction {
     declare readonly selects: Record<string, SelectNOf<T>>;
     declare readonly parameters: Record<string, T[]>;
@@ -1235,8 +1187,8 @@ export abstract class ChooseTsAction<T> extends OathAction {
     ranges: [number, number?][]
     callback: (...choices: T[][]) => void;
 
-    constructor(player: OathPlayer, message: string, callback: (...choices: T[][]) => void, choices?: Iterable<T>[], ranges: [number, number?][] = []) {
-        super(player);
+    constructor(actionManager: OathActionManager, player: OathPlayer, message: string, callback: (...choices: T[][]) => void, choices?: Iterable<T>[], ranges: [number, number?][] = []) {
+        super(actionManager, player);
         this.message = message;
         this.callback = callback;
         this.ranges = ranges;
@@ -1268,13 +1220,14 @@ export class ChooseSuitsAction extends ChooseTsAction<OathSuit> {
 }
 
 export class TakeFavorFromBankAction extends ChooseSuitsAction {
-    constructor(player: OathPlayer, amount: number, suits?: Iterable<OathSuit>) {
+    constructor(actionManager: OathActionManager, player: OathPlayer, amount: number, suits?: Iterable<OathSuit>) {
         super(
-            player, "Take " + amount + " from a favor bank", 
+            actionManager, player, "Take " + amount + " from a favor bank", 
             (suits: OathSuit[]) => {
                 if (suits[0] === undefined) return;
                 const resources = this.game.favorBank(suits[0])?.get(amount);
-                if (resources) new ParentToTargetEffect(this.game, this.player, resources).doNext();
+                if (resources)
+                    new ParentToTargetEffect(this.actionManager, this.player, resources).doNext();
             },
             suits && [suits]
         );
@@ -1284,8 +1237,8 @@ export class TakeFavorFromBankAction extends ChooseSuitsAction {
 export class PeoplesFavorWakeAction extends ChooseSuitsAction {
     banner: PeoplesFavor;
 
-    constructor(player: OathPlayer, banner: PeoplesFavor) {
-        super(player, "Return favor (choose none to put favor)", (suits: OathSuit[]) => { this.putOrReturnFavor(suits[0]) }, [], [[0, 1]]);
+    constructor(actionManager: OathActionManager, player: OathPlayer, banner: PeoplesFavor) {
+        super(actionManager, player, "Return favor (choose none to put favor)", (suits: OathSuit[]) => { this.putOrReturnFavor(suits[0]) }, [], [[0, 1]]);
         this.banner = banner;
     }
 
@@ -1300,10 +1253,10 @@ export class PeoplesFavorWakeAction extends ChooseSuitsAction {
 
     putOrReturnFavor(suit: OathSuit | undefined): void {
         const bank = suit !== undefined ? this.game.favorBank(suit) : undefined;
-        new TransferResourcesEffect(this.game, new ResourceTransferContext(this.player, this, new ResourceCost([[Favor, 1]]), bank ?? this.banner, bank ? this.banner : this.player)).doNext();
+        new TransferResourcesEffect(this.actionManager, this.player, new ResourceCost([[Favor, 1]]), bank ?? this.banner, bank ? this.banner : this.player).doNext();
 
         if (this.banner.amount >= 6)
-            new SetPeoplesFavorMobState(this.game, this.player, true).doNext();
+            new SetPeoplesFavorMobState(this.actionManager, this.player, true).doNext();
     }
 }
 
@@ -1340,13 +1293,13 @@ export class ChoosePlayersAction extends ChooseTsAction<OathPlayer> {
 }
 
 export class TakeResourceFromPlayerAction extends ChoosePlayersAction {
-    constructor(player: OathPlayer, resource: OathResourceType, amount?: number, players?: Iterable<OathPlayer>) {
+    constructor(actionManager: OathActionManager, player: OathPlayer, resource: OathResourceType, amount?: number, players?: Iterable<OathPlayer>) {
         super(
-            player, "",
+            actionManager, player, "",
             (targets: OathPlayer[]) => {
                 if (!targets[0]) return;
                 if (resource === Secret && targets[0].byClass(Secret).length <= 1) return;
-                new TransferResourcesEffect(this.game, new ResourceTransferContext(player, this, new ResourceCost([[resource, amount === undefined ? 1 : amount]]), player, targets[0])).doNext();
+                new TransferResourcesEffect(this.actionManager, player, new ResourceCost([[resource, amount === undefined ? 1 : amount]]), player, targets[0]).doNext();
             },
             players && [players]
         );
@@ -1354,9 +1307,9 @@ export class TakeResourceFromPlayerAction extends ChoosePlayersAction {
 }
 
 export class StartBindingExchangeAction extends ChoosePlayersAction {
-    constructor(player: OathPlayer, next: Constructor<MakeBindingExchangeOfferAction>, players?: Iterable<OathPlayer>) {
+    constructor(actionManager: OathActionManager, player: OathPlayer, next: Constructor<MakeBindingExchangeOfferAction>, players?: Iterable<OathPlayer>) {
         super(
-            player, "You may start a binding exchange with another player",
+            actionManager, player, "You may start a binding exchange with another player",
             (targets: OathPlayer[]) => { if (targets[0]) new next(this.player, targets[0], new next(targets[0], this.player)).doNext(); },
             players && [players],
             [[0, 1]]
@@ -1376,9 +1329,9 @@ export class ChooseSitesAction extends ChooseTsAction<Site> {
 }
 
 export class ActAsIfAtSiteAction extends ChooseSitesAction {
-    constructor(player: OathPlayer, action: ModifiableAction, sites?: Iterable<Site>) {
+    constructor(actionManager: OathActionManager, player: OathPlayer, action: ActionWithProxy, sites?: Iterable<Site>) {
         super(
-            player, "Choose a site to act at",
+            actionManager, player, "Choose a site to act at",
             (sites: Site[]) => {
                 if (!sites[0]) return;
                 action.playerProxy.site = action.maskProxyManager.get(sites[0]);
@@ -1390,12 +1343,12 @@ export class ActAsIfAtSiteAction extends ChooseSitesAction {
 }
 
 export class MoveWarbandsBetweenBoardAndSitesAction extends ChooseSitesAction {
-    constructor(playerProxy: OathPlayer) {
+    constructor(actionManager: OathActionManager, playerProxy: OathPlayer) {
         super(
-            playerProxy.original, "Exchange warbands with a site (choose none to finish)",
+            actionManager, playerProxy.original, "Exchange warbands with a site (choose none to finish)",
             (sites: Site[]) => {
                 if (!sites[0]) return;
-                const action = new MoveWarbandsAction(playerProxy.original);
+                const action = new MoveWarbandsAction(actionManager, playerProxy.original);
                 action.playerProxy.site = action.maskProxyManager.get(sites[0]);
                 action.doNext();
                 this.doNext();
@@ -1410,8 +1363,8 @@ export class MoveWarbandsBetweenBoardAndSitesAction extends ChooseSitesAction {
 export class ChooseCardsAction<T extends OathCard> extends ChooseTsAction<T> {
     declare choices: Set<T>[];
 
-    constructor(player: OathPlayer, message: string, cards: Iterable<T>[], callback: (...choices: T[][]) => void, ranges: [number, number?][] = []) {
-        super(player, message, callback, cards, ranges);
+    constructor(actionManager: OathActionManager, player: OathPlayer, message: string, cards: Iterable<T>[], callback: (...choices: T[][]) => void, ranges: [number, number?][] = []) {
+        super(actionManager, player, message, callback, cards, ranges);
     }
 
     start() {
@@ -1429,8 +1382,8 @@ export class ConspiracyStealAction extends OathAction {
 
     target: OathPlayer;
 
-    constructor(player: OathPlayer, target: OathPlayer) {
-        super(player);
+    constructor(actionManager: OathActionManager, player: OathPlayer, target: OathPlayer) {
+        super(actionManager, player);
         this.target = target;
     }
 
@@ -1444,12 +1397,12 @@ export class ConspiracyStealAction extends OathAction {
 
     execute(): void {
         const taking = this.parameters.taking[0]!;
-        taking.seize(this.player);
+        new SeizeTargetEffect(this.actionManager, this.player, taking).doNext();
     }
 }
 
 
-export class MakeBindingExchangeOfferAction extends ModifiableAction {
+export class MakeBindingExchangeOfferAction extends ActionWithProxy {
     declare readonly selects: { favors: SelectNumber, secrets: SelectNumber };
     declare readonly parameters: { favors: number[], secrets: number[] };
     readonly message = "Choose what you want in the exchange";
@@ -1459,11 +1412,11 @@ export class MakeBindingExchangeOfferAction extends ModifiableAction {
     effect: BindingExchangeEffect;
     next?: MakeBindingExchangeOfferAction;
 
-    constructor(player: OathPlayer, other: OathPlayer, next?: MakeBindingExchangeOfferAction) {
-        super(player);
+    constructor(actionManager: OathActionManager, player: OathPlayer, other: OathPlayer, next?: MakeBindingExchangeOfferAction) {
+        super(actionManager, player);
         this.other = other;
         this.otherProxy = this.maskProxyManager.get(other);
-        this.effect = next?.effect || new BindingExchangeEffect(other, player);
+        this.effect = next?.effect || new BindingExchangeEffect(actionManager, other, player);
         this.next = next;
     }
 
@@ -1484,7 +1437,7 @@ export class MakeBindingExchangeOfferAction extends ModifiableAction {
         } else {
             this.effect.resourcesGiven.set(Favor, favors);
             this.effect.resourcesGiven.set(Secret, secrets);
-            new MakeDecisionAction(this.other, "Complete the binding exchange?", () => this.effect.doNext()).doNext();
+            new MakeDecisionAction(this.actionManager, this.other, "Complete the binding exchange?", () => this.effect.doNext()).doNext();
         }
     }
 }
@@ -1495,9 +1448,9 @@ export class DeedWriterOfferAction extends MakeBindingExchangeOfferAction {
 
     effect: SiteExchangeOfferEffect;
 
-    constructor(player: OathPlayer, other: OathPlayer, next?: DeedWriterOfferAction) {
-        super(player, other, next);
-        this.effect = next?.effect || new SiteExchangeOfferEffect(other, player);
+    constructor(actionManager: OathActionManager, player: OathPlayer, other: OathPlayer, next?: DeedWriterOfferAction) {
+        super(actionManager, player, other, next);
+        this.effect = next?.effect || new SiteExchangeOfferEffect(actionManager, other, player);
     }
 
     start(): boolean {
@@ -1505,14 +1458,14 @@ export class DeedWriterOfferAction extends MakeBindingExchangeOfferAction {
         return super.start();
     }
 
-    modifiedExecution(): void {
+    execute(): void {
         const sites = new Set(this.parameters.sites);
         if (this.next)
             this.effect.sitesTaken = sites;
         else
             this.effect.sitesGiven = sites;
 
-        super.modifiedExecution();
+        super.execute();
     }
 }
 
@@ -1522,19 +1475,19 @@ export abstract class ThingsExchangeOfferAction<T extends OathGameObject> extend
 
     effect: ThingsExchangeOfferEffect<T>;
 
-    constructor(player: OathPlayer, other: OathPlayer, next?: ThingsExchangeOfferAction<T>) {
-        super(player, other, next);
-        this.effect = next?.effect || new ThingsExchangeOfferEffect<T>(other, player);
+    constructor(actionManager: OathActionManager, player: OathPlayer, other: OathPlayer, next?: ThingsExchangeOfferAction<T>) {
+        super(actionManager, player, other, next);
+        this.effect = next?.effect || new ThingsExchangeOfferEffect<T>(actionManager, other, player);
     }
 
-    modifiedExecution(): void {
+    execute(): void {
         const things = new Set(this.parameters.things);
         if (this.next)
             this.effect.thingsTaken = things;
         else
             this.effect.thingsGiven = things;
 
-        super.modifiedExecution();
+        super.execute();
     }
 }
 
@@ -1551,9 +1504,9 @@ export class FestivalDistrictOfferAction extends ThingsExchangeOfferAction<World
         return super.start();
     }
 
-    modifiedExecution(): void {
-        super.modifiedExecution();
-        if (!this.next) new CheckCapacityEffect(this.player, [this.player, this.other]).doNext();
+    execute(): void {
+        super.execute();
+        if (!this.next) new CheckCapacityEffect(this.actionManager, this.player, [this.player, this.other]).doNext();
     }
 }
 
@@ -1563,9 +1516,9 @@ export class TheGatheringOfferAction extends ThingsExchangeOfferAction<Relic | W
         return super.start();
     }
 
-    modifiedExecution(): void {
-        super.modifiedExecution();
-        if (!this.next) new CheckCapacityEffect(this.player, [this.player, this.other]).doNext();
+    execute(): void {
+        super.execute();
+        if (!this.next) new CheckCapacityEffect(this.actionManager, this.player, [this.player, this.other]).doNext();
     }
 }
 
@@ -1575,9 +1528,9 @@ export class CitizenshipOfferAction extends ThingsExchangeOfferAction<Relic | Ba
 
     effect: CitizenshipOfferEffect;
 
-    constructor(player: OathPlayer, other: OathPlayer, next?: CitizenshipOfferAction) {
-        super(player, other, next);
-        this.effect = next?.effect || new CitizenshipOfferEffect(other, player);
+    constructor(actionManager: OathActionManager, player: OathPlayer, other: OathPlayer, next?: CitizenshipOfferAction) {
+        super(actionManager, player, other, next);
+        this.effect = next?.effect || new CitizenshipOfferEffect(actionManager, other, player);
     }
 
     start(): boolean {
@@ -1598,9 +1551,9 @@ export class CitizenshipOfferAction extends ThingsExchangeOfferAction<Relic | Ba
         return super.start();
     }
 
-    modifiedExecution(): void {
+    execute(): void {
         if (!this.next) this.effect.reliquaryIndex = this.parameters.reliquaryRelic[0]!;
-        super.modifiedExecution();
+        super.execute();
     }
 }
 
@@ -1623,8 +1576,11 @@ export class SkeletonKeyAction extends OathAction {
     execute(): void {
         const index = this.parameters.index[0]!;
         const relic = this.game.reliquary.children[index]!.children[0];
-        if (relic) new PeekAtCardEffect(this.player, relic).doNext();
-        new MakeDecisionAction(this.player, "Take the relic?", () => new TakeReliquaryRelicEffect(this.player, index).doNext()).doNext();
+        if (relic) new PeekAtCardEffect(this.actionManager, this.player, relic).doNext();
+        new MakeDecisionAction(
+            this.actionManager, this.player, "Take the relic?",
+            () => new TakeReliquaryRelicEffect(this.actionManager, this.player, index).doNext()
+        ).doNext();
     }
 }
 
@@ -1637,7 +1593,7 @@ export class BrackenAction extends OathAction {
     action: SearchAction;
 
     constructor(action: SearchAction) {
-        super(action.player);
+        super(action.actionManager, action.player);
         this.action = action;
     }
 
@@ -1670,7 +1626,7 @@ export class VowOathAction extends OathAction {
             choices.set(OathType[oathType], oathType);
         } else {
             for (let i: OathType = 0; i < 4; i++)
-                if (i !== this.game.oath.oathType)
+                if (i !== this.game.oathkeeperLabel.oath.oathType)
                     choices.set(OathType[i], i);
         }
         this.selects.oath = new SelectNOf("Oath", choices, { min: 1 });
@@ -1679,7 +1635,7 @@ export class VowOathAction extends OathAction {
 
     execute(): void {
         const oathType = this.parameters.oath[0]!;
-        this.game.oath.setType(oathType);
+        this.game.oathkeeperLabel.setType(oathType);
     }
 }
 
@@ -1697,15 +1653,15 @@ export class ChooseNewCitizensAction extends OathAction {
         const citizens = this.parameters.players;
         for (const player of this.game.players)
             if (player.board instanceof ExileBoard && player.board.isCitizen)
-                new BecomeExileEffect(player).doNext();
+                new BecomeExileEffect(this.actionManager, player).doNext();
         
         for (const citizen of citizens)
-            new MakeDecisionAction(citizen, "Become a Citizen?", () => new BecomeCitizenEffect(citizen).doNext()).doNext();
+            new MakeDecisionAction(this.actionManager, citizen, "Become a Citizen?", () => new BecomeCitizenEffect(this.actionManager, citizen).doNext()).doNext();
 
         for (const site of this.game.map.sites())
             for (const player of this.game.players)
                 if (!player.isImperial)
-                    new ParentToTargetEffect(this.game, player, site.getWarbands(player.leader.board.key), player.leader.bag).doNext()
+                    new ParentToTargetEffect(this.actionManager, player, site.getWarbands(player.leader.board.key), player.leader.bag).doNext()
     }
 }
 
@@ -1736,8 +1692,8 @@ export class BuildOrRepairEdificeAction extends OathAction {
         if (!card) return;
         
         if (card instanceof Edifice)
-            new FlipEdificeEffect(card).doNext();
+            new FlipEdificeEffect(this.actionManager, card).doNext();
         else
-            new BuildEdificeFromDenizenEffect(card).doNext();
+            new BuildEdificeFromDenizenEffect(this.actionManager, card).doNext();
     }
 }

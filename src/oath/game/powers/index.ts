@@ -1,6 +1,8 @@
-import { RestAction, UsePowerAction, WakeAction, CampaignAttackAction, CampaignDefenseAction } from "../actions";
-import { ModifiableAction } from "../actions/base";
-import { ApplyWhenPlayedEffect, GainPowerEffect, LosePowerEffect, PayPowerCostEffect } from "../actions/effects";
+import { RestAction, WakeAction, CampaignAttackAction, CampaignDefenseAction } from "../actions";
+import { UsePowerAction } from "./actions";
+import { ActionWithProxy } from "../actions/base";
+import { GainPowerEffect, LosePowerEffect } from "../actions/effects";
+import { PayPowerCostEffect } from "./actions";
 import { OathCard, OwnableCard, Site, WorldCard } from "../model/cards";
 import { ResourceCost } from "../costs";
 import { CostContext, ResourceTransferContext, SupplyCostContext } from "./context";
@@ -95,7 +97,7 @@ export abstract class WhenPlayed<T extends WorldCard> extends PowerWithProxy<T> 
     abstract whenPlayed(): void;
 }
 
-export abstract class ActionPower<T extends WithPowers, U extends ModifiableAction> extends PowerWithProxy<T> {
+export abstract class ActionPower<T extends WithPowers, U extends ActionWithProxy> extends PowerWithProxy<T> {
     action: U;
 
     constructor(source: T, player: OathPlayer, action: U) {
@@ -118,7 +120,7 @@ export abstract class ActivePower<T extends OathCard> extends ActionPower<T, Use
     abstract usePower(): void;
 }
 
-export abstract class ActionModifier<T extends WithPowers, U extends ModifiableAction> extends ActionPower<T, U> {
+export abstract class ActionModifier<T extends WithPowers, U extends ActionWithProxy> extends ActionPower<T, U> {
     abstract modifiedAction: AbstractConstructor<U>;
     mustUse: boolean = false;
 
@@ -148,18 +150,18 @@ export abstract class ActionModifier<T extends WithPowers, U extends ModifiableA
     }
 }
 
-export function ActionCostModifier<T extends WithPowers, U extends CostContext<any>>(base: Constructor<ActionModifier<T, ModifiableAction>>, costContext: Constructor<U>) {
+export function ActionCostModifier<T extends WithPowers, U extends CostContext<any>>(base: Constructor<ActionModifier<T, ActionWithProxy>>, costContext: Constructor<U>) {
     abstract class ActionCostModifier extends CostModifier<T, U> {
         modifiedContext = costContext;
 
         canUse(context: U): boolean {
             const instance = new base(this.source, this.player, context.origin);  // Actions can't have modifiedAction as static because of initialization order making it a pain
-            return context.origin instanceof instance.modifiedAction && (context.origin as ModifiableAction).modifiers.some(e => e instanceof base);
+            return context.origin instanceof instance.modifiedAction && (context.origin as ActionWithProxy).modifiers.some(e => e instanceof base);
         }
     }
     return ActionCostModifier;
 }
-export function NoSupplyCostActionModifier<T extends WithPowers>(base: Constructor<ActionModifier<T, ModifiableAction>>) {
+export function NoSupplyCostActionModifier<T extends WithPowers>(base: Constructor<ActionModifier<T, ActionWithProxy>>) {
     return class NoSupplyCostActionModifier extends ActionCostModifier(base, SupplyCostContext) {
         apply(context: SupplyCostContext): void {
             context.cost.multiplier = 0;
@@ -167,7 +169,7 @@ export function NoSupplyCostActionModifier<T extends WithPowers>(base: Construct
     }
 }
 
-export abstract class EnemyActionModifier<T extends OwnableCard, U extends ModifiableAction> extends ActionModifier<T, U> {
+export abstract class EnemyActionModifier<T extends OwnableCard, U extends ActionWithProxy> extends ActionModifier<T, U> {
     mustUse = true;
 
     canUse(): boolean {
@@ -187,7 +189,7 @@ export abstract class RestPower<T extends OwnableCard> extends ActionModifier<T,
     mustUse = true;
 }
 
-export function gainPowerUntilActionResolves<T extends WithPowers, U extends ModifiableAction>(source: T, power: Constructor<OathPower<T>>, action: Constructor<U>) {
+export function gainPowerUntilActionResolves<T extends WithPowers, U extends ActionWithProxy>(source: T, power: Constructor<OathPower<T>>, action: Constructor<U>) {
     new GainPowerEffect(source.game, source, power).doNext();
     new GainPowerEffect(source.game, source, class LosePowerWhenActionResolves extends ActionModifier<T, U> {
         modifiedAction = action;

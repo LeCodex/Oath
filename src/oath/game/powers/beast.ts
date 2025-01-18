@@ -10,6 +10,7 @@ import { ResourceCost } from "../costs";
 import { ResourceTransferContext, SupplyCostContext } from "./context";
 import { AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, RestPower, ActivePower, EnemyAttackerCampaignModifier, EnemyDefenderCampaignModifier, Accessed, ActionModifier, EnemyActionModifier, BattlePlan, ResourceTransferModifier, NoSupplyCostActionModifier, SupplyCostModifier } from ".";
 import { AttackDieSymbol, DefenseDieSymbol } from "../dice";
+import { DiscardOptions } from "../model/decks";
 
 
 export class NatureWorshipAttack extends AttackerBattlePlan<Denizen> {
@@ -421,7 +422,7 @@ export class FaeMerchant extends ActivePower<Denizen> {
             new TakeOwnableObjectEffect(this.game, this.action.player, relic).doNext();
             new ChooseCardsAction(
                 this.action.player, "Discard a relic", [[...this.action.playerProxy.relics].filter(e => !(e instanceof GrandScepter)).map(e => e.original)],
-                (cards: Relic[]) => { if (cards[0]) cards[0].putOnBottom(this.action.player); }
+                (cards: Relic[]) => { if (cards[0]) new DiscardCardEffect(this.action.player, cards[0], new DiscardOptions(this.game.relicDeck, true)).doNext(); }
             ).doNext();
         });
     }

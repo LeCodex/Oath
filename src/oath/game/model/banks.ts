@@ -45,13 +45,6 @@ export abstract class Banner<T extends OathResource = OathResource> extends Cont
     //     new RecoverBannerPitchAction(player, this).doNext();
     // }
 
-    // finishRecovery(player: OathPlayer, amount: number): void {
-    //     // Banner-specific logic
-    //     new ParentToTargetEffect(this.game, player, player.byClass(this.cls).max(amount), this).doNext();
-    //     this.handleRecovery(player);
-    //     new RecoverTargetEffect(player, this).doNext();
-    // }
-
     // seize(player: OathPlayer) {
     //     new TakeOwnableObjectEffect(this.game, player, this).doNext();
     //     new TransferResourcesEffect(this.game, new ResourceTransferContext(player, this, new ResourceCost([], [[this.cls as any, 2]]), undefined, this)).doNext();

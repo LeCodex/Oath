@@ -1,12 +1,12 @@
 import { CampaignDefenseAction, ChoosePlayersAction, ConspiracyStealAction } from "../actions";
 import type { Conspiracy } from "../model/cards";
 import { Denizen } from "../model/cards";
-import type { Oath } from "../model/oaths";
+import type { Oathkeeper } from "../model/oaths";
 import type { OathPlayer } from "../model/player";
 import { ActionModifier, WhenPlayed } from ".";
 
 
-export class OathDefense extends ActionModifier<Oath, CampaignDefenseAction> {
+export class OathkeeperDefense extends ActionModifier<Oathkeeper, CampaignDefenseAction> {
     modifiedAction = CampaignDefenseAction;
     mustUse = true;
     get name() { return "Oathkeeper"; }

@@ -1,6 +1,6 @@
 import { TradeAction, TakeResourceFromPlayerAction, TakeFavorFromBankAction, CampaignEndAction, MakeDecisionAction, CampaignAttackAction, ChooseSuitsAction, ChooseCardsAction, MusterAction, SearchPlayOrDiscardAction, MayDiscardACardAction, SearchAction, SearchChooseAction, KillWarbandsOnTargetAction, TinkersFairOfferAction, StartBindingExchangeAction, DeedWriterOfferAction } from "../actions";
 import { CampaignEndCallback , InvalidActionResolution } from "../actions/utils";
-import { ModifiableAction } from "../actions/base";
+import { ActionWithProxy } from "../actions/base";
 
 import { Denizen, Edifice, Relic, WorldCard } from "../model/cards";
 import { PlayVisionEffect, PlayWorldCardEffect, PeekAtCardEffect, DiscardCardEffect, BecomeCitizenEffect, SetPeoplesFavorMobState, GainSupplyEffect, DrawFromDeckEffect, TakeOwnableObjectEffect, MoveDenizenToSiteEffect, ParentToTargetEffect, PutResourcesOnTargetEffect, RecoverTargetEffect } from "../actions/effects";
@@ -13,6 +13,7 @@ import { maxInGroup, minInGroup } from "../utils";
 import { DefenderBattlePlan, Accessed, ActivePower, WhenPlayed, EnemyActionModifier, AttackerBattlePlan, ActionModifier, EnemyDefenderCampaignModifier, NoSupplyCostActionModifier, SupplyCostModifier } from ".";
 import { ExileBoard } from "../model/player";
 import { AttackDieSymbol } from "../dice";
+import { DiscardOptions } from "../model/decks";
 
 
 export class TravelingDoctorAttack extends AttackerBattlePlan<Denizen> {
@@ -196,7 +197,7 @@ export class FamilyHeirloom extends WhenPlayed<Denizen> {
             new MakeDecisionAction(
                 this.action.executor, "Keep the relic?",
                 () => new TakeOwnableObjectEffect(this.game, this.action.executor, relic).doNext(),
-                () => relic.putOnBottom(this.action.executor)
+                () => new DiscardCardEffect(this.action.player, relic, new DiscardOptions(this.game.relicDeck, true)).doNext()
             ).doNext();
         });
     }
@@ -252,8 +253,8 @@ export class Herald extends EnemyActionModifier<Denizen, CampaignEndAction> {
     }
 }
 
-export class Marriage extends ActionModifier<Denizen, ModifiableAction> {
-    modifiedAction = ModifiableAction;
+export class Marriage extends ActionModifier<Denizen, ActionWithProxy> {
+    modifiedAction = ActionWithProxy;
     mustUse = true;
 
     applyWhenApplied(): boolean {
@@ -430,7 +431,7 @@ export class RelicBreaker extends ActivePower<Denizen> {
             this.action.player, "Discard a relic to gain 3 warbands", [[...this.action.playerProxy.site.relics].map(e => e.original)],
             (cards: Relic[]) => {
                 if (!cards[0]) return;
-                cards[0].putOnBottom(this.action.player);
+                new DiscardCardEffect(this.action.player, cards[0], new DiscardOptions(this.game.relicDeck, true)).doNext();
                 new ParentToTargetEffect(this.game, this.action.player, this.action.playerProxy.leader.original.bag.get(3), this.action.player.board).doNext();
             }
         ).doNext();

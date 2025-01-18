@@ -21,7 +21,7 @@ export const sitesData: Record<SiteName, [number, SitePowerName[], number?, Reso
     Steppe:         [2, ["Steppe"],                             1, new ResourceCost([[Favor, 3]]),      OathSuit.Nomad],
     Wastes:         [1, ["Wastes"],                             1, new ResourceCost([], [[Secret, 2]])],
 
-    DrownedCity:    [0, ["OpportunitySite"],                    1, new ResourceCost([], [[Favor, 2]]),  OathSuit.None,      [[Secret, 3]]],
+    DrownedCity:    [0, ["OpportunitySite"],                    2, new ResourceCost([], [[Favor, 2]]),  OathSuit.None,      [[Secret, 3]]],
     Mine:           [1, ["OpportunitySite"],                    1, new ResourceCost([[Favor, 3]]),      OathSuit.Discord,   [[Favor, 3]]],
     SaltFlats:      [2, ["OpportunitySite"],                    0, new ResourceCost(),                  OathSuit.None,      [[Favor, 2], [Secret, 1]]],
 

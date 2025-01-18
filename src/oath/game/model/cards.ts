@@ -16,6 +16,7 @@ import { sitesData } from "../cards/sites";
 import type { RelicName } from "../cards/relics";
 import { relicsData } from "../cards/relics";
 import type { CardPowerName, DenizenPowerName, RelicPowerName, SitePowerName, VisionPowerName } from "../powers/classIndex";
+import { Oath } from "./oaths";
 
 
 export abstract class OathCard extends ResourcesAndWarbands<string> implements HiddenInformation, WithPowers {
@@ -47,14 +48,6 @@ export abstract class OathCard extends ResourcesAndWarbands<string> implements H
     visualName(player?: OathPlayer) {
         return this.facedown && (!player || !this.seenBy.has(player)) ? this.facedownName : this.name;
     }
-
-    // returnResources() {
-    //     const amount = this.byClass(Secret).length;
-    //     if (amount) {
-    //         new TransferResourcesEffect(this.game, new ResourceTransferContext(this.game.currentPlayer, this, new ResourceCost([[Secret, amount]]), this.game.currentPlayer, this)).doNext();
-    //         new FlipSecretsEffect(this.game, this.game.currentPlayer, amount).doNext();
-    //     }
-    // }
 
     abstract accessibleBy(player: OathPlayer): boolean;
 
@@ -296,12 +289,12 @@ export abstract class VisionBack extends WorldCard {
 
 export class Vision extends VisionBack {
     declare readonly id: keyof typeof OathType;
+    oath: Oath;
 
     constructor(id: keyof typeof OathType) {
         super(id, []);
+        this.oath = new Oath(this.game, OathType[id]);
     }
-
-    get oathData() { return oathData[OathType[this.id]]; }
 
     get name() { return `VisionOf${this.key}` }
     get key() { return OathTypeVisionName[this.id]; }

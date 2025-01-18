@@ -1,7 +1,6 @@
 import { MakeDecisionAction, ChooseCardsAction, ChooseRegionAction, TakeFavorFromBankAction, TakeResourceFromPlayerAction, ChooseSuitsAction, SearchPlayOrDiscardAction, MusterAction, TravelAction, CampaignAction, KillWarbandsOnTargetAction, CampaignAttackAction, CampaignEndAction, TakeReliquaryRelicAction, ChooseNumberAction, StartBindingExchangeAction, FestivalDistrictOfferAction, RecoverAction } from "../actions";
-import { CampaignEndCallback , InvalidActionResolution } from "../actions/utils";
-import { ModifiableAction } from "../actions/base";
-
+import { CampaignEndCallback , cannotPayError, InvalidActionResolution } from "../actions/utils";
+import { ActionWithProxy } from "../actions/base";
 import { FavorBank, PeoplesFavor } from "../model/banks";
 import { Region } from "../model/map";
 import { Denizen, Edifice, OathCard, Relic, Site, Vision, WorldCard } from "../model/cards";
@@ -142,7 +141,7 @@ export class RelicThief extends EnemyActionModifier<Denizen, TakeOwnableObjectEf
                 () => {
                     const costContext = new ResourceTransferContext(rulerProxy.original, this, new ResourceCost([[Favor, 1], [Secret, 1]]), this.source);
                     new TransferResourcesEffect(this.game, costContext).doNext(success => {
-                        if (!success) throw this.costContext.cost.cannotPayError;
+                        if (!success) throw cannotPayError(this.costContext.cost);
                         new RollDiceEffect(this.game, rulerProxy.original, new DefenseDie(), 1).doNext(result => {
                             if (result.value === 0) new TakeOwnableObjectEffect(this.game, rulerProxy.original, this.action.target).doNext();
                         });
@@ -346,8 +345,8 @@ export class BanditChiefWhenPlayed extends WhenPlayed<Denizen> {
             new KillWarbandsOnTargetAction(this.action.executor, site, 1).doNext();
     }
 }
-export class BanditChief extends ActionModifier<Denizen, ModifiableAction> {
-    modifiedAction = ModifiableAction;
+export class BanditChief extends ActionModifier<Denizen, ActionWithProxy> {
+    modifiedAction = ActionWithProxy;
     mustUse = true;
 
     applyWhenApplied(): boolean {

@@ -1,6 +1,6 @@
 import type { OathPower } from ".";
 import { ActionModifier } from ".";
-import type { ModifiableAction } from "../actions/base";
+import type { ActionWithProxy } from "../actions/base";
 import type { OathActionManager } from "../actions/manager";
 import type { OathGame } from "../model/game";
 import type { WithPowers, SourceType } from "../model/interfaces";
@@ -32,7 +32,7 @@ export class OathPowersManager {
         }
     }
 
-    gatherActionModifiers<T extends ModifiableAction>(action: T, activator: OathPlayer): Set<ActionModifier<WithPowers, T>> {
+    gatherActionModifiers<T extends ActionWithProxy>(action: T, activator: OathPlayer): Set<ActionModifier<WithPowers, T>> {
         const instances = new Set<ActionModifier<WithPowers, T>>();
         for (const [sourceProxy, modifier] of this.getPowers(ActionModifier<WithPowers, T>)) {
             const instance = new modifier(sourceProxy.original, activator, action, activator);

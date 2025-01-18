@@ -1,6 +1,6 @@
 import { CitizenshipOfferAction, StartBindingExchangeAction, SkeletonKeyAction, TradeAction, MusterAction, TravelAction, MakeDecisionAction, ChoosePlayersAction, SearchAction, ChooseCardsAction, ChooseNumberAction } from "../actions";
 import { CampaignEndCallback, cannotPayError, InvalidActionResolution } from "../actions/utils";
-import { ModifiableAction } from "../actions/base";
+import { ActionWithProxy } from "../actions/base";
 import { Denizen, GrandScepter, OathCard, Relic, Site } from "../model/cards";
 import { TakeOwnableObjectEffect, PlayDenizenAtSiteEffect, MoveOwnWarbandsEffect, PeekAtCardEffect, SetGrandScepterLockEffect, GainSupplyEffect, DrawFromDeckEffect, RevealCardEffect, TransferResourcesEffect, BecomeExileEffect, MoveDenizenToSiteEffect, MoveWorldCardToAdvisersEffect, ParentToTargetEffect, DiscardCardEffect } from "../actions/effects";
 import { BannerKey, PlayerColor } from "../enums";
@@ -391,8 +391,8 @@ export class CrackedHorn extends ActionModifier<Relic, SearchAction> {
     }
 }
 
-export class BanditCrown extends ActionModifier<Relic, ModifiableAction> {
-    modifiedAction = ModifiableAction;
+export class BanditCrown extends ActionModifier<Relic, ActionWithProxy> {
+    modifiedAction = ActionWithProxy;
     mustUse = true;
 
     applyWhenApplied(): boolean {
@@ -410,8 +410,8 @@ export class BanditCrown extends ActionModifier<Relic, ModifiableAction> {
     }
 }
 
-export class GrandMask extends ActionModifier<Relic, ModifiableAction> {
-    modifiedAction = ModifiableAction;
+export class GrandMask extends ActionModifier<Relic, ActionWithProxy> {
+    modifiedAction = ActionWithProxy;
     mustUse = true;
 
     applyWhenApplied(): boolean {

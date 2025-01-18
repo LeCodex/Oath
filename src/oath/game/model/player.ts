@@ -105,22 +105,6 @@ export class OathPlayer extends ResourcesAndWarbands<number> implements Campaign
         this.supply -= amount;
         return true;
     }
-
-    // returnResources() {
-    //     for (const site of this.game.map.sites())
-    //         for (const denizen of site.denizens)
-    //             denizen.returnResources();
-
-    //     for (const player of this.game.players) {
-    //         for (const adviser of player.advisers)
-    //             adviser.returnResources();
-
-    //         for (const relic of player.relics)
-    //             relic.returnResources();
-    //     }
-
-    //     new FlipSecretsEffect(this.game, this, Infinity, false).doNext();
-    // }
     
     // seize(player: OathPlayer) {
     //     new TransferResourcesEffect(this.game, new ResourceTransferContext(this, this, new ResourceCost([], [[Favor, Math.floor(this.byClass(Favor).length / 2)]]), undefined)).doNext();
