@@ -1,10 +1,10 @@
-import type { OathType } from "../enums";
+import { OathType } from "../enums";
 import { OathGameObjectLeaf } from "./gameObject";
 import type { OwnableObject, WithPowers } from "./interfaces";
 import { OathPlayer } from "./player";
 import { maxInGroup } from "../utils";
 import type { PowerName } from "../powers/classIndex";
-import { oathData } from "./utils";
+import { oathData } from "./constants";
 import type { OathGame } from "./game";
 
 
@@ -43,7 +43,7 @@ export class OathkeeperTile extends OathGameObjectLeaf<string> implements Ownabl
     }
     
     get key() { return this.id; }
-    get name() { return `OathOf${this.oath.oathType}`; }
+    get name() { return `OathOf${OathType[this.oath.oathType]}`; }
     get owner() { return this.typedParent(OathPlayer); }
 
     setType(oathType: OathType) {

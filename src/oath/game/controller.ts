@@ -1,4 +1,5 @@
-import type { OathActionManager } from "./actions/manager";
+import { OathActionManager } from "./actions/manager";
+import { OathPhase } from "./enums";
 import { OathGame } from "./model/game";
 import { OathPowerManager } from "./powers/manager";
 import * as fs from "fs";
@@ -10,17 +11,20 @@ export class OathController {
 
     constructor(gameId: number, setupData: typeof this.game.setupData) {
         this.game = new OathGame(gameId, setupData);
-        this.powerManager = new OathPowerManager(this.game);
-        this.actionManager = this.powerManager.actionManager;
+        this.actionManager = new OathActionManager(this.game);
+        this.powerManager = new OathPowerManager(this.actionManager);
+
         this.actionManager.initialActions();
+        this.actionManager.on("save", () => { this.save(); });
+        this.actionManager.on("emptyStack", () => { if (this.game.phase === OathPhase.Over) this.archiveSave(); });
     }
 
     stringify() {
         return this.game.stringify() + "\n\n" + this.actionManager.stringify();
     }
 
-    get savePath() { return "data/oath/save" + this.game.gameId + ".jsonl"; }
-    get archivePath() { return "data/oath/replay" + Date.now() + ".jsonl"; }
+    get savePath() { return `data/oath/save${this.game.gameId}.jsonl`; }
+    get archivePath() { return `data/oath/replay${Date.now()}.jsonl`; }
 
     save() {
         const data = this.stringify();

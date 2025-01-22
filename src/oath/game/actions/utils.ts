@@ -11,6 +11,27 @@ import { DiscardCardEffect, RollDiceEffect } from "./effects";
 import type { OathActionManager } from "./manager";
 
 
+export class EventPublisher<E extends Record<string, any[]>> {
+    private listeners: { [k in keyof E]?: Set<(...args: E[k]) => void> } = {};
+
+    on<K extends keyof E>(event: K, listener: (...args: E[K]) => void) {
+        if (!this.listeners[event]) this.listeners[event] = new Set();
+        this.listeners[event].add(listener);
+    }
+
+    off<K extends keyof E>(event: K, listener: (...args: E[K]) => void) {
+        if (!this.listeners[event]) return;
+        this.listeners[event].delete(listener);
+    }
+
+    emit<K extends keyof E>(event: K, ...args: E[K]) {
+        if (!this.listeners[event]) return;
+        for (const listener of this.listeners[event]) {
+            listener(...args);
+        }
+    }
+}
+
 export class CampaignEndCallback {
     constructor(
         public resolve: () => void,

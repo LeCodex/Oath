@@ -24,7 +24,7 @@ export class FavorBank extends Container<Favor, OathSuit> {
 
 export abstract class Banner<T extends OathResource = OathResource> extends Container<T, string> implements OwnableObject, RecoverActionTarget, CampaignActionTarget, WithPowers {
     readonly type = "banner";
-    powers: Set<BannerPowerName>;
+    powers = new Set<BannerPowerName>(["BannerRecover", "BannerSeize"]);
     active = true;
     min = 1;
 
@@ -32,12 +32,6 @@ export abstract class Banner<T extends OathResource = OathResource> extends Cont
     get owner() { return this.typedParent(OathPlayer); }
     get defense() { return this.amount; }
     get force() { return this.owner; }
-
-    constructor(id: string, cls: Constructor<T>) {
-        super(id, cls);
-        this.powers.add("BannerRecover");
-        this.powers.add("BannerSeize");
-    }
 
     setOwner(player?: OathPlayer): void {
         player?.addChild(this);
@@ -51,12 +45,13 @@ export abstract class Banner<T extends OathResource = OathResource> extends Cont
 export class PeoplesFavor extends Banner<Favor> {
     declare readonly id: "PeoplesFavor";
     name = "PeoplesFavor";
-    powers = new Set<BannerPowerName>(["PeoplesFavorSearch" ,"PeoplesFavorWake"]);
     declare cls: typeof Favor;
     isMob: boolean;
 
     constructor() {
         super("PeoplesFavor", Favor);
+        this.powers.add("PeoplesFavorSearch");
+        this.powers.add("PeoplesFavorWake");
     }
 
     // handleRecovery(player: OathPlayer) {
@@ -96,11 +91,11 @@ export class PeoplesFavor extends Banner<Favor> {
 export class DarkestSecret extends Banner<Secret> {
     declare readonly id: "DarkestSecret";
     name = "DarkestSecret";
-    powers = new Set<BannerPowerName>(["DarkestSecretPower"]);
     declare cls: typeof Secret;
 
     constructor() {
         super("DarkestSecret", Secret);
+        this.powers.add("DarkestSecretPower");
     }
 
     canRecover(action: RecoverAction): boolean {

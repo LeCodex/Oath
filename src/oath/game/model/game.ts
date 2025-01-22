@@ -174,7 +174,7 @@ export class OathGame extends TreeRoot<OathGame> {
         }
         
         this.addChild(new GrandScepter());
-        this.addChild(new OathkeeperTile().setType(gameData.oath));
+        this.addChild(new OathkeeperTile()).setType(gameData.oath);
     }
 
     get players() {

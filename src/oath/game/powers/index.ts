@@ -37,7 +37,7 @@ export abstract class OathPower<T extends WithPowers> {
 
     get actionManager() { return this.powerManager.actionManager; }
     
-    get selfCostContext() { return new ResourceTransferContext(this.player, this, this.cost, this.source); }
+    get selfCostContext() { return new ResourceTransferContext(this.powerManager, this.player, this, this.cost, this.source); }
     get name() { return this.source.name; }
     get game() { return this.source.game; }
 

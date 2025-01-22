@@ -655,7 +655,7 @@ export class ReturnResourcesEffect extends OathEffect {
 export class ReturnAllResourcesEffect extends OathEffect {
     ignore: Set<OathGameObject>;
 
-    constructor(actionManager: OathActionManager, ignore: Iterable<OathGameObject>) {
+    constructor(actionManager: OathActionManager, ignore?: Iterable<OathGameObject>) {
         super(actionManager, undefined);
         this.ignore = new Set<OathGameObject>(ignore);
     }

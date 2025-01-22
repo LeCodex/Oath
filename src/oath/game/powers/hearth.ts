@@ -293,7 +293,7 @@ export class WelcomingParty extends ActionModifier<Denizen, SearchChooseAction> 
     applyAfter(): void {
         for (const playAction of this.action.playActions)
             if (playAction.cardProxy instanceof Denizen)
-                this.actionManager.futureActionsModifiable.get(playAction)?.applyModifiers([new WelcomingPartyPlay(this.powerManager, this.source, this.player, playAction)]);
+                this.powerManager.futureActionsModifiable.get(playAction)?.applyModifiers([new WelcomingPartyPlay(this.powerManager, this.source, this.player, playAction)]);
     }
 }
 export class WelcomingPartyPlay extends ActionModifier<Denizen, SearchPlayOrDiscardAction> {

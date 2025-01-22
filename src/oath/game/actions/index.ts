@@ -121,6 +121,7 @@ export abstract class PayDenizenAction extends MajorAction {
     
     execute() {
         this.cardProxy = this.parameters.cardProxy[0]!;
+        super.execute();
     }
 
     majorAction(): void {
@@ -207,6 +208,8 @@ export class TravelAction extends MajorAction {
             this.supplyCost = new SupplyCost(this.gameProxy.map.travelCosts.get(fromRegionKey)?.get(toRegionKey) ?? 2);
         else
             this.supplyCost = new SupplyCost(2);
+
+        super.execute();
     }
 
     majorAction() {
@@ -229,6 +232,7 @@ export class RecoverAction extends MajorAction {
 
     execute() {
         this.targetProxy = this.parameters.targetProxy[0]!;
+        super.execute();
     }
 
     majorAction() {
@@ -282,6 +286,7 @@ export class SearchAction extends MajorAction {
     execute() {
         this.deckProxy = this.parameters.deckProxy[0]!;
         this.supplyCost = new SupplyCost(this.deckProxy.searchCost);
+        super.execute();
     }
 
     majorAction() {
@@ -517,6 +522,7 @@ export class CampaignAction extends MajorAction {
 
     execute() {
         this.defenderProxy = this.parameters.defenderProxy[0];
+        super.execute();
     }
 
     majorAction() {

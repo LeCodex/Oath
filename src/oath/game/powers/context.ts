@@ -7,24 +7,26 @@ import type { WithPowers } from "../model/interfaces";
 import type { OathPlayer } from "../model/player";
 import type { MaskProxyManager} from "../utils";
 import { allChoices, allCombinations } from "../utils";
+import { OathPowerManager } from "./manager";
 
 
 export abstract class CostContext<T> {
     constructor(
+        public readonly powerManager: OathPowerManager,
         public readonly player: OathPlayer,
         public readonly origin: any, // TODO: This sucks. Need to find a better way of differentiating contexts
         public cost: T
     ) { }
 
     modifiersCostContext(modifiers: CostModifier<WithPowers, CostContext<T>>[]) {
-        const contexts: ResourceTransferContext[] = modifiers.map(e => new ResourceTransferContext(this.player, this, e.cost, e.source));
-        return new MultiResourceTransferContext(this.player, this, contexts);
+        const contexts: ResourceTransferContext[] = modifiers.map(e => new ResourceTransferContext(this.powerManager, this.player, this, e.cost, e.source));
+        return new MultiResourceTransferContext(this.powerManager, this.player, this, contexts);
     }
 
     payableCostsWithModifiers(maskProxyManager: MaskProxyManager) {
         const modifiers: CostModifier<WithPowers, CostContext<T>>[] = [];
-        for (const [source, modifier] of maskProxyManager.get(this.player.game).getPowers(CostModifier)) {
-            const instance = new modifier(source, this.player, maskProxyManager);
+        for (const [sourceProxy, modifier] of maskProxyManager.get(this.powerManager).getPowers(CostModifier)) {
+            const instance = new modifier(this.powerManager, sourceProxy.original, this.player, maskProxyManager);
             if (this instanceof instance.modifiedContext && instance.canUse(this)) modifiers.push(instance);
         }
         const mustUse = modifiers.filter(e => e.mustUse);
@@ -54,13 +56,14 @@ export class ResourceTransferContext extends CostContext<ResourceCost> {
     source: OathGameObject;
 
     constructor(
+        powerManager: OathPowerManager,
         player: OathPlayer,
         origin: any,
         cost: ResourceCost,
         public target: OathGameObject | undefined,
         source?: OathGameObject
     ) {
-        super(player, origin, cost);
+        super(powerManager, player, origin, cost);
         this.source = source || this.player;
     }
 
@@ -75,11 +78,12 @@ export class ResourceTransferContext extends CostContext<ResourceCost> {
 
 export class MultiResourceTransferContext extends CostContext<ResourceCost[]> {
     constructor(
+        powerManager: OathPowerManager,
         player: OathPlayer,
         origin: any,
         public costContexts: ResourceTransferContext[]
     ) {
-        super(player, origin, costContexts.map(e => e.cost));
+        super(powerManager, player, origin, costContexts.map(e => e.cost));
     }
 
     payableCostsWithModifiers(maskProxyManager: MaskProxyManager) {

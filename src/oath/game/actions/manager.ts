@@ -1,5 +1,5 @@
 import { OathAction, OathEffect, ResolveCallbackEffect } from "./base";
-import { InvalidActionResolution } from "./utils";
+import { EventPublisher, InvalidActionResolution } from "./utils";
 import { OathPhase, OathSuit, RegionKey } from "../enums";
 import { type OathGame } from "../model/game";
 import { SerializedNode } from "../model/utils";
@@ -93,7 +93,11 @@ export class ActionManagerReturn {
     loaded?: boolean
 }
 
-export class OathActionManager {
+export class OathActionManager extends EventPublisher<{
+    emptyStack: [],
+    addFutureAction: [OathAction],
+    save: []
+}> {
     loaded: boolean = true;
     lastStartState: SerializedNode<this["game"]>;
 
@@ -105,7 +109,9 @@ export class OathActionManager {
     /** Set this to true to prevent rolling back this action/effect without the other players' consent. */
     markEventAsOneWay: boolean = false;
 
-    constructor(public game: OathGame) {}
+    constructor(public game: OathGame) {
+        super();
+    }
 
     get gameState() {
         const cloneDeepNext = (e: OathAction) => {
@@ -169,6 +175,7 @@ export class OathActionManager {
             this.checkForNextAction(save);
             return this.defer(save);
         } catch (e) {
+            // console.warn('Rollback from cancel because of', e);
             this.history = history;
             this.revertCurrentAction(gameState);
             throw e;
@@ -184,6 +191,7 @@ export class OathActionManager {
 
     public addFutureAction(action: OathAction) {
         this.futureActionsList.unshift(action);
+        this.emit("addFutureAction", action);
     }
  
     public checkForNextAction(save: boolean = true): ActionManagerReturn {
@@ -196,7 +204,7 @@ export class OathActionManager {
 
         const continueNow = action?.start();
         if (continueNow) return this.resolveTopAction(save);
-        return this.defer();
+        return this.defer(save);
     }
 
     public initialActions() {
@@ -252,9 +260,8 @@ export class OathActionManager {
     private emptyStack(save: boolean = true) {
         if (save) this.lastStartState = this.gameState.game;
 
-        if (this.game.phase === OathPhase.Over) {
-            this.archiveSave();
-        } else {
+        this.emit("emptyStack");
+        if (this.game.phase !== OathPhase.Over) {
             this.history.push(new HistoryNode(this, this.gameState.game, []));
             if (!this.checkForOathkeeper()) new ActPhaseAction(this, this.game.currentPlayer).doNext();
         }
@@ -262,6 +269,7 @@ export class OathActionManager {
 
     public checkForOathkeeper() {
         const candidates = this.game.oathkeeperTile.oath.getOathkeeperCandidates();
+        if (!this.game.oathkeeper) return false;
         if (candidates.has(this.game.oathkeeper)) return false;
         if (candidates.size) {
             new ChoosePlayersAction(
@@ -290,7 +298,7 @@ export class OathActionManager {
     }
 
     public defer(save: boolean = true): ActionManagerReturn {
-        if (save && this.game.phase !== OathPhase.Over) this.save();
+        if (save) this.emit("save");
 
         const action = this.actionsStack[this.actionsStack.length - 1];
         return {
@@ -326,6 +334,7 @@ export class OathActionManager {
             event.oneWay = this.markEventAsOneWay;
             return this.defer(save);
         } catch (e) {
+            // console.warn('Rollback from continue because of', e);
             this.authorizeCancel(save);
             throw e;
         }

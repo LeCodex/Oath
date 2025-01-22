@@ -19,7 +19,7 @@ export abstract class OathAction {
     readonly autocompleteSelects: boolean = true;
     abstract readonly message: string;
 
-    maskProxyManager: MaskProxyManager;
+    maskProxyManager = new MaskProxyManager();
     gameProxy: OathGame; // Effects and powers are allowed to modify the proxies to "lie" to the action
     playerProxy: OathPlayer; // This is a simple reference for simplicity
 
@@ -28,8 +28,7 @@ export abstract class OathAction {
         public player: OathPlayer
     ) {
         this.game = actionManager.game;
-        this.maskProxyManager = new MaskProxyManager();
-        this.gameProxy = this.maskProxyManager.get(player.game);
+        this.gameProxy = this.maskProxyManager.get(actionManager.game);
         this.playerProxy = this.maskProxyManager.get(player);
     }
 
@@ -99,12 +98,9 @@ export abstract class OathEffect<T = never> extends OathAction {
     }
 
     execute(): void {
-        new ResolveCallbackEffect(this.actionManager, () => { if (this.callback) this.callback(this.result); }).doNext();
-    }
-
-    modifiedExecution(): void {
         this.actionManager.currentEffectsStack.push(this);
         this.resolve();
+        new ResolveCallbackEffect(this.actionManager, () => { if (this.callback) this.callback(this.result); }).doNext();
     }
 
     abstract resolve(): void;
