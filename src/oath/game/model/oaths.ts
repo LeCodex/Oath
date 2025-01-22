@@ -30,7 +30,7 @@ export class Oath {
 }
 
 
-export class Oathkeeper extends OathGameObjectLeaf<string> implements OwnableObject, WithPowers {
+export class OathkeeperTile extends OathGameObjectLeaf<string> implements OwnableObject, WithPowers {
     readonly type = "oath";
     declare readonly id: "Oath";
     powers = new Set<PowerName>(["OathkeeperDefense"]);

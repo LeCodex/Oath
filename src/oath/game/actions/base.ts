@@ -1,7 +1,5 @@
 import type { OathGame } from "../model/game";
-import type { WithPowers } from "../model/interfaces";
 import type { OathPlayer } from "../model/player";
-import type { ActionModifier } from "../powers";
 import { MaskProxyManager } from "../utils";
 import type { OathActionManager } from "./manager";
 import type { SelectNOf } from "./selects";
@@ -11,22 +9,45 @@ import { InvalidActionResolution } from "./utils";
 //////////////////////////////////////////////////
 //                   ACTIONS                    //
 //////////////////////////////////////////////////
+type SelectType<T> = T extends SelectNOf<infer U> ? U : never;
+type ParametersType<T extends OathAction> = { [k in keyof T["selects"]]: SelectType<T["selects"][k]>[] };
+
 export abstract class OathAction {
     game: OathGame;
     readonly selects: Record<string, SelectNOf<any>> = {};
-    readonly parameters: Record<string, any> = {};
+    readonly parameters = {} as ParametersType<this>;
     readonly autocompleteSelects: boolean = true;
     abstract readonly message: string;
+
+    maskProxyManager: MaskProxyManager;
+    gameProxy: OathGame; // Effects and powers are allowed to modify the proxies to "lie" to the action
+    playerProxy: OathPlayer; // This is a simple reference for simplicity
 
     constructor(
         public actionManager: OathActionManager,
         public player: OathPlayer
     ) {
         this.game = actionManager.game;
+        this.maskProxyManager = new MaskProxyManager();
+        this.gameProxy = this.maskProxyManager.get(player.game);
+        this.playerProxy = this.maskProxyManager.get(player);
     }
 
     doNext(): void {
-        this.actionManager.futureActionsList.unshift(this);
+        this.actionManager.addFutureAction(this);
+    }
+
+    start(): boolean {
+        // NOTE: Setup the selects before
+        for (const [key, select] of Object.entries(this.selects) as [keyof ParametersType<this>, SelectNOf<any>][]) {
+            if (this.autocompleteSelects && select.choices.size <= select.min || select.choices.size === 0) {
+                this.parameters[key] = [...select.choices.values()];
+                delete this.selects[key as string];
+            }
+        }
+
+        // If all needed parameters were filled out (or there are no selects), just execute immediately
+        return Object.keys(this.selects).length === 0;
     }
 
     parse(data: Record<string, string[]>): Record<string, any[]> {
@@ -40,22 +61,9 @@ export abstract class OathAction {
     }
 
     applyParameters(values: Record<string, any[]>) {
-        for (const [key, value] of Object.entries(values)) {
+        for (const [key, value] of Object.entries(values) as [keyof ParametersType<this>, any[]][]) {
             this.parameters[key] = value;
         }
-    }
-
-    start(): boolean {
-        // NOTE: Setup the selects before
-        for (const [key, select] of Object.entries(this.selects)) {
-            if (this.autocompleteSelects && select.choices.size <= select.min || select.choices.size === 0) {
-                this.parameters[key] = [...select.choices.values()];
-                delete this.selects[key];
-            }
-        }
-
-        // If all needed parameters were filled out (or there are no selects), just execute immediately
-        return Object.keys(this.selects).length === 0;
     }
 
     abstract execute(): void;
@@ -69,42 +77,10 @@ export abstract class OathAction {
     }
 }
 
-export abstract class ActionWithProxy extends OathAction {
-    modifiers: ActionModifier<WithPowers, this>[] = [];
-    maskProxyManager: MaskProxyManager;
-    gameProxy: OathGame; // Effects and powers are allowed to modify the proxies to "lie" to the action
-    playerProxy: OathPlayer; // This is a simple reference for simplicity
-
-    constructor(actionManager: OathActionManager, player: OathPlayer) {
-        super(actionManager, player);
-        this.maskProxyManager = new MaskProxyManager();
-        this.gameProxy = this.maskProxyManager.get(player.game);
-        this.playerProxy = this.maskProxyManager.get(player);
-    }
-
-    start(): boolean {
-        for (const modifier of this.modifiers) modifier.applyAtStart();
-        return super.start();
-    }
-
-    execute() {
-        new ResolveCallbackEffect(this.actionManager, () => { this.modifiedExecution(); });
-    }
-
-    abstract modifiedExecution(): void;
-
-    serialize(): Record<string, any> | undefined {
-        return {
-            ...super.serialize(),
-            modifiers: this.modifiers.map(e => e.serialize())
-        };
-    }
-}
-
 //////////////////////////////////////////////////
 //                   EFFECTS                    //
 //////////////////////////////////////////////////
-export abstract class OathEffect<T = never> extends ActionWithProxy {
+export abstract class OathEffect<T = never> extends OathAction {
     selects: Record<string, never> = {};
     readonly message = "";
 

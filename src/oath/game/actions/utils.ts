@@ -1,14 +1,14 @@
 import type { Denizen } from "../model/cards";
 import { RollResult, AttackDie, DefenseDie } from "../dice";
-import type { OathGame } from "../model/game";
 import type { CampaignActionTarget } from "../model/interfaces";
-import type { OathPlayer} from "../model/player";
+import type { OathPlayer } from "../model/player";
 import { ExileBoard } from "../model/player";
 import type { ResourcesAndWarbands } from "../model/resources";
 import type { MaskProxyManager } from "../utils";
 import type { ResourceCost } from "../costs";
 import { CampaignKillWarbandsInForceAction } from ".";
 import { DiscardCardEffect, RollDiceEffect } from "./effects";
+import type { OathActionManager } from "./manager";
 
 
 export class CampaignEndCallback {
@@ -20,7 +20,6 @@ export class CampaignEndCallback {
 }
 
 export class CampaignResult {
-    game: OathGame;
     attacker: OathPlayer;
     defender: OathPlayer | undefined;
     defenderAllies = new Set<OathPlayer>();
@@ -46,12 +45,12 @@ export class CampaignResult {
     attackerLoss: number = 0;
     defenderLoss: number = 0;
 
-    constructor(game: OathGame) {
-        this.game = game;
+    constructor(public actionManager: OathActionManager) {
         this.atkRoll = new RollResult(this.game.random, new AttackDie());
         this.defRoll = new RollResult(this.game.random, new DefenseDie());
     }
 
+    get game() { return this.actionManager.game; }
     get winner() { return this.successful ? this.attacker : this.defender; }
     get loser() { return this.successful ? this.defender : this.attacker; }
     get loserTotalForce() { return this.successful ? this.totalDefForce : this.totalAtkForce; }
@@ -84,7 +83,9 @@ export class CampaignResult {
     }
 
     discardAtEnd(denizen: Denizen) {
-        this.atEnd(new CampaignEndCallback(() => new DiscardCardEffect(denizen.ruler ?? this.attacker, denizen).doNext(), `Discard ${denizen.name}`));
+        this.atEnd(new CampaignEndCallback(
+            () => new DiscardCardEffect(this.actionManager, denizen.ruler ?? this.attacker, denizen).doNext(), `Discard ${denizen.name}`
+        ));
     }
 
     onSuccessful(successful: boolean, callback: CampaignEndCallback) {
@@ -111,18 +112,18 @@ export class CampaignResult {
     }
 
     attackerKills(amount: number) {
-        if (amount) new CampaignKillWarbandsInForceAction(this, true, amount).doNext();
+        if (amount) new CampaignKillWarbandsInForceAction(this.actionManager, this, true, amount).doNext();
     }
 
     defenderKills(amount: number) {
         if (!this.defender) return;
-        if (amount) new CampaignKillWarbandsInForceAction(this, false, amount).doNext();
+        if (amount) new CampaignKillWarbandsInForceAction(this.actionManager, this, false, amount).doNext();
     }
 
     resolve(callback: () => void) {
-        new RollDiceEffect(this.game, this.attacker, this.atkRoll, this.atkPool).doNext();
+        new RollDiceEffect(this.actionManager, this.attacker, this.atkRoll, this.atkPool).doNext();
         const pool = this.defPool + (this.atkPool < 0 ? -this.atkPool : 0);
-        new RollDiceEffect(this.game, this.defender, this.defRoll, pool).doNext(callback);
+        new RollDiceEffect(this.actionManager, this.defender, this.defRoll, pool).doNext(callback);
     }
 }
 

@@ -5,7 +5,7 @@ import { denizenData, edificeFlipside } from "../cards/denizens";
 import type { RelicName } from "../cards/relics";
 import { relicsData } from "../cards/relics";
 import { OathPhase, OathSuit, RegionKey, PlayerColor, ALL_OATH_SUITS, BannerKey } from "../enums";
-import { Oathkeeper } from "./oaths";
+import { OathkeeperTile } from "./oaths";
 import { Conspiracy, Denizen, Edifice, GrandScepter, Relic, Site, Vision } from "./cards";
 import type { PlayerBoard } from "./player";
 import { OathPlayer } from "./player";
@@ -21,7 +21,6 @@ import { Reliquary, ReliquarySlot } from "./reliquary";
 import { constant, times } from "lodash";
 import type { SiteName } from "../cards/sites";
 import classIndex from "./classIndex";
-import * as fs from "fs";
 
 
 export class OathGame extends TreeRoot<OathGame> {
@@ -53,7 +52,7 @@ export class OathGame extends TreeRoot<OathGame> {
     // References for quick access to "static" elements
     /* eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain */
     get chancellor() { return this.search<PlayerBoard>("board", PlayerColor.Purple)?.typedParent(OathPlayer)!; }
-    get oathkeeperLabel() { return this.search<Oathkeeper>("oath", "Oath")!; }
+    get oathkeeperTile() { return this.search<OathkeeperTile>("oath", "Oath")!; }
     get reliquary() { return this.search<Reliquary>("reliquary", "reliquary")!; }
     get worldDeck() { return this.search<WorldDeck>("deck", "worldDeck")!; }
     get relicDeck() { return this.search<RelicDeck>("deck", "relicDeck")!; }
@@ -175,7 +174,7 @@ export class OathGame extends TreeRoot<OathGame> {
         }
         
         this.addChild(new GrandScepter());
-        this.addChild(new Oathkeeper().setType(gameData.oath));
+        this.addChild(new OathkeeperTile().setType(gameData.oath));
     }
 
     get players() {
@@ -184,7 +183,7 @@ export class OathGame extends TreeRoot<OathGame> {
     }
     private get currentId() { return this.order[this.turn]; }
     get currentPlayer() { return this.currentId !== undefined ? this.players.byKey(this.currentId)[0]! : this.players[0]!; }
-    get oathkeeper() { return this.oathkeeperLabel.owner ?? this.chancellor; }
+    get oathkeeper() { return this.oathkeeperTile.owner ?? this.chancellor; }
 
     favorBank(suit: OathSuit) {
         return this.byClass(FavorBank).byKey(suit)[0];
@@ -244,7 +243,7 @@ export class OathGame extends TreeRoot<OathGame> {
             gameCount: this.chronicleNumber + 1,
             
             playerCitizenship: newCitizenship,
-            oath: this.oathkeeperLabel.oathType,
+            oath: this.oathkeeperTile.oath.oathType,
             suitOrder: ALL_OATH_SUITS,
             sites: [...this.map.sites()].map(e => ({ name: e.id, facedown: e.facedown, cards: [...e.denizens, ...times(3 - e.denizens.length - e.relics.length, constant({ id: "NONE" as const })), ...e.relics].map(e => ({ name: e.id })) })),
             world: this.worldDeck.children.map(e => ({ name: e.id as keyof typeof CardName })),
@@ -258,19 +257,5 @@ export class OathGame extends TreeRoot<OathGame> {
 
     stringify() {
         return JSON.stringify(this.setupData)
-    }
-
-    get savePath() { return "data/oath/save" + this.gameId + ".jsonl"; }
-    get archivePath() { return "data/oath/replay" + Date.now() + ".jsonl"; }
-
-    save() {
-        const data = this.stringify();
-        fs.writeFileSync(this.savePath, data);
-    }
-
-    archiveSave() {
-        const data = this.stringify() + "\n\n" + JSON.stringify([this.seed]);
-        fs.writeFileSync(this.archivePath, data);
-        fs.rmSync(this.savePath)
     }
 }

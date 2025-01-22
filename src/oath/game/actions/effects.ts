@@ -1,4 +1,4 @@
-import { OathEffect, PlayerEffect } from "./base";
+import { OathAction, OathEffect, PlayerEffect } from "./base";
 import { InvalidActionResolution } from "./utils";
 import type { Relic, WorldCard } from "../model/cards";
 import { Denizen, Edifice, OathCard, Site, Vision, VisionBack } from "../model/cards";
@@ -26,6 +26,7 @@ import { sitesData } from "../cards/sites";
 import type { CampaignResult } from "./utils";
 import type { OathActionManager } from "./manager";
 import type { PowerName } from "../powers/classIndex";
+import { SelectCard } from "./selects";
 
 
 
@@ -137,7 +138,7 @@ export class TransferResourcesEffect extends OathEffect<boolean> {
         actionManager: OathActionManager,
         player: OathPlayer,
         public cost: ResourceCost,
-        public target: OathGameObject,
+        public target: OathGameObject | undefined,
         source?: OathGameObject
     ) {
         super(actionManager, player);
@@ -651,6 +652,34 @@ export class ReturnResourcesEffect extends OathEffect {
     }
 }
 
+export class ReturnAllResourcesEffect extends OathEffect {
+    ignore: Set<OathGameObject>;
+
+    constructor(actionManager: OathActionManager, ignore: Iterable<OathGameObject>) {
+        super(actionManager, undefined);
+        this.ignore = new Set<OathGameObject>(ignore);
+    }
+
+    resolve(): void {
+        for (const site of this.game.map.sites())
+            for (const denizen of site.denizens)
+                if (!this.ignore.has(denizen))
+                    new ReturnResourcesEffect(this.actionManager, denizen).doNext();
+    
+        for (const player of this.game.players) {
+            for (const adviser of player.advisers)
+                if (!this.ignore.has(adviser))
+                    new ReturnResourcesEffect(this.actionManager, adviser).doNext();
+            
+            for (const relic of player.relics)
+                if (!this.ignore.has(relic))
+                    new ReturnResourcesEffect(this.actionManager, relic).doNext();
+        }
+    
+        new FlipSecretsEffect(this.actionManager, this.player, Infinity, false).doNext();
+    }
+}
+
 export class SeizeTargetEffect extends PlayerEffect {
     constructor(
         actionManager: OathActionManager,
@@ -702,7 +731,7 @@ export class RecoverTargetEffect extends PlayerEffect {
     }
 
     resolve(): void {
-        new TakeOwnableObjectEffect(this.actionManager, this.player, this.target).doNext();
+        new TakeOwnableObjectEffect(this.actionManager, this.player, this.target, true).doNext();
     }
 }
 
@@ -751,7 +780,7 @@ export class CampaignJoinDefenderAlliesEffect extends PlayerEffect {
 
 export class SetNewOathkeeperEffect extends PlayerEffect {
     resolve(): void {
-        this.executor.addChild(this.game.oathkeeperLabel);
+        this.executor.addChild(this.game.oathkeeperTile);
     }
 }
 
@@ -1096,6 +1125,23 @@ export class TakeReliquaryRelicEffect extends PlayerEffect {
     }
 }
 
+export class ClearResourcesAndWarbandsEffect extends OathEffect {
+    constructor(
+        actionManager: OathActionManager,
+        public target: ResourcesAndWarbands
+    ) {
+        super(actionManager, undefined);
+    }
+
+    resolve(): void {
+        for (const resource of [Favor, Secret])
+            new TransferResourcesEffect(this.actionManager, this.game.currentPlayer, new ResourceCost([], [[resource, Infinity]]), undefined, this.target).doNext();
+
+        for (const player of this.game.players)
+            new ParentToTargetEffect(this.actionManager, player, this.target.getWarbands(player.board.key), player.bag).doNext();
+    }
+}
+
 
 //////////////////////////////////////////////////
 //               END OF THE GAME                //
@@ -1212,7 +1258,7 @@ export class FinishChronicleEffect extends PlayerEffect {
                 }
 
                 sitesKeysSet.delete(siteProxy.id);
-                siteProxy.original.clear();
+                new ClearResourcesAndWarbandsEffect(this.actionManager, siteProxy.original).doNext();
                 if (!keepSite) siteProxy.original.prune();
             }
         }

@@ -3,7 +3,6 @@ import type { RecoverActionTarget, WithPowers, AtSite, CampaignActionTarget, Own
 import { Region } from "./map";
 import type { PlayerColor, RegionKey } from "../enums";
 import { CardRestriction, OathSuit, OathType, OathTypeVisionName } from "../enums";
-import { oathData } from "./utils";
 import { OathPlayer } from "./player";
 import type { OathResource} from "./resources";
 import { ResourcesAndWarbands } from "./resources";
@@ -93,6 +92,7 @@ export class Site extends OathCard implements CampaignActionTarget {
         this.recoverCost = data[3] ?? new ResourceCost();
         this.recoverSuit = data[4] ?? OathSuit.None;
         this.startingResources = new Map(data[5]);
+        this.powers.add("SiteSeize");
     }
 
     get region() { return this.typedParent(Region); }
@@ -145,11 +145,6 @@ export class Site extends OathCard implements CampaignActionTarget {
         return this.region?.key === regionKey;
     }
 
-    // seize(player: OathPlayer) {
-    //     if (this.ruler) new MoveOwnWarbandsEffect(this.ruler.leader, this, this.ruler).doNext();
-    //     new CampaignSeizeSiteAction(player, this).doNext();
-    // }
-
     constSerialize(): Record<`_${string}`, any> {
         return {
             ...super.constSerialize(),
@@ -188,6 +183,8 @@ export class Relic extends OwnableCard implements RecoverActionTarget, CampaignA
         if (!data) throw TypeError(`${id} is not a valid Relic id`);
         super(id, data[1]);
         this.defense = data[0];
+        this.powers.add("RelicRecover");
+        this.powers.add("RelicSeize");
     }
     
     get site() { return this.typedParent(Site); }
@@ -197,21 +194,7 @@ export class Relic extends OwnableCard implements RecoverActionTarget, CampaignA
     canRecover(action: RecoverAction): boolean {
         return !!this.site;
     }
-
-    // recover(player: OathPlayer): void {
-    //     if (!this.site) return;
-    //     const costContext = new ResourceTransferContext(player, this.site, this.site.recoverCost, this.game.favorBank(this.site.recoverSuit));
-    //     new TransferResourcesEffect(this.game, costContext).doNext(success => {
-    //         if (!success) throw costContext.cost.cannotPayError;
-    //         new RecoverTargetEffect(player, this).doNext();
-    //     })
-    // }
-
-    // seize(player: OathPlayer) {
-    //     new TakeOwnableObjectEffect(this.game, player, this).doNext();
-    // }
 }
-
 export class GrandScepter extends Relic {
     declare readonly id: "GrandScepter";
     seizedThisTurn = false;

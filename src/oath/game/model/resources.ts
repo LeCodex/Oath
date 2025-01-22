@@ -122,12 +122,4 @@ export abstract class ResourcesAndWarbands<T = any> extends OathGameObject<T> {
         for (const warband of warbands) target?.addChild(warband);
         return warbands.length;
     }
-
-    clear() {
-        // for (const resource of [Favor, Secret])
-        //     new TransferResourcesEffect(this.game, new ResourceTransferContext(this.game.currentPlayer, this, new ResourceCost([], [[resource, Infinity]]), undefined, this)).doNext();
-
-        // for (const player of this.game.players)
-        //     new ParentToTargetEffect(this.game, player, this.getWarbands(player.board.key), player.bag).doNext();
-    }
 }

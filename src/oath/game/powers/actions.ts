@@ -1,43 +1,71 @@
 import type { WithPowers } from "../model/interfaces";
 import type { OathPlayer } from "../model/player";
-import { ActivePower, type ActionModifier } from ".";
+import type { OathPower, ActionModifier } from ".";
+import { ActivePower } from ".";
 import { allCombinations } from "../utils";
-import { PlayerEffect, ActionWithProxy } from "../actions/base";
+import { PlayerEffect, OathAction, ResolveCallbackEffect } from "../actions/base";
 import { SelectNOf } from "../actions/selects";
-import type { OathPowersManager } from "./manager";
-import type { OathActionManager } from "../actions/manager";
+import type { OathPowerManager } from "./manager";
 import type { OwnableCard } from "../model/cards";
-import { MultiResourceTransferContext, type CostContext } from "./context";
+import { MultiResourceTransferContext, ResourceTransferContext, type CostContext } from "./context";
 import { cannotPayError } from "../actions/utils";
-import type { PowerName } from "./classIndex";
-import {  TransferResourcesEffect } from "../actions/effects";
+import { TransferResourcesEffect } from "../actions/effects";
 import { ResourcesAndWarbands } from "../model/resources";
+import type { PowerName } from "./classIndex";
+import { OathActionManager } from "../actions/manager";
+import type { OathGame } from "../model/game";
 
 
-export abstract class ExpandedAction extends ActionWithProxy {
-    constructor(public powersManager: OathPowersManager, actionManager: OathActionManager, player: OathPlayer) {
-        super(actionManager, player);
+export class ExpandedActionManager extends OathActionManager {
+    futureActionsModifiable = new WeakMap<OathAction, ModifiableAction<OathAction>>();
+
+    constructor(
+        game: OathGame,
+        public powerManager: OathPowerManager
+    ) {
+        super(game);
+    }
+    
+    public addFutureAction(action: OathAction): void {
+        if (action instanceof ModifiableAction || action instanceof ChooseModifiers) {
+            super.addFutureAction(action);
+            return;
+        }
+
+        const modifiableAction = new ModifiableAction(action);
+        this.futureActionsModifiable.set(action, modifiableAction);
+        const chooseModifiers = new ChooseModifiers(this.powerManager, modifiableAction);
+        super.addFutureAction(chooseModifiers);
     }
 }
 
-export class ChooseModifiers<T extends ActionWithProxy> extends ExpandedAction {
+
+export abstract class ExpandedAction extends OathAction {
+    powerManagerProxy: OathPowerManager;
+
+    constructor(public powerManager: OathPowerManager, player: OathPlayer) {
+        super(powerManager.actionManager, player);
+        this.powerManagerProxy = this.maskProxyManager.get(powerManager);
+    }
+}
+
+export class ChooseModifiers<T extends OathAction> extends ExpandedAction {
     declare readonly selects: { modifiers: SelectNOf<ActionModifier<WithPowers, T>[]>; };
-    declare readonly parameters: { modifiers: ActionModifier<WithPowers, T>[][]; };
-    readonly action: T;
-    readonly next: T | ChooseModifiers<T>;
+    readonly modifiableAction: ModifiableAction<T>;
+    readonly next: ModifiableAction<T> | ChooseModifiers<T>;
     readonly message = "Choose modifiers";
 
-    constructor(powersManager: OathPowersManager, next: T | ChooseModifiers<T>, chooser: OathPlayer = next.player) {
-        super(powersManager, next.actionManager, chooser);
+    constructor(powerManager: OathPowerManager, next: ModifiableAction<T> | ChooseModifiers<T>, chooser: OathPlayer = next.player) {
+        super(powerManager, chooser);
         this.next = next;
-        this.action = next instanceof ChooseModifiers ? next.action : next;
+        this.modifiableAction = next instanceof ChooseModifiers ? next.modifiableAction : next;
     }
 
     start() {
         const defaults: string[] = [];
         const persistentModifiers = new Set<ActionModifier<WithPowers, T>>();
         const optionalModifiers = new Set<ActionModifier<WithPowers, T>>();
-        for (const modifier of this.powersManager.gatherActionModifiers(this.action, this.player)) {
+        for (const modifier of this.powerManagerProxy.gatherActionModifiers(this.modifiableAction.action, this.player)) {
             if (modifier.mustUse) {
                 persistentModifiers.add(modifier);
             } else {
@@ -48,8 +76,8 @@ export class ChooseModifiers<T extends ActionWithProxy> extends ExpandedAction {
         // TODO: Change to permutations to handle order (maybe have order agnosticity as a property)
         const choices = new Map<string, ActionModifier<WithPowers, T>[]>();
         for (const combination of allCombinations(optionalModifiers)) {
-            const totalContext = new MultiResourceTransferContext(this.player, this, [...persistentModifiers, ...combination].map(e => e.costContext));
-            if (!totalContext.payableCostsWithModifiers(this.action.maskProxyManager).length)
+            const totalContext = new MultiResourceTransferContext(this.player, this, [...persistentModifiers, ...combination].map(e => e.selfCostContext));
+            if (!totalContext.payableCostsWithModifiers(this.modifiableAction.maskProxyManager).length)
                 choices.set(combination.map(e => e.name).join(", "), combination);
         }
         this.selects.modifiers = new SelectNOf("Modifiers", choices, { defaults });
@@ -67,12 +95,57 @@ export class ChooseModifiers<T extends ActionWithProxy> extends ExpandedAction {
                 ignore.add(toIgnore);
         for (const modifier of ignore) modifiers.delete(modifier);
 
-        if (this.applyModifiers(modifiers)) {
+        if (this.modifiableAction.applyModifiers(modifiers)) {
             this.next.doNext();
         }
     }
+}
 
-    applyModifiers(modifiers: Iterable<ActionModifier<WithPowers, this["action"]>>) {
+export class ModifiableAction<T extends OathAction> extends OathAction {
+    modifiers: ActionModifier<WithPowers, T>[] = [];
+    message: string;
+    autocompleteSelects: boolean;
+
+    constructor(
+        public action: T
+    ) {
+        super(action.actionManager, action.player);
+        this.message = action.message;
+        this.autocompleteSelects = action.autocompleteSelects;
+    }
+
+    start(): boolean {
+        const continueNow = this.action.start();
+        Object.assign(this.selects, this.action.selects);
+        for (const modifier of this.modifiers) modifier.applyAtStart();
+        return continueNow;
+    }
+
+    parse(data: Record<string, string[]>): Record<string, any[]> {
+        return this.action.parse(data);
+    }
+
+    applyParameters(values: Record<string, any[]>): void {
+        this.action.applyParameters(values);
+    }
+
+    execute() {
+        for (const modifier of this.modifiers) modifier.applyBefore();
+        new ResolveCallbackEffect(this.actionManager, () => {
+            this.action.execute();
+            for (const modifier of this.modifiers) modifier.applyAfter();
+        });
+        new ResolveCallbackEffect(this.actionManager, () => { for (const modifier of this.modifiers) modifier.applyAtEnd(); });
+    }
+
+    serialize(): Record<string, any> | undefined {
+        return {
+            ...super.serialize(),
+            modifiers: this.modifiers.map(e => e.serialize())
+        };
+    }
+
+    applyModifiers(modifiers: Iterable<ActionModifier<WithPowers, T>>) {
         this.modifiers.push(...modifiers);
 
         let shouldContinue = true;
@@ -93,7 +166,6 @@ export class ChooseModifiers<T extends ActionWithProxy> extends ExpandedAction {
 
 export class UsePowerAction extends ExpandedAction {
     declare readonly selects: { power: SelectNOf<ActivePower<OwnableCard>>; };
-    declare readonly parameters: { power: ActivePower<OwnableCard>[]; };
     readonly autocompleteSelects = false;
     readonly message = "Choose a power to use";
 
@@ -101,7 +173,7 @@ export class UsePowerAction extends ExpandedAction {
 
     start() {
         const choices = new Map<string, ActivePower<OwnableCard>>();
-        for (const [sourceProxy, power] of this.powersManager.getPowers(ActivePower<OwnableCard>)) {
+        for (const [sourceProxy, power] of this.powerManagerProxy.getPowers(ActivePower<OwnableCard>)) {
             const instance = new power(sourceProxy.original, this.player, this);
             if (instance.canUse()) choices.set(instance.name, instance);
         }
@@ -109,12 +181,12 @@ export class UsePowerAction extends ExpandedAction {
         return super.start();
     }
 
-    execute(): void {
+    applyParameters(values: Record<string, any[]>): void {
+        super.applyParameters(values);
         this.power = this.parameters.power[0]!;
-        super.execute();
     }
 
-    modifiedExecution(): void {
+    execute(): void {
         this.power.payCost(success => {
             if (!success) throw cannotPayError(this.power.cost);
             this.power.usePower();
@@ -124,17 +196,15 @@ export class UsePowerAction extends ExpandedAction {
 
 export class ChoosePayableCostContextAction<T extends CostContext<any>> extends ExpandedAction {
     declare readonly selects: { costContext: SelectNOf<T | undefined>; };
-    declare readonly parameters: { costContext: (T | undefined)[]; };
     readonly message: string;
 
     constructor(
-        powersManager: OathPowersManager,
-        actionManager: OathActionManager,
+        powerManager: OathPowerManager,
         player: OathPlayer,
         public costContext: T,
         public callback: (costContext: T) => void
     ) {
-        super(powersManager, actionManager, player);
+        super(powerManager, player);
     }
 
     start() {
@@ -146,22 +216,28 @@ export class ChoosePayableCostContextAction<T extends CostContext<any>> extends 
         return super.start();
     }
 
-    modifiedExecution(): void {
+    execute(): void {
         this.callback(this.parameters.costContext[0]!);
     }
 }
 
 export class PayPowerCostEffect extends PlayerEffect<boolean> {
-    power: OathPower<WithPowers>;
+    powerManager: OathPowerManager;
 
-    constructor(player: OathPlayer, power: OathPower<WithPowers>) {
-        super(player);
-        this.power = power;
+    constructor(
+        player: OathPlayer,
+        public power: OathPower<WithPowers>
+    ) {
+        super(power.powerManager.actionManager, player);
+        this.powerManager = power.powerManager;
     }
 
     resolve(): void {
         const target = this.power.source instanceof ResourcesAndWarbands ? this.power.source : undefined;
-        new TransferResourcesEffect(this.game, this.power.costContext).doNext(result => this.result = result);
+        const costContext = new ResourceTransferContext(this.player, this.power.source, this.power.cost, target);
+        new ChoosePayableCostContextAction(this.powerManager, this.player, costContext, (costContext) => {
+            new TransferResourcesEffect(this.actionManager, costContext.player, costContext.cost, costContext.target, costContext.source).doNext(result => this.result = result);
+        }).doNext();
     }
 }
 

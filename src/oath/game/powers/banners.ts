@@ -1,10 +1,25 @@
-import { WakeAction, SearchPlayOrDiscardAction, MayDiscardACardAction, SearchAction, PeoplesFavorWakeAction } from "../actions";
-import { PeoplesFavor, DarkestSecret } from "../model/banks";
-import { ActionModifier, SupplyCostModifier , Owned } from ".";
+import { WakeAction, SearchPlayOrDiscardAction, MayDiscardACardAction, SearchAction, PeoplesFavorWakeAction, RecoverBannerPitchAction } from "../actions";
+import { PeoplesFavor, DarkestSecret, Banner } from "../model/banks";
+import { ActionModifier, SupplyCostModifier , Owned, SeizeModifier, RecoverModifier } from ".";
 import { Denizen } from "../model/cards";
 import { CardRestriction } from "../enums";
 import { SupplyCostContext } from "./context";
+import { TakeOwnableObjectEffect, TransferResourcesEffect } from "../actions/effects";
+import { ResourceCost } from "../costs";
+import { OathResourceType } from "../model/resources";
 
+
+export class BannerSeize extends SeizeModifier<Banner> {
+    applyAfter() {
+        new TakeOwnableObjectEffect(this.actionManager, this.action.player, this.source).doNext();
+        new TransferResourcesEffect(this.actionManager, this.action.player, new ResourceCost([], [[this.source.cls as OathResourceType, 2]]), undefined, this.source).doNext();
+    }
+}
+export class BannerRecover extends RecoverModifier<Banner> {
+    applyBefore(): void {
+        new RecoverBannerPitchAction(this.actionManager, this.action.player, this.source).doNext();
+    }
+}
 
 @Owned
 export class PeoplesFavorSearch extends ActionModifier<PeoplesFavor, SearchPlayOrDiscardAction> {
@@ -19,7 +34,7 @@ export class PeoplesFavorSearch extends ActionModifier<PeoplesFavor, SearchPlayO
     }
 
     applyBefore(): void {
-        if (this.action.siteProxy) new MayDiscardACardAction(this.player, this.action.discardOptions).doNext();
+        if (this.action.siteProxy) new MayDiscardACardAction(this.actionManager, this.player, this.action.discardOptions).doNext();
     }
 }
 @Owned
@@ -29,8 +44,8 @@ export class PeoplesFavorWake extends ActionModifier<PeoplesFavor, WakeAction> {
 
     applyBefore(): void {
         if (this.sourceProxy.owner?.original) {
-            new PeoplesFavorWakeAction(this.sourceProxy.owner?.original, this.source).doNext();
-            if (this.source.isMob) new PeoplesFavorWakeAction(this.sourceProxy.owner?.original, this.source).doNext();
+            new PeoplesFavorWakeAction(this.actionManager, this.sourceProxy.owner?.original, this.source).doNext();
+            if (this.source.isMob) new PeoplesFavorWakeAction(this.actionManager, this.sourceProxy.owner?.original, this.source).doNext();
         }
     }
 }

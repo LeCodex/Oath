@@ -198,7 +198,7 @@ export const denizenData: Record<DenizenName, [OathSuit, DenizenPowerName[], Car
     MountedPatrol:      [OathSuit.Nomad,    ["MountedPatrol"]],
     GreatCrusade:       [OathSuit.Nomad,    ["GreatCrusadeAttack", "GreatCrusadeDefense"]],
     StormCaller:        [OathSuit.Nomad,    ["StormCaller"]],
-    WildMounts:         [OathSuit.Nomad,    ["WildMounts"]],
+    WildMounts:         [OathSuit.Nomad,    ["WildMounts", "WildMountsEnd"]],
     Elders:             [OathSuit.Nomad,    ["Elders"]],
     AncientBinding:     [OathSuit.Nomad,    ["AncientBinding"]],
     Tents:              [OathSuit.Nomad,    ["Tents"]],

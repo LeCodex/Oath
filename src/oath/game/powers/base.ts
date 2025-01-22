@@ -19,6 +19,7 @@ export abstract class HomelandSitePower extends ActionModifier<Site, PlayWorldCa
 
     abstract giveReward(player: OathPlayer): void;
 }
+
 export abstract class GrandScepterActive extends ActivePower<GrandScepter> {
     canUse(): boolean {
         return super.canUse() && !this.sourceProxy.seizedThisTurn;

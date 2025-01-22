@@ -1,22 +1,29 @@
-import { ChooseResourceToTakeAction, WakeAction, TravelAction, CampaignAttackAction, MusterAction, SearchAction, StartBindingExchangeAction, MakeBindingExchangeOfferAction, SearchPlayOrDiscardAction, MayDiscardACardAction } from "../actions";
+import { ChooseResourceToTakeAction, WakeAction, TravelAction, CampaignAttackAction, MusterAction, SearchAction, StartBindingExchangeAction, MakeBindingExchangeOfferAction, SearchPlayOrDiscardAction, MayDiscardACardAction, CampaignSeizeSiteAction } from "../actions";
 import { InvalidActionResolution } from "../actions/utils";
 import { Site } from "../model/cards";
-import { PutResourcesOnTargetEffect, FlipSecretsEffect, ParentToTargetEffect, RecoverTargetEffect } from "../actions/effects";
+import { PutResourcesOnTargetEffect, FlipSecretsEffect, ParentToTargetEffect, RecoverTargetEffect, MoveOwnWarbandsEffect } from "../actions/effects";
 import { OathSuit } from "../enums";
 import { isAtSite, WithPowers } from "../model/interfaces";
 import { OathPlayer } from "../model/player";
 import { Secret } from "../model/resources";
-import { ActionCostModifier, ActionModifier, ActivePower, AtSite, NoSupplyCostActionModifier, SupplyCostModifier } from ".";
+import { ActionCostModifier, ActionModifier, ActivePower, AtSite, NoSupplyCostActionModifier, SeizeModifier, SupplyCostModifier } from ".";
 import { SupplyCostContext } from "./context";
 import { HomelandSitePower } from "./base";
 
+
+export class SiteSeize extends SeizeModifier<Site> {
+    applyAfter(): void {
+        if (this.source.ruler) new MoveOwnWarbandsEffect(this.actionManager, this.source.ruler.leader, this.source, this.source.ruler).doNext();
+        new CampaignSeizeSiteAction(this.actionManager, this.action.player, this.source).doNext();
+    }
+}
 
 export class Wastes extends HomelandSitePower {
     suit = OathSuit.Discord;
 
     giveReward(playerProxy: OathPlayer): void {
         const relic = this.sourceProxy.relics[0]?.original;
-        if (relic) return new RecoverTargetEffect(playerProxy.original, relic).doNext();
+        if (relic) return new RecoverTargetEffect(this.actionManager, playerProxy.original, relic).doNext();
     }
 }
 
@@ -24,7 +31,7 @@ export class StandingStones extends HomelandSitePower {
     suit = OathSuit.Arcane;
 
     giveReward(playerProxy: OathPlayer): void {
-        new PutResourcesOnTargetEffect(this.game, playerProxy.original, Secret, 1).doNext();
+        new PutResourcesOnTargetEffect(this.actionManager, playerProxy.original, Secret, 1).doNext();
     }
 }
 
@@ -32,7 +39,7 @@ export class AncientCity extends HomelandSitePower {
     suit = OathSuit.Order;
 
     giveReward(playerProxy: OathPlayer): void {
-        new ParentToTargetEffect(this.game, playerProxy.original, playerProxy.leader.bag.original.get(2)).doNext();
+        new ParentToTargetEffect(this.actionManager, playerProxy.original, playerProxy.leader.bag.original.get(2)).doNext();
     }
 }
 
@@ -41,7 +48,7 @@ export class FertileValley extends HomelandSitePower {
 
     giveReward(playerProxy: OathPlayer): void {
         const bank = this.game.favorBank(this.suit);
-        if (bank) new ParentToTargetEffect(this.game, playerProxy.original, bank?.get(1)).doNext();
+        if (bank) new ParentToTargetEffect(this.actionManager, playerProxy.original, bank?.get(1)).doNext();
     }
 }
 
@@ -49,7 +56,7 @@ export class Steppe extends HomelandSitePower {
     suit = OathSuit.Nomad;
 
     giveReward(playerProxy: OathPlayer): void {
-        new PutResourcesOnTargetEffect(this.game, playerProxy.original, Secret, 1).doNext();
+        new PutResourcesOnTargetEffect(this.actionManager, playerProxy.original, Secret, 1).doNext();
     }
 }
 
@@ -58,7 +65,7 @@ export class DeepWoods extends HomelandSitePower {
 
     giveReward(playerProxy: OathPlayer): void {
         const relic = this.sourceProxy.relics[0]?.original;
-        if (relic) return new RecoverTargetEffect(playerProxy.original, relic).doNext();
+        if (relic) return new RecoverTargetEffect(this.actionManager, playerProxy.original, relic).doNext();
     }
 }
 
@@ -112,7 +119,7 @@ export class BuriedGiant extends ActionModifier<Site, TravelAction> {
     }
 
     applyBefore(): void {
-        new FlipSecretsEffect(this.game, this.player, 1, true).doNext(amount => {
+        new FlipSecretsEffect(this.actionManager, this.player, 1, true).doNext(amount => {
             if (amount < 1) throw new InvalidActionResolution("Cannot flip a secret for Buried Giant");
         });
     }
@@ -155,7 +162,7 @@ export class TheHiddenPlaceTravel extends ActionModifier<Site, TravelAction> {
 
     applyBefore(): void {
         if (this.action.siteProxy !== this.sourceProxy) return;
-        new FlipSecretsEffect(this.game, this.action.player, 1, true).doNext(amount => {
+        new FlipSecretsEffect(this.actionManager, this.action.player, 1, true).doNext(amount => {
             if (amount < 1) throw new InvalidActionResolution("Cannot flip a secret for The Hidden Place");
         });
     }
@@ -167,7 +174,7 @@ export class TheHiddenPlaceCampaign extends ActionModifier<Site, CampaignAttackA
     applyBefore(): void {
         for (const target of this.action.campaignResult.targets) {
             if (target === this.source || isAtSite(target) && target.site === this.source) {
-                new FlipSecretsEffect(this.game, this.action.player, 1, true).doNext(amount => {
+                new FlipSecretsEffect(this.actionManager, this.action.player, 1, true).doNext(amount => {
                     if (amount < 1) throw new InvalidActionResolution("Cannot flip a secret for The Hidden Place");
                 });
                 break;
@@ -185,7 +192,7 @@ export class OpportunitySite extends ActionModifier<Site, WakeAction> {
     }
 
     applyBefore(): void {
-        if (!this.source.empty) new ChooseResourceToTakeAction(this.player, this.source).doNext();
+        if (!this.source.empty) new ChooseResourceToTakeAction(this.actionManager, this.player, this.source).doNext();
     }
 }
 
@@ -246,7 +253,7 @@ export class GreatSlum extends ActionModifier<Site, SearchPlayOrDiscardAction> {
 
     applyBefore(): void {
         if (this.action.siteProxy === this.sourceProxy)
-            new MayDiscardACardAction(this.player, this.action.discardOptions, this.source.denizens).doNext();
+            new MayDiscardACardAction(this.actionManager, this.player, this.action.discardOptions, this.source.denizens).doNext();
     }
 }
 
@@ -257,6 +264,6 @@ export class TheTribunal extends ActivePower<Site> {
 
     usePower(): void {
         // Can't enforce future actions, so just do a basic binding exchange
-        new StartBindingExchangeAction(this.action.player, MakeBindingExchangeOfferAction).doNext();
+        new StartBindingExchangeAction(this.actionManager, this.action.player, MakeBindingExchangeOfferAction).doNext();
     }
 }

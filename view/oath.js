@@ -71,35 +71,29 @@ const render = () => {
     const actionNode = document.getElementById("action");
     actionNode.innerHTML = "";
     choices = {};
-    if (!over) {
-        if (!loaded) {
-            actionNode.innerText = "Reloading the game has failed. The state currently shown is what was able to be loaded from the history until the error. Choose the way to handle this";
-            actionNode.appendChild(renderButton("Keep the game state as is and keep the history", () => chooseReloadMethod(false)));
-            actionNode.appendChild(renderButton("Reload from the final state and lose the history (this prevents rollbacks and replays)", () => chooseReloadMethod(true)));
-        } else {
-            if (action) {
-                actionNode.innerText = "[" + action.message + "] (" + byType(game, "player").filter(e => e.id === action.player)[0]._name + ")";
-                if (action.modifiers?.length) actionNode.appendChild(renderText("Modifiers: " + action.modifiers.join(", ")));
-                for (const [k, select] of Object.entries(action.selects)) {
-                    const selectNode = actionNode.appendChild(renderText(select.name + ` (${select.min}-${select.max})`));
-                    selectNode.id = "select" + k;
-                    choices[k] = select.defaults;
-                    
-                    const selectList = selectNode.appendChild(document.createElement("ul"));
-                    for (const [i, choice] of select.choices.entries())
-                        selectList.append(...renderCheckbox(k, i, choice, select.defaults.includes(choice)));
-                }
-                actionNode.appendChild(renderButton("Submit", () => continueAction()));
-            } else {
-                actionNode.innerText = "[Start action]";
-                for (const name of startOptions)
-                    actionNode.appendChild(renderButton(name, () => startAction(name)));
+    if (!loaded) {
+        actionNode.innerText = "Reloading the game has failed. The state currently shown is what was able to be loaded from the history until the error. Choose the way to handle this";
+        actionNode.appendChild(renderButton("Keep the game state as is and keep the history", () => chooseReloadMethod(false)));
+        actionNode.appendChild(renderButton("Reload from the final state and lose the history (this prevents rollbacks and replays)", () => chooseReloadMethod(true)));
+    } else {
+        if (action) {
+            actionNode.innerText = "[" + action.message + "] (" + byType(game, "player").filter(e => e.id === action.player)[0]._name + ")";
+            if (action.modifiers?.length) actionNode.appendChild(renderText("Modifiers: " + action.modifiers.join(", ")));
+            for (const [k, select] of Object.entries(action.selects)) {
+                const selectNode = actionNode.appendChild(renderText(select.name + ` (${select.min}-${select.max})`));
+                selectNode.id = "select" + k;
+                choices[k] = select.defaults;
+                
+                const selectList = selectNode.appendChild(document.createElement("ul"));
+                for (const [i, choice] of select.choices.entries())
+                    selectList.append(...renderCheckbox(k, i, choice, select.defaults.includes(choice)));
             }
+            actionNode.appendChild(renderButton("Submit", () => continueAction()));
             actionNode.appendChild(renderButton("Cancel", () => cancelAction()));
             actionNode.appendChild(renderButton("Reload", () => reload()));
+        } else {
+            actionNode.innerText = "Game over!";
         }
-    } else {
-        actionNode.innerText = "Game over!";
     }
 
 

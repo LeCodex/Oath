@@ -53,7 +53,7 @@ export abstract class HistoryEvent {
             data: undefined as any
         };
     }
-};
+}
 export class ContinueEvent extends HistoryEvent {
     constructor(
         manager: OathActionManager,
@@ -91,7 +91,7 @@ export class ActionManagerReturn {
 
     @ApiProperty({ example: true, description: "Is the game raedy to receive actions?" })
     loaded?: boolean
-};
+}
 
 export class OathActionManager {
     loaded: boolean = true;
@@ -181,9 +181,13 @@ export class OathActionManager {
         this.actionsStack = stack;
         this.currentEffectsStack.length = 0;
     }
+
+    public addFutureAction(action: OathAction) {
+        this.futureActionsList.unshift(action);
+    }
  
-    public checkForNextAction(save: boolean = true) {
-        if (!this.loaded) return;
+    public checkForNextAction(save: boolean = true): ActionManagerReturn {
+        if (!this.loaded) return this.defer(false);
         if (!this.actionsStack.length && !this.futureActionsList.length) this.emptyStack(save);
 
         for (const action of this.futureActionsList) this.actionsStack.push(action);
@@ -191,15 +195,16 @@ export class OathActionManager {
         const action = this.actionsStack[this.actionsStack.length - 1];
 
         const continueNow = action?.start();
-        if (continueNow) this.resolveTopAction(save);
+        if (continueNow) return this.resolveTopAction(save);
+        return this.defer();
     }
 
     public initialActions() {
         for (const player of this.game.players) {
-            new SetupChoosePlayerBoardAction(player).doNext();
+            new SetupChoosePlayerBoardAction(this, player).doNext();
         }
 
-        new ResolveCallbackEffect(this.game, () => {
+        new ResolveCallbackEffect(this, () => {
             if (!this.game.chancellor) throw new InvalidActionResolution("The Chancellor is in every game and demands your respect!");
             
             this.game.order = [];
@@ -215,16 +220,16 @@ export class OathActionManager {
                 player.putResources(Favor, player === this.game.chancellor ? 2 : 1);
                 player.putResources(Secret, 1);
                 player.leader.bag.moveChildrenTo(player, 3);
-                new DrawFromDeckEffect(player, this.game.worldDeck, 3, true).doNext(cards => {
+                new DrawFromDeckEffect(this, player, this.game.worldDeck, 3, true).doNext(cards => {
                     if (player !== this.game.chancellor)
                         new ChooseSitesAction(
-                            player, "Put your pawn at a faceup site (Hand: " + cards.map(e => e.name).join(", ") + ")",  // TODO: Find a better solution for this
-                            (sites: Site[]) => { if (sites[0]) new PutPawnAtSiteEffect(player, sites[0]).doNext(); }
+                            this, player, "Put your pawn at a faceup site (Hand: " + cards.map(e => e.name).join(", ") + ")",  // TODO: Find a better solution for this
+                            (sites: Site[]) => { if (sites[0]) new PutPawnAtSiteEffect(this, player, sites[0]).doNext(); }
                         ).doNext();
                     else
-                        new PutPawnAtSiteEffect(player, topCradleSite).doNext();
+                        new PutPawnAtSiteEffect(this, player, topCradleSite).doNext();
                 
-                    new SetupChooseAdviserAction(player, cards).doNext();
+                    new SetupChooseAdviserAction(this, player, cards).doNext();
                 });
             }
 
@@ -235,10 +240,10 @@ export class OathActionManager {
                     this.game.chancellor.bag.moveChildrenTo(site, 1);
 
             this.game.chancellor.addChild(this.game.grandScepter).turnFaceup();
-            this.game.chancellor.addChild(this.game.oathkeeperLabel).oath.setup();
+            this.game.chancellor.addChild(this.game.oathkeeperTile).oath.setup();
             this.game.chancellor.addChild(this.game.reliquary);
 
-            new WakeAction(this.game.currentPlayer).doNext();
+            new WakeAction(this, this.game.currentPlayer).doNext();
         }).doNext();  
 
         this.history.push(new HistoryNode(this, this.game.serialize(true) as SerializedNode<typeof this["game"]>));
@@ -248,23 +253,23 @@ export class OathActionManager {
         if (save) this.lastStartState = this.gameState.game;
 
         if (this.game.phase === OathPhase.Over) {
-            this.game.archiveSave();
+            this.archiveSave();
         } else {
             this.history.push(new HistoryNode(this, this.gameState.game, []));
-            if (!this.checkForOathkeeper()) new ActPhaseAction(this.game.currentPlayer).doNext();
+            if (!this.checkForOathkeeper()) new ActPhaseAction(this, this.game.currentPlayer).doNext();
         }
     }
 
-    checkForOathkeeper() {
-        const candidates = this.game.oathkeeperLabel.oath.getOathkeeperCandidates();
+    public checkForOathkeeper() {
+        const candidates = this.game.oathkeeperTile.oath.getOathkeeperCandidates();
         if (candidates.has(this.game.oathkeeper)) return false;
         if (candidates.size) {
             new ChoosePlayersAction(
-                this.game.oathkeeper, "Choose the new Oathkeeper",
+                this, this.game.oathkeeper, "Choose the new Oathkeeper",
                 (targets: OathPlayer[]) => {
                     if (!targets[0]) return;
-                    new SetUsurperEffect(this.game, false).doNext();
-                    new SetNewOathkeeperEffect(targets[0]).doNext();
+                    new SetUsurperEffect(this, false).doNext();
+                    new SetNewOathkeeperEffect(this, targets[0]).doNext();
                 },
                 [candidates]
             ).doNext();
@@ -273,19 +278,19 @@ export class OathActionManager {
         return false;
     }
 
-    empireWins() {
-        const candidates = this.game.oathkeeperLabel.oath.getSuccessorCandidates();
-        if (candidates.has(this.game.chancellor)) return new WinGameEffect(this.game.chancellor).doNext();
+    public empireWins() {
+        const candidates = this.game.oathkeeperTile.oath.getSuccessorCandidates();
+        if (candidates.has(this.game.chancellor)) return new WinGameEffect(this, this.game.chancellor).doNext();
 
         new ChoosePlayersAction(
-            this.game.chancellor, "Choose a Successor",
-            (targets: OathPlayer[]) => { if (targets[0]) new WinGameEffect(targets[0]).doNext(); },
+            this, this.game.chancellor, "Choose a Successor",
+            (targets: OathPlayer[]) => { if (targets[0]) new WinGameEffect(this, targets[0]).doNext(); },
             [[...candidates].filter(e => e.board instanceof ExileBoard && e.board.isCitizen)]
         ).doNext();
     }
 
     public defer(save: boolean = true): ActionManagerReturn {
-        if (save && this.game.phase !== OathPhase.Over) this.game.save();
+        if (save && this.game.phase !== OathPhase.Over) this.save();
 
         const action = this.actionsStack[this.actionsStack.length - 1];
         return {
@@ -309,6 +314,7 @@ export class OathActionManager {
         this.markEventAsOneWay = false;
         this.currentEffectsStack.length = 0;
         this.rollbackConsent = undefined;
+        // TODO: Merge both of those
         const parsed = action.parse(values);
         action.applyParameters(parsed);
 

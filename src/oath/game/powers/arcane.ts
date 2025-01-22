@@ -108,13 +108,13 @@ export class SpiritSnare extends ActivePower<Denizen> {
     cost = new ResourceCost([[Secret, 1]]);
 
     usePower(): void {
-        new TakeFavorFromBankAction(this.action.player, 1).doNext();
+        new TakeFavorFromBankAction(this.actionManager, this.player, 1).doNext();
     }
 }
 
 export class Dazzle extends WhenPlayed<Denizen> {
     whenPlayed(): void {
-        new RegionDiscardEffect(this.action.executor, [OathSuit.Hearth, OathSuit.Order], this.source).doNext();
+        new RegionDiscardEffect(this.actionManager, this.action.executor, [OathSuit.Hearth, OathSuit.Order], this.source).doNext();
     }
 }
 
@@ -122,7 +122,7 @@ export class Tutor extends ActivePower<Denizen> {
     cost = new ResourceCost([[Favor, 1], [Secret, 1]]);
 
     usePower(): void {
-        new PutResourcesOnTargetEffect(this.game, this.action.player, Secret, 1).doNext();
+        new PutResourcesOnTargetEffect(this.actionManager, this.action.player, Secret, 1).doNext();
     }
 }
 
@@ -130,7 +130,7 @@ export class Alchemist extends ActivePower<Denizen> {
     cost = new ResourceCost([[Secret, 1]], [[Secret, 1]]);
 
     usePower(): void {
-        for (let i = 0; i < 4; i++) new TakeFavorFromBankAction(this.action.player, 1).doNext();
+        for (let i = 0; i < 4; i++) new TakeFavorFromBankAction(this.actionManager, this.action.player, 1).doNext();
     }
 }
 
@@ -138,8 +138,8 @@ export class WizardSchool extends ActivePower<Denizen> {
     cost = new ResourceCost([[Favor, 1]]);
 
     usePower(): void {
-        new PutResourcesOnTargetEffect(this.game, this.action.player, Secret, 1).doNext();
-        new RestAction(this.action.player).doNext();
+        new PutResourcesOnTargetEffect(this.actionManager, this.action.player, Secret, 1).doNext();
+        new RestAction(this.actionManager, this.action.player).doNext();
     }
 }
 
@@ -148,13 +148,14 @@ export class TamingCharm extends ActivePower<Denizen> {
 
     usePower(): void {
         new ChooseCardsAction(
-            this.action.player, "Discard to gain 2 favor", [[...this.action.player.site.denizens].filter(e => e.suit === OathSuit.Beast || e.suit === OathSuit.Nomad && !e.activelyLocked)],
+            this.actionManager, this.action.player, "Discard to gain 2 favor",
+            [[...this.action.player.site.denizens].filter(e => e.suit === OathSuit.Beast || e.suit === OathSuit.Nomad && !e.activelyLocked)],
             (cards: Denizen[]) => {
                 if (!cards[0]) return;
                 const bank = this.game.favorBank(cards[0].suit);
                 if (bank)
-                    new TransferResourcesEffect(this.game, new ResourceTransferContext(this.action.player, this, new ResourceCost([[Favor, 2]]), this.action.player, bank)).doNext();
-                new DiscardCardEffect(this.action.player, cards[0]).doNext();
+                    new TransferResourcesEffect(this.actionManager, this.action.player, new ResourceCost([[Favor, 2]]), this.action.player, bank).doNext();
+                new DiscardCardEffect(this.actionManager, this.action.player, cards[0]).doNext();
             }
         ).doNext();
     }
@@ -172,16 +173,16 @@ export class Inquisitor extends ActivePower<Denizen> {
         }
 
         new ChooseCardsAction(
-            this.action.player, "Peek at an adviser", [cards],
+            this.actionManager, this.action.player, "Peek at an adviser", [cards],
             (cards: WorldCard[]) => {
                 const card = cards[0];
                 if (!card) return;
-                new PeekAtCardEffect(this.action.player, card).doNext();
+                new PeekAtCardEffect(this.actionManager, this.action.player, card).doNext();
 
                 if (card instanceof Conspiracy)
-                    new SearchPlayOrDiscardAction(this.action.player, card).doNext();
+                    new SearchPlayOrDiscardAction(this.actionManager, this.player, card).doNext();
                 else
-                    new TransferResourcesEffect(this.game, new ResourceTransferContext(this.action.player, this, new ResourceCost([[Favor, 1]]), card.owner!, this.source)).doNext();
+                    new TransferResourcesEffect(this.actionManager, this.action.player, new ResourceCost([[Favor, 1]]), card.owner!, this.source).doNext();
             }
         ).doNext();
     }
@@ -203,10 +204,10 @@ export class TerrorSpells extends ActivePower<Denizen> {
                 targets.push(playerProxy.original);
 
         new ChooseRnWsAction(
-            this.action.player, "Kill a warband (" + amount + " left)",
+            this.actionManager, this.action.player, "Kill a warband (" + amount + " left)",
             (targets: ResourcesAndWarbands[]) => {
                 if (targets[0]) {
-                    new KillWarbandsOnTargetAction(this.action.player, targets[0], 1).doNext();
+                    new KillWarbandsOnTargetAction(this.actionManager, this.player, targets[0], 1).doNext();
                     amount--;
                 }
                 if (amount) this.usePower(amount);
@@ -221,7 +222,7 @@ export class PlagueEngines extends ActivePower<Denizen> {
 
     usePower(): void {
         for (const playerProxy of this.gameProxy.players)
-            new ParentToTargetEffect(this.game, playerProxy.original, playerProxy.original.byClass(Favor).max(playerProxy.ruledSites), this.game.favorBank(OathSuit.Arcane)).doNext();
+            new ParentToTargetEffect(this.actionManager, playerProxy.original, playerProxy.original.byClass(Favor).max(playerProxy.ruledSites), this.game.favorBank(OathSuit.Arcane)).doNext();
     }
 }
 
@@ -233,9 +234,9 @@ export class ForgottenVault extends ActivePower<Denizen> {
         if (!banner) return;
 
         new MakeDecisionAction(
-            this.action.player, "Put or remove a secret from the Darkest Secret?",
-            () => new PutResourcesOnTargetEffect(this.game, this.action.player, Secret, 1, banner).doNext(),
-            () => new TransferResourcesEffect(this.game, new ResourceTransferContext(this.action.player, this, new ResourceCost([], [[Secret, 1]]), undefined, banner)).doNext(),
+            this.actionManager, this.action.player, "Put or remove a secret from the Darkest Secret?",
+            () => new PutResourcesOnTargetEffect(this.actionManager, this.action.player, Secret, 1, banner).doNext(),
+            () => new TransferResourcesEffect(this.actionManager, this.action.player, new ResourceCost([], [[Secret, 1]]), undefined, banner).doNext(),
             ["Put", "Remove"]
         ).doNext();
     }
@@ -247,10 +248,10 @@ export class BloodPact extends ActivePower<Denizen> {
     usePower(): void {
         const leader = this.action.playerProxy.leader.original;
         new ChooseNumberAction(
-            this.action.player, "Sacrifice pairs of warbands to get secrets", inclusiveRange(1, Math.floor(this.action.player.getWarbandsAmount(leader.board.key) / 2)),
+            this.actionManager, this.action.player, "Sacrifice pairs of warbands to get secrets", inclusiveRange(1, Math.floor(this.action.player.getWarbandsAmount(leader.board.key) / 2)),
             (value: number) => {
-                new ParentToTargetEffect(this.game, this.action.player, this.action.player.getWarbands(leader.board.key, 2 * value), leader.bag).doNext();
-                new PutResourcesOnTargetEffect(this.game, this.action.player, Secret, value).doNext();
+                new ParentToTargetEffect(this.actionManager, this.action.player, this.action.player.getWarbands(leader.board.key, 2 * value), leader.bag).doNext();
+                new PutResourcesOnTargetEffect(this.actionManager, this.action.player, Secret, value).doNext();
             }
         ).doNext();
     }
@@ -280,7 +281,7 @@ export class Jinx extends ActionModifier<Denizen, RollDiceEffect<AttackDie | Def
         if (!player) return;
         if (!(this.action.result.die instanceof AttackDie) || !(this.action.result.die instanceof DefenseDie)) return;
 
-        new MakeDecisionAction(player, "Reroll " + this.action.result.rolls.map(e => e.join(" & ")).join(", ") + " ?", () => {
+        new MakeDecisionAction(this.actionManager, player, "Reroll " + this.action.result.rolls.map(e => e.join(" & ")).join(", ") + " ?", () => {
             this.payCost(success => {
                 if (!success) return;
                 result.rolls = new RollResult(this.game.random, this.action.result.die).roll(this.action.amount).rolls;
@@ -312,7 +313,7 @@ export class SecretSignal extends ActionModifier<Denizen, TradeAction> {
     applyAfter(): void {
         const bank = this.game.favorBank(this.action.cardProxy.suit);
         if (bank && this.action.getting.get(Favor) === 1)
-            new TransferResourcesEffect(this.game, new ResourceTransferContext(this.action.player, this, new ResourceCost([[Favor, 1]]), this.action.player.board, bank)).doNext();
+            new TransferResourcesEffect(this.actionManager, this.action.player, new ResourceCost([[Favor, 1]]), this.action.player.board, bank).doNext();
     }
 }
 
@@ -375,7 +376,7 @@ export class MagiciansCode extends ActionModifier<Denizen, RecoverBannerPitchAct
     }
     
     applyBefore(): void {
-        new PutResourcesOnTargetEffect(this.game, this.action.player, Secret, 2).doNext();
+        new PutResourcesOnTargetEffect(this.actionManager, this.action.player, Secret, 2).doNext();
         this.action.amount += 2;
     }
 }
@@ -405,7 +406,7 @@ export class MasterOfDisguise extends ActionModifier<Denizen,TradeAction> {
 
     applyWhenApplied(): boolean {
         new ChoosePlayersAction(
-            this.player, "Act as if you have another player's advisers instead",
+            this.actionManager, this.player, "Act as if you have another player's advisers instead",
             (players: OathPlayer[]) => {
                 if (!players[0]) return;
                 for (const cardProxy of this.action.playerProxy.advisers) cardProxy.prune();
@@ -422,14 +423,14 @@ export class WitchsBargain extends ActivePower<Denizen> {
 
     usePower(): void {
         new ChoosePlayersAction(
-            this.action.player, "Bargain with players at your site",
+            this.actionManager, this.action.player, "Bargain with players at your site",
             (players: OathPlayer[]) => {
                 for (const player of players) {
                     const maxSecrets = this.action.player.byClass(Secret).length;
                     const maxFavors = Math.floor(this.action.player.byClass(Favor).length / 2);
                     
                     new ChooseNumberAction(
-                        this.action.player, "Give favors to take secrets (positive), or vice versa (negative)", inclusiveRange(-maxSecrets, maxFavors),
+                        this.actionManager, this.action.player, "Give favors to take secrets (positive), or vice versa (negative)", inclusiveRange(-maxSecrets, maxFavors),
                         (value: number) => {
                             let giftedResource: OathResourceType = Favor, takenResource: OathResourceType = Secret;
                             let giving = value * 2, taking = value;
@@ -440,9 +441,9 @@ export class WitchsBargain extends ActivePower<Denizen> {
                                 taking = -value * 2;
                             }
                             
-                            new TransferResourcesEffect(this.game, new ResourceTransferContext(this.action.player, this, new ResourceCost([[giftedResource, giving]]), player)).doNext(success => {
+                            new TransferResourcesEffect(this.actionManager, this.action.player, new ResourceCost([[giftedResource, giving]]), player).doNext(success => {
                                 if (!success) return;
-                                new TransferResourcesEffect(this.game, new ResourceTransferContext(this.action.player, this, new ResourceCost([[takenResource, taking]]), this.action.player, player)).doNext();
+                                new TransferResourcesEffect(this.actionManager, this.action.player, new ResourceCost([[takenResource, taking]]), this.action.player, player).doNext();
                             });
                         }
                     ).doNext();
@@ -458,7 +459,10 @@ export class Bewitch extends WhenPlayed<Denizen> {
     whenPlayed(): void {
         if (!(this.action.playerProxy.board instanceof ExileBoard)) return;
         if (this.action.executorProxy.getAllResources(Secret) > this.gameProxy.chancellor.byClass(Secret).length)
-            new MakeDecisionAction(this.action.executor, "Become a Citizen?", () => new BecomeCitizenEffect(this.action.executor).doNext()).doNext();
+            new MakeDecisionAction(
+                this.actionManager, this.action.executor, "Become a Citizen?",
+                () => new BecomeCitizenEffect(this.actionManager, this.action.executor).doNext()
+            ).doNext();
     }
 }
 
@@ -466,10 +470,10 @@ export class Revelation extends WhenPlayed<Denizen> {
     whenPlayed(): void {
         for (const player of this.game.players) {
             new ChooseNumberAction(
-                player, "Burn favor to gain secrets", inclusiveRange(player.byClass(Favor).length),
+                this.actionManager, player, "Burn favor to gain secrets", inclusiveRange(player.byClass(Favor).length),
                 (value: number) => {
-                    new TransferResourcesEffect(this.game, new ResourceTransferContext(player, this, new ResourceCost([], [[Favor, value]]), undefined)).doNext();
-                    new PutResourcesOnTargetEffect(this.game, player, Secret, value).doNext();
+                    new TransferResourcesEffect(this.actionManager, player, new ResourceCost([], [[Favor, value]]), undefined).doNext();
+                    new PutResourcesOnTargetEffect(this.actionManager, player, Secret, value).doNext();
                 }
             ).doNext();
         }
@@ -501,7 +505,7 @@ export class VowOfSilencePitch extends ActionModifier<Denizen, RecoverBannerPitc
     mustUse = true;
 
     applyAfter(): void {
-        new PutResourcesOnTargetEffect(this.game, this.sourceProxy.ruler?.original, Secret, this.action.amount).doNext();
+        new PutResourcesOnTargetEffect(this.actionManager, this.sourceProxy.ruler?.original, Secret, this.action.amount).doNext();
     }
 }
 
@@ -518,13 +522,13 @@ export class DreamThief extends ActivePower<Denizen> {
         }
 
         new ChooseCardsAction(
-            this.action.player, "Swap two facedown advisers", [cards], 
+            this.actionManager, this.action.player, "Swap two facedown advisers", [cards], 
             (cards: WorldCard[]) => {
                 if (!cards[0] || !cards[1]) return;  // Done this way so Typescript is happy
                 const player1 = cards[0].owner as OathPlayer;
                 const player2 = cards[1].owner as OathPlayer;
-                new MoveWorldCardToAdvisersEffect(this.game, player2, cards[0]).doNext();
-                new MoveWorldCardToAdvisersEffect(this.game, player1, cards[1]).doNext();
+                new MoveWorldCardToAdvisersEffect(this.actionManager, player2, cards[0]).doNext();
+                new MoveWorldCardToAdvisersEffect(this.actionManager, player1, cards[1]).doNext();
             },
             [[2]]
         ).doNext();
@@ -540,12 +544,12 @@ export class GreatSpire extends ActionModifier<Edifice, SearchAction> {
     applyAtEnd(): void {
         const denizens = [...this.action.cards].filter(e => e instanceof Denizen);
         new ChooseCardsAction(
-            this.action.player, "Swap cards with the Dispossessed", [denizens],
+            this.actionManager, this.action.player, "Swap cards with the Dispossessed", [denizens],
             (cards: Denizen[]) => {
                 for (const card of cards) {
-                    new GetRandomCardFromDispossessed(this.game, this.action.player).doNext(newCard => {
-                        new PutDenizenIntoDispossessedEffect(this.game, this.action.player, card).doNext();
-                        new PeekAtCardEffect(this.action.player, newCard).doNext();
+                    new GetRandomCardFromDispossessed(this.actionManager, this.action.player).doNext(newCard => {
+                        new PutDenizenIntoDispossessedEffect(this.actionManager, this.action.player, card).doNext();
+                        new PeekAtCardEffect(this.actionManager, this.action.player, newCard).doNext();
     
                         this.action.cards.delete(card);
                         this.action.cards.add(newCard);
@@ -565,7 +569,7 @@ export class FallenSpire extends ActivePower<Edifice> {
         if (!discard) return;
 
         new ChooseNumberAction(
-            this.action.player, "Swap cards from your region's discard with the Dispossessed", inclusiveRange(1, Math.min(discard.children.length, 5)),
+            this.actionManager, this.action.player, "Swap cards from your region's discard with the Dispossessed", inclusiveRange(1, Math.min(discard.children.length, 5)),
             (value: number) => {
                 const discardOptions = new DiscardOptions(discard);
                 let skip = 0;
@@ -573,14 +577,14 @@ export class FallenSpire extends ActivePower<Edifice> {
                     const card = discard.children[skip];
                     if (!card) break;
                     if (!(card instanceof Denizen)) {
-                        new DiscardCardEffect(this.action.player, card, discardOptions).doNext();
+                        new DiscardCardEffect(this.actionManager, this.action.player, card, discardOptions).doNext();
                         skip++;
                         continue;
                     }
                     
-                    new GetRandomCardFromDispossessed(this.game, this.action.player).doNext(newCard => {
-                        new PutDenizenIntoDispossessedEffect(this.game, this.action.player, card).doNext();
-                        new DiscardCardEffect(this.action.player, newCard, discardOptions).doNext();
+                    new GetRandomCardFromDispossessed(this.actionManager, this.action.player).doNext(newCard => {
+                        new PutDenizenIntoDispossessedEffect(this.actionManager, this.action.player, card).doNext();
+                        new DiscardCardEffect(this.actionManager, this.action.player, newCard, discardOptions).doNext();
                     });
                     value--;
                 }

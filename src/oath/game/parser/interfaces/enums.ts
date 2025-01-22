@@ -14,7 +14,6 @@ export enum Citizenship {
   Citizen = 'Citizen'
 }
 
-export type PlayerCitizenship = Omit<
-  Record<PlayerColor, Citizenship>,
-  PlayerColor.Purple
->;
+export type ExileColor = Exclude<PlayerColor, PlayerColor.Purple>
+
+export type PlayerCitizenship = Record<ExileColor, Citizenship>;

@@ -1,12 +1,12 @@
 import { CampaignDefenseAction, ChoosePlayersAction, ConspiracyStealAction } from "../actions";
 import type { Conspiracy } from "../model/cards";
 import { Denizen } from "../model/cards";
-import type { Oathkeeper } from "../model/oaths";
+import type { OathkeeperTile } from "../model/oaths";
 import type { OathPlayer } from "../model/player";
 import { ActionModifier, WhenPlayed } from ".";
 
 
-export class OathkeeperDefense extends ActionModifier<Oathkeeper, CampaignDefenseAction> {
+export class OathkeeperDefense extends ActionModifier<OathkeeperTile, CampaignDefenseAction> {
     modifiedAction = CampaignDefenseAction;
     mustUse = true;
     get name() { return "Oathkeeper"; }
@@ -38,8 +38,8 @@ export class ConspiracyWhenPlayed extends WhenPlayed<Conspiracy> {
         }
 
         new ChoosePlayersAction(
-            this.action.executor, "Target a player (or no-one) with the Conspiracy",
-            (targets: OathPlayer[]) => { if (targets[0]) new ConspiracyStealAction(this.action.executor, targets[0]).doNext(); }, 
+            this.actionManager, this.action.executor, "Target a player (or no-one) with the Conspiracy",
+            (targets: OathPlayer[]) => { if (targets[0]) new ConspiracyStealAction(this.actionManager, this.action.executor, targets[0]).doNext(); }, 
             [targets],
             [[0, 1]]
         ).doNext();

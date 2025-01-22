@@ -1,9 +1,9 @@
 import type { RecoverAction } from "../actions";
 import type { RecoverActionTarget, CampaignActionTarget, WithPowers, OwnableObject } from "./interfaces";
 import { OathSuit } from "../enums";
-import { isEnumKey } from "../utils";
+import { Constructor, isEnumKey } from "../utils";
 import { OathPlayer } from "./player";
-import type { OathResource } from "./resources";
+import type { OathResource, OathResourceType } from "./resources";
 import { Favor, Secret } from "./resources";
 import { Container } from "./gameObject";
 import type { BannerPowerName } from "../powers/classIndex";
@@ -22,9 +22,9 @@ export class FavorBank extends Container<Favor, OathSuit> {
     get key() { return OathSuit[this.id]; }
 }
 
-export abstract class Banner<T extends OathResource = OathResource> extends Container<T, string> implements RecoverActionTarget, CampaignActionTarget, WithPowers, OwnableObject {
+export abstract class Banner<T extends OathResource = OathResource> extends Container<T, string> implements OwnableObject, RecoverActionTarget, CampaignActionTarget, WithPowers {
     readonly type = "banner";
-    abstract powers: Set<BannerPowerName>;
+    powers: Set<BannerPowerName>;
     active = true;
     min = 1;
 
@@ -33,6 +33,12 @@ export abstract class Banner<T extends OathResource = OathResource> extends Cont
     get defense() { return this.amount; }
     get force() { return this.owner; }
 
+    constructor(id: string, cls: Constructor<T>) {
+        super(id, cls);
+        this.powers.add("BannerRecover");
+        this.powers.add("BannerSeize");
+    }
+
     setOwner(player?: OathPlayer): void {
         player?.addChild(this);
     }
@@ -40,26 +46,17 @@ export abstract class Banner<T extends OathResource = OathResource> extends Cont
     canRecover(action: RecoverAction): boolean {
         return action.player.byClass(this.cls).length > this.amount;
     }
-
-    // recover(player: OathPlayer): void {
-    //     new RecoverBannerPitchAction(player, this).doNext();
-    // }
-
-    // seize(player: OathPlayer) {
-    //     new TakeOwnableObjectEffect(this.game, player, this).doNext();
-    //     new TransferResourcesEffect(this.game, new ResourceTransferContext(player, this, new ResourceCost([], [[this.cls as any, 2]]), undefined, this)).doNext();
-    // }
 }
 
 export class PeoplesFavor extends Banner<Favor> {
-    declare readonly id: "peoplesFavor";
+    declare readonly id: "PeoplesFavor";
     name = "PeoplesFavor";
     powers = new Set<BannerPowerName>(["PeoplesFavorSearch" ,"PeoplesFavorWake"]);
     declare cls: typeof Favor;
     isMob: boolean;
 
     constructor() {
-        super("peoplesFavor", Favor);
+        super("PeoplesFavor", Favor);
     }
 
     // handleRecovery(player: OathPlayer) {
@@ -97,13 +94,13 @@ export class PeoplesFavor extends Banner<Favor> {
 }
 
 export class DarkestSecret extends Banner<Secret> {
-    declare readonly id: "darkestSecret";
+    declare readonly id: "DarkestSecret";
     name = "DarkestSecret";
     powers = new Set<BannerPowerName>(["DarkestSecretPower"]);
     declare cls: typeof Secret;
 
     constructor() {
-        super("darkestSecret", Secret);
+        super("DarkestSecret", Secret);
     }
 
     canRecover(action: RecoverAction): boolean {

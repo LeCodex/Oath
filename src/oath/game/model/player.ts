@@ -1,4 +1,4 @@
-import type { CampaignActionTarget, AtSite, OwnableObject } from "./interfaces";
+import type { CampaignActionTarget, AtSite, OwnableObject, WithPowers } from "./interfaces";
 import type { OwnableCard, Site } from "./cards";
 import { Denizen, Relic, Vision, WorldCard } from "./cards";
 import { DiscardOptions } from "./decks";
@@ -9,6 +9,7 @@ import type { OathResourceType } from "./resources";
 import { Warband, ResourcesAndWarbands } from "./resources";
 import { Container, OathGameObject } from "./gameObject";
 import { Banner } from "./banks";
+import type { PlayerPowerName } from "../powers/classIndex";
 
 export class WarbandsSupply extends Container<Warband, PlayerColor> {
     readonly type = "bag";
@@ -24,8 +25,10 @@ export class WarbandsSupply extends Container<Warband, PlayerColor> {
     get key() { return this.id; }
 }
 
-export class OathPlayer extends ResourcesAndWarbands<number> implements CampaignActionTarget, AtSite {
+export class OathPlayer extends ResourcesAndWarbands<number> implements CampaignActionTarget, AtSite, WithPowers {
     readonly type = "player";
+    powers = new Set<PlayerPowerName>(["PlayerSeize"]);
+    active = true;
     name: string;
     supply: number = 7;
     site: Site;
@@ -105,11 +108,6 @@ export class OathPlayer extends ResourcesAndWarbands<number> implements Campaign
         this.supply -= amount;
         return true;
     }
-    
-    // seize(player: OathPlayer) {
-    //     new TransferResourcesEffect(this.game, new ResourceTransferContext(this, this, new ResourceCost([], [[Favor, Math.floor(this.byClass(Favor).length / 2)]]), undefined)).doNext();
-    //     new CampaignBanishPlayerAction(player, this).doNext();
-    // }
 
     liteSerialize() {
         return {
