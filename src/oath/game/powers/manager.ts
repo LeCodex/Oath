@@ -6,7 +6,7 @@ import type { WithPowers, SourceType } from "../model/interfaces";
 import { hasPowers } from "../model/interfaces";
 import type { OathPlayer } from "../model/player";
 import type { TreeNode } from "../model/utils";
-import type { AbstractConstructor, Constructor } from "../utils";
+import type { AbstractConstructor, Constructor, MaskProxyManager } from "../utils";
 import { isExtended } from "../utils";
 import { ChooseModifiers, ModifiableAction } from "./actions";
 import { powersIndex } from "./classIndex";
@@ -30,8 +30,8 @@ export class OathPowerManager {
 
     get game() { return this.actionManager.game; }
 
-    *getPowers<T extends OathPower<WithPowers>>(type: AbstractConstructor<T>): Generator<[SourceType<T>, Constructor<T>], void> {
-        const stack: TreeNode<any>[] = [this.game];
+    *getPowers<T extends OathPower<WithPowers>>(type: AbstractConstructor<T>, maskProxyManager?: MaskProxyManager): Generator<[SourceType<T>, Constructor<T>], void> {
+        const stack: TreeNode<any>[] = [maskProxyManager?.get(this.game) ?? this.game];
         while (stack.length) {
             const node = stack.pop()!;
             stack.push(...node.children);
@@ -45,9 +45,9 @@ export class OathPowerManager {
         }
     }
 
-    gatherActionModifiers<T extends OathAction>(action: T, activator: OathPlayer): Set<ActionModifier<WithPowers, T>> {
+    gatherActionModifiers<T extends OathAction>(action: T, activator: OathPlayer, maskProxyManager?: MaskProxyManager): Set<ActionModifier<WithPowers, T>> {
         const instances = new Set<ActionModifier<WithPowers, T>>();
-        for (const [source, modifier] of this.getPowers(ActionModifier<WithPowers, T>)) {
+        for (const [source, modifier] of this.getPowers(ActionModifier<WithPowers, T>, maskProxyManager)) {
             const instance = new modifier(this, source.original, activator, action, activator);
             if (action instanceof instance.modifiedAction && instance.canUse()) instances.add(instance);
         }

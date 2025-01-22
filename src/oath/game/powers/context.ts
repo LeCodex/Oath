@@ -25,7 +25,7 @@ export abstract class CostContext<T> {
 
     payableCostsWithModifiers(maskProxyManager: MaskProxyManager) {
         const modifiers: CostModifier<WithPowers, CostContext<T>>[] = [];
-        for (const [sourceProxy, modifier] of maskProxyManager.get(this.powerManager).getPowers(CostModifier)) {
+        for (const [sourceProxy, modifier] of this.powerManager.getPowers(CostModifier, maskProxyManager)) {
             const instance = new modifier(this.powerManager, sourceProxy.original, this.player, maskProxyManager);
             if (this instanceof instance.modifiedContext && instance.canUse(this)) modifiers.push(instance);
         }

@@ -40,7 +40,7 @@ export class ChooseModifiers<T extends OathAction> extends ExpandedAction {
         const persistentModifiers = new Set<ActionModifier<WithPowers, T>>();
         const optionalModifiers = new Set<ActionModifier<WithPowers, T>>();
         const maskProxyManager = this.modifiableAction.action.maskProxyManager;
-        for (const modifier of maskProxyManager.get(this.powerManager).gatherActionModifiers(this.modifiableAction.action, this.player)) {
+        for (const modifier of this.powerManager.gatherActionModifiers(this.modifiableAction.action, this.player, maskProxyManager)) {
             if (modifier.mustUse) {
                 persistentModifiers.add(modifier);
             } else {
@@ -52,10 +52,11 @@ export class ChooseModifiers<T extends OathAction> extends ExpandedAction {
         const choices = new Map<string, ActionModifier<WithPowers, T>[]>();
         for (const combination of allCombinations(optionalModifiers)) {
             const totalContext = new MultiResourceTransferContext(this.powerManager, this.player, this, [...persistentModifiers, ...combination].map(e => e.selfCostContext));
-            if (!totalContext.payableCostsWithModifiers(maskProxyManager).length)
+            if (totalContext.payableCostsWithModifiers(maskProxyManager).length) {
                 choices.set(combination.map(e => e.name).join(", "), combination);
+            }
         }
-        this.selects.modifiers = new SelectNOf("Modifiers", choices, { defaults });
+        this.selects.modifiers = new SelectNOf("Modifiers", choices, { defaults, min: 1 });
 
         return super.start();
     }
