@@ -12,6 +12,7 @@ import { OathPlayer } from "./player";
 import type { Banner} from "./banks";
 import { DarkestSecret, FavorBank, PeoplesFavor } from "./banks";
 import { MurmurHash3, PRNG } from "../utils";
+import type { NodeGroup } from "./utils";
 import { TreeRoot } from "./utils";
 import { parseOathTTSSavefileString, serializeOathGame } from "../parser";
 import type { CardName, PlayerCitizenship } from "../parser/interfaces";
@@ -21,11 +22,18 @@ import { Reliquary, ReliquarySlot } from "./reliquary";
 import { constant, times } from "lodash";
 import type { SiteName } from "../cards/sites";
 import classIndex from "./classIndex";
+import type { WithPowers } from "./interfaces";
+import type { PowerName } from "../powers/classIndex";
+import type { OathGameObject } from "./gameObject";
 
 
-export class OathGame extends TreeRoot<OathGame> {
+export class OathGame extends TreeRoot<OathGame> implements WithPowers {
+    powers = new Set<PowerName>(["AddUsePowerAction", "ResolveWhenPlayed"]);
+    active = true;
+    game = this;
+    declare children: NodeGroup<OathGameObject>;
+    
     classIndex = classIndex;
-
     random: PRNG;
 
     seed: string;

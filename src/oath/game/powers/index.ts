@@ -1,4 +1,4 @@
-import { RestAction, WakeAction, CampaignAttackAction, CampaignDefenseAction, RecoverAction } from "../actions";
+import { RestAction, WakeAction, CampaignAttackAction, CampaignDefenseAction } from "../actions";
 import { UsePowerAction, PayPowerCostEffect, ModifiableAction } from "./actions";
 import { OathAction, ResolveCallbackEffect } from "../actions/base";
 import { PlayWorldCardEffect, RecoverTargetEffect, SeizeTargetEffect } from "../actions/effects";
@@ -111,6 +111,14 @@ export abstract class ActivePower<T extends OathCard> extends ActionPower<T, Use
     abstract usePower(): void;
 }
 
+export abstract class WhenPlayed<T extends WorldCard> extends ActionPower<T, PlayWorldCardEffect> {
+    canUse(): boolean {
+        return true;
+    }
+
+    abstract whenPlayed(): void;
+}
+
 export abstract class ActionModifier<T extends WithPowers, U extends OathAction> extends ActionPower<T, U> {
     abstract modifiedAction: AbstractConstructor<U>;
     mustUse: boolean = false;
@@ -174,21 +182,6 @@ export abstract class WakePower<T extends OwnableCard> extends ActionModifier<T,
 export abstract class RestPower<T extends OwnableCard> extends ActionModifier<T, RestAction> {
     modifiedAction = RestAction;
     mustUse = true;
-}
-
-export abstract class WhenPlayed<T extends WorldCard> extends ActionModifier<T, PlayWorldCardEffect> {
-    modifiedAction = PlayWorldCardEffect;
-    mustUse = true;
-
-    canUse(): boolean {
-        return this.action.card === this.source && !this.action.facedown;
-    }
-
-    applyAfter(): void {
-        new ResolveCallbackEffect(this.actionManager, () => this.whenPlayed());
-    }
-
-    abstract whenPlayed(): void;
 }
 
 // export function gainPowerUntilActionResolves<T extends WithPowers, U extends OathAction>(actionManager: OathActionManager, source: T, power: PowerName, action: Constructor<U>) {

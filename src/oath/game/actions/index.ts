@@ -939,9 +939,8 @@ export class MoveWarbandsAction extends OathAction {
     }
 }
 
-type StartableAction = typeof ActPhaseAction.startOptions[keyof typeof ActPhaseAction.startOptions];
 export class ActPhaseAction extends OathAction {
-    declare readonly selects: { action: SelectNOf<StartableAction> };
+    declare readonly selects: { action: SelectNOf<() => void> };
     readonly autocompleteSelects: boolean = false;
     readonly message = "Start an action";
     
@@ -962,18 +961,17 @@ export class ActPhaseAction extends OathAction {
     next: OathAction;
 
     start(): boolean {
-        const choices = Object.entries(ActPhaseAction.startOptions);
+        const choices = Object.entries(ActPhaseAction.startOptions).map(([k, v]) => [k, () => (this.next = new v(this.actionManager, this.player)).doNext()] as [string, () => void]);
         this.selects.action = new SelectNOf("Action", choices, { min: 1 });
         return super.start();
     }
     
     applyParameters(values: Record<string, any[]>): void {
         super.applyParameters(values);
-        this.next = new this.parameters.action[0]!(this.actionManager, this.player);
     }
-
+    
     execute(): void {
-        this.next.doNext();
+        this.parameters.action[0]!();
     }
 }
 

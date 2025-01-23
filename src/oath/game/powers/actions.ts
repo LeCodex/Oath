@@ -51,9 +51,10 @@ export class ChooseModifiers<T extends OathAction> extends ExpandedAction {
         // TODO: Change to permutations to handle order (maybe have order agnosticity as a property)
         const choices = new Map<string, ActionModifier<WithPowers, T>[]>();
         for (const combination of allCombinations(optionalModifiers)) {
-            const totalContext = new MultiResourceTransferContext(this.powerManager, this.player, this, [...persistentModifiers, ...combination].map(e => e.selfCostContext));
+            const completeCombination = [...persistentModifiers, ...combination];
+            const totalContext = new MultiResourceTransferContext(this.powerManager, this.player, this, completeCombination.map(e => e.selfCostContext));
             if (totalContext.payableCostsWithModifiers(maskProxyManager).length) {
-                choices.set(combination.map(e => e.name).join(", "), combination);
+                choices.set(combination.map(e => e.name).join(", "), completeCombination);
             }
         }
         this.selects.modifiers = new SelectNOf("Modifiers", choices, { defaults, min: 1 });
@@ -92,8 +93,8 @@ export class ModifiableAction<T extends OathAction> extends OathAction {
 
     start(): boolean {
         const continueNow = this.action.start();
-        Object.assign(this.selects, this.action.selects);
         for (const modifier of this.modifiers) modifier.applyAtStart();
+        Object.assign(this.selects, this.action.selects);
         return continueNow;
     }
 
@@ -116,7 +117,7 @@ export class ModifiableAction<T extends OathAction> extends OathAction {
 
     serialize(): Record<string, any> | undefined {
         return {
-            ...super.serialize(),
+            ...this.action.serialize(),
             modifiers: this.modifiers.map(e => e.serialize())
         };
     }
@@ -150,7 +151,7 @@ export class UsePowerAction extends ExpandedAction {
     start() {
         const choices = new Map<string, ActivePower<OwnableCard>>();
         for (const [sourceProxy, power] of this.powerManagerProxy.getPowers(ActivePower<OwnableCard>)) {
-            const instance = new power(sourceProxy.original, this.player, this);
+            const instance = new power(this.powerManager, sourceProxy.original, this.player, this);
             if (instance.canUse()) choices.set(instance.name, instance);
         }
         this.selects.power = new SelectNOf("Power", choices, { min: 1 });

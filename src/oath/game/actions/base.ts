@@ -46,7 +46,12 @@ export abstract class OathAction {
         }
 
         // If all needed parameters were filled out (or there are no selects), just execute immediately
-        return Object.keys(this.selects).length === 0;
+        if (Object.keys(this.selects).length === 0) {
+            this.applyParameters({});
+            return true;
+        }
+
+        return false;
     }
 
     parse(data: Record<string, string[]>): Record<string, any[]> {
