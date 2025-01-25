@@ -8,7 +8,7 @@ import { OathPlayer } from "../model/player";
 import { Secret } from "../model/resources";
 import { ActionCostModifier, ActionModifier, ActivePower, AtSite, NoSupplyCostActionModifier, SeizeModifier, SupplyCostModifier } from ".";
 import { SupplyCostContext } from "./context";
-import { HomelandSitePower } from "./base";
+import { HomelandSitePower, HomelandSitePowerDeactivate, ReactivatePowers } from "./base";
 
 
 export class SiteSeize extends SeizeModifier<Site> {
@@ -18,56 +18,56 @@ export class SiteSeize extends SeizeModifier<Site> {
     }
 }
 
-export class Wastes extends HomelandSitePower {
-    suit = OathSuit.Discord;
-
+export class Wastes extends HomelandSitePower(OathSuit.Discord) {
     giveReward(playerProxy: OathPlayer): void {
         const relic = this.sourceProxy.relics[0]?.original;
         if (relic) return new RecoverTargetEffect(this.actionManager, playerProxy.original, relic).doNext();
     }
 }
+export class WastesOff extends HomelandSitePowerDeactivate(Wastes) {}
+export class WastesOn extends ReactivatePowers([Wastes]) {}
 
-export class StandingStones extends HomelandSitePower {
-    suit = OathSuit.Arcane;
-
+export class StandingStones extends HomelandSitePower(OathSuit.Arcane) {
     giveReward(playerProxy: OathPlayer): void {
         new PutResourcesOnTargetEffect(this.actionManager, playerProxy.original, Secret, 1).doNext();
     }
 }
+export class StandingStonesOff extends HomelandSitePowerDeactivate(StandingStones) {}
+export class StandingStonesOn extends ReactivatePowers([StandingStones]) {}
 
-export class AncientCity extends HomelandSitePower {
-    suit = OathSuit.Order;
-
+export class AncientCity extends HomelandSitePower(OathSuit.Order) {
     giveReward(playerProxy: OathPlayer): void {
         new ParentToTargetEffect(this.actionManager, playerProxy.original, playerProxy.leader.bag.original.get(2)).doNext();
     }
 }
+export class AncientCityOff extends HomelandSitePowerDeactivate(AncientCity) {}
+export class AncientCityOn extends ReactivatePowers([AncientCity]) {}
 
-export class FertileValley extends HomelandSitePower {
-    suit = OathSuit.Hearth;
-
+export class FertileValley extends HomelandSitePower(OathSuit.Hearth) {
     giveReward(playerProxy: OathPlayer): void {
-        const bank = this.game.favorBank(this.suit);
+        const bank = this.game.favorBank(OathSuit.Hearth);
         if (bank) new ParentToTargetEffect(this.actionManager, playerProxy.original, bank?.get(1)).doNext();
     }
 }
+export class FertileValleyOff extends HomelandSitePowerDeactivate(FertileValley) {}
+export class FertileValleyOn extends ReactivatePowers([FertileValley]) {}
 
-export class Steppe extends HomelandSitePower {
-    suit = OathSuit.Nomad;
-
+export class Steppe extends HomelandSitePower(OathSuit.Nomad) {
     giveReward(playerProxy: OathPlayer): void {
         new PutResourcesOnTargetEffect(this.actionManager, playerProxy.original, Secret, 1).doNext();
     }
 }
+export class SteppeOff extends HomelandSitePowerDeactivate(Steppe) {}
+export class SteppeOn extends ReactivatePowers([Steppe]) {}
 
-export class DeepWoods extends HomelandSitePower {
-    suit = OathSuit.Beast;
-
+export class DeepWoods extends HomelandSitePower(OathSuit.Beast) {
     giveReward(playerProxy: OathPlayer): void {
         const relic = this.sourceProxy.relics[0]?.original;
         if (relic) return new RecoverTargetEffect(this.actionManager, playerProxy.original, relic).doNext();
     }
 }
+export class DeepWoodsOff extends HomelandSitePowerDeactivate(DeepWoods) {}
+export class DeepWoodsOn extends ReactivatePowers([DeepWoods]) {}
 
 
 @AtSite

@@ -25,5 +25,5 @@ export const relicsData: Record<RelicName, [number, RelicPowerName[]]> = {
     BanditCrown:        [3, ["BanditCrown"]],
 
     // TODO: Add allowing peeking for other players
-    GrandScepter:       [5, ["GrandScepterTake", "GrandScepterRest", "GrandScepterPeek", "GrandScepterGrantCitizenship", "GrandScepterExileCitizen"]]
+    GrandScepter:       [5, ["GrandScepterPeek", "GrandScepterGrantCitizenship", "GrandScepterExileCitizen", "GrandScepterTake", "GrandScepterOn"]]
 }

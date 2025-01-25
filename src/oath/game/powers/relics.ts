@@ -13,7 +13,7 @@ import { EnemyActionModifier, AttackerBattlePlan, DefenderBattlePlan, ActionModi
 import { DiscardOptions } from "../model/decks";
 import { inclusiveRange, isExtended } from "../utils";
 import { powersIndex } from "./classIndex";
-import { GrandScepterActive } from "./base";
+import { GrandScepterActive, ReactivatePowers } from "./base";
 
 
 export class RelicSeize extends SeizeModifier<Relic> {
@@ -31,26 +31,6 @@ export class RelicRecover extends RecoverModifier<Relic> {
     }
 }
 
-export class GrandScepterTake extends ActionModifier<GrandScepter, TakeOwnableObjectEffect> {
-    modifiedAction = TakeOwnableObjectEffect;
-    mustUse = true;
-    get name() { return super.name + "_Lock"; }
-
-    canUse(): boolean {
-        return this.action.target === this.source;
-    }
-    
-    applyAfter(): void {
-        new SetGrandScepterLockEffect(this.actionManager, true).doNext();
-    }
-}
-export class GrandScepterRest extends RestPower<GrandScepter> {
-    get name() { return super.name + "_Unlock"; }
-
-    applyAfter(): void {
-        new SetGrandScepterLockEffect(this.actionManager, false).doNext();
-    }
-}
 export class GrandScepterPeek extends GrandScepterActive {
     get name() { return super.name + "_PeekAtTheReliquary"; }
 
@@ -103,6 +83,21 @@ export class GrandScepterExileCitizen extends GrandScepterActive {
         ).doNext();
     }
 }
+export class GrandScepterTake extends ActionModifier<GrandScepter, TakeOwnableObjectEffect> {
+    modifiedAction = TakeOwnableObjectEffect;
+    mustUse = true;
+
+    canUse(): boolean {
+        return this.action.target === this.source;
+    }
+    
+    applyAfter(): void {
+        this.source.powers.delete("GrandScepterPeek");
+        this.source.powers.delete("GrandScepterGrantCitizenship");
+        this.source.powers.delete("GrandScepterExileCitizen");
+    }
+}
+export class GrandScepterOn extends ReactivatePowers([GrandScepterPeek, GrandScepterGrantCitizenship, GrandScepterExileCitizen]) {}
 
 export class StickyFireAttack extends AttackerBattlePlan<Relic> {
     applyBefore(): void {
