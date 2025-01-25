@@ -197,7 +197,6 @@ export class Relic extends OwnableCard implements RecoverActionTarget, CampaignA
 }
 export class GrandScepter extends Relic {
     declare readonly id: "GrandScepter";
-    seizedThisTurn = false;
 
     constructor() {
         super("GrandScepter");

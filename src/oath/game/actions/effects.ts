@@ -989,19 +989,6 @@ export class SetPeoplesFavorMobState extends OathEffect {
     }
 }
 
-export class SetGrandScepterLockEffect extends OathEffect {
-    constructor(
-        actionManager: OathActionManager,
-        public state: boolean
-    ) {
-        super(actionManager, undefined);
-    }
-   
-    resolve(): void {
-        this.game.grandScepter.seizedThisTurn = this.state;
-    }
-}
-
 export class RegionDiscardEffect extends PlayerEffect {
     constructor(
         actionManager: OathActionManager,

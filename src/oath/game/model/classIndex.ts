@@ -5,7 +5,7 @@ import { Discard, RelicDeck, WorldDeck } from "./decks";
 import { OathkeeperTile } from "./oaths";
 import { Reliquary, ReliquarySlot } from "./reliquary";
 import { Favor, Warband, Secret } from "./resources";
-import { ChancellorBoard, ExileBoard, VisionSlot } from "./player";
+import { ChancellorBoard, ExileBoard, VisionSlot, WarbandsSupply } from "./player";
 
 export default {
     FavorBank,
@@ -29,6 +29,7 @@ export default {
     ReliquarySlot,
     ExileBoard,
     VisionSlot,
+    WarbandsSupply,
     Favor,
     Secret,
     Warband

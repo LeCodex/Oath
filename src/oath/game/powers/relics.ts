@@ -2,18 +2,18 @@ import { CitizenshipOfferAction, StartBindingExchangeAction, SkeletonKeyAction, 
 import { CampaignEndCallback, cannotPayError, InvalidActionResolution } from "../actions/utils";
 import { OathAction } from "../actions/base";
 import { Denizen, GrandScepter, OathCard, Relic, Site } from "../model/cards";
-import { TakeOwnableObjectEffect, PlayDenizenAtSiteEffect, MoveOwnWarbandsEffect, PeekAtCardEffect, SetGrandScepterLockEffect, GainSupplyEffect, DrawFromDeckEffect, RevealCardEffect, TransferResourcesEffect, BecomeExileEffect, MoveDenizenToSiteEffect, MoveWorldCardToAdvisersEffect, ParentToTargetEffect, DiscardCardEffect } from "../actions/effects";
+import { TakeOwnableObjectEffect, PlayDenizenAtSiteEffect, MoveOwnWarbandsEffect, PeekAtCardEffect, GainSupplyEffect, DrawFromDeckEffect, RevealCardEffect, TransferResourcesEffect, BecomeExileEffect, MoveDenizenToSiteEffect, MoveWorldCardToAdvisersEffect, ParentToTargetEffect, DiscardCardEffect } from "../actions/effects";
 import { BannerKey, PlayerColor } from "../enums";
 import { OathPlayer, ExileBoard } from "../model/player";
 import { isOwnable } from "../model/interfaces";
 import { Favor, Warband, Secret } from "../model/resources";
 import { ResourceCost } from "../costs";
 import { ResourceTransferContext, SupplyCostContext } from "./context";
-import { EnemyActionModifier, AttackerBattlePlan, DefenderBattlePlan, ActionModifier, ActivePower, RestPower, BattlePlan, EnemyAttackerCampaignModifier, Accessed, ResourceTransferModifier, SupplyCostModifier, SeizeModifier, RecoverModifier } from ".";
+import { EnemyActionModifier, AttackerBattlePlan, DefenderBattlePlan, ActionModifier, ActivePower, BattlePlan, EnemyAttackerCampaignModifier, Accessed, ResourceTransferModifier, SupplyCostModifier, SeizeModifier, RecoverModifier } from ".";
 import { DiscardOptions } from "../model/decks";
 import { inclusiveRange, isExtended } from "../utils";
 import { powersIndex } from "./classIndex";
-import { GrandScepterActive, ReactivatePowers } from "./base";
+import { WakeReactivatePowers } from "./base";
 
 
 export class RelicSeize extends SeizeModifier<Relic> {
@@ -31,7 +31,7 @@ export class RelicRecover extends RecoverModifier<Relic> {
     }
 }
 
-export class GrandScepterPeek extends GrandScepterActive {
+export class GrandScepterPeek extends ActivePower<GrandScepter> {
     get name() { return super.name + "_PeekAtTheReliquary"; }
 
     usePower(): void {
@@ -40,7 +40,7 @@ export class GrandScepterPeek extends GrandScepterActive {
                 new PeekAtCardEffect(this.actionManager, this.action.player, slotProxy.children[0].original).doNext(); 
     }
 }
-export class GrandScepterGrantCitizenship extends GrandScepterActive {
+export class GrandScepterGrantCitizenship extends ActivePower<GrandScepter> {
     get name() { return super.name + "_GrantCitizenship"; }
 
     canUse(): boolean {
@@ -52,7 +52,7 @@ export class GrandScepterGrantCitizenship extends GrandScepterActive {
         new StartBindingExchangeAction(this.actionManager, this.action.player, CitizenshipOfferAction, exiles).doNext();
     }
 }
-export class GrandScepterExileCitizen extends GrandScepterActive {
+export class GrandScepterExileCitizen extends ActivePower<GrandScepter> {
     get name() { return super.name + "_ExileACitizen"; }
 
     canUse(): boolean {
@@ -97,7 +97,7 @@ export class GrandScepterTake extends ActionModifier<GrandScepter, TakeOwnableOb
         this.source.powers.delete("GrandScepterExileCitizen");
     }
 }
-export class GrandScepterOn extends ReactivatePowers([GrandScepterPeek, GrandScepterGrantCitizenship, GrandScepterExileCitizen]) {}
+export class GrandScepterOn extends WakeReactivatePowers(GrandScepterPeek, GrandScepterGrantCitizenship, GrandScepterExileCitizen) {}
 
 export class StickyFireAttack extends AttackerBattlePlan<Relic> {
     applyBefore(): void {

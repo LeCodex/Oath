@@ -8,7 +8,7 @@ import { OathPlayer } from "../model/player";
 import { Secret } from "../model/resources";
 import { ActionCostModifier, ActionModifier, ActivePower, AtSite, NoSupplyCostActionModifier, SeizeModifier, SupplyCostModifier } from ".";
 import { SupplyCostContext } from "./context";
-import { HomelandSitePower, HomelandSitePowerDeactivate, ReactivatePowers } from "./base";
+import { HomelandSitePower, HomelandSitePowerDeactivate, WakeReactivatePowers } from "./base";
 
 
 export class SiteSeize extends SeizeModifier<Site> {
@@ -25,7 +25,7 @@ export class Wastes extends HomelandSitePower(OathSuit.Discord) {
     }
 }
 export class WastesOff extends HomelandSitePowerDeactivate(Wastes) {}
-export class WastesOn extends ReactivatePowers([Wastes]) {}
+export class WastesOn extends WakeReactivatePowers(Wastes) {}
 
 export class StandingStones extends HomelandSitePower(OathSuit.Arcane) {
     giveReward(playerProxy: OathPlayer): void {
@@ -33,7 +33,7 @@ export class StandingStones extends HomelandSitePower(OathSuit.Arcane) {
     }
 }
 export class StandingStonesOff extends HomelandSitePowerDeactivate(StandingStones) {}
-export class StandingStonesOn extends ReactivatePowers([StandingStones]) {}
+export class StandingStonesOn extends WakeReactivatePowers(StandingStones) {}
 
 export class AncientCity extends HomelandSitePower(OathSuit.Order) {
     giveReward(playerProxy: OathPlayer): void {
@@ -41,7 +41,7 @@ export class AncientCity extends HomelandSitePower(OathSuit.Order) {
     }
 }
 export class AncientCityOff extends HomelandSitePowerDeactivate(AncientCity) {}
-export class AncientCityOn extends ReactivatePowers([AncientCity]) {}
+export class AncientCityOn extends WakeReactivatePowers(AncientCity) {}
 
 export class FertileValley extends HomelandSitePower(OathSuit.Hearth) {
     giveReward(playerProxy: OathPlayer): void {
@@ -50,7 +50,7 @@ export class FertileValley extends HomelandSitePower(OathSuit.Hearth) {
     }
 }
 export class FertileValleyOff extends HomelandSitePowerDeactivate(FertileValley) {}
-export class FertileValleyOn extends ReactivatePowers([FertileValley]) {}
+export class FertileValleyOn extends WakeReactivatePowers(FertileValley) {}
 
 export class Steppe extends HomelandSitePower(OathSuit.Nomad) {
     giveReward(playerProxy: OathPlayer): void {
@@ -58,7 +58,7 @@ export class Steppe extends HomelandSitePower(OathSuit.Nomad) {
     }
 }
 export class SteppeOff extends HomelandSitePowerDeactivate(Steppe) {}
-export class SteppeOn extends ReactivatePowers([Steppe]) {}
+export class SteppeOn extends WakeReactivatePowers(Steppe) {}
 
 export class DeepWoods extends HomelandSitePower(OathSuit.Beast) {
     giveReward(playerProxy: OathPlayer): void {
@@ -67,7 +67,7 @@ export class DeepWoods extends HomelandSitePower(OathSuit.Beast) {
     }
 }
 export class DeepWoodsOff extends HomelandSitePowerDeactivate(DeepWoods) {}
-export class DeepWoodsOn extends ReactivatePowers([DeepWoods]) {}
+export class DeepWoodsOn extends WakeReactivatePowers(DeepWoods) {}
 
 
 @AtSite

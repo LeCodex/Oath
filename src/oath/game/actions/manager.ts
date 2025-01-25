@@ -175,7 +175,7 @@ export class OathActionManager extends EventPublisher<{
             this.checkForNextAction(save);
             return this.defer(save);
         } catch (e) {
-            // console.warn('Rollback from cancel because of', e);
+            console.warn('Rollback from cancel because of', e);
             this.history = history;
             this.revertCurrentAction(gameState);
             throw e;
@@ -334,7 +334,7 @@ export class OathActionManager extends EventPublisher<{
             event.oneWay = this.markEventAsOneWay;
             return this.defer(save);
         } catch (e) {
-            // console.warn('Rollback from continue because of', e);
+            console.warn('Rollback from continue because of', e);
             this.authorizeCancel(save);
             throw e;
         }

@@ -1,9 +1,9 @@
 import type { RecoverAction } from "../actions";
 import type { RecoverActionTarget, CampaignActionTarget, WithPowers, OwnableObject } from "./interfaces";
 import { OathSuit } from "../enums";
-import { Constructor, isEnumKey } from "../utils";
+import { isEnumKey } from "../utils";
 import { OathPlayer } from "./player";
-import type { OathResource, OathResourceType } from "./resources";
+import type { OathResource } from "./resources";
 import { Favor, Secret } from "./resources";
 import { Container } from "./gameObject";
 import type { BannerPowerName } from "../powers/classIndex";
@@ -24,7 +24,7 @@ export class FavorBank extends Container<Favor, OathSuit> {
 
 export abstract class Banner<T extends OathResource = OathResource> extends Container<T, string> implements OwnableObject, RecoverActionTarget, CampaignActionTarget, WithPowers {
     readonly type = "banner";
-    powers = new Set<BannerPowerName>(["BannerRecover", "BannerSeize"]);
+    powers = new Set<BannerPowerName>(["BannerSeize"]);
     active = true;
     min = 1;
 
@@ -50,30 +50,10 @@ export class PeoplesFavor extends Banner<Favor> {
 
     constructor() {
         super("PeoplesFavor", Favor);
+        this.powers.add("PeoplesFavorRecover");
         this.powers.add("PeoplesFavorSearch");
         this.powers.add("PeoplesFavorWake");
     }
-
-    // handleRecovery(player: OathPlayer) {
-    //     let amount = this.amount;
-    //     new SetPeoplesFavorMobState(this.game, player, false).doNext();
-    //     new ChooseSuitsAction(
-    //         player, "Choose where to start returning the favor (" + amount + ")",
-    //         (suits: OathSuit[]) => {
-    //             let suit = suits[0];
-    //             if (suit === undefined) return;
-
-    //             while (amount > 0) {
-    //                 const bank = this.game.byClass(FavorBank).byKey(suit)[0];
-    //                 if (bank) {
-    //                     new TransferResourcesEffect(this.game, new ResourceTransferContext(player, this, new ResourceCost([[bank.cls, 1]]), bank, this)).doNext();
-    //                     amount--;
-    //                 }
-    //                 if (++suit > OathSuit.Nomad) suit = OathSuit.Discord;
-    //             }
-    //         }
-    //     ).doNext();
-    // }
 
     liteSerialize() {
         return {
@@ -95,6 +75,7 @@ export class DarkestSecret extends Banner<Secret> {
 
     constructor() {
         super("DarkestSecret", Secret);
+        this.powers.add("DarkestSecretRecover");
         this.powers.add("DarkestSecretPower");
     }
 
@@ -110,10 +91,4 @@ export class DarkestSecret extends Banner<Secret> {
 
         return false;
     }
-
-    // handleRecovery(player: OathPlayer) {
-    //     new TransferResourcesEffect(this.game, new ResourceTransferContext(player, this, new ResourceCost([[this.cls, 1]]), player, this)).doNext();
-    //     if (this.owner)
-    //         new TransferResourcesEffect(this.game, new ResourceTransferContext(this.owner, this, new ResourceCost([[this.cls, this.amount - 1]]), this)).doNext();
-    // }
 }
