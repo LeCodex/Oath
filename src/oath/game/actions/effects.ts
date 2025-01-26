@@ -33,37 +33,6 @@ import { SelectCard } from "./selects";
 //////////////////////////////////////////////////
 //                   EFFECTS                    //
 //////////////////////////////////////////////////
-export class GainPowerEffect<T extends WithPowers> extends OathEffect {
-    constructor(
-        actionManager: OathActionManager,
-        public target: T,
-        public power: PowerName
-    ) {
-        super(actionManager, undefined);
-    }
-
-    resolve(): void {
-        this.target.powers.add(this.power);
-    }
-}
-
-export class LosePowerEffect<T extends WithPowers> extends OathEffect {
-    target: T;
-    power: PowerName;
-
-    constructor(
-        actionManager: OathActionManager,
-        target: T,
-        power: PowerName
-    ) {
-        super(actionManager, undefined);
-    }
-
-    resolve(): void {
-        this.target.powers.delete(this.power);
-    }
-}
-
 export class ParentToTargetEffect extends OathEffect {
     objects: Set<OathGameObject>;
     target?: OathGameObject;

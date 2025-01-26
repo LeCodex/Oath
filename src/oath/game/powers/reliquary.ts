@@ -1,4 +1,5 @@
-import { ActionModifier, Reliquary, ResourceTransferModifier, SupplyCostModifier } from ".";
+import { ActionModifier, ResourceTransferModifier, SupplyCostModifier } from ".";
+import { Reliquary } from "./base";
 import { CampaignAttackAction, SearchAction, TradeAction, TravelAction } from "../actions";
 import { InvalidActionResolution } from "../actions/utils";
 import { ResourceTransferContext, SupplyCostContext } from "./context";

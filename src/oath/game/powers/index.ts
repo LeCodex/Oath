@@ -1,15 +1,14 @@
-import { RestAction, WakeAction, CampaignAttackAction, CampaignDefenseAction } from "../actions";
+import { RestAction, WakeAction, CampaignAttackAction, CampaignDefenseAction, RecoverAction } from "../actions";
 import { UsePowerAction, PayPowerCostEffect, ModifiableAction } from "./actions";
-import { OathAction, ResolveCallbackEffect } from "../actions/base";
-import { PlayWorldCardEffect, RecoverTargetEffect, SeizeTargetEffect } from "../actions/effects";
+import { OathAction } from "../actions/base";
+import { PlayWorldCardEffect, SeizeTargetEffect } from "../actions/effects";
 import { OathCard, OwnableCard, Site, WorldCard } from "../model/cards";
 import { ResourceCost } from "../costs";
 import { CostContext, ResourceTransferContext, SupplyCostContext } from "./context";
 import { OathPlayer } from "../model/player";
 import { AbstractConstructor, Constructor, MaskProxyManager } from "../utils";
 import { OathGame } from "../model/game";
-import { CampaignActionTarget, OwnableObject, RecoverActionTarget, WithPowers } from "../model/interfaces";
-import { ReliquarySlot } from "../model/reliquary";
+import { CampaignActionTarget, RecoverActionTarget, WithPowers } from "../model/interfaces";
 import { OathPowerManager } from "./manager";
 
 
@@ -241,41 +240,13 @@ export abstract class SeizeModifier<T extends CampaignActionTarget & WithPowers>
     }
 }
 
-export abstract class RecoverModifier<T extends RecoverActionTarget & WithPowers> extends ActionModifier<T, RecoverTargetEffect> {
-    modifiedAction = RecoverTargetEffect;
+export abstract class RecoverModifier<T extends RecoverActionTarget & WithPowers> extends ActionModifier<T, RecoverAction> {
+    modifiedAction = RecoverAction;
 
-    canUse(): boolean {
-        return this.action.target === this.source;
+    applyBefore(): void {
+        if (this.action.targetProxy === this.sourceProxy)
+            this.modify();
     }
+
+    abstract modify(): void;
 }
-
-export function Owned<T extends AbstractConstructor<OathPower<OwnableObject & WithPowers> & { canUse(...args: any[]): boolean; }>>(Base: T) {
-    abstract class OwnedModifier extends Base {
-        canUse(...args: any[]): boolean {
-            return super.canUse(...args) && this.playerProxy === this.sourceProxy.owner;
-        }
-    }
-    return OwnedModifier;
-}
-
-// TODO: Could be using Accessed, but eh
-export function Reliquary<T extends AbstractConstructor<OathPower<ReliquarySlot> & { mustUse: boolean; canUse(...args: any[]): boolean; }>>(Base: T) {
-    abstract class ReliquaryModifier extends Base {
-        mustUse = true;
-
-        canUse(...args: any[]): boolean {
-            return super.canUse(args) && this.playerProxy === this.gameProxy.chancellor;
-        }
-    }
-    return ReliquaryModifier;
-}
-
-export function AtSite<T extends AbstractConstructor<OathPower<Site> & { canUse(...args: any[]): boolean; }>>(Base: T) {
-    abstract class AtSiteModifier extends Base {
-        canUse(...args: any[]): boolean {
-            return super.canUse(...args) && this.playerProxy.site === this.sourceProxy;
-        }
-    }
-    return AtSiteModifier;
-}
-

@@ -6,9 +6,9 @@ import { OathSuit } from "../enums";
 import { isAtSite, WithPowers } from "../model/interfaces";
 import { OathPlayer } from "../model/player";
 import { Secret } from "../model/resources";
-import { ActionCostModifier, ActionModifier, ActivePower, AtSite, NoSupplyCostActionModifier, SeizeModifier, SupplyCostModifier } from ".";
+import { ActionCostModifier, ActionModifier, ActivePower, NoSupplyCostActionModifier, SeizeModifier, SupplyCostModifier } from ".";
 import { SupplyCostContext } from "./context";
-import { HomelandSitePower, HomelandSitePowerDeactivate, WakeReactivatePowers } from "./base";
+import { AtSite, HomelandSitePower, HomelandSiteLosePower, GainPowersModifier } from "./base";
 
 
 export class SiteSeize extends SeizeModifier<Site> {
@@ -24,24 +24,24 @@ export class Wastes extends HomelandSitePower(OathSuit.Discord) {
         if (relic) return new RecoverTargetEffect(this.actionManager, playerProxy.original, relic).doNext();
     }
 }
-export class WastesOff extends HomelandSitePowerDeactivate(Wastes) {}
-export class WastesOn extends WakeReactivatePowers(Wastes) {}
+export class WastesOff extends HomelandSiteLosePower(Wastes) {}
+export class WastesOn extends GainPowersModifier(WakeAction, Wastes) {}
 
 export class StandingStones extends HomelandSitePower(OathSuit.Arcane) {
     giveReward(playerProxy: OathPlayer): void {
         new PutResourcesOnTargetEffect(this.actionManager, playerProxy.original, Secret, 1).doNext();
     }
 }
-export class StandingStonesOff extends HomelandSitePowerDeactivate(StandingStones) {}
-export class StandingStonesOn extends WakeReactivatePowers(StandingStones) {}
+export class StandingStonesOff extends HomelandSiteLosePower(StandingStones) {}
+export class StandingStonesOn extends GainPowersModifier(WakeAction, StandingStones) {}
 
 export class AncientCity extends HomelandSitePower(OathSuit.Order) {
     giveReward(playerProxy: OathPlayer): void {
         new ParentToTargetEffect(this.actionManager, playerProxy.original, playerProxy.leader.bag.original.get(2)).doNext();
     }
 }
-export class AncientCityOff extends HomelandSitePowerDeactivate(AncientCity) {}
-export class AncientCityOn extends WakeReactivatePowers(AncientCity) {}
+export class AncientCityOff extends HomelandSiteLosePower(AncientCity) {}
+export class AncientCityOn extends GainPowersModifier(WakeAction, AncientCity) {}
 
 export class FertileValley extends HomelandSitePower(OathSuit.Hearth) {
     giveReward(playerProxy: OathPlayer): void {
@@ -49,16 +49,16 @@ export class FertileValley extends HomelandSitePower(OathSuit.Hearth) {
         if (bank) new ParentToTargetEffect(this.actionManager, playerProxy.original, bank?.get(1)).doNext();
     }
 }
-export class FertileValleyOff extends HomelandSitePowerDeactivate(FertileValley) {}
-export class FertileValleyOn extends WakeReactivatePowers(FertileValley) {}
+export class FertileValleyOff extends HomelandSiteLosePower(FertileValley) {}
+export class FertileValleyOn extends GainPowersModifier(WakeAction, FertileValley) {}
 
 export class Steppe extends HomelandSitePower(OathSuit.Nomad) {
     giveReward(playerProxy: OathPlayer): void {
         new PutResourcesOnTargetEffect(this.actionManager, playerProxy.original, Secret, 1).doNext();
     }
 }
-export class SteppeOff extends HomelandSitePowerDeactivate(Steppe) {}
-export class SteppeOn extends WakeReactivatePowers(Steppe) {}
+export class SteppeOff extends HomelandSiteLosePower(Steppe) {}
+export class SteppeOn extends GainPowersModifier(WakeAction, Steppe) {}
 
 export class DeepWoods extends HomelandSitePower(OathSuit.Beast) {
     giveReward(playerProxy: OathPlayer): void {
@@ -66,8 +66,8 @@ export class DeepWoods extends HomelandSitePower(OathSuit.Beast) {
         if (relic) return new RecoverTargetEffect(this.actionManager, playerProxy.original, relic).doNext();
     }
 }
-export class DeepWoodsOff extends HomelandSitePowerDeactivate(DeepWoods) {}
-export class DeepWoodsOn extends WakeReactivatePowers(DeepWoods) {}
+export class DeepWoodsOff extends HomelandSiteLosePower(DeepWoods) {}
+export class DeepWoodsOn extends GainPowersModifier(WakeAction, DeepWoods) {}
 
 
 @AtSite

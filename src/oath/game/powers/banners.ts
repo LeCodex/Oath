@@ -1,9 +1,10 @@
 import { WakeAction, SearchPlayOrDiscardAction, MayDiscardACardAction, SearchAction, PeoplesFavorWakeAction, RecoverBannerPitchAction, ChooseSuitsAction } from "../actions";
 import { PeoplesFavor, DarkestSecret, Banner, FavorBank } from "../model/banks";
-import { ActionModifier, SupplyCostModifier , Owned, SeizeModifier, RecoverModifier } from ".";
+import { ActionModifier, SupplyCostModifier , SeizeModifier, RecoverModifier } from ".";
+import { Owned } from "./base";
 import { Denizen } from "../model/cards";
 import { CardRestriction, OathSuit } from "../enums";
-import { ResourceTransferContext, SupplyCostContext } from "./context";
+import { SupplyCostContext } from "./context";
 import { SetPeoplesFavorMobState, TakeOwnableObjectEffect, TransferResourcesEffect } from "../actions/effects";
 import { ResourceCost } from "../costs";
 import { OathResourceType, Secret } from "../model/resources";
@@ -16,7 +17,7 @@ export class BannerSeize extends SeizeModifier<Banner> {
     }
 }
 abstract class BannerRecover<T extends Banner> extends RecoverModifier<T> {
-    applyBefore(): void {
+    modify(): void {
         new RecoverBannerPitchAction(this.actionManager, this.action.player, this.source).doNext();
     }
 }
@@ -50,8 +51,8 @@ export class PeoplesFavorWake extends ActionModifier<PeoplesFavor, WakeAction> {
     }
 }
 export class PeoplesFavorRecover extends BannerRecover<PeoplesFavor> {
-    applyBefore(): void {
-        super.applyBefore();
+    modify(): void {
+        super.modify();
 
         let amount = this.source.amount;
         new SetPeoplesFavorMobState(this.actionManager, this.action.player, false).doNext();
@@ -87,8 +88,8 @@ export class DarkestSecretPower extends SupplyCostModifier<DarkestSecret> {
     }
 }
 export class DarkestSecretRecover extends BannerRecover<DarkestSecret> {
-    applyBefore(): void {
-        super.applyBefore();
+    modify(): void {
+        super.modify();
         
         const amount = this.source.amount;
         new TransferResourcesEffect(this.actionManager, this.action.player, new ResourceCost([[Secret, 1]]), this.action.player, this.source).doNext();

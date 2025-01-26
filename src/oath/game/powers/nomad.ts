@@ -16,6 +16,7 @@ import { ActivePower, CapacityModifier, AttackerBattlePlan, DefenderBattlePlan, 
 import { DefenseDieSymbol } from "../dice";
 import { powersIndex } from "./classIndex";
 import { OathPowerManager } from "./manager";
+import { LosePowersModifier } from "./base";
 
 
 export class HorseArchersAttack extends AttackerBattlePlan<Denizen> {
@@ -92,13 +93,6 @@ export class WildMounts extends AttackerBattlePlan<Denizen> {
         WildMountsReplace.firstDiscardDone = false;
     }
 }
-export class WildMountsEnd extends ActionModifier<Denizen, CampaignEndAction> {
-    modifiedAction = CampaignEndAction;
-
-    applyBefore(): void {
-        this.source.powers.delete("WildMountsReplace");
-    }
-}
 export class WildMountsReplace extends ActionModifier<Denizen, DiscardCardEffect<OathCard>> {
     modifiedAction = DiscardCardEffect;
 
@@ -136,6 +130,7 @@ export class WildMountsReplace extends ActionModifier<Denizen, DiscardCardEffect
         return true;
     }
 }
+export class WildMountsEnd extends LosePowersModifier(CampaignEndAction, WildMountsReplace) {}
 
 export class RainBoots extends AttackerBattlePlan<Denizen> {
     applyBefore(): void {
@@ -592,3 +587,4 @@ export class BrokenForge extends ActivePower<Edifice> {
         new FlipEdificeEffect(this.actionManager, this.source).doNext();
     }
 }
+

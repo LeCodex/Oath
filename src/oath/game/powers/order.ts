@@ -1,4 +1,4 @@
-import { TradeAction, TravelAction, SearchAction, SearchPlayOrDiscardAction, TakeFavorFromBankAction, CampaignKillWarbandsInForceAction, MakeDecisionAction, CampaignAction, ActAsIfAtSiteAction, CampaignDefenseAction, ChooseSitesAction, ChoosePlayersAction, KillWarbandsOnTargetAction, MusterAction, MoveWarbandsBetweenBoardAndSitesAction, CampaignAttackAction } from "../actions";
+import { TradeAction, TravelAction, SearchAction, SearchPlayOrDiscardAction, TakeFavorFromBankAction, CampaignKillWarbandsInForceAction, MakeDecisionAction, CampaignAction, ActAsIfAtSiteAction, CampaignDefenseAction, ChooseSitesAction, ChoosePlayersAction, KillWarbandsOnTargetAction, MusterAction, MoveWarbandsBetweenBoardAndSitesAction, CampaignAttackAction, CampaignEndAction } from "../actions";
 import { CampaignResult, CampaignEndCallback , InvalidActionResolution, cannotPayError } from "../actions/utils";
 import { Denizen, Edifice, Site, Vision } from "../model/cards";
 import { TransferResourcesEffect, GainSupplyEffect, BecomeCitizenEffect, PutPawnAtSiteEffect, MoveOwnWarbandsEffect, BecomeExileEffect, PlayVisionEffect, TakeOwnableObjectEffect, ParentToTargetEffect } from "../actions/effects";
@@ -7,7 +7,7 @@ import { WithPowers } from "../model/interfaces";
 import { ExileBoard, OathPlayer } from "../model/player";
 import { Favor } from "../model/resources";
 import { ResourceCost } from "../costs";
-import { AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, RestPower, ActivePower, ActionModifier, Accessed, EnemyActionModifier, BattlePlan, SeizeModifier } from ".";
+import { AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, RestPower, ActivePower, ActionModifier, Accessed, EnemyActionModifier, BattlePlan, SeizeModifier, EnemyDefenderCampaignModifier } from ".";
 import { AttackDieSymbol } from "../dice";
 import { RelicWrapper } from "./utils";
 
@@ -240,13 +240,11 @@ export class Specialist extends AttackerBattlePlan<Denizen> {
         this.source.powers.add("SpecialistRestriction");
     }
 }
-export class SpecialistRestriction extends ActionModifier<Denizen, CampaignDefenseAction> {
-    modifiedAction = CampaignDefenseAction;
-
+export class SpecialistRestriction extends EnemyDefenderCampaignModifier<Denizen> {
     applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, CampaignDefenseAction>>): Iterable<ActionModifier<WithPowers, CampaignDefenseAction>> {
         for (const modifier of modifiers)
             if (modifier instanceof DefenderBattlePlan)
-                throw new InvalidActionResolution("Cannot use defender battle plans while under the Specialist");
+                throw new InvalidActionResolution("Cannot use defender battle plans while against the Specialist");
         
         this.source.powers.delete("SpecialistRestriction");
         return [];

@@ -12,7 +12,7 @@ export class AddUsePowerAction extends ActionModifier<OathGame, ActPhaseAction> 
     mustUse = true;
 
     applyAtStart(): void {
-        this.action.selects.action.choices.set("Use", () => (this.action.next = new UsePowerAction(this.powerManager, this.action.player)).doNext());
+        this.action.selects.action.choices.set("Use", () => this.action.next = new UsePowerAction(this.powerManager, this.action.player));
     }
 }
 

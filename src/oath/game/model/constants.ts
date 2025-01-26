@@ -14,16 +14,16 @@ export const oathData: Record<OathType, [(game: OathGame) => void, (player: Oath
     [OathType.Protection]: [
         () => { },
         (player) => player.relics.length + player.banners.length,
-        (player) => player.byClass(PeoplesFavor).length > 0 ? 1 : 0
+        (player) => player.byClass(PeoplesFavor).length
     ],
     [OathType.ThePeople]: [
         (game) => { game.byClass(PeoplesFavor)[0]?.parentTo(game.chancellor); },
-        (player) => player.byClass(PeoplesFavor).length > 0 ? 1 : 0,
-        (player) => player.byClass(DarkestSecret).length > 0 ? 1 : 0
+        (player) => player.byClass(PeoplesFavor).length,
+        (player) => player.byClass(DarkestSecret).length
     ],
     [OathType.Devotion]: [
         (game) => { game.byClass(DarkestSecret)[0]?.parentTo(game.chancellor); },
-        (player) => player.byClass(DarkestSecret).length > 0 ? 1 : 0,
-        (player) => player.byClass(GrandScepter).length > 0 ? 1 : 0
+        (player) => player.byClass(DarkestSecret).length,
+        (player) => player.byClass(GrandScepter).length
     ],
 };

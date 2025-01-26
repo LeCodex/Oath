@@ -116,6 +116,6 @@ export class MultiResourceTransferContext extends CostContext<ResourceCost[]> {
 
 export class SupplyCostContext extends CostContext<SupplyCost> {
     isValid(): boolean {
-        return this.player.supply >= this.cost.base;
+        return this.player.supply >= this.cost.amount;
     }
 }

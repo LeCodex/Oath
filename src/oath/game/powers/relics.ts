@@ -1,4 +1,4 @@
-import { CitizenshipOfferAction, StartBindingExchangeAction, SkeletonKeyAction, TradeAction, MusterAction, TravelAction, MakeDecisionAction, ChoosePlayersAction, SearchAction, ChooseCardsAction, ChooseNumberAction, RecoverBannerPitchAction } from "../actions";
+import { CitizenshipOfferAction, StartBindingExchangeAction, SkeletonKeyAction, TradeAction, MusterAction, TravelAction, MakeDecisionAction, ChoosePlayersAction, SearchAction, ChooseCardsAction, ChooseNumberAction, RecoverBannerPitchAction, WakeAction } from "../actions";
 import { CampaignEndCallback, cannotPayError, InvalidActionResolution } from "../actions/utils";
 import { OathAction } from "../actions/base";
 import { Denizen, GrandScepter, OathCard, Relic, Site } from "../model/cards";
@@ -13,7 +13,7 @@ import { EnemyActionModifier, AttackerBattlePlan, DefenderBattlePlan, ActionModi
 import { DiscardOptions } from "../model/decks";
 import { inclusiveRange, isExtended } from "../utils";
 import { powersIndex } from "./classIndex";
-import { WakeReactivatePowers } from "./base";
+import { GainPowersModifier, LosePowersModifier } from "./base";
 
 
 export class RelicSeize extends SeizeModifier<Relic> {
@@ -22,7 +22,7 @@ export class RelicSeize extends SeizeModifier<Relic> {
     }
 }
 export class RelicRecover extends RecoverModifier<Relic> {
-    applyBefore(): void {
+    modify(): void {
         if (!this.source.site) return;
         const cost = this.source.site.recoverCost;
         new TransferResourcesEffect(this.actionManager, this.action.player, cost, this.game.favorBank(this.source.site.recoverSuit)).doNext(success => {
@@ -83,21 +83,12 @@ export class GrandScepterExileCitizen extends ActivePower<GrandScepter> {
         ).doNext();
     }
 }
-export class GrandScepterTake extends ActionModifier<GrandScepter, TakeOwnableObjectEffect> {
-    modifiedAction = TakeOwnableObjectEffect;
-    mustUse = true;
-
+export class GrandScepterTake extends LosePowersModifier(TakeOwnableObjectEffect, GrandScepterPeek, GrandScepterGrantCitizenship, GrandScepterExileCitizen) {
     canUse(): boolean {
-        return this.action.target === this.source;
-    }
-    
-    applyAfter(): void {
-        this.source.powers.delete("GrandScepterPeek");
-        this.source.powers.delete("GrandScepterGrantCitizenship");
-        this.source.powers.delete("GrandScepterExileCitizen");
+        return this.action.target === this.source as GrandScepter;
     }
 }
-export class GrandScepterOn extends WakeReactivatePowers(GrandScepterPeek, GrandScepterGrantCitizenship, GrandScepterExileCitizen) {}
+export class GrandScepterOn extends GainPowersModifier(WakeAction, GrandScepterPeek, GrandScepterGrantCitizenship, GrandScepterExileCitizen) {}
 
 export class StickyFireAttack extends AttackerBattlePlan<Relic> {
     applyBefore(): void {

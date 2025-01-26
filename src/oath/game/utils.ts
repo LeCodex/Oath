@@ -1,7 +1,9 @@
 import { isMap, isSet, range } from "lodash";
 
 export type AbstractConstructor<T> = abstract new(...args: any) => T;
-export type Constructor<T> = new(...args: any[]) => T;
+export type Constructor<T> = new (...args: any[]) => T;
+export type Concrete<T extends AbstractConstructor<any>> = T extends AbstractConstructor<infer U> ? Constructor<U> : never;
+export type Abstract<T extends Constructor<any>> = T extends Constructor<infer U> ? AbstractConstructor<U> : never;
 export const isExtended = <T>(constructor: Constructor<any>, type: AbstractConstructor<T>): constructor is Constructor<T> => { return constructor.prototype instanceof type };
 
 export type Enum<E> = Record<keyof E, number | string> & { [k: number]: string; };

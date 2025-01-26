@@ -12,7 +12,7 @@ import type { OathActionManager } from "./manager";
 
 
 export class EventPublisher<E extends Record<string, any[]>> {
-    private listeners: { [k in keyof E]?: Set<(...args: E[k]) => void> } = {};
+    private listeners: { [K in keyof E]?: Set<(...args: E[K]) => void> } = {};
 
     on<K extends keyof E>(event: K, listener: (...args: E[K]) => void) {
         if (!this.listeners[event]) this.listeners[event] = new Set();
