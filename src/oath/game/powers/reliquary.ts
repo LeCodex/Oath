@@ -2,14 +2,13 @@ import { ActionModifier, ResourceTransferModifier, SupplyCostModifier } from "."
 import { Reliquary } from "./base";
 import { CampaignAttackAction, SearchAction, TradeAction, TravelAction } from "../actions";
 import { InvalidActionResolution } from "../actions/utils";
-import { ResourceTransferContext, SupplyCostContext } from "./context";
 import { RegionKey } from "../enums";
-import { ReliquarySlot } from "../model/reliquary";
+import type { ReliquarySlot } from "../model/reliquary";
 import { Favor, Secret } from "../model/resources";
+import type { ResourceTransferContext, SupplyCostContext } from "../costs";
 
 
-@Reliquary
-export class Brutal extends ActionModifier<ReliquarySlot, CampaignAttackAction> {
+export class Brutal extends Reliquary(ActionModifier<ReliquarySlot, CampaignAttackAction>) {
     modifiedAction = CampaignAttackAction;
 
     applyBefore() {
@@ -18,8 +17,7 @@ export class Brutal extends ActionModifier<ReliquarySlot, CampaignAttackAction> 
     }
 }
 
-@Reliquary
-export class Greedy extends ActionModifier<ReliquarySlot, SearchAction> {
+export class Greedy extends Reliquary(ActionModifier<ReliquarySlot, SearchAction>) {
     modifiedAction = SearchAction;
 
     applyBefore(): void {
@@ -31,8 +29,7 @@ export class Greedy extends ActionModifier<ReliquarySlot, SearchAction> {
     }
 }
 
-@Reliquary
-export class Careless extends ResourceTransferModifier<ReliquarySlot> {
+export class Careless extends Reliquary(ResourceTransferModifier<ReliquarySlot>) {
     canUse(context: ResourceTransferContext): boolean {
         return context.origin instanceof TradeAction;
     }
@@ -43,8 +40,7 @@ export class Careless extends ResourceTransferModifier<ReliquarySlot> {
     }
 }
 
-@Reliquary
-export class Decadent extends SupplyCostModifier<ReliquarySlot> {
+export class Decadent extends Reliquary(SupplyCostModifier<ReliquarySlot>) {
     canUse(context: SupplyCostContext): boolean {
         return context.origin instanceof TravelAction;
     }

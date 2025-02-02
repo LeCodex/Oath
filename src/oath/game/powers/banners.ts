@@ -1,13 +1,15 @@
 import { WakeAction, SearchPlayOrDiscardAction, MayDiscardACardAction, SearchAction, PeoplesFavorWakeAction, RecoverBannerPitchAction, ChooseSuitsAction } from "../actions";
-import { PeoplesFavor, DarkestSecret, Banner, FavorBank } from "../model/banks";
+import type { PeoplesFavor, DarkestSecret, Banner} from "../model/banks";
+import { FavorBank } from "../model/banks";
 import { ActionModifier, SupplyCostModifier , SeizeModifier, RecoverModifier } from ".";
 import { Owned } from "./base";
 import { Denizen } from "../model/cards";
 import { CardRestriction, OathSuit } from "../enums";
-import { SupplyCostContext } from "./context";
 import { SetPeoplesFavorMobState, TakeOwnableObjectEffect, TransferResourcesEffect } from "../actions/effects";
+import type { SupplyCostContext } from "../costs";
 import { ResourceCost } from "../costs";
-import { OathResourceType, Secret } from "../model/resources";
+import type { OathResourceType} from "../model/resources";
+import { Secret } from "../model/resources";
 
 
 export class BannerSeize extends SeizeModifier<Banner> {
@@ -22,8 +24,7 @@ abstract class BannerRecover<T extends Banner> extends RecoverModifier<T> {
     }
 }
 
-@Owned
-export class PeoplesFavorSearch extends ActionModifier<PeoplesFavor, SearchPlayOrDiscardAction> {
+export class PeoplesFavorSearch extends Owned(ActionModifier<PeoplesFavor, SearchPlayOrDiscardAction>) {
     modifiedAction = SearchPlayOrDiscardAction;
     mustUse = true; // Not strictly true, but it involves a choice either way, so it's better to always include it
 
@@ -38,8 +39,7 @@ export class PeoplesFavorSearch extends ActionModifier<PeoplesFavor, SearchPlayO
         if (this.action.siteProxy) new MayDiscardACardAction(this.actionManager, this.player, this.action.discardOptions).doNext();
     }
 }
-@Owned
-export class PeoplesFavorWake extends ActionModifier<PeoplesFavor, WakeAction> {
+export class PeoplesFavorWake extends Owned(ActionModifier<PeoplesFavor, WakeAction>) {
     modifiedAction = WakeAction;
     mustUse = true;
 
@@ -75,8 +75,7 @@ export class PeoplesFavorRecover extends BannerRecover<PeoplesFavor> {
     }
 }
 
-@Owned
-export class DarkestSecretPower extends SupplyCostModifier<DarkestSecret> {
+export class DarkestSecretPower extends Owned(SupplyCostModifier<DarkestSecret>) {
     mustUse = true;
 
     canUse(context: SupplyCostContext): boolean {

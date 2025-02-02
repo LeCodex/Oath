@@ -1,21 +1,23 @@
 import { TravelAction, MakeDecisionAction, ChooseRegionAction, SearchPlayOrDiscardAction, ChooseCardsAction, TakeFavorFromBankAction, ChooseSitesAction, MoveWarbandsBetweenBoardAndSitesAction, RestAction, TakeReliquaryRelicAction, CampaignEndAction, StartBindingExchangeAction, TheGatheringOfferAction } from "../actions";
 import { ResolveCallbackEffect , OathAction } from "../actions/base";
 import { InvalidActionResolution } from "../actions/utils";
-import { Region } from "../model/map";
-import { Denizen, Edifice, OathCard, Relic, Site, VisionBack, WorldCard } from "../model/cards";
+import type { Region } from "../model/map";
+import type { Edifice, OathCard, Site, WorldCard } from "../model/cards";
+import { Denizen, Relic, VisionBack } from "../model/cards";
 import { DiscardOptions } from "../model/decks";
 import { TransferResourcesEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, BecomeCitizenEffect, DrawFromDeckEffect, FlipEdificeEffect, DiscardCardEffect, GainSupplyEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, PeekAtCardEffect, MoveWorldCardToAdvisersEffect, MoveDenizenToSiteEffect, DiscardCardGroupEffect, PlayVisionEffect, ParentToTargetEffect, PutPawnAtSiteEffect, RecoverTargetEffect } from "../actions/effects";
 import { PayPowerCostEffect } from "./actions";
 import { BannerKey, OathSuit } from "../enums";
 import { isOwnable } from "../model/interfaces";
-import { ExileBoard, OathPlayer } from "../model/player";
+import type { OathPlayer } from "../model/player";
+import { ExileBoard } from "../model/player";
 import { Favor, Secret } from "../model/resources";
+import type { ResourceTransferContext, SupplyCostContext } from "../costs";
 import { ResourceCost } from "../costs";
-import { ResourceTransferContext, SupplyCostContext } from "./context";
 import { ActivePower, CapacityModifier, AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, EnemyAttackerCampaignModifier, EnemyActionModifier, ActionModifier, BattlePlan, Accessed, ResourceTransferModifier, NoSupplyCostActionModifier, SupplyCostModifier } from ".";
 import { DefenseDieSymbol } from "../dice";
 import { powersIndex } from "./classIndex";
-import { OathPowerManager } from "./manager";
+import type { OathPowerManager } from "./manager";
 import { LosePowersModifier } from "./base";
 
 
@@ -193,8 +195,7 @@ export class WayStation extends ActionModifier<Denizen, TravelAction> {
 }
 export class WayStationCost extends NoSupplyCostActionModifier(WayStation) { }
 
-@Accessed
-export class Hospitality extends ActionModifier<Denizen, TravelAction> {
+export class Hospitality extends Accessed(ActionModifier<Denizen, TravelAction>) {
     modifiedAction = TravelAction;
 
     applyAfter(): void {
@@ -204,8 +205,7 @@ export class Hospitality extends ActionModifier<Denizen, TravelAction> {
     }
 }
 
-@Accessed
-export class Tents extends SupplyCostModifier<Denizen> {
+export class Tents extends Accessed(SupplyCostModifier<Denizen>) {
     cost = new ResourceCost([[Favor, 1]]);
 
     canUse(context: SupplyCostContext): boolean {
@@ -219,8 +219,7 @@ export class Tents extends SupplyCostModifier<Denizen> {
     }
 }
 
-@Accessed
-export class SpecialEnvoy extends ActionModifier<Denizen, TravelAction> {
+export class SpecialEnvoy extends Accessed(ActionModifier<Denizen, TravelAction>) {
     modifiedAction = TravelAction;
 
     applyAfter(): void {
@@ -229,8 +228,7 @@ export class SpecialEnvoy extends ActionModifier<Denizen, TravelAction> {
 }
 export class SpecialEnvoyCost extends NoSupplyCostActionModifier(SpecialEnvoy) { }
 
-@Accessed
-export class AFastSteed extends SupplyCostModifier<Denizen> {
+export class AFastSteed extends Accessed(SupplyCostModifier<Denizen>) {
     cost = new ResourceCost([[Favor, 1]]);
 
     canUse(context: SupplyCostContext): boolean {
@@ -243,8 +241,7 @@ export class AFastSteed extends SupplyCostModifier<Denizen> {
     }
 }
 
-@Accessed
-export class RelicWorship extends ActionModifier<Denizen, RecoverTargetEffect> {
+export class RelicWorship extends Accessed(ActionModifier<Denizen, RecoverTargetEffect>) {
     modifiedAction = RecoverTargetEffect;
 
     applyAtEnd(): void {

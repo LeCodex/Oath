@@ -421,11 +421,11 @@ export class PlayDenizenAtSiteEffect extends PlayerEffect {
     }
 
     resolve(): void {
-        new ParentToTargetEffect(this.actionManager, this.executor, [this.card], this.site).doNext(() => { if (this.card.facedown) this.card.turnFaceup(); });
-        
-        const bank = this.game.byClass(FavorBank).byKey(this.card.suit)[0];
-        if (bank)
-            new TransferResourcesEffect(this.actionManager, this.executor, new ResourceCost([[Favor, 1]]), this.executor, bank).doNext();
+        new ParentToTargetEffect(this.actionManager, this.executor, [this.card], this.site).doNext(() => {
+            if (this.card.facedown) this.card.turnFaceup();
+            const bank = this.game.favorBank(this.card.suit);
+            if (bank) new TransferResourcesEffect(this.actionManager, this.executor, new ResourceCost([[Favor, 1]]), this.executor, bank).doNext();
+        });
     }
 }
 

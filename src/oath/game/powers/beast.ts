@@ -1,13 +1,16 @@
-import { SearchAction, CampaignAttackAction, CampaignDefenseAction, TradeAction, TakeFavorFromBankAction, ActAsIfAtSiteAction, MakeDecisionAction, CampaignAction, ChoosePlayersAction, ChooseCardsAction, ChooseSuitsAction, KillWarbandsOnTargetAction, MusterAction, TravelAction, SearchPlayOrDiscardAction, BrackenAction, TradeForSecretAction } from "../actions";
+import type { CampaignDefenseAction} from "../actions";
+import { SearchAction, CampaignAttackAction, TradeAction, TakeFavorFromBankAction, ActAsIfAtSiteAction, MakeDecisionAction, CampaignAction, ChoosePlayersAction, ChooseCardsAction, ChooseSuitsAction, KillWarbandsOnTargetAction, MusterAction, TravelAction, SearchPlayOrDiscardAction, BrackenAction, TradeForSecretAction } from "../actions";
 import { InvalidActionResolution } from "../actions/utils";
-import { Denizen, Edifice, GrandScepter, Relic, Site } from "../model/cards";
+import type { Edifice, Relic} from "../model/cards";
+import { Denizen, GrandScepter, Site } from "../model/cards";
 import { BecomeCitizenEffect, DiscardCardEffect, TransferResourcesEffect, DrawFromDeckEffect, FinishChronicleEffect, GainSupplyEffect, MoveDenizenToSiteEffect, MoveWorldCardToAdvisersEffect, ParentToTargetEffect, PlayWorldCardEffect, RegionDiscardEffect, TakeOwnableObjectEffect } from "../actions/effects";
 import { CardRestriction, OathSuit } from "../enums";
-import { WithPowers } from "../model/interfaces";
-import { ExileBoard, OathPlayer } from "../model/player";
+import type { WithPowers } from "../model/interfaces";
+import type { OathPlayer } from "../model/player";
+import { ExileBoard } from "../model/player";
 import { Favor, Warband, Secret } from "../model/resources";
+import type { ResourceTransferContext, SupplyCostContext } from "../costs";
 import { ResourceCost } from "../costs";
-import { ResourceTransferContext, SupplyCostContext } from "./context";
 import { AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, RestPower, ActivePower, EnemyAttackerCampaignModifier, EnemyDefenderCampaignModifier, Accessed, ActionModifier, EnemyActionModifier, BattlePlan, ResourceTransferModifier, NoSupplyCostActionModifier, SupplyCostModifier } from ".";
 import { AttackDieSymbol, DefenseDieSymbol } from "../dice";
 import { DiscardOptions } from "../model/decks";
@@ -64,8 +67,7 @@ export class WalledGarden extends DefenderBattlePlan<Denizen> {
     }
 }
 
-@Accessed
-export class Bracken extends ActionModifier<Denizen, SearchAction> {
+export class Bracken extends Accessed(ActionModifier<Denizen, SearchAction>) {
     modifiedAction = SearchAction;
 
     applyBefore(): void {
@@ -73,8 +75,7 @@ export class Bracken extends ActionModifier<Denizen, SearchAction> {
     }
 }
 
-@Accessed
-export class ErrandBoy extends ActionModifier<Denizen, SearchAction> {
+export class ErrandBoy extends Accessed(ActionModifier<Denizen, SearchAction>) {
     modifiedAction = SearchAction;
     cost = new ResourceCost([[Favor, 1]]);
 
@@ -84,8 +85,7 @@ export class ErrandBoy extends ActionModifier<Denizen, SearchAction> {
     }
 }
 
-@Accessed
-export class ForestPaths extends ActionModifier<Denizen, TravelAction> {
+export class ForestPaths extends Accessed(ActionModifier<Denizen, TravelAction>) {
     modifiedAction = TravelAction;
     cost = new ResourceCost([[Favor, 1]]);
 
@@ -99,8 +99,7 @@ export class ForestPaths extends ActionModifier<Denizen, TravelAction> {
 }
 export class ForestPathsCost extends NoSupplyCostActionModifier(ForestPaths) { }
 
-@Accessed
-export class NewGrowth extends ActionModifier<Denizen, SearchPlayOrDiscardAction> {
+export class NewGrowth extends Accessed(ActionModifier<Denizen, SearchPlayOrDiscardAction>) {
     modifiedAction = SearchPlayOrDiscardAction;
 
     applyAtStart(): void {
@@ -113,8 +112,7 @@ export class NewGrowth extends ActionModifier<Denizen, SearchPlayOrDiscardAction
     }
 }
 
-@Accessed
-export class WildCry extends ActionModifier<Denizen, PlayWorldCardEffect> {
+export class WildCry extends Accessed(ActionModifier<Denizen, PlayWorldCardEffect>) {
     modifiedAction = PlayWorldCardEffect;
 
     applyBefore(): void {
@@ -125,8 +123,7 @@ export class WildCry extends ActionModifier<Denizen, PlayWorldCardEffect> {
     }
 }
 
-@Accessed
-export class AnimalPlaymates extends SupplyCostModifier<Denizen> {
+export class AnimalPlaymates extends Accessed(SupplyCostModifier<Denizen>) {
     canUse(context: SupplyCostContext): boolean {
         return context.origin instanceof MusterAction;
     }
@@ -137,8 +134,7 @@ export class AnimalPlaymates extends SupplyCostModifier<Denizen> {
     }
 }
 
-@Accessed
-export class Birdsong extends SupplyCostModifier<Denizen> {
+export class Birdsong extends Accessed(SupplyCostModifier<Denizen>) {
     canUse(context: SupplyCostContext): boolean {
         return context.origin instanceof TradeAction;
     }
@@ -150,8 +146,7 @@ export class Birdsong extends SupplyCostModifier<Denizen> {
     }
 }
 
-@Accessed
-export class TheOldOak extends ResourceTransferModifier<Denizen> {
+export class TheOldOak extends Accessed(ResourceTransferModifier<Denizen>) {
     mustUse = true;
 
     canUse(context: ResourceTransferContext): boolean {
@@ -167,8 +162,7 @@ export class TheOldOak extends ResourceTransferModifier<Denizen> {
     }
 }
 
-@Accessed
-export class Mushrooms extends ActionModifier<Denizen, SearchAction> {
+export class Mushrooms extends Accessed(ActionModifier<Denizen, SearchAction>) {
     modifiedAction = SearchAction;
     cost = new ResourceCost([[Secret, 1]]);
 
@@ -258,8 +252,7 @@ export class AnimalHost extends WhenPlayed<Denizen> {
     }
 }
 
-@Accessed
-export class VowOfPoverty extends ActionModifier<Denizen, TradeAction> {
+export class VowOfPoverty extends Accessed(ActionModifier<Denizen, TradeAction>) {
     modifiedAction = TradeAction;
     mustUse = true;
 
@@ -274,8 +267,7 @@ export class VowOfPovertyRest extends RestPower<Denizen> {
     }
 }
 
-@Accessed
-export class VowOfUnionAttack extends ActionModifier<Denizen, CampaignAttackAction> {
+export class VowOfUnionAttack extends Accessed(ActionModifier<Denizen, CampaignAttackAction>) {
     modifiedAction = CampaignAttackAction;
     mustUse = true;
 
@@ -285,8 +277,7 @@ export class VowOfUnionAttack extends ActionModifier<Denizen, CampaignAttackActi
                 this.action.campaignResult.atkForce.add(siteProxy.original);
     }
 }
-@Accessed
-export class VowOfUnionTravel extends ActionModifier<Denizen, TravelAction> {
+export class VowOfUnionTravel extends Accessed(ActionModifier<Denizen, TravelAction>) {
     modifiedAction = TravelAction;
     mustUse = true;
 
@@ -296,8 +287,7 @@ export class VowOfUnionTravel extends ActionModifier<Denizen, TravelAction> {
     }
 }
 
-@Accessed
-export class VowOfBeastkin extends ActionModifier<Denizen, MusterAction> {
+export class VowOfBeastkin extends Accessed(ActionModifier<Denizen, MusterAction>) {
     modifiedAction = MusterAction;
     mustUse = true;
 
@@ -308,8 +298,7 @@ export class VowOfBeastkin extends ActionModifier<Denizen, MusterAction> {
     }
 }
 
-@Accessed
-export class SmallFriends extends ActionModifier<Denizen, TradeAction> {
+export class SmallFriends extends Accessed(ActionModifier<Denizen, TradeAction>) {
     modifiedAction = TradeAction;
 
     applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, TradeAction>>): Iterable<ActionModifier<WithPowers, TradeAction>> {

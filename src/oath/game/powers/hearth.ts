@@ -1,13 +1,14 @@
 import { TradeAction, TakeResourceFromPlayerAction, TakeFavorFromBankAction, CampaignEndAction, MakeDecisionAction, CampaignAttackAction, ChooseSuitsAction, ChooseCardsAction, MusterAction, SearchPlayOrDiscardAction, MayDiscardACardAction, SearchAction, SearchChooseAction, KillWarbandsOnTargetAction, TinkersFairOfferAction, StartBindingExchangeAction, DeedWriterOfferAction } from "../actions";
 import { CampaignEndCallback , InvalidActionResolution } from "../actions/utils";
 import { OathAction } from "../actions/base";
-import { Denizen, Edifice, Relic, WorldCard } from "../model/cards";
+import type { Edifice, Relic, WorldCard } from "../model/cards";
+import { Denizen } from "../model/cards";
 import { PlayVisionEffect, PlayWorldCardEffect, PeekAtCardEffect, DiscardCardEffect, BecomeCitizenEffect, SetPeoplesFavorMobState, GainSupplyEffect, DrawFromDeckEffect, TakeOwnableObjectEffect, MoveDenizenToSiteEffect, ParentToTargetEffect, PutResourcesOnTargetEffect, RecoverTargetEffect, ReturnAllResourcesEffect } from "../actions/effects";
 import { BannerKey, OathSuit, ALL_OATH_SUITS } from "../enums";
-import { WithPowers } from "../model/interfaces";
-import { Favor, OathResource, Secret } from "../model/resources";
+import type { WithPowers } from "../model/interfaces";
+import { Favor, Secret } from "../model/resources";
+import type { SupplyCostContext } from "../costs";
 import { ResourceCost } from "../costs";
-import { SupplyCostContext } from "./context";
 import { maxInGroup, minInGroup } from "../utils";
 import { DefenderBattlePlan, Accessed, ActivePower, WhenPlayed, EnemyActionModifier, AttackerBattlePlan, ActionModifier, EnemyDefenderCampaignModifier, NoSupplyCostActionModifier, SupplyCostModifier } from ".";
 import { ExileBoard } from "../model/player";
@@ -108,8 +109,7 @@ export class ExtraProvisions extends DefenderBattlePlan<Denizen> {
     }
 }
 
-@Accessed
-export class AwaitedReturn extends ActionModifier<Denizen, TradeAction> {
+export class AwaitedReturn extends Accessed(ActionModifier<Denizen, TradeAction>) {
     modifiedAction = TradeAction;
 
     applyBefore(): void {
@@ -120,8 +120,7 @@ export class AwaitedReturn extends ActionModifier<Denizen, TradeAction> {
 }
 export class AwaitedReturnCost extends NoSupplyCostActionModifier(AwaitedReturn) { }
 
-@Accessed
-export class RowdyPub extends ActionModifier<Denizen, MusterAction> {
+export class RowdyPub extends Accessed(ActionModifier<Denizen, MusterAction>) {
     modifiedAction = MusterAction;
     mustUse = true;  // Nicer to have it automatically apply
 
@@ -131,8 +130,7 @@ export class RowdyPub extends ActionModifier<Denizen, MusterAction> {
     }
 }
 
-@Accessed
-export class CropRotation extends ActionModifier<Denizen, SearchPlayOrDiscardAction> {
+export class CropRotation extends Accessed(ActionModifier<Denizen, SearchPlayOrDiscardAction>) {
     modifiedAction = SearchPlayOrDiscardAction;
     mustUse = true;  // Nicer to have it automatically apply
 
@@ -142,8 +140,7 @@ export class CropRotation extends ActionModifier<Denizen, SearchPlayOrDiscardAct
     }
 }
 
-@Accessed
-export class NewsFromAfar extends SupplyCostModifier<Denizen> {
+export class NewsFromAfar extends Accessed(SupplyCostModifier<Denizen>) {
     cost = new ResourceCost([[Favor, 2]]);  // TODO: Do costs for cost modifiers
 
     canUse(context: SupplyCostContext): boolean {
@@ -202,8 +199,7 @@ export class FamilyHeirloom extends WhenPlayed<Denizen> {
     }
 }
 
-@Accessed
-export class VowOfPeace extends ActionModifier<Denizen, CampaignAttackAction> {
+export class VowOfPeace extends Accessed(ActionModifier<Denizen, CampaignAttackAction>) {
     modifiedAction = CampaignAttackAction;
     mustUse = true;
 
@@ -268,8 +264,7 @@ export class Marriage extends ActionModifier<Denizen, OathAction> {
     }
 }
 
-@Accessed
-export class LandWarden extends ActionModifier<Denizen, SearchChooseAction> {
+export class LandWarden extends Accessed(ActionModifier<Denizen, SearchChooseAction>) {
     modifiedAction = SearchChooseAction;
     cost = new ResourceCost([[Favor, 1]]);
 
@@ -286,8 +281,7 @@ export class LandWarden extends ActionModifier<Denizen, SearchChooseAction> {
     }
 }
 
-@Accessed
-export class WelcomingParty extends ActionModifier<Denizen, SearchChooseAction> {
+export class WelcomingParty extends Accessed(ActionModifier<Denizen, SearchChooseAction>) {
     modifiedAction = SearchChooseAction;
 
     applyAfter(): void {

@@ -1,18 +1,22 @@
-import { MakeDecisionAction, ChooseCardsAction, ChooseRegionAction, TakeFavorFromBankAction, TakeResourceFromPlayerAction, ChooseSuitsAction, SearchPlayOrDiscardAction, MusterAction, TravelAction, CampaignAction, KillWarbandsOnTargetAction, CampaignAttackAction, CampaignEndAction, TakeReliquaryRelicAction, ChooseNumberAction, StartBindingExchangeAction, FestivalDistrictOfferAction, RecoverAction, CampaignDefenseAction } from "../actions";
+import type { CampaignDefenseAction } from "../actions";
+import { MakeDecisionAction, ChooseCardsAction, ChooseRegionAction, TakeFavorFromBankAction, TakeResourceFromPlayerAction, ChooseSuitsAction, SearchPlayOrDiscardAction, MusterAction, TravelAction, CampaignAction, KillWarbandsOnTargetAction, CampaignAttackAction, CampaignEndAction, TakeReliquaryRelicAction, ChooseNumberAction, StartBindingExchangeAction, FestivalDistrictOfferAction, RecoverAction } from "../actions";
 import { CampaignEndCallback , cannotPayError, InvalidActionResolution } from "../actions/utils";
 import { OathAction } from "../actions/base";
-import { FavorBank, PeoplesFavor } from "../model/banks";
-import { Region } from "../model/map";
-import { Denizen, Edifice, OathCard, Relic, Site, Vision, WorldCard } from "../model/cards";
+import type { PeoplesFavor } from "../model/banks";
+import { FavorBank } from "../model/banks";
+import type { Region } from "../model/map";
+import type { Edifice, OathCard, WorldCard } from "../model/cards";
+import { Denizen, Relic, Site, Vision } from "../model/cards";
 import { D6, DefenseDie } from "../dice";
 import { TakeOwnableObjectEffect, PutResourcesOnTargetEffect, SetNewOathkeeperEffect, RollDiceEffect, DiscardCardEffect, BecomeCitizenEffect, TransferResourcesEffect, PeekAtCardEffect, WinGameEffect, DrawFromDeckEffect, MoveWorldCardToAdvisersEffect, ParentToTargetEffect } from "../actions/effects";
 import { BannerKey, OathSuit } from "../enums";
-import { ExileBoard, OathPlayer } from "../model/player";
+import type { OathPlayer } from "../model/player";
+import { ExileBoard } from "../model/player";
 import { Favor, Secret } from "../model/resources";
 import { ResourceCost } from "../costs";
 import { WhenPlayed, CapacityModifier, ActivePower, RestPower, AttackerBattlePlan, DefenderBattlePlan, ActionModifier, Accessed, WakePower, EnemyActionModifier, EnemyAttackerCampaignModifier, EnemyDefenderCampaignModifier } from ".";
 import { minInGroup, NumberMap } from "../utils";
-import { WithPowers } from "../model/interfaces";
+import type { WithPowers } from "../model/interfaces";
 
 
 export class MercenariesAttack extends AttackerBattlePlan<Denizen> {
@@ -422,8 +426,7 @@ export class SaltTheEarth extends CapacityModifier<Denizen> {
     }
 }
 
-@Accessed
-export class Downtrodden extends ActionModifier<Denizen, MusterAction> {
+export class Downtrodden extends Accessed(ActionModifier<Denizen, MusterAction>) {
     modifiedAction = MusterAction;
 
     applyBefore(): void {
@@ -524,8 +527,7 @@ export class VowOfRenewal extends ActionModifier<Denizen, TransferResourcesEffec
         new PutResourcesOnTargetEffect(this.actionManager, this.sourceProxy.ruler.original, Favor, amount).doNext();
     }
 }
-@Accessed
-export class VowOfRenewalRecover extends ActionModifier<Denizen, RecoverAction> {
+export class VowOfRenewalRecover extends Accessed(ActionModifier<Denizen, RecoverAction>) {
     modifiedAction = RecoverAction;
     mustUse = true;
 

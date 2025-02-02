@@ -2,16 +2,19 @@ import type { WithPowers } from "../model/interfaces";
 import type { OathPlayer } from "../model/player";
 import type { OathPower, ActionModifier } from ".";
 import { ActivePower } from ".";
+import type { MaskProxyManager } from "../utils";
 import { allCombinations } from "../utils";
 import { PlayerEffect, OathAction, ResolveCallbackEffect } from "../actions/base";
 import { SelectNOf } from "../actions/selects";
 import type { OathPowerManager } from "./manager";
 import type { OwnableCard } from "../model/cards";
-import { MultiResourceTransferContext, ResourceTransferContext, type CostContext } from "./context";
+import { MultiCostContext } from "./context";
 import { cannotPayError } from "../actions/utils";
 import { TransferResourcesEffect } from "../actions/effects";
 import { ResourcesAndWarbands } from "../model/resources";
 import type { PowerName } from "./classIndex";
+import type { CostContext } from "../costs";
+import { ResourceTransferContext } from "../costs";
 
 
 export abstract class ExpandedAction extends OathAction {
@@ -35,12 +38,10 @@ export class ChooseModifiers<T extends OathAction> extends ExpandedAction {
         this.modifiableAction = next instanceof ChooseModifiers ? next.modifiableAction : next;
     }
 
-    start() {
-        const defaults: string[] = [];
+    static gatherActionModifiers<T extends OathAction>(powerManager: OathPowerManager, action: T, player: OathPlayer, maskProxyManager: MaskProxyManager) {
         const persistentModifiers = new Set<ActionModifier<WithPowers, T>>();
         const optionalModifiers = new Set<ActionModifier<WithPowers, T>>();
-        const maskProxyManager = this.modifiableAction.action.maskProxyManager;
-        for (const modifier of this.powerManager.gatherActionModifiers(this.modifiableAction.action, this.player, maskProxyManager)) {
+        for (const modifier of powerManager.gatherActionModifiers(action, player, maskProxyManager)) {
             if (modifier.mustUse) {
                 persistentModifiers.add(modifier);
             } else {
@@ -48,11 +49,26 @@ export class ChooseModifiers<T extends OathAction> extends ExpandedAction {
             }
         }
 
+        return {
+            persistentModifiers,
+            optionalModifiers
+        };
+    }
+
+    start() {
+        const defaults: string[] = [];
+        const maskProxyManager = this.modifiableAction.maskProxyManager;
+        const { persistentModifiers, optionalModifiers } = ChooseModifiers.gatherActionModifiers(this.powerManager, this.modifiableAction.action, this.player, maskProxyManager);
+        
         // TODO: Change to permutations to handle order (maybe have order agnosticity as a property)
         const choices = new Map<string, ActionModifier<WithPowers, T>[]>();
         for (const combination of allCombinations(optionalModifiers)) {
             const completeCombination = [...persistentModifiers, ...combination];
-            const totalContext = new MultiResourceTransferContext(this.powerManager, this.player, this, completeCombination.map(e => e.selfCostContext));
+            const totalContext = new MultiCostContext(
+                this.powerManager, this.player, completeCombination.map(e => e.selfCostContext),
+                ResourceTransferContext.dummyFactory(this.player)
+            );
+
             if (totalContext.payableCostsWithModifiers(maskProxyManager).length) {
                 choices.set(combination.map(e => e.name).join(", "), completeCombination);
             }
@@ -64,13 +80,6 @@ export class ChooseModifiers<T extends OathAction> extends ExpandedAction {
 
     execute() {
         const modifiers = new Set(this.parameters.modifiers[0]);
-
-        // NOTE: For ignore loops, all powers in the loop are ignored.
-        const ignore = new Set<ActionModifier<WithPowers, T>>();
-        for (const modifier of modifiers)
-            for (const toIgnore of modifier.applyImmediately(modifiers))
-                ignore.add(toIgnore);
-        for (const modifier of ignore) modifiers.delete(modifier);
 
         if (this.modifiableAction.applyModifiers(modifiers)) {
             this.next.doNext();
@@ -123,10 +132,17 @@ export class ModifiableAction<T extends OathAction> extends OathAction {
     }
 
     applyModifiers(modifiers: Iterable<ActionModifier<WithPowers, T>>) {
-        this.modifiers.push(...modifiers);
+        // NOTE: For ignore loops, all powers in the loop are ignored.
+        const modifiersSet = new Set(modifiers);
+        const ignore = new Set<ActionModifier<WithPowers, T>>();
+        for (const modifier of [...modifiers, ...this.modifiers])
+            for (const toIgnore of modifier.applyImmediately(modifiers))
+                ignore.add(toIgnore);
+        for (const modifier of ignore) modifiersSet.delete(modifier);
 
+        this.modifiers.push(...modifiersSet);
         let shouldContinue = true;
-        for (const modifier of modifiers) {
+        for (const modifier of modifiersSet) {
             modifier.payCost(success => {
                 if (!success) throw cannotPayError(modifier.cost);
             });
@@ -186,7 +202,7 @@ export class ChoosePayableCostContextAction<T extends CostContext<any>> extends 
 
     start() {
         const choices = new Map<string, T>();
-        const payableCostContextsInfo = this.costContext.payableCostsWithModifiers(this.maskProxyManager);
+        const payableCostContextsInfo = this.powerManager.payableCostsWithModifiers(this.costContext, this.maskProxyManager);
         for (const costContextInfo of payableCostContextsInfo)
             choices.set(costContextInfo.context.cost.toString() + `(${costContextInfo.modifiers.map(e => e.name).join(", ") || "Base"})`, costContextInfo.context as T);
         this.selects.costContext = new SelectNOf("Cost", choices, { min: 1 });
@@ -211,7 +227,7 @@ export class PayPowerCostEffect extends PlayerEffect<boolean> {
 
     resolve(): void {
         const target = this.power.source instanceof ResourcesAndWarbands ? this.power.source : undefined;
-        const costContext = new ResourceTransferContext(this.powerManager, this.player, this.power.source, this.power.cost, target);
+        const costContext = new ResourceTransferContext(this.player, this.power.source, this.power.cost, target);
         new ChoosePayableCostContextAction(this.powerManager, this.player, costContext, (costContext) => {
             new TransferResourcesEffect(this.actionManager, costContext.player, costContext.cost, costContext.target, costContext.source).doNext(result => this.result = result);
         }).doNext();

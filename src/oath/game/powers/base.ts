@@ -1,7 +1,6 @@
 import type { OathPower } from ".";
 import { ActionModifier } from ".";
-import { WakeAction } from "../actions";
-import { OathAction } from "../actions/base";
+import type { OathAction } from "../actions/base";
 import { DiscardCardEffect, PlayWorldCardEffect } from "../actions/effects";
 import type { OathSuit } from "../enums";
 import type { Site, OathCard } from "../model/cards";
@@ -10,7 +9,7 @@ import type { OwnableObject, WithPowers } from "../model/interfaces";
 import type { OathPlayer } from "../model/player";
 import type { ReliquarySlot } from "../model/reliquary";
 import type { AbstractConstructor, Concrete, Constructor } from "../utils";
-import type { PowerName, SitePowerName } from "./classIndex";
+import type { PowerName } from "./classIndex";
 
 
 export function GainPowersModifier<T extends OathAction>(action: Constructor<T>, ...powers: Constructor<OathPower<WithPowers>>[]) {

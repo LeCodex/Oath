@@ -5,6 +5,7 @@ import type { OathPlayer } from "./player";
 import type { OathPower } from "../powers";
 import type { ResourcesAndWarbands } from "./resources";
 import type { PowerName } from "../powers/classIndex";
+import type { CostContext } from "../costs";
 
 
 export interface WithPowers extends OathGameObject {
@@ -49,3 +50,9 @@ export interface RecoverActionTarget extends OathGameObject, OwnableObject {
     canRecover(action: RecoverAction): boolean;  // TODO: Potentially change this
 }
 
+export interface WithCostContexts {
+    costContexts: CostContext<any>[];
+}
+export function hasCostContexts(obj: object): obj is WithCostContexts {
+    return "costContexts" in obj;
+}

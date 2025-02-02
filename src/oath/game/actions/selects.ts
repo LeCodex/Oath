@@ -1,5 +1,6 @@
 import type { OathCard } from "../model/cards";
 import type { OathPlayer } from "../model/player";
+import { allCombinations } from "../utils";
 import { InvalidActionResolution } from "./utils";
 
 
@@ -50,6 +51,10 @@ export class SelectNOf<T> {
                 this.choices.delete(name);
 
         if (this.choices.size < this.min && this.exact) throw new InvalidActionResolution(`Not enough choices for select ${this.name}`);
+    }
+
+    get allPossibleChoices() {
+        return allCombinations(this.choices.keys()).filter(e => this.min <= e.length && e.length <= this.max);
     }
 
     parse(input: Iterable<string>): T[] {

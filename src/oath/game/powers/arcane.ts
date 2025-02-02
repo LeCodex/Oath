@@ -1,16 +1,20 @@
-import { CampaignAttackAction, CampaignDefenseAction, TakeFavorFromBankAction, TradeAction, TravelAction, MakeDecisionAction, RestAction, ChooseCardsAction, SearchPlayOrDiscardAction, ChoosePlayersAction, ChooseNumberAction, SearchAction, KillWarbandsOnTargetAction, MusterAction, RecoverBannerPitchAction, ChooseRnWsAction, RecoverAction } from "../actions";
-import { Conspiracy, Denizen, Edifice, Relic, Site, WorldCard } from "../model/cards";
+import type { CampaignAttackAction, CampaignDefenseAction} from "../actions";
+import { TakeFavorFromBankAction, TradeAction, TravelAction, MakeDecisionAction, RestAction, ChooseCardsAction, SearchPlayOrDiscardAction, ChoosePlayersAction, ChooseNumberAction, SearchAction, KillWarbandsOnTargetAction, MusterAction, RecoverBannerPitchAction, ChooseRnWsAction, RecoverAction } from "../actions";
+import type { Edifice, WorldCard } from "../model/cards";
+import { Conspiracy, Denizen, Relic, Site } from "../model/cards";
 import { DiscardOptions } from "../model/decks";
 import { AttackDie, AttackDieSymbol, DefenseDie, RollResult } from "../dice";
 import { RegionDiscardEffect, PutResourcesOnTargetEffect, RollDiceEffect, BecomeCitizenEffect, DiscardCardEffect, PeekAtCardEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, MoveWorldCardToAdvisersEffect, ParentToTargetEffect, TransferResourcesEffect } from "../actions/effects";
 import { BannerKey, OathSuit } from "../enums";
-import { ExileBoard, OathPlayer } from "../model/player";
-import { Favor, OathResourceType, ResourcesAndWarbands, Secret } from "../model/resources";
+import type { OathPlayer } from "../model/player";
+import { ExileBoard } from "../model/player";
+import type { OathResourceType, ResourcesAndWarbands} from "../model/resources";
+import { Favor, Secret } from "../model/resources";
+import type { ResourceTransferContext } from "../costs";
 import { ResourceCost } from "../costs";
-import { ResourceTransferContext, SupplyCostContext } from "./context";
 import { ActionModifier, AttackerBattlePlan, DefenderBattlePlan, ActivePower, WhenPlayed, Accessed, EnemyAttackerCampaignModifier, BattlePlan, ResourceTransferModifier, NoSupplyCostActionModifier } from ".";
 import { inclusiveRange } from "../utils";
-import { WithPowers } from "../model/interfaces";
+import type { WithPowers } from "../model/interfaces";
 import { DarkestSecret } from "../model/banks";
 
 
@@ -257,8 +261,7 @@ export class BloodPact extends ActivePower<Denizen> {
     }
 }
 
-@Accessed
-export class ActingTroupe extends ActionModifier<Denizen, TradeAction> {
+export class ActingTroupe extends Accessed(ActionModifier<Denizen, TradeAction>) {
     modifiedAction = TradeAction;
 
     applyBefore(): void {
@@ -290,8 +293,7 @@ export class Jinx extends ActionModifier<Denizen, RollDiceEffect<AttackDie | Def
     }
 }
 
-@Accessed
-export class Portal extends ActionModifier<Denizen, TravelAction> {
+export class Portal extends Accessed(ActionModifier<Denizen, TravelAction>) {
     modifiedAction = TravelAction;
     cost = new ResourceCost([[Secret, 1]]);
 
@@ -306,8 +308,7 @@ export class Portal extends ActionModifier<Denizen, TravelAction> {
 }
 export class PortalCost extends NoSupplyCostActionModifier(Portal) { }
 
-@Accessed
-export class SecretSignal extends ActionModifier<Denizen, TradeAction> {
+export class SecretSignal extends Accessed(ActionModifier<Denizen, TradeAction>) {
     modifiedAction = TradeAction;
     
     applyAfter(): void {
@@ -317,8 +318,7 @@ export class SecretSignal extends ActionModifier<Denizen, TradeAction> {
     }
 }
 
-@Accessed
-export class InitiationRite extends ResourceTransferModifier<Denizen> {
+export class InitiationRite extends Accessed(ResourceTransferModifier<Denizen>) {
     mustUse = true;
 
     canUse(context: ResourceTransferContext): boolean {
@@ -340,8 +340,7 @@ export class SealingWard extends EnemyAttackerCampaignModifier<Denizen> {
     }
 }
 
-@Accessed
-export class Augury extends ActionModifier<Denizen, SearchAction> {
+export class Augury extends Accessed(ActionModifier<Denizen, SearchAction>) {
     modifiedAction = SearchAction;
     
     applyBefore(): void {
@@ -349,8 +348,7 @@ export class Augury extends ActionModifier<Denizen, SearchAction> {
     }
 }
 
-@Accessed
-export class Observatory extends ActionModifier<Denizen, SearchAction> {
+export class Observatory extends Accessed(ActionModifier<Denizen, SearchAction>) {
     modifiedAction = SearchAction;
     
     applyAtStart(): void {
@@ -360,8 +358,7 @@ export class Observatory extends ActionModifier<Denizen, SearchAction> {
     }
 }
 
-@Accessed
-export class MagiciansCode extends ActionModifier<Denizen, RecoverBannerPitchAction> {
+export class MagiciansCode extends Accessed(ActionModifier<Denizen, RecoverBannerPitchAction>) {
     modifiedAction = RecoverBannerPitchAction;  // Technically should be chosen at the time you recover, but this is way simpler
     cost = new ResourceCost([[Favor, 2]]);
 
@@ -381,8 +378,7 @@ export class MagiciansCode extends ActionModifier<Denizen, RecoverBannerPitchAct
     }
 }
 
-@Accessed
-export class MapLibrary extends ActionModifier<Denizen, TradeAction> {
+export class MapLibrary extends Accessed(ActionModifier<Denizen, TradeAction>) {
     modifiedAction = TradeAction;
     
     applyWhenApplied(): boolean {
@@ -394,8 +390,7 @@ export class MapLibrary extends ActionModifier<Denizen, TradeAction> {
     }
 }
 
-@Accessed
-export class MasterOfDisguise extends ActionModifier<Denizen,TradeAction> {
+export class MasterOfDisguise extends Accessed(ActionModifier<Denizen,TradeAction>) {
     modifiedAction = TradeAction;
 
     applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, TradeAction>>): Iterable<ActionModifier<WithPowers, TradeAction>> {
@@ -480,8 +475,7 @@ export class Revelation extends WhenPlayed<Denizen> {
     }
 }
 
-@Accessed
-export class VowOfSilence extends ActionModifier<Denizen, ParentToTargetEffect> {
+export class VowOfSilence extends Accessed(ActionModifier<Denizen, ParentToTargetEffect>) {
     modifiedAction = ParentToTargetEffect;
     mustUse = true;
 
@@ -491,8 +485,7 @@ export class VowOfSilence extends ActionModifier<Denizen, ParentToTargetEffect> 
                 this.action.objects.delete(object);
     }
 }
-@Accessed
-export class VowOfSilenceRecover extends ActionModifier<Denizen, RecoverAction> {
+export class VowOfSilenceRecover extends Accessed(ActionModifier<Denizen, RecoverAction>) {
     modifiedAction = RecoverAction;
     mustUse = true;
 
@@ -536,8 +529,7 @@ export class DreamThief extends ActivePower<Denizen> {
 }
 
 
-@Accessed
-export class GreatSpire extends ActionModifier<Edifice, SearchAction> {
+export class GreatSpire extends Accessed(ActionModifier<Edifice, SearchAction>) {
     modifiedAction = SearchAction;
     cost = new ResourceCost([[Secret, 1]]);
 

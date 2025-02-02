@@ -1,5 +1,6 @@
-import type { OathPower } from ".";
-import { ActionModifier } from ".";
+import { clone } from "lodash";
+import type { OathPower} from ".";
+import { ActionModifier, CostModifier } from ".";
 import { ResolveCallbackEffect, type OathAction } from "../actions/base";
 import type { OathActionManager } from "../actions/manager";
 import type { WithPowers, SourceType } from "../model/interfaces";
@@ -7,9 +8,12 @@ import { hasPowers } from "../model/interfaces";
 import type { OathPlayer } from "../model/player";
 import type { TreeNode } from "../model/utils";
 import type { AbstractConstructor, Constructor, MaskProxyManager } from "../utils";
-import { isExtended } from "../utils";
+import { allCombinations, isExtended } from "../utils";
 import { ChooseModifiers, ModifiableAction } from "./actions";
 import { powersIndex } from "./classIndex";
+import { MultiCostContext } from "./context";
+import type { CostContext} from "../costs";
+import { ResourceTransferContext } from "../costs";
 
 
 export class OathPowerManager {
@@ -24,7 +28,7 @@ export class OathPowerManager {
             this.futureActionsModifiable.set(action, modifiableAction);
             const chooseModifiers = new ChooseModifiers(this, modifiableAction);
             actionManager.futureActionsList.shift();
-            actionManager.futureActionsList.unshift(chooseModifiers);
+            chooseModifiers.doNext();
         });
     }
 
@@ -53,5 +57,37 @@ export class OathPowerManager {
         }
 
         return instances;
+    }
+
+    modifiersCostContext(player: OathPlayer, modifiers: CostModifier<WithPowers, CostContext<any>>[]): MultiCostContext<ResourceTransferContext> {
+        const contexts: ResourceTransferContext[] = modifiers.map(e => new ResourceTransferContext(player, this, e.cost, e.source));
+        return new MultiCostContext(this, player, contexts, ResourceTransferContext.dummyFactory(player));
+    }
+
+    modifyCostContext<T extends CostContext<any>>(costContext: T, modifiers: Iterable<CostModifier<WithPowers, T>>) {
+        for (const modifier of modifiers) {
+            modifier.apply(costContext);
+        }
+    }
+
+    payableCostsWithModifiers<T extends CostContext<any>>(costContext: T, maskProxyManager: MaskProxyManager) {
+        const modifiers: CostModifier<WithPowers, CostContext<any>>[] = [];
+        for (const [sourceProxy, modifier] of this.getPowers(CostModifier, maskProxyManager)) {
+            const instance = new modifier(this, sourceProxy.original, costContext.player, maskProxyManager);
+            if (costContext instanceof instance.modifiedContext && instance.canUse(costContext))
+                modifiers.push(instance);
+        }
+        const mustUse = modifiers.filter(e => e.mustUse);
+        const canUse = modifiers.filter(e => !e.mustUse);
+        return allCombinations(canUse).map(e => [...mustUse, ...e]).map(combination => {
+            const context: T = clone(costContext);
+            context.cost = clone(costContext.cost);
+            if (combination.length) {
+                this.modifyCostContext(context, combination);
+                if (!this.modifiersCostContext(costContext.player, combination).payableCostsWithModifiers(maskProxyManager).length) return undefined;
+            }
+            if (!context.isValid()) return undefined;
+            return { context, modifiers: combination };
+        }).filter(e => !!e);
     }
 }

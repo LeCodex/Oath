@@ -1,14 +1,15 @@
 import { ChooseResourceToTakeAction, WakeAction, TravelAction, CampaignAttackAction, MusterAction, SearchAction, StartBindingExchangeAction, MakeBindingExchangeOfferAction, SearchPlayOrDiscardAction, MayDiscardACardAction, CampaignSeizeSiteAction } from "../actions";
 import { InvalidActionResolution } from "../actions/utils";
-import { Site } from "../model/cards";
+import type { Site } from "../model/cards";
 import { PutResourcesOnTargetEffect, FlipSecretsEffect, ParentToTargetEffect, RecoverTargetEffect, MoveOwnWarbandsEffect } from "../actions/effects";
 import { OathSuit } from "../enums";
-import { isAtSite, WithPowers } from "../model/interfaces";
-import { OathPlayer } from "../model/player";
+import type { WithPowers } from "../model/interfaces";
+import { isAtSite } from "../model/interfaces";
+import type { OathPlayer } from "../model/player";
 import { Secret } from "../model/resources";
 import { ActionCostModifier, ActionModifier, ActivePower, NoSupplyCostActionModifier, SeizeModifier, SupplyCostModifier } from ".";
-import { SupplyCostContext } from "./context";
 import { AtSite, HomelandSitePower, HomelandSiteLosePower, GainPowersModifier } from "./base";
+import { SupplyCostContext } from "../costs";
 
 
 export class SiteSeize extends SeizeModifier<Site> {
@@ -70,8 +71,7 @@ export class DeepWoodsOff extends HomelandSiteLosePower(DeepWoods) {}
 export class DeepWoodsOn extends GainPowersModifier(WakeAction, DeepWoods) {}
 
 
-@AtSite
-export class CoastalSite extends ActionModifier<Site, TravelAction> {
+export class CoastalSite extends AtSite(ActionModifier<Site, TravelAction>) {
     modifiedAction = TravelAction;
 
     canUse(): boolean {
@@ -97,8 +97,7 @@ export class CoastalSiteCost extends ActionCostModifier(CoastalSite, SupplyCostC
     }
 }
 
-@AtSite
-export class CharmingValley extends SupplyCostModifier<Site> {
+export class CharmingValley extends AtSite(SupplyCostModifier<Site>) {
     mustUse = true;
 
     canUse(context: SupplyCostContext): boolean {
@@ -110,8 +109,7 @@ export class CharmingValley extends SupplyCostModifier<Site> {
     }
 }
 
-@AtSite
-export class BuriedGiant extends ActionModifier<Site, TravelAction> {
+export class BuriedGiant extends AtSite(ActionModifier<Site, TravelAction>) {
     modifiedAction = TravelAction;
 
     applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, TravelAction>>): Iterable<ActionModifier<WithPowers, TravelAction>> {
@@ -126,8 +124,7 @@ export class BuriedGiant extends ActionModifier<Site, TravelAction> {
 }
 export class BuriedGiantCost extends NoSupplyCostActionModifier(BuriedGiant) { }
 
-@AtSite
-export class ShroudedWood extends ActionModifier<Site, TravelAction> {
+export class ShroudedWood extends AtSite(ActionModifier<Site, TravelAction>) {
     modifiedAction = TravelAction;
     mustUse = true;
 
@@ -183,8 +180,7 @@ export class TheHiddenPlaceCampaign extends ActionModifier<Site, CampaignAttackA
     }
 }
 
-@AtSite
-export class OpportunitySite extends ActionModifier<Site, WakeAction> {
+export class OpportunitySite extends AtSite(ActionModifier<Site, WakeAction>) {
     modifiedAction = WakeAction;
 
     canUse(): boolean {
@@ -196,8 +192,7 @@ export class OpportunitySite extends ActionModifier<Site, WakeAction> {
     }
 }
 
-@AtSite
-export class Plains extends ActionModifier<Site, CampaignAttackAction> {
+export class Plains extends AtSite(ActionModifier<Site, CampaignAttackAction>) {
     modifiedAction = CampaignAttackAction;
     mustUse = true;
 
@@ -211,8 +206,7 @@ export class Plains extends ActionModifier<Site, CampaignAttackAction> {
     }
 }
 
-@AtSite
-export class Mountain extends ActionModifier<Site, CampaignAttackAction> {
+export class Mountain extends AtSite(ActionModifier<Site, CampaignAttackAction>) {
     modifiedAction = CampaignAttackAction;
     mustUse = true;
 
@@ -226,8 +220,7 @@ export class Mountain extends ActionModifier<Site, CampaignAttackAction> {
     }
 }
 
-@AtSite
-export class River extends ActionModifier<Site, MusterAction> {
+export class River extends AtSite(ActionModifier<Site, MusterAction>) {
     modifiedAction = MusterAction;
     mustUse = true;
 
@@ -236,8 +229,7 @@ export class River extends ActionModifier<Site, MusterAction> {
     }
 }
 
-@AtSite
-export class Marshes extends ActionModifier<Site, SearchAction> {
+export class Marshes extends AtSite(ActionModifier<Site, SearchAction>) {
     modifiedAction = SearchAction;
     mustUse = true;
 
@@ -246,8 +238,7 @@ export class Marshes extends ActionModifier<Site, SearchAction> {
     }
 }
 
-@AtSite
-export class GreatSlum extends ActionModifier<Site, SearchPlayOrDiscardAction> {
+export class GreatSlum extends AtSite(ActionModifier<Site, SearchPlayOrDiscardAction>) {
     modifiedAction = SearchPlayOrDiscardAction;
     mustUse = true;
 

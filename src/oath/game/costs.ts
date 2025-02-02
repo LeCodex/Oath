@@ -1,13 +1,21 @@
+import type { OathPlayer } from "./model/player";
 import type { OathResourceType} from "./model/resources";
 import { Favor, Secret } from "./model/resources";
-import { NumberMap } from "./utils";
+import { Factory, NumberMap } from "./utils";
+import type { OathGameObject } from "./model/gameObject";
+import { Oath } from "./model/oaths";
 
 
-export class ResourceCost {
+export abstract class Cost {
+    abstract add(other: Cost): void;
+}
+
+export class ResourceCost extends Cost {
     placedResources: NumberMap<OathResourceType>;
     burntResources: NumberMap<OathResourceType>;
 
     constructor(placedResources: Iterable<[OathResourceType, number]> = [], burntResources: Iterable<[OathResourceType, number]> = []) {
+        super();
         this.placedResources = new NumberMap(placedResources);
         this.burntResources = new NumberMap(burntResources);
     }
@@ -57,12 +65,71 @@ export class ResourceCost {
     }
 }
 
-export class SupplyCost {
+export class SupplyCost extends Cost {
     constructor(
         public base: number,
         public modifier: number = 0,
-        public multiplier: number = 1
-    ) { }
+        public flatModifier: number = 0,
+        public multiplier: number = 1,
+    ) {
+        super();
+    }
 
-    get amount() { return (this.base + this.modifier) * this.multiplier; }
+    get amount() { return this.flatModifier + (this.base + this.modifier) * this.multiplier; }
+
+    add(other: SupplyCost): void {
+        this.flatModifier += other.amount;
+    }
+}
+
+
+export abstract class CostContext<T extends Cost, S = any> {
+    constructor(
+        public readonly player: OathPlayer,
+        public readonly origin: any, // TODO: This sucks. Need to find a better way of differentiating contexts
+        public cost: T,
+        public source: S
+    ) { }
+    
+    abstract isValid(): boolean;
+    
+    static dummyFactory(player: OathPlayer): Factory<CostContext<Cost, any>, [any, Cost]> {
+        throw TypeError("Not implemented");
+    };
+}
+export type ContextSource<T extends CostContext<Cost>> = T extends CostContext<Cost, infer S> ? S : never; 
+export type ContextCost<T extends CostContext<Cost>> = T extends CostContext<infer T> ? T : never; 
+
+export class ResourceTransferContext extends CostContext<ResourceCost, OathGameObject> {
+    constructor(
+        player: OathPlayer,
+        origin: any,
+        cost: ResourceCost,
+        public target: OathGameObject | undefined,
+        source?: OathGameObject
+    ) {
+        super(player, origin, cost, source ?? player);
+    }
+
+    isValid(): boolean {
+        for (const [resource, amount] of this.cost.totalResources)
+            if (this.source.byClass(resource).length < amount)
+                return false;
+
+        return true;
+    }
+
+    static dummyFactory(player: OathPlayer): Factory<ResourceTransferContext, [OathGameObject, ResourceCost]> {
+        return (source, cost) => new ResourceTransferContext(player, undefined, cost, source, source);
+    }
+}
+
+export class SupplyCostContext extends CostContext<SupplyCost, OathPlayer> {
+    isValid(): boolean {
+        return this.player.supply >= this.cost.amount;
+    }
+
+    static dummyFactory(player: OathPlayer): Factory<SupplyCostContext, [OathPlayer, SupplyCost]> {
+        return (source, cost) => new SupplyCostContext(player, undefined, cost, source);
+    }
 }

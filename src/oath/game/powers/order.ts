@@ -1,10 +1,13 @@
 import { TradeAction, TravelAction, SearchAction, SearchPlayOrDiscardAction, TakeFavorFromBankAction, CampaignKillWarbandsInForceAction, MakeDecisionAction, CampaignAction, ActAsIfAtSiteAction, CampaignDefenseAction, ChooseSitesAction, ChoosePlayersAction, KillWarbandsOnTargetAction, MusterAction, MoveWarbandsBetweenBoardAndSitesAction, CampaignAttackAction, CampaignEndAction } from "../actions";
-import { CampaignResult, CampaignEndCallback , InvalidActionResolution, cannotPayError } from "../actions/utils";
-import { Denizen, Edifice, Site, Vision } from "../model/cards";
+import type { CampaignResult} from "../actions/utils";
+import { CampaignEndCallback , InvalidActionResolution, cannotPayError } from "../actions/utils";
+import type { Denizen, Edifice} from "../model/cards";
+import { Site, Vision } from "../model/cards";
 import { TransferResourcesEffect, GainSupplyEffect, BecomeCitizenEffect, PutPawnAtSiteEffect, MoveOwnWarbandsEffect, BecomeExileEffect, PlayVisionEffect, TakeOwnableObjectEffect, ParentToTargetEffect } from "../actions/effects";
 import { BannerKey, OathSuit } from "../enums";
-import { WithPowers } from "../model/interfaces";
-import { ExileBoard, OathPlayer } from "../model/player";
+import type { WithPowers } from "../model/interfaces";
+import type { OathPlayer } from "../model/player";
+import { ExileBoard } from "../model/player";
 import { Favor } from "../model/resources";
 import { ResourceCost } from "../costs";
 import { AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, RestPower, ActivePower, ActionModifier, Accessed, EnemyActionModifier, BattlePlan, SeizeModifier, EnemyDefenderCampaignModifier } from ".";
@@ -246,8 +249,11 @@ export class SpecialistRestriction extends EnemyDefenderCampaignModifier<Denizen
             if (modifier instanceof DefenderBattlePlan)
                 throw new InvalidActionResolution("Cannot use defender battle plans while against the Specialist");
         
-        this.source.powers.delete("SpecialistRestriction");
         return [];
+    }
+
+    applyBefore(): void {
+        this.source.powers.delete("SpecialistRestriction");
     }
 }
 
@@ -345,8 +351,7 @@ export class TomeGuardiansAttack extends EnemyActionModifier<Denizen, CampaignAt
     }
 }
 
-@Accessed
-export class Tyrant extends ActionModifier<Denizen, TravelAction> {
+export class Tyrant extends Accessed(ActionModifier<Denizen, TravelAction>) {
     modifiedAction = TravelAction;
     museUse = true;
 
@@ -355,8 +360,7 @@ export class Tyrant extends ActionModifier<Denizen, TravelAction> {
     }
 }
 
-@Accessed
-export class CouncilSeat extends ActionModifier<Denizen, BecomeExileEffect> {
+export class CouncilSeat extends Accessed(ActionModifier<Denizen, BecomeExileEffect>) {
     modifiedAction = BecomeExileEffect;
     museUse = true;
 
@@ -365,8 +369,7 @@ export class CouncilSeat extends ActionModifier<Denizen, BecomeExileEffect> {
     }
 }
 
-@Accessed
-export class Pressgangs extends ActionModifier<Denizen, MusterAction> {
+export class Pressgangs extends Accessed(ActionModifier<Denizen, MusterAction>) {
     modifiedAction = MusterAction;
     mustUse = true;  // Nicer to have it automatically apply
 
@@ -376,8 +379,7 @@ export class Pressgangs extends ActionModifier<Denizen, MusterAction> {
     }
 }
 
-@Accessed
-export class KnightsErrant extends ActionModifier<Denizen, MusterAction> {
+export class KnightsErrant extends Accessed(ActionModifier<Denizen, MusterAction>) {
     modifiedAction = MusterAction;
     mustUse = true;  // Involves a choice, so better to include it by default
 
@@ -392,8 +394,7 @@ export class KnightsErrant extends ActionModifier<Denizen, MusterAction> {
     }
 }
 
-@Accessed
-export class HuntingParty extends ActionModifier<Denizen, SearchAction> {
+export class HuntingParty extends Accessed(ActionModifier<Denizen, SearchAction>) {
     modifiedAction = SearchAction;
     mustUse = true;  // Involves a choice, so better to include it by default
 
@@ -439,8 +440,7 @@ export class Garrison extends WhenPlayed<Denizen> {
     }
 }
 
-@Accessed
-export class VowOfObedience extends ActionModifier<Denizen, SearchPlayOrDiscardAction> {
+export class VowOfObedience extends Accessed(ActionModifier<Denizen, SearchPlayOrDiscardAction>) {
     modifiedAction = SearchPlayOrDiscardAction;
     mustUse = true;
 

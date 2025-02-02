@@ -1,14 +1,17 @@
 import { CitizenshipOfferAction, StartBindingExchangeAction, SkeletonKeyAction, TradeAction, MusterAction, TravelAction, MakeDecisionAction, ChoosePlayersAction, SearchAction, ChooseCardsAction, ChooseNumberAction, RecoverBannerPitchAction, WakeAction } from "../actions";
 import { CampaignEndCallback, cannotPayError, InvalidActionResolution } from "../actions/utils";
 import { OathAction } from "../actions/base";
-import { Denizen, GrandScepter, OathCard, Relic, Site } from "../model/cards";
+import type { GrandScepter, OathCard, Relic} from "../model/cards";
+import { Denizen, Site } from "../model/cards";
 import { TakeOwnableObjectEffect, PlayDenizenAtSiteEffect, MoveOwnWarbandsEffect, PeekAtCardEffect, GainSupplyEffect, DrawFromDeckEffect, RevealCardEffect, TransferResourcesEffect, BecomeExileEffect, MoveDenizenToSiteEffect, MoveWorldCardToAdvisersEffect, ParentToTargetEffect, DiscardCardEffect } from "../actions/effects";
-import { BannerKey, PlayerColor } from "../enums";
-import { OathPlayer, ExileBoard } from "../model/player";
+import type { PlayerColor } from "../enums";
+import { BannerKey } from "../enums";
+import type { OathPlayer} from "../model/player";
+import { ExileBoard } from "../model/player";
 import { isOwnable } from "../model/interfaces";
 import { Favor, Warband, Secret } from "../model/resources";
+import type { ResourceTransferContext, SupplyCostContext } from "../costs";
 import { ResourceCost } from "../costs";
-import { ResourceTransferContext, SupplyCostContext } from "./context";
 import { EnemyActionModifier, AttackerBattlePlan, DefenderBattlePlan, ActionModifier, ActivePower, BattlePlan, EnemyAttackerCampaignModifier, Accessed, ResourceTransferModifier, SupplyCostModifier, SeizeModifier, RecoverModifier } from ".";
 import { DiscardOptions } from "../model/decks";
 import { inclusiveRange, isExtended } from "../utils";
@@ -176,8 +179,7 @@ export class ObsidianCageActive extends ActivePower<Relic> {
     }
 }
 
-@Accessed
-export class CupOfPlenty extends SupplyCostModifier<Relic> {
+export class CupOfPlenty extends Accessed(SupplyCostModifier<Relic>) {
     canUse(context: SupplyCostContext): boolean {
         return context.origin instanceof TradeAction;
     }
@@ -209,8 +211,7 @@ export class CircletOfCommandCampaign extends EnemyAttackerCampaignModifier<Reli
     }
 }
 
-@Accessed
-export class DragonskinDrum extends ActionModifier<Relic, TravelAction> {
+export class DragonskinDrum extends Accessed(ActionModifier<Relic, TravelAction>) {
     modifiedAction = TravelAction;
 
     applyAfter(): void {
@@ -218,8 +219,7 @@ export class DragonskinDrum extends ActionModifier<Relic, TravelAction> {
     }
 }
 
-@Accessed
-export class BookOfRecords extends ResourceTransferModifier<Relic> {
+export class BookOfRecords extends Accessed(ResourceTransferModifier<Relic>) {
     modifiedAction = PlayDenizenAtSiteEffect;
     mustUse = true;
 

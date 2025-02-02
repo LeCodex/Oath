@@ -3,8 +3,7 @@ import { UsePowerAction, PayPowerCostEffect, ModifiableAction } from "./actions"
 import { OathAction } from "../actions/base";
 import { PlayWorldCardEffect, SeizeTargetEffect } from "../actions/effects";
 import { OathCard, OwnableCard, Site, WorldCard } from "../model/cards";
-import { ResourceCost } from "../costs";
-import { CostContext, ResourceTransferContext, SupplyCostContext } from "./context";
+import { CostContext, ResourceCost, ResourceTransferContext, SupplyCostContext } from "../costs";
 import { OathPlayer } from "../model/player";
 import { AbstractConstructor, Constructor, MaskProxyManager } from "../utils";
 import { OathGame } from "../model/game";
@@ -36,7 +35,7 @@ export abstract class OathPower<T extends WithPowers> {
 
     get actionManager() { return this.powerManager.actionManager; }
     
-    get selfCostContext() { return new ResourceTransferContext(this.powerManager, this.player, this, this.cost, this.source); }
+    get selfCostContext() { return new ResourceTransferContext(this.player, this, this.cost, this.source); }
     get name() { return this.source.name; }
     get game() { return this.source.game; }
 
@@ -101,7 +100,7 @@ export abstract class ActionPower<T extends WithPowers, U extends OathAction> ex
 export abstract class ActivePower<T extends OathCard> extends ActionPower<T, UsePowerAction> {
     canUse(): boolean {
         return (
-            this.selfCostContext.payableCostsWithModifiers(this.action.maskProxyManager).length > 0 &&  // TODO: Make this global
+            this.powerManager.payableCostsWithModifiers(this.selfCostContext, this.action.maskProxyManager).length > 0 &&  // TODO: Make this global
             this.sourceProxy.accessibleBy(this.action.playerProxy) &&
             (this.sourceProxy.empty || !this.cost.placesResources)
         );
@@ -126,11 +125,17 @@ export abstract class ActionModifier<T extends WithPowers, U extends OathAction>
         return true;
     }
 
-    /** Applied right after all the chosen modifiers are collected. Returns modifiers to ignore */
+    /** Applied right after all the chosen modifiers are collected. Returns modifiers to ignore.
+     * 
+     * NO SIDE EFFECTS BESIDES THE MODIFIED ACTION. */
     applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, U>>): Iterable<ActionModifier<WithPowers, U>> { return []; }
-    /** Applied before the action is added to the stack. If returns false, it will not be added */
+    /** Applied before the action is added to the stack. If returns false, it will not be added.
+     * 
+     * NO SIDE EFFECTS BESIDES THE MODIFIED ACTION. */
     applyWhenApplied(): boolean { return true; }
-    /** Applied when the action starts and selects are set up (before choices are made) */
+    /** Applied when the action starts and selects are set up (before choices are made).
+     * 
+     * NO SIDE EFFECTS BESIDES THE MODIFIED ACTION. */
     applyAtStart(): void { }
     /** Applied right before the modified execution of the action is put on the stack */
     applyBefore(): void { }
@@ -182,21 +187,6 @@ export abstract class RestPower<T extends OwnableCard> extends ActionModifier<T,
     modifiedAction = RestAction;
     mustUse = true;
 }
-
-// export function gainPowerUntilActionResolves<T extends WithPowers, U extends OathAction>(actionManager: OathActionManager, source: T, power: PowerName, action: Constructor<U>) {
-//     new GainPowerEffect(actionManager, source, power).doNext();
-//     new GainPowerEffect(actionManager, source, class LosePowerWhenActionResolves extends ActionModifier<T, U> {
-//         modifiedAction = action;
-//         mustUse = true;
-    
-//         applyBefore(): void {
-//             new LosePowerEffect(actionManager, source, power).doNext();
-//             new LosePowerEffect(actionManager, source, LosePowerWhenActionResolves).doNext();
-//         }
-
-//         get name() { return `Lose ${power.name}`; }
-//     }).doNext();
-// }
 
 export abstract class BattlePlan<T extends OwnableCard, U extends CampaignAttackAction | CampaignDefenseAction> extends ActionModifier<T, U> {
     canUse(): boolean {

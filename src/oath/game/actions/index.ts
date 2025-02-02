@@ -330,7 +330,6 @@ export class SearchChooseAction extends OathAction {
         for (const card of this.playing) discarding.delete(card);
         new SearchDiscardAction(this.actionManager, this.player, discarding, Infinity, this.discardOptions).doNext();
         
-        this.playActions.length = 0;
         for (const card of this.playing) {
             const playAction = new SearchPlayOrDiscardAction(this.actionManager, this.player, card.original, this.discardOptions);
             this.playActions.push(playAction);
