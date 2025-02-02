@@ -93,7 +93,7 @@ export abstract class CostContext<T extends Cost, S = any> {
     
     abstract isValid(): boolean;
     
-    static dummyFactory(player: OathPlayer): Factory<CostContext<Cost, any>, [any, Cost]> {
+    static dummyFactory(player: OathPlayer): Factory<CostContext<Cost, any>, [any, Cost?]> {
         throw TypeError("Not implemented");
     };
 }
@@ -119,8 +119,8 @@ export class ResourceTransferContext extends CostContext<ResourceCost, OathGameO
         return true;
     }
 
-    static dummyFactory(player: OathPlayer): Factory<ResourceTransferContext, [OathGameObject, ResourceCost]> {
-        return (source, cost) => new ResourceTransferContext(player, undefined, cost, source, source);
+    static dummyFactory(player: OathPlayer): Factory<ResourceTransferContext, [OathGameObject, ResourceCost?]> {
+        return (source, cost) => new ResourceTransferContext(player, undefined, cost ?? new ResourceCost(), source, source);
     }
 }
 
@@ -138,7 +138,7 @@ export class SupplyCostContext extends CostContext<SupplyCost, OathPlayer> {
         return this.player.supply >= this.cost.amount;
     }
 
-    static dummyFactory(player: OathPlayer): Factory<SupplyCostContext, [OathPlayer, SupplyCost]> {
-        return (source, cost) => new SupplyCostContext(player, undefined, cost, source);
+    static dummyFactory(player: OathPlayer): Factory<SupplyCostContext, [OathPlayer, SupplyCost?]> {
+        return (source, cost) => new SupplyCostContext(player, undefined, cost ?? new SupplyCost(0), source);
     }
 }

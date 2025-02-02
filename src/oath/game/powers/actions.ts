@@ -68,13 +68,13 @@ export class ChooseModifiers<T extends OathAction> extends ExpandedAction {
                 this.powerManager, this.player, completeCombination.map(e => e.selfCostContext),
                 ResourceTransferContext.dummyFactory(this.player)
             );
-
+            
             if (totalContext.payableCostsWithModifiers(maskProxyManager).length) {
-                choices.set(combination.map(e => e.name).join(", "), completeCombination);
+                choices.set(combination.length ? combination.map(e => e.name).join(", ") : "None", completeCombination);
             }
         }
         this.selects.modifiers = new SelectNOf("Modifiers", choices, { defaults, min: 1 });
-
+        
         return super.start();
     }
 

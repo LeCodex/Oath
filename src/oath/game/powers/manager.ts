@@ -9,10 +9,10 @@ import type { OathPlayer } from "../model/player";
 import type { TreeNode } from "../model/utils";
 import type { AbstractConstructor, Constructor, MaskProxyManager } from "../utils";
 import { allCombinations, isExtended } from "../utils";
-import { ChooseModifiers, ModifiableAction } from "./actions";
+import { ChooseModifiers, ModifiableAction, PayPowerCostEffect } from "./actions";
 import { powersIndex } from "./classIndex";
 import { MultiCostContext } from "./context";
-import type { CostContext} from "../costs";
+import type { Cost, CostContext} from "../costs";
 import { ResourceTransferContext } from "../costs";
 
 
@@ -69,14 +69,14 @@ export class OathPowerManager {
         return new MultiCostContext(this, player, contexts, ResourceTransferContext.dummyFactory(player));
     }
 
-    modifyCostContext<T extends CostContext<any>>(costContext: T, modifiers: Iterable<CostModifier<WithPowers, T>>) {
+    modifyCostContext<T extends CostContext<Cost>>(costContext: T, modifiers: Iterable<CostModifier<WithPowers, T>>) {
         for (const modifier of modifiers) {
             modifier.apply(costContext);
         }
     }
 
-    payableCostsWithModifiers<T extends CostContext<any>>(costContext: T, maskProxyManager: MaskProxyManager) {
-        const modifiers: CostModifier<WithPowers, CostContext<any>>[] = [];
+    payableCostsWithModifiers<T extends CostContext<Cost>>(costContext: T, maskProxyManager: MaskProxyManager) {
+        const modifiers: CostModifier<WithPowers, CostContext<Cost>>[] = [];
         for (const [sourceProxy, modifier] of this.getPowers(CostModifier, maskProxyManager)) {
             const instance = new modifier(this, sourceProxy.original, costContext.player, maskProxyManager);
             if (costContext instanceof instance.modifiedContext && instance.canUse(costContext))

@@ -224,6 +224,7 @@ export abstract class EnemyDefenderCampaignModifier<T extends OwnableCard> exten
 
 export abstract class SeizeModifier<T extends CampaignActionTarget & WithPowers> extends ActionModifier<T, SeizeTargetEffect> {
     modifiedAction = SeizeTargetEffect;
+    mustUse = true;
 
     canUse(): boolean {
         return this.action.target === this.source;
@@ -232,6 +233,7 @@ export abstract class SeizeModifier<T extends CampaignActionTarget & WithPowers>
 
 export abstract class RecoverModifier<T extends RecoverActionTarget & WithPowers> extends ActionModifier<T, RecoverAction> {
     modifiedAction = RecoverAction;
+    mustUse = true;
 
     applyBefore(): void {
         if (this.action.targetProxy === this.sourceProxy)

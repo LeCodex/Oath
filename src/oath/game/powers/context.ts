@@ -11,7 +11,7 @@ export class MultiCostContext<T extends CostContext<Cost>> {
         public powerManager: OathPowerManager,
         public player: OathPlayer,
         public costContexts: T[],
-        public dummyFactory: Factory<T, [ContextSource<T>, ContextCost<T>]>
+        public dummyFactory: Factory<T, [ContextSource<T>, ContextCost<T>?]>
     ) { }
 
     payableCostsWithModifiers(maskProxyManager: MaskProxyManager) {
@@ -28,9 +28,8 @@ export class MultiCostContext<T extends CostContext<Cost>> {
         const totalCostBySource = new Map<ContextSource<T>, ContextCost<T>>();
         for (const costContext of this.costContexts) {
             if (!totalCostBySource.has(costContext.source))
-                totalCostBySource.set(costContext.source, costContext.cost as ContextCost<T>);
-            else
-                totalCostBySource.get(costContext.source)!.add(costContext.cost);
+                totalCostBySource.set(costContext.source, this.dummyFactory(costContext.source).cost as ContextCost<T>);
+            totalCostBySource.get(costContext.source)!.add(costContext.cost);
         }
 
         for (const [source, totalCost] of totalCostBySource)
