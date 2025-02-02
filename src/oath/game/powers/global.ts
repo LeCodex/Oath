@@ -32,7 +32,7 @@ export class FilterUnpayableActions extends ActionModifier<OathGame, ActPhaseAct
                 try {
                     const action = factory();  // Get a blank state, then update the modifiers to use that new action
                     const completeCombination = new Set([...persistentModifiers, ...combination].map(e => { e.action = action; return e; }));
-                    const modifiableAction = new ModifiableAction(action);
+                    const modifiableAction = this.powerManager.getModifiable(action);
                     if (!modifiableAction.applyModifiers(completeCombination)) continue;
                     modifiableAction.start();
                     if (!hasCostContexts(action)) return true;

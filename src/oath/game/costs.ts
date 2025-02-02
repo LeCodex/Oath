@@ -113,7 +113,7 @@ export class ResourceTransferContext extends CostContext<ResourceCost, OathGameO
 
     isValid(): boolean {
         for (const [resource, amount] of this.cost.totalResources)
-            if (this.source.byClass(resource).length < amount)
+            if (resource.usable(this.source).length < amount)
                 return false;
 
         return true;
@@ -125,6 +125,15 @@ export class ResourceTransferContext extends CostContext<ResourceCost, OathGameO
 }
 
 export class SupplyCostContext extends CostContext<SupplyCost, OathPlayer> {
+    constructor(
+        player: OathPlayer,
+        origin: any,
+        cost: SupplyCost,
+        source?: OathPlayer
+    ) {
+        super(player, origin, cost, source ?? player);
+    }
+
     isValid(): boolean {
         return this.player.supply >= this.cost.amount;
     }

@@ -9,13 +9,13 @@ import { ALL_OATH_SUITS, ALL_PLAYER_COLORS, CardRestriction, OathPhase, OathSuit
 import { ChancellorBoard, ExileBoard, OathPlayer, VisionSlot } from "../model/player";
 import type { OathResource, OathResourceType, ResourcesAndWarbands} from "../model/resources";
 import { Favor, Secret } from "../model/resources";
-import { ResourceCost, SupplyCost } from "../costs";
+import { CostContext, ResourceCost, ResourceTransferContext, SupplyCost, SupplyCostContext } from "../costs";
 import type { Banner, PeoplesFavor } from "../model/banks";
 import { FavorBank } from "../model/banks";
 import type { Constructor} from "../utils";
 import { inclusiveRange, minInGroup, NumberMap } from "../utils";
 import { SelectNOf, SelectBoolean, SelectNumber, SelectWithName, SelectCard } from "./selects";
-import type { CampaignActionTarget, RecoverActionTarget } from "../model/interfaces";
+import type { CampaignActionTarget, RecoverActionTarget, WithCostContexts } from "../model/interfaces";
 import type { Region } from "../model/map";
 import type { OathGameObject } from "../model/gameObject";
 import type { ExileColor } from "../parser/interfaces";
@@ -85,9 +85,11 @@ export class SetupChooseAdviserAction extends OathAction {
 ////////////////////////////////////////////
 //              MAJOR ACTIONS             //
 ////////////////////////////////////////////
-export abstract class MajorAction extends OathAction {
+export abstract class MajorAction extends OathAction implements WithCostContexts {
     readonly autocompleteSelects: boolean = false;
     abstract supplyCost: SupplyCost;
+
+    get costContexts(): CostContext<any>[] { return [new SupplyCostContext(this.player, this, this.supplyCost)]; }
 
     execute() {
         new PaySupplyEffect(this.actionManager, this.player, this.supplyCost).doNext(success => {
@@ -107,6 +109,8 @@ export abstract class PayDenizenAction extends MajorAction {
     
     readonly abstract cost: ResourceCost;
 
+    get costContexts(): CostContext<any>[] { return [...super.costContexts, new ResourceTransferContext(this.player, this, this.cost, this.cardProxy.original)]; }
+
     validateCardProxies(cardProxies: Denizen[]) {
         // validCardProxies = validCardProxies.filter(e => new ResourceTransferContext(this.player, this, this.cost, e.original).payableCostsWithModifiers(this.maskProxyManager).length);
         return cardProxies.filter(e => e.suit !== OathSuit.None && e.empty);
@@ -118,10 +122,10 @@ export abstract class PayDenizenAction extends MajorAction {
         this.selects.cardProxy = new SelectCard("Card", this.player, validCardProxies, { min: 1 });
         return super.start();
     }
-    
-    execute() {
+
+    applyParameters(values: Record<string, any[]>): void {
+        super.applyParameters(values);
         this.cardProxy = this.parameters.cardProxy[0]!;
-        super.execute();
     }
 
     majorAction(): void {
@@ -198,9 +202,10 @@ export class TravelAction extends MajorAction {
         return super.start();
     }
 
-    execute() {
-        this.player = this.travelling;
+    applyParameters(values: Record<string, any[]>): void {
+        super.applyParameters(values)
         this.siteProxy = this.parameters.siteProxy[0]!;
+        this.player = this.travelling;
 
         const fromRegionKey = this.playerProxy.site.region?.key;
         const toRegionKey = this.siteProxy.region?.key;
@@ -208,8 +213,6 @@ export class TravelAction extends MajorAction {
             this.supplyCost = new SupplyCost(this.gameProxy.map.travelCosts.get(fromRegionKey)?.get(toRegionKey) ?? 2);
         else
             this.supplyCost = new SupplyCost(2);
-
-        super.execute();
     }
 
     majorAction() {
@@ -230,9 +233,9 @@ export class RecoverAction extends MajorAction {
         return super.start();
     }
 
-    execute() {
+    applyParameters(values: Record<string, any[]>): void {
+        super.applyParameters(values);
         this.targetProxy = this.parameters.targetProxy[0]!;
-        super.execute();
     }
 
     majorAction() {
@@ -257,8 +260,12 @@ export class RecoverBannerPitchAction extends OathAction {
         return super.start();
     }
 
-    execute() {
+    applyParameters(values: Record<string, any[]>): void {
+        super.applyParameters(values);
         this.amount = this.parameters.amount[0]!;
+    }
+
+    execute() {
         new ParentToTargetEffect(this.actionManager, this.player, this.player.byClass(this.banner.cls).max(this.amount), this.banner).doNext();
     }
 }
@@ -283,10 +290,10 @@ export class SearchAction extends MajorAction {
         return super.start();
     }
 
-    execute() {
+    applyParameters(values: Record<string, any[]>): void {
+        super.applyParameters(values);
         this.deckProxy = this.parameters.deckProxy[0]!;
         this.supplyCost = new SupplyCost(this.deckProxy.searchCost);
-        super.execute();
     }
 
     majorAction() {
@@ -664,10 +671,6 @@ export class CampaignDefenseAction extends OathAction {
         //         next = new ChooseModifiers(next, ally);
         // next.doNext();
     // }
-
-    applyParameters(values: Record<string, any[]>): void {
-        super.applyParameters(values);
-    }
     
     execute() {
         this.campaignResult.resolve(() => {
@@ -964,11 +967,7 @@ export class ActPhaseAction extends OathAction {
         this.selects.action = new SelectNOf("Action", choices, { min: 1 });
         return super.start();
     }
-    
-    applyParameters(values: Record<string, any[]>): void {
-        super.applyParameters(values);
-    }
-    
+
     execute(): void {
         this.parameters.action[0]!().doNext();
     }

@@ -154,8 +154,8 @@ export function ActionCostModifier<T extends WithPowers, U extends CostContext<a
         modifiedContext = costContext;
 
         canUse(context: U): boolean {
-            const instance = new base(this.source, this.player, context.origin);  // Actions can't have modifiedAction as static because of initialization order making it a pain
-            return context.origin instanceof instance.modifiedAction && (context.origin as ModifiableAction<any>).modifiers.some(e => e instanceof base);
+            const instance = new base(this.powerManager, this.source, this.player, context.origin);  // Actions can't have modifiedAction as static because of initialization order making it a pain
+            return context.origin instanceof instance.modifiedAction && !!this.powerManager.futureActionsModifiable.get(context.origin)?.modifiers.some(e => e instanceof base);
         }
     }
     return ActionCostModifier;

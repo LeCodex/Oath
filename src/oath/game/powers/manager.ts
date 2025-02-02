@@ -24,8 +24,7 @@ export class OathPowerManager {
         actionManager.on("addFutureAction", (action) => {
             if (action instanceof ResolveCallbackEffect || action instanceof ModifiableAction || action instanceof ChooseModifiers) return;
             // console.log("      Intercepted adding", action.constructor.name);
-            const modifiableAction = new ModifiableAction(action);
-            this.futureActionsModifiable.set(action, modifiableAction);
+            const modifiableAction = this.getModifiable(action);
             const chooseModifiers = new ChooseModifiers(this, modifiableAction);
             actionManager.futureActionsList.shift();
             chooseModifiers.doNext();
@@ -33,6 +32,12 @@ export class OathPowerManager {
     }
 
     get game() { return this.actionManager.game; }
+
+    getModifiable(action: OathAction) {
+        const modifiableAction = new ModifiableAction(action);
+        this.futureActionsModifiable.set(action, modifiableAction);
+        return modifiableAction;
+    }
 
     *getPowers<T extends OathPower<WithPowers>>(type: AbstractConstructor<T>, maskProxyManager?: MaskProxyManager): Generator<[SourceType<T>, Constructor<T>], void> {
         const stack: TreeNode<any>[] = [maskProxyManager?.get(this.game) ?? this.game];
