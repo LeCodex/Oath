@@ -12,13 +12,6 @@ import { AtSite, HomelandSitePower, HomelandSiteLosePower, GainPowersModifier } 
 import { SupplyCostContext } from "../costs";
 
 
-export class SiteSeize extends SeizeModifier<Site> {
-    applyAfter(): void {
-        if (this.source.ruler) new MoveOwnWarbandsEffect(this.actionManager, this.source.ruler.leader, this.source, this.source.ruler).doNext();
-        new CampaignSeizeSiteAction(this.actionManager, this.action.player, this.source).doNext();
-    }
-}
-
 export class Wastes extends HomelandSitePower(OathSuit.Discord) {
     giveReward(playerProxy: OathPlayer): void {
         const relic = this.sourceProxy.relics[0]?.original;

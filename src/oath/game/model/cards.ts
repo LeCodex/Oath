@@ -92,7 +92,6 @@ export class Site extends OathCard implements CampaignActionTarget {
         this.recoverCost = data[3] ?? new ResourceCost();
         this.recoverSuit = data[4] ?? OathSuit.None;
         this.startingResources = new Map(data[5]);
-        this.powers.add("SiteSeize");
     }
 
     get region() { return this.typedParent(Region); }
@@ -183,8 +182,6 @@ export class Relic extends OwnableCard implements RecoverActionTarget, CampaignA
         if (!data) throw TypeError(`${id} is not a valid Relic id`);
         super(id, data[1]);
         this.defense = data[0];
-        this.powers.add("RelicRecover");
-        this.powers.add("RelicSeize");
     }
     
     get site() { return this.typedParent(Site); }

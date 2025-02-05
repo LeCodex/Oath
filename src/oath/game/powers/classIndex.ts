@@ -10,7 +10,6 @@ import * as banners from "./banners";
 import * as sites from "./sites";
 import * as reliquary from "./reliquary";
 import * as visions from "./visions";
-import * as player from "./player";
 import * as global from "./global";
 
 export const denizenPowersIndex = {
@@ -37,13 +36,11 @@ export type RelicPowerName = keyof typeof relics;
 export type BannerPowerName = keyof typeof banners;
 export type SitePowerName = keyof typeof sites;
 export type ReliquaryPowerName = keyof typeof reliquary;
-export type PlayerPowerName = keyof typeof player;
 
 export const powersIndex = {
     ...cardPowersIndex,
     ...banners,
     ...reliquary,
-    ...player,
     ...global
 };
 export type PowerName = keyof typeof powersIndex;

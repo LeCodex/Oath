@@ -19,21 +19,6 @@ import { powersIndex } from "./classIndex";
 import { GainPowersModifier, LosePowersModifier } from "./base";
 
 
-export class RelicSeize extends SeizeModifier<Relic> {
-    applyAfter() {
-        new TakeOwnableObjectEffect(this.actionManager, this.action.player, this.source).doNext();
-    }
-}
-export class RelicRecover extends RecoverModifier<Relic> {
-    modify(): void {
-        if (!this.source.site) return;
-        const cost = this.source.site.recoverCost;
-        new TransferResourcesEffect(this.actionManager, this.action.player, cost, this.game.favorBank(this.source.site.recoverSuit)).doNext(success => {
-            if (!success) throw cannotPayError(cost);
-        });
-    }
-}
-
 export class GrandScepterPeek extends ActivePower<GrandScepter> {
     get name() { return super.name + "_PeekAtTheReliquary"; }
 

@@ -1,28 +1,12 @@
-import { WakeAction, SearchPlayOrDiscardAction, MayDiscardACardAction, SearchAction, PeoplesFavorWakeAction, RecoverBannerPitchAction, ChooseSuitsAction } from "../actions";
-import type { PeoplesFavor, DarkestSecret, Banner} from "../model/banks";
-import { FavorBank } from "../model/banks";
-import { ActionModifier, SupplyCostModifier , SeizeModifier, RecoverModifier } from ".";
+import { WakeAction, SearchPlayOrDiscardAction, MayDiscardACardAction, SearchAction, PeoplesFavorWakeAction } from "../actions";
+import type { PeoplesFavor, DarkestSecret} from "../model/banks";
+import { ActionModifier, SupplyCostModifier } from ".";
 import { Owned } from "./base";
 import { Denizen } from "../model/cards";
-import { CardRestriction, OathSuit } from "../enums";
-import { SetPeoplesFavorMobState, TakeOwnableObjectEffect, TransferResourcesEffect } from "../actions/effects";
+import { CardRestriction } from "../enums";
 import type { SupplyCostContext } from "../costs";
 import { ResourceCost } from "../costs";
-import type { OathResourceType} from "../model/resources";
-import { Secret } from "../model/resources";
 
-
-export class BannerSeize extends SeizeModifier<Banner> {
-    applyAfter() {
-        new TakeOwnableObjectEffect(this.actionManager, this.action.player, this.source).doNext();
-        new TransferResourcesEffect(this.actionManager, this.action.player, new ResourceCost([], [[this.source.cls as OathResourceType, 2]]), undefined, this.source).doNext();
-    }
-}
-abstract class BannerRecover<T extends Banner> extends RecoverModifier<T> {
-    modify(): void {
-        new RecoverBannerPitchAction(this.actionManager, this.action.player, this.source).doNext();
-    }
-}
 
 export class PeoplesFavorSearch extends Owned(ActionModifier<PeoplesFavor, SearchPlayOrDiscardAction>) {
     modifiedAction = SearchPlayOrDiscardAction;
@@ -50,30 +34,6 @@ export class PeoplesFavorWake extends Owned(ActionModifier<PeoplesFavor, WakeAct
         }
     }
 }
-export class PeoplesFavorRecover extends BannerRecover<PeoplesFavor> {
-    modify(): void {
-        super.modify();
-
-        let amount = this.source.amount;
-        new SetPeoplesFavorMobState(this.actionManager, this.action.player, false).doNext();
-        new ChooseSuitsAction(
-            this.actionManager, this.action.player, "Choose where to start returning the favor (" + amount + ")",
-            (suits: OathSuit[]) => {
-                let suit = suits[0];
-                if (suit === undefined) return;
-
-                while (amount > 0) {
-                    const bank = this.game.byClass(FavorBank).byKey(suit)[0];
-                    if (bank) {
-                        new TransferResourcesEffect(this.actionManager, this.action.player, new ResourceCost([[bank.cls, 1]]), bank, this.source).doNext();
-                        amount--;
-                    }
-                    if (++suit > OathSuit.Nomad) suit = OathSuit.Discord;
-                }
-            }
-        ).doNext();
-    }
-}
 
 export class DarkestSecretPower extends Owned(SupplyCostModifier<DarkestSecret>) {
     mustUse = true;
@@ -84,15 +44,5 @@ export class DarkestSecretPower extends Owned(SupplyCostModifier<DarkestSecret>)
 
     apply(context: SupplyCostContext): void {
         context.cost.base = 2;
-    }
-}
-export class DarkestSecretRecover extends BannerRecover<DarkestSecret> {
-    modify(): void {
-        super.modify();
-        
-        const amount = this.source.amount;
-        new TransferResourcesEffect(this.actionManager, this.action.player, new ResourceCost([[Secret, 1]]), this.action.player, this.source).doNext();
-        if (this.source.owner)
-            new TransferResourcesEffect(this.actionManager, this.source.owner, new ResourceCost([[Secret, amount - 1]]), this.source).doNext();
     }
 }

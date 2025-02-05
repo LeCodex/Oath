@@ -9,7 +9,6 @@ import type { OathResourceType } from "./resources";
 import { Warband, ResourcesAndWarbands } from "./resources";
 import { Container, OathGameObject } from "./gameObject";
 import { Banner } from "./banks";
-import type { PlayerPowerName } from "../powers/classIndex";
 
 export class WarbandsSupply extends Container<Warband, PlayerColor> {
     readonly type = "bag";
@@ -25,9 +24,8 @@ export class WarbandsSupply extends Container<Warband, PlayerColor> {
     get key() { return this.id; }
 }
 
-export class OathPlayer extends ResourcesAndWarbands<number> implements CampaignActionTarget, AtSite, WithPowers {
+export class OathPlayer extends ResourcesAndWarbands<number> implements CampaignActionTarget, AtSite {
     readonly type = "player";
-    powers = new Set<PlayerPowerName>(["PlayerSeize"]);
     active = true;
     name: string;
     supply: number = 7;

@@ -24,7 +24,7 @@ export class FavorBank extends Container<Favor, OathSuit> {
 
 export abstract class Banner<T extends OathResource = OathResource> extends Container<T, string> implements OwnableObject, RecoverActionTarget, CampaignActionTarget, WithPowers {
     readonly type = "banner";
-    powers = new Set<BannerPowerName>(["BannerSeize"]);
+    powers = new Set<BannerPowerName>();
     active = true;
     min = 1;
 
@@ -50,7 +50,6 @@ export class PeoplesFavor extends Banner<Favor> {
 
     constructor() {
         super("PeoplesFavor", Favor);
-        this.powers.add("PeoplesFavorRecover");
         this.powers.add("PeoplesFavorSearch");
         this.powers.add("PeoplesFavorWake");
     }
@@ -75,7 +74,6 @@ export class DarkestSecret extends Banner<Secret> {
 
     constructor() {
         super("DarkestSecret", Secret);
-        this.powers.add("DarkestSecretRecover");
         this.powers.add("DarkestSecretPower");
     }
 

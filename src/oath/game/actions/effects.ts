@@ -1,6 +1,6 @@
-import { OathAction, OathEffect, PlayerEffect } from "./base";
-import { InvalidActionResolution } from "./utils";
-import type { Relic, WorldCard } from "../model/cards";
+import { OathEffect, PlayerEffect } from "./base";
+import { cannotPayError, InvalidActionResolution } from "./utils";
+import { Relic, WorldCard } from "../model/cards";
 import { Denizen, Edifice, OathCard, Site, Vision, VisionBack } from "../model/cards";
 import { ALL_OATH_SUITS, BannerKey, CardRestriction, OathPhase, OathSuit, PlayerColor } from "../enums";
 import { ExileBoard, OathPlayer } from "../model/player";
@@ -8,11 +8,11 @@ import type { OathResource, OathResourceType, ResourcesAndWarbands} from "../mod
 import { Favor, Secret } from "../model/resources";
 import type { SupplyCost } from "../costs";
 import { ResourceCost } from "../costs";
-import type { Banner, PeoplesFavor } from "../model/banks";
+import { Banner, DarkestSecret, PeoplesFavor } from "../model/banks";
 import { FavorBank } from "../model/banks";
-import type { CampaignActionTarget, OwnableObject, RecoverActionTarget, WithPowers } from "../model/interfaces";
+import { isOwnable, type CampaignActionTarget, type OwnableObject, type RecoverActionTarget } from "../model/interfaces";
 import type { OathGameObject } from "../model/gameObject";
-import { BuildOrRepairEdificeAction, ChooseNewCitizensAction, VowOathAction, RestAction, WakeAction, SearchDiscardAction, SearchPlayOrDiscardAction, ChooseSuitsAction, ChooseNumberAction } from ".";
+import { BuildOrRepairEdificeAction, ChooseNewCitizensAction, VowOathAction, RestAction, WakeAction, SearchDiscardAction, SearchPlayOrDiscardAction, ChooseSuitsAction, ChooseNumberAction, RecoverBannerPitchAction, CampaignSeizeSiteAction, CampaignBanishPlayerAction } from ".";
 import type { SearchableDeck , CardDeck } from "../model/decks";
 import { DiscardOptions  } from "../model/decks";
 import { inclusiveRange, maxInGroup, NumberMap } from "../utils";
@@ -25,8 +25,8 @@ import type { SiteName} from "../cards/sites";
 import { sitesData } from "../cards/sites";
 import type { CampaignResult } from "./utils";
 import type { OathActionManager } from "./manager";
-import type { PowerName } from "../powers/classIndex";
-import { SelectCard } from "./selects";
+import { ActionModifier } from "../powers";
+import { Owned } from "../powers/base";
 
 
 
@@ -659,7 +659,18 @@ export class SeizeTargetEffect extends PlayerEffect {
     }
 
     resolve(): void {
-        // Doesn't do anything, exists only to get modified
+        if (isOwnable(this.target)) {
+            new TakeOwnableObjectEffect(this.actionManager, this.player, this.target).doNext();
+            if (this.target instanceof Banner)
+                new TransferResourcesEffect(this.actionManager, this.player, new ResourceCost([], [[this.target.cls as OathResourceType, 2]]), undefined, this.target).doNext();
+        } else if (this.target instanceof Site) {
+            if (this.target.ruler) new MoveOwnWarbandsEffect(this.actionManager, this.target.ruler.leader, this.target, this.target.ruler).doNext();
+            new CampaignSeizeSiteAction(this.actionManager, this.player, this.target).doNext();
+        } else if (this.target instanceof OathPlayer) {
+            const cost = new ResourceCost([], [[Favor, Math.floor(this.target.byClass(Favor).length / 2)]]);
+            new TransferResourcesEffect(this.actionManager, this.player, cost, undefined).doNext();
+            new CampaignBanishPlayerAction(this.actionManager, this.player, this.target).doNext();
+        }
     }
 }
 
@@ -700,6 +711,41 @@ export class RecoverTargetEffect extends PlayerEffect {
     }
 
     resolve(): void {
+        if (this.target instanceof Relic) {
+            if (!this.target.site) return;
+            const cost = this.target.site.recoverCost;
+            new TransferResourcesEffect(this.actionManager, this.player, cost, this.game.favorBank(this.target.site.recoverSuit)).doNext(success => {
+                if (!success) throw cannotPayError(cost);
+            });
+        } else if (this.target instanceof Banner) {
+            new RecoverBannerPitchAction(this.actionManager, this.player, this.target).doNext();
+            if (this.target instanceof PeoplesFavor) {
+                let amount = this.target.amount;
+                new SetPeoplesFavorMobState(this.actionManager, this.player, false).doNext();
+                new ChooseSuitsAction(
+                    this.actionManager, this.player, "Choose where to start returning the favor (" + amount + ")",
+                    (suits: OathSuit[]) => {
+                        let suit = suits[0];
+                        if (suit === undefined) return;
+
+                        while (amount > 0) {
+                            const bank = this.game.byClass(FavorBank).byKey(suit)[0];
+                            if (bank) {
+                                new TransferResourcesEffect(this.actionManager, this.player, new ResourceCost([[bank.cls, 1]]), bank, this.target).doNext();
+                                amount--;
+                            }
+                            if (++suit > OathSuit.Nomad) suit = OathSuit.Discord;
+                        }
+                    }
+                ).doNext();
+            } else if (this.target instanceof DarkestSecret) {
+                const amount = this.target.amount;
+                new TransferResourcesEffect(this.actionManager, this.player, new ResourceCost([[Secret, 1]]), this.player, this.target).doNext();
+                if (this.target.owner)
+                    new TransferResourcesEffect(this.actionManager, this.target.owner, new ResourceCost([[Secret, amount - 1]]), this.target).doNext();
+            }
+        }
+
         new TakeOwnableObjectEffect(this.actionManager, this.player, this.target, true).doNext();
     }
 }
