@@ -4,7 +4,7 @@ import { Denizen, Edifice, Site } from "../model/cards";
 import type { SearchableDeck } from "../model/decks";
 import { DiscardOptions } from "../model/decks";
 import { AttackDieSymbol } from "../dice";
-import { TransferResourcesEffect, PlayWorldCardEffect, PutPawnAtSiteEffect, DiscardCardEffect, MoveOwnWarbandsEffect, SetPeoplesFavorMobState, ChangePhaseEffect, NextTurnEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, FlipEdificeEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect, CheckCapacityEffect, CampaignJoinDefenderAlliesEffect, MoveWorldCardToAdvisersEffect, DiscardCardGroupEffect, ParentToTargetEffect, PaySupplyEffect, ThingsExchangeOfferEffect, SiteExchangeOfferEffect, SearchDrawEffect, RecoverTargetEffect, ReturnResourcesEffect, FlipSecretsEffect, GainSupplyEffect, SeizeTargetEffect, ReturnAllResourcesEffect } from "./effects";
+import { TransferResourcesEffect, PlayWorldCardEffect, PutPawnAtSiteEffect, DiscardCardEffect, MoveOwnWarbandsEffect, SetPeoplesFavorMobState, ChangePhaseEffect, NextTurnEffect, SetUsurperEffect, BecomeCitizenEffect, BecomeExileEffect, BuildEdificeFromDenizenEffect, WinGameEffect, FlipEdificeEffect, BindingExchangeEffect, CitizenshipOfferEffect, PeekAtCardEffect, TakeReliquaryRelicEffect, CheckCapacityEffect, CampaignJoinDefenderAlliesEffect, MoveWorldCardToAdvisersEffect, DiscardCardGroupEffect, ParentToTargetEffect, PaySupplyEffect, ThingsExchangeOfferEffect, SiteExchangeOfferEffect, SearchDrawEffect, RecoverTargetEffect, ReturnResourcesEffect, FlipSecretsEffect, GainSupplyEffect, SeizeTargetEffect, ReturnAllResourcesEffect, PutResourcesOnTargetEffect } from "./effects";
 import { ALL_OATH_SUITS, ALL_PLAYER_COLORS, CardRestriction, OathPhase, OathSuit, OathType, PlayerColor } from "../enums";
 import { ChancellorBoard, ExileBoard, OathPlayer, VisionSlot } from "../model/player";
 import type { OathResource, OathResourceType, ResourcesAndWarbands} from "../model/resources";
@@ -161,19 +161,27 @@ export abstract class TradeAction extends PayDenizenAction {
         for (const [resource, amount] of this.getting) {
             this.getting.set(resource, amount + this.playerProxy.suitAdviserCount(this.cardProxy.suit));
         }
-
-        const bank = this.gameProxy.favorBank(this.cardProxy.suit)?.original;
-        if (bank)
-            new TransferResourcesEffect(this.actionManager, this.player, new ResourceCost(this.getting), this.player, bank).doNext();
     }
 }
 export class TradeForFavorAction extends TradeAction {
     readonly cost = new ResourceCost([[Secret, 1]]);
     readonly getting = new NumberMap([[Favor, 1]]);
+
+    getReward(): void {
+        super.getReward();
+        const bank = this.gameProxy.favorBank(this.cardProxy.suit)?.original;
+        if (bank)
+            new TransferResourcesEffect(this.actionManager, this.player, new ResourceCost(this.getting), this.player, bank).doNext();
+    }
 }
 export class TradeForSecretAction extends TradeAction {
     readonly cost = new ResourceCost([[Favor, 2]]);
     readonly getting = new NumberMap([[Secret, 0]]);
+
+    getReward(): void {
+        super.getReward();
+        new PutResourcesOnTargetEffect(this.actionManager, this.player, Secret, this.getting.get(Secret)).doNext();
+    }
 }
 
 

@@ -131,7 +131,7 @@ export class ModifiableAction<T extends OathAction> extends OathAction {
         };
     }
 
-    applyModifiers(modifiers: Iterable<ActionModifier<WithPowers, T>>) {
+    applyModifiers(modifiers: Iterable<ActionModifier<WithPowers, T>>, noPay: boolean = false) {
         // NOTE: For ignore loops, all powers in the loop are ignored.
         const modifiersSet = new Set(modifiers);
         const ignore = new Set<ActionModifier<WithPowers, T>>();
@@ -143,9 +143,11 @@ export class ModifiableAction<T extends OathAction> extends OathAction {
         this.modifiers.push(...modifiersSet);
         let shouldContinue = true;
         for (const modifier of modifiersSet) {
-            modifier.payCost(success => {
-                if (!success) throw cannotPayError(modifier.cost);
-            });
+            if (!noPay) {
+                modifier.payCost(success => {
+                    if (!success) throw cannotPayError(modifier.cost);
+                });
+            }
 
             if (!modifier.applyWhenApplied()) shouldContinue = false;
 
