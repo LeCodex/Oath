@@ -1,5 +1,5 @@
 import { RestAction, WakeAction, CampaignAttackAction, CampaignDefenseAction, RecoverAction } from "../actions";
-import { UsePowerAction, PayPowerCostEffect, ModifiableAction } from "./actions";
+import { UsePowerAction, PayPowerCostEffect } from "./actions";
 import { OathAction } from "../actions/base";
 import { PlayWorldCardEffect, SeizeTargetEffect } from "../actions/effects";
 import { OathCard, OwnableCard, Site, WorldCard } from "../model/cards";

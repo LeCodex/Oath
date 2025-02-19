@@ -26,7 +26,7 @@ export function allChoices<T>(set: T[][]): T[][] {
     }
     return combinations;
 }
-/** For a set of elements, return all combinations of all sizes (including and excluding every elements). */
+/** For a set of elements, return all combinations of all sizes (including and excluding every element). */
 export function allCombinations<T>(set: Iterable<T>): T[][] {
     const combinations: T[][] = [[]];
     for (const element of set) {

@@ -9,7 +9,7 @@ import type { OathPlayer } from "../model/player";
 import type { TreeNode } from "../model/utils";
 import type { AbstractConstructor, Constructor, MaskProxyManager } from "../utils";
 import { allCombinations, isExtended } from "../utils";
-import { ChooseModifiers, ModifiableAction, PayPowerCostEffect } from "./actions";
+import { ChooseModifiers, ModifiableAction } from "./actions";
 import { powersIndex } from "./classIndex";
 import { MultiCostContext } from "./context";
 import type { Cost, CostContext} from "../costs";

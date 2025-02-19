@@ -10,6 +10,7 @@ import { Site, Denizen } from "../model/cards";
 import { Warband, Favor, Secret } from "../model/resources";
 import { clone } from "lodash";
 import { ApiProperty } from "@nestjs/swagger";
+import { BadRequestException } from "@nestjs/common";
 
 
 export class HistoryNode<T extends OathActionManager> {
@@ -72,8 +73,27 @@ export class ContinueEvent extends HistoryEvent {
         };
     }
 }
+export class EditEvent extends HistoryEvent {
+    constructor(
+        manager: OathActionManager,
+        player: string,
+        public gameState: SerializedNode<OathGame>
+    ) { super(manager, player); }
+
+    replay(save: boolean = true) {
+        this.manager.editGameState(this.gameState, save);
+    }
+
+    serialize() {
+        return {
+            ...super.serialize(),
+            data: this.gameState
+        };
+    }
+}
 const eventsIndex = {
-    ContinueEvent
+    ContinueEvent,
+    EditEvent
 }
 
 export class ActionManagerReturn {
@@ -338,6 +358,21 @@ export class OathActionManager extends EventPublisher<{
             this.authorizeCancel(save);
             throw e;
         }
+    }
+
+    public editGameState(gameState: SerializedNode<OathGame>, save: boolean = true) {
+        if (!this.loaded) return this.defer(false);
+
+        try {
+            this.game.parse(gameState, true);
+        } catch (e) {
+            throw new BadRequestException(e);
+        }
+
+        const event = new EditEvent(this, this.game.currentPlayer.id, gameState);
+        const events = this.history[this.history.length - 1]?.events;
+        events?.push(event);
+        return this.defer(save);
     }
 
     public cancelAction(playerId: string) {

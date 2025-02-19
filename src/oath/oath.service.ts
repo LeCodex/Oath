@@ -5,6 +5,7 @@ import { range } from 'lodash';
 import { OathController } from './game/controller';
 import { Injectable, OnModuleInit, BadRequestException, NotFoundException } from '@nestjs/common';
 import { OathGame } from './game/model/game';
+import { SerializedNode } from './game/model/utils';
 
 
 @Injectable()
@@ -84,6 +85,10 @@ export class OathNestService implements OnModuleInit {
 
     public consentToRollback(gameId: number, playerId: string) {
         return this._wrapper(gameId, (controller) => controller.actionManager.consentToRollback(playerId));
+    }
+
+    public editGameState(gameId: number, gameState: SerializedNode<OathGame>) {
+        return this._wrapper(gameId, (controller) => controller.actionManager.editGameState(gameState));
     }
 
     public endGame(gameId: number) {

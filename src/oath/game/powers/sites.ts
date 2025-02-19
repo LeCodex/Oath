@@ -1,13 +1,13 @@
-import { ChooseResourceToTakeAction, WakeAction, TravelAction, CampaignAttackAction, MusterAction, SearchAction, StartBindingExchangeAction, MakeBindingExchangeOfferAction, SearchPlayOrDiscardAction, MayDiscardACardAction, CampaignSeizeSiteAction } from "../actions";
+import { ChooseResourceToTakeAction, WakeAction, TravelAction, CampaignAttackAction, MusterAction, SearchAction, StartBindingExchangeAction, MakeBindingExchangeOfferAction, SearchPlayOrDiscardAction, MayDiscardACardAction } from "../actions";
 import { InvalidActionResolution } from "../actions/utils";
 import type { Site } from "../model/cards";
-import { PutResourcesOnTargetEffect, FlipSecretsEffect, ParentToTargetEffect, RecoverTargetEffect, MoveOwnWarbandsEffect } from "../actions/effects";
+import { PutResourcesOnTargetEffect, FlipSecretsEffect, ParentToTargetEffect, RecoverTargetEffect } from "../actions/effects";
 import { OathSuit } from "../enums";
 import type { WithPowers } from "../model/interfaces";
 import { isAtSite } from "../model/interfaces";
 import type { OathPlayer } from "../model/player";
 import { Secret } from "../model/resources";
-import { ActionCostModifier, ActionModifier, ActivePower, NoSupplyCostActionModifier, SeizeModifier, SupplyCostModifier } from ".";
+import { ActionCostModifier, ActionModifier, ActivePower, NoSupplyCostActionModifier, SupplyCostModifier } from ".";
 import { AtSite, HomelandSitePower, HomelandSiteLosePower, GainPowersModifier } from "./base";
 import { SupplyCostContext } from "../costs";
 

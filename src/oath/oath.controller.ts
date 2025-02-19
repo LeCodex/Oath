@@ -2,6 +2,8 @@ import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, UsePipes, Val
 import { OathNestService } from './oath.service';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { ActionManagerReturn } from './game/actions/manager';
+import { OathGame } from './game/model/game';
+import { SerializedNode } from './game/model/utils';
 
 function ApiActionResponses(invalidAction: boolean = true): MethodDecorator {
     return (target: object, propertyKey: string | symbol, descriptor: TypedPropertyDescriptor<any>) => {
@@ -61,9 +63,18 @@ export class OathNestController {
         return this.service.consentToRollback(gameId, playerId);
     }
 
+    @Post(":id/edit")
+    @UsePipes(new ValidationPipe({ transform: true }))
+    @ApiOperation({ summary: "Edit the game to a specific state" })
+    @ApiActionResponses(false)
+    @ApiResponse({ status: 400, description: "Invalid body" })
+    editGameState(@Param('id', ParseIntPipe) gameId: number, @Body() body: SerializedNode<OathGame>): ActionManagerReturn {
+        return this.service.editGameState(gameId, body);
+    }
+
     @Post(":id/reload/history")
     @UsePipes(new ValidationPipe({ transform: true }))
-    @ApiOperation({ summary: "Finish a failed game reload by using the history", description: "The game's reloading must have failed (returns ReloadFailError when interacted with). This will reload the game until the error happened, keeping the history intact up to that point." })
+    @ApiOperation({ summary: "Finish a failed game reload by using the history", description: "The game's reloading must have failed (loaded is false). This will reload the game until the error happened, keeping the history intact up to that point." })
     @ApiActionResponses()
     reloadFromHistory(@Param('id', ParseIntPipe) gameId: number): ActionManagerReturn {
         return this.service.reloadFromHistory(gameId);
@@ -71,7 +82,7 @@ export class OathNestController {
 
     @Post(":id/reload/state")
     @UsePipes(new ValidationPipe({ transform: true }))
-    @ApiOperation({ summary: "Finish a failed game reload by using the final game state", description: "The game's reloading must have failed (returns ReloadFailError when interacted with). This will keep the game as it was when last saved, but will lose the entire history (preventing rollbacks and replays)." })
+    @ApiOperation({ summary: "Finish a failed game reload by using the final saved state", description: "The game's reloading must have failed (loaded is false). This will keep the game as it was when last saved, but will lose the entire history (preventing rollbacks and replays)." })
     @ApiActionResponses()
     reloadFromFinalState(@Param('id', ParseIntPipe) gameId: number): ActionManagerReturn {
         return this.service.reloadFromFinalState(gameId);

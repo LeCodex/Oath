@@ -12,7 +12,7 @@ import { isOwnable } from "../model/interfaces";
 import { Favor, Warband, Secret } from "../model/resources";
 import type { ResourceTransferContext, SupplyCostContext } from "../costs";
 import { ResourceCost } from "../costs";
-import { EnemyActionModifier, AttackerBattlePlan, DefenderBattlePlan, ActionModifier, ActivePower, BattlePlan, EnemyAttackerCampaignModifier, Accessed, ResourceTransferModifier, SupplyCostModifier, SeizeModifier, RecoverModifier } from ".";
+import { EnemyActionModifier, AttackerBattlePlan, DefenderBattlePlan, ActionModifier, ActivePower, BattlePlan, EnemyAttackerCampaignModifier, Accessed, ResourceTransferModifier, SupplyCostModifier } from ".";
 import { DiscardOptions } from "../model/decks";
 import { inclusiveRange, isExtended } from "../utils";
 import { powersIndex } from "./classIndex";
