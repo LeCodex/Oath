@@ -30,7 +30,7 @@ export const sitesData: Record<SiteName, [number, SitePowerName[], number?, Reso
     RockyCoast:     [2, ["CoastalSite", "CoastalSiteCost"]],
     BuriedGiant:    [2, ["BuriedGiant", "BuriedGiantCost"],                             1, new ResourceCost([], [[Secret, 1]])],
     CharmingValley: [3, ["CharmingValley"]],
-    NarrowPass:     [1, ["NarrowPass"],                                                 1, new ResourceCost([[Favor, 3]]),      OathSuit.Arcane],
+    NarrowPass:     [1, ["NarrowPassTravel", "NarrowPassCampaign"],                     1, new ResourceCost([[Favor, 3]]),      OathSuit.Arcane],
     ShroudedWood:   [3, ["ShroudedWood", "ShroudedWoodCost"],                           1, new ResourceCost([], [[Secret, 1]])],
     TheHiddenPlace: [2, ["TheHiddenPlaceTravel", "TheHiddenPlaceCampaign"],             1, new ResourceCost([], [[Secret, 1]])],
 }

@@ -338,7 +338,7 @@ export class Blackmail extends WhenPlayed<Denizen> {
 
 export class ASmallFavor extends WhenPlayed<Denizen> {
     whenPlayed(): void {
-        new ParentToTargetEffect(this.actionManager, this.action.executor, this.action.executorProxy.leader.original.bag.get(4)).doNext();
+        new ParentToTargetEffect(this.actionManager, this.action.executor, this.action.executorProxy.leader.bag.original.get(4)).doNext();
     }
 }
 
@@ -371,7 +371,7 @@ export class FalseProphet extends WhenPlayed<Denizen> {
 
         new ChooseCardsAction(
             this.actionManager, this.action.executor, "Place a warband on a revealed Vision", [visions],
-            (cards: OathCard[]) => { if (cards[0]) new ParentToTargetEffect(this.actionManager, this.action.executor, this.action.executorProxy.leader.original.bag.get(1), cards[0]).doNext() }
+            (cards: OathCard[]) => { if (cards[0]) new ParentToTargetEffect(this.actionManager, this.action.executor, this.action.executorProxy.leader.original.bag.get(1), cards[0]).doNext(); }
         ).doNext();
     }
 }
@@ -395,6 +395,10 @@ export class FalseProphetWake extends WakePower<Denizen> {
 export class FalseProphetDiscard extends ActionModifier<Denizen, DiscardCardEffect<Vision>> {
     modifiedAction = DiscardCardEffect;
     mustUse = true;
+
+    canUse(): boolean {
+        return !!this.sourceProxy.ruler && this.action.card instanceof Vision && this.action.card.getWarbandsAmount(this.sourceProxy.ruler.board.original.key) > 0
+    }
 
     applyAfter(): void {
         new DrawFromDeckEffect(this.actionManager, this.action.executor, this.action.discardOptions.discard, 1, this.action.discardOptions.onBottom).doNext(cards => {

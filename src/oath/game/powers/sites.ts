@@ -1,10 +1,10 @@
 import { ChooseResourceToTakeAction, WakeAction, TravelAction, CampaignAttackAction, MusterAction, SearchAction, StartBindingExchangeAction, MakeBindingExchangeOfferAction, SearchPlayOrDiscardAction, MayDiscardACardAction } from "../actions";
 import { InvalidActionResolution } from "../actions/utils";
-import type { Site } from "../model/cards";
+import { Site } from "../model/cards";
 import { PutResourcesOnTargetEffect, FlipSecretsEffect, ParentToTargetEffect, RecoverTargetEffect } from "../actions/effects";
 import { OathSuit } from "../enums";
 import type { WithPowers } from "../model/interfaces";
-import { isAtSite } from "../model/interfaces";
+import { hasPowers, isAtSite } from "../model/interfaces";
 import type { OathPlayer } from "../model/player";
 import { Secret } from "../model/resources";
 import { ActionCostModifier, ActionModifier, ActivePower, NoSupplyCostActionModifier, SupplyCostModifier } from ".";
@@ -77,7 +77,7 @@ export class CoastalSite extends AtSite(ActionModifier<Site, TravelAction>) {
     }
 
     applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, TravelAction>>): Iterable<ActionModifier<WithPowers, TravelAction>> {
-        return [...modifiers].filter(e => e instanceof NarrowPass);
+        return [...modifiers].filter(e => e instanceof NarrowPassTravel);
     }
 
     applyAtStart(): void {
@@ -106,7 +106,7 @@ export class BuriedGiant extends AtSite(ActionModifier<Site, TravelAction>) {
     modifiedAction = TravelAction;
 
     applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, TravelAction>>): Iterable<ActionModifier<WithPowers, TravelAction>> {
-        return [...modifiers].filter(e => e instanceof NarrowPass);
+        return [...modifiers].filter(e => e instanceof NarrowPassTravel);
     }
 
     applyBefore(): void {
@@ -122,7 +122,7 @@ export class ShroudedWood extends AtSite(ActionModifier<Site, TravelAction>) {
     mustUse = true;
 
     applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, TravelAction>>): Iterable<ActionModifier<WithPowers, TravelAction>> {
-        return [...modifiers].filter(e => e instanceof NarrowPass || e instanceof TheHiddenPlaceTravel);
+        return [...modifiers].filter(e => e instanceof NarrowPassTravel || e instanceof TheHiddenPlaceTravel);
     }
 
     applyWhenApplied(): boolean {
@@ -136,13 +136,27 @@ export class ShroudedWoodCost extends ActionCostModifier(ShroudedWood, SupplyCos
     }
 }
 
-export class NarrowPass extends ActionModifier<Site, TravelAction> {
+export class NarrowPassTravel extends ActionModifier<Site, TravelAction> {
     modifiedAction = TravelAction;
     mustUse = true;
 
     applyAtStart(): void {
         if (this.playerProxy.site.region !== this.sourceProxy.region)
-            this.action.selects.siteProxy.filterChoices(e => e.original.powers.has("NarrowPass") || e.region !== this.sourceProxy.region);
+            this.action.selects.siteProxy.filterChoices(e => e.original.powers.has("NarrowPassTravel") || e.region !== this.sourceProxy.region);
+    }
+}
+export class NarrowPassCampaign extends ActionModifier<Site, CampaignAttackAction> {
+    modifiedAction = CampaignAttackAction;
+    mustUse = true;
+
+    applyBefore(): void {
+        const targetProxies = [...this.action.campaignResultProxy.targets]
+        if (
+            this.playerProxy.site.region !== this.sourceProxy.region &&
+            !targetProxies.some((e) => hasPowers(e) && e.powers.has("NarrowPassCampaign")) && 
+            targetProxies.some((e) => e instanceof Site && e.region?.key === this.sourceProxy.region?.key)
+        )
+            throw new InvalidActionResolution("Must target the Narrow Pass to target beyond it");
     }
 }
 
