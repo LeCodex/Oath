@@ -147,7 +147,7 @@ export class TransferResourcesEffect extends OathEffect<boolean> {
             } else if (resource === Secret && cantGiveSecrets) {
                 new PutResourcesOnTargetEffect(this.actionManager, this.player, resource, amount, this.target);
             } else {
-                const resources = resource.usable(this.source).max(amount);
+                const resources = this.source.byClass(resource).filter(e => e.usable).max(amount);
                 if (resources.length < amount) {
                     this.result = false;
                     return;

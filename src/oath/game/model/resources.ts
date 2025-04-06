@@ -13,6 +13,7 @@ export abstract class OathResource extends OathGameObjectLeaf<number> {
     }
 
     get key() { return Number(this.id); }
+    get usable() { return true; }
 
     abstract burn(): void;
     static putOn(target: OathGameObject, amount: number): void { };
@@ -34,11 +35,11 @@ export class Favor extends OathResource {
 export class Secret extends OathResource {
     flipped: boolean = false;
 
+    get usable() { return !this.flipped; }
+
     static putOn(target: OathGameObject, amount: number): void {
         for (let i = 0; i < amount; i++) target.addChild(new this());
     }
-
-    static usable(target: OathGameObject): NodeGroup<OathResource> { return target.byClass(this).by("flipped", false); };
 
     burn(): void {
         this.prune();

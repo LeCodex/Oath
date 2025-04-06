@@ -113,7 +113,7 @@ export class ResourceTransferContext extends CostContext<ResourceCost, OathGameO
 
     isValid(): boolean {
         for (const [resource, amount] of this.cost.totalResources)
-            if (resource.usable(this.source).length < amount)
+            if (this.source.byClass(resource).filter(e => e.usable).length < amount)
                 return false;
 
         return true;

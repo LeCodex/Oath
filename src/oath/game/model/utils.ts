@@ -197,8 +197,8 @@ export abstract class TreeLeaf<RootType extends TreeRoot<RootType>, KeyType = an
         throw TypeError("Cannot add children to leaf nodes");
     }
 }
-// TODO: Fix lookup table
 
+// TODO: Fix lookup table
 export class NodeGroup<T extends TreeNode<any>> extends Array<T> {
     // lookupByClass: Record<string, Set<T>> = {};
     // addToLookup(node: T) {
@@ -207,6 +207,7 @@ export class NodeGroup<T extends TreeNode<any>> extends Array<T> {
     //     set.add(node);
     //     this.lookupByClass[name] = set;
     // }
+
     delete(node: T) {
         const index = this.indexOf(node);
         if (index < 0) return;
@@ -225,7 +226,7 @@ export class NodeGroup<T extends TreeNode<any>> extends Array<T> {
     }
 
     byClass<U extends T>(cls: AbstractConstructor<U> | string): NodeGroup<U> {
-        return new NodeGroup(...this.filter(e => this.typeCheck(e, cls)) as U[]);
+        return this.filter(e => this.typeCheck(e, cls)) as NodeGroup<U>;
     }
 
     by<K extends keyof T>(key: K, value: T[K]) {
@@ -238,5 +239,11 @@ export class NodeGroup<T extends TreeNode<any>> extends Array<T> {
 
     max(amount: number) {
         return new NodeGroup(...this.slice(0, amount));
+    }
+
+    filter(predicate: (value: T, index: number, arr: Array<T>) => unknown, thisArg?: unknown): NodeGroup<T>
+    filter<S extends T>(predicate: (value: T, index: number, arr: Array<T>) => value is S, thisArg?: unknown): NodeGroup<S>
+    filter(predicate: (value: T, index: number, arr: Array<T>) => unknown, thisArg?: unknown): NodeGroup<T> {
+        return new NodeGroup(...super.filter(predicate, thisArg))
     }
 }

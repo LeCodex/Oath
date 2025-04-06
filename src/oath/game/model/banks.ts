@@ -3,7 +3,7 @@ import type { RecoverActionTarget, CampaignActionTarget, WithPowers, OwnableObje
 import { OathSuit } from "../enums";
 import { isEnumKey } from "../utils";
 import { OathPlayer } from "./player";
-import type { OathResource } from "./resources";
+import type { OathResource, OathResourceType } from "./resources";
 import { Favor, Secret } from "./resources";
 import { Container } from "./gameObject";
 import type { BannerPowerName } from "../powers/classIndex";
@@ -37,8 +37,9 @@ export abstract class Banner<T extends OathResource = OathResource> extends Cont
         player?.addChild(this);
     }
 
+    // TODO: Move this to a ResourceCost in the RecoverAction
     canRecover(action: RecoverAction): boolean {
-        return action.player.byClass(this.cls).length > this.amount;
+        return action.player.byClass(this.cls).filter(e => e.usable).length > this.amount;
     }
 }
 
