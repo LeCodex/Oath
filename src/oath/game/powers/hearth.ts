@@ -174,7 +174,7 @@ export class SaladDays extends WhenPlayed<Denizen> {
             this.actionManager, this.action.executor, "Take 1 favor from three different banks",
             (suits: OathSuit[]) => { 
                 for (const suit of suits) {
-                    const bank = this.game.favorBank(OathSuit.Hearth);
+                    const bank = this.game.favorBank(suit);
                     if (bank) new ParentToTargetEffect(this.actionManager, this.action.executor, bank.get(1)).doNext(); 
                 }
             },

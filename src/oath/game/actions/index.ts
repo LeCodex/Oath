@@ -1274,7 +1274,7 @@ export class StartBindingExchangeAction extends ChoosePlayersAction {
     constructor(actionManager: OathActionManager, player: OathPlayer, next: Constructor<MakeBindingExchangeOfferAction>, players?: Iterable<OathPlayer>) {
         super(
             actionManager, player, "You may start a binding exchange with another player",
-            (targets: OathPlayer[]) => { if (targets[0]) new next(this.player, targets[0], new next(targets[0], this.player)).doNext(); },
+            (targets: OathPlayer[]) => { if (targets[0]) new next(actionManager, this.player, targets[0], new next(actionManager, targets[0], this.player)).doNext(); },
             players && [players],
             [[0, 1]]
         );
@@ -1425,6 +1425,8 @@ export class DeedWriterOfferAction extends MakeBindingExchangeOfferAction {
             this.effect.sitesTaken = sites;
         else
             this.effect.sitesGiven = sites;
+
+        super.execute();
     }
 }
 
@@ -1444,6 +1446,8 @@ export abstract class ThingsExchangeOfferAction<T extends OathGameObject> extend
             this.effect.thingsTaken = things;
         else
             this.effect.thingsGiven = things;
+
+        super.execute();
     }
 }
 

@@ -111,7 +111,7 @@ const render = () => {
 const renderObject = (parent, obj) => {
     if (obj._hidden) return;
 
-    let node, autoAppendChildren = true;
+    let node = parent, autoAppendChildren = true;
     switch (obj.type) {
         case "player":
             const board = byType(obj, "board")[0];
@@ -154,6 +154,7 @@ const renderObject = (parent, obj) => {
         
         case "resource":
         case "warband":
+            node = undefined;
             break;
         
         default:
@@ -170,7 +171,7 @@ const renderObject = (parent, obj) => {
         }
     }
 
-    parent.appendChild(node);
+    if (node !== parent) parent.appendChild(node);
 }
 
 const renderCard = (card) => {

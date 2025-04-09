@@ -71,6 +71,8 @@ export class ResolveWhenPlayed extends ActionModifier<OathGame, PlayWorldCardEff
     mustUse = true;
 
     applyAtEnd(): void {
+        if (this.action.card.facedown) return;
+        
         for (const power of this.action.card.powers) {
             const powerCls = powersIndex[power];
             if (isExtended(powerCls, WhenPlayed)) {
