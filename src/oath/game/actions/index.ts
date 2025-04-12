@@ -407,14 +407,14 @@ export class SearchPlayOrDiscardAction extends OathAction {
     }
 
     start() {
-        const sitesChoice = new Map<string, Site | boolean | undefined>();
+        const siteProxiesChoice = new Map<string, Site | boolean | undefined>();
         if (!(this.cardProxy instanceof Denizen && this.cardProxy.restriction === CardRestriction.Site))
-            sitesChoice.set("Faceup adviser", false);
-        sitesChoice.set("Facedown adviser", true);
+            siteProxiesChoice.set("Faceup adviser", false);
+        siteProxiesChoice.set("Facedown adviser", true);
         if (this.cardProxy instanceof Denizen && this.cardProxy.restriction !== CardRestriction.Adviser)
-            sitesChoice.set(this.playerProxy.site.name, this.playerProxy.site);
-        sitesChoice.set("Discard", undefined);
-        this.selects.choice = new SelectNOf("Choice", sitesChoice, { min: 1 });
+            siteProxiesChoice.set(this.playerProxy.site.name, this.playerProxy.site);
+        siteProxiesChoice.set("Discard", undefined);
+        this.selects.choice = new SelectNOf("Choice", siteProxiesChoice, { min: 1 });
 
         return super.start();
     }
@@ -460,7 +460,7 @@ export class SearchPlayOrDiscardAction extends OathAction {
 
     execute() {
         if (this.parameters.choice[0] === undefined) {
-            new DiscardCardEffect(this.actionManager, this.player, this.cardProxy, this.discardOptions).doNext();
+            new DiscardCardEffect(this.actionManager, this.player, this.cardProxy.original, this.discardOptions).doNext();
             return;
         }
 
