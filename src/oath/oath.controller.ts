@@ -90,8 +90,51 @@ export class OathNestController {
 
     @Delete(":id")
     @ApiOperation({ summary: "End an active game" })
+    @ApiResponse({ status: 200, description: "Final game state", type: ActionManagerReturn })
     @ApiActionResponses(false)
     endGame(@Param('id', ParseIntPipe) gameId: number): ActionManagerReturn {
         return this.service.endGame(gameId);
+    }
+
+    @Get("/replays")
+    @ApiOperation({ summary: "Get a list of all replays" })
+    @ApiResponse({ status: 200, description: "List of replay IDs", example: [1, 2, 3] })
+    getReplays(): number[] {
+        return this.service.getReplays();
+    }
+
+    @Post("/replays/:id")
+    @ApiOperation({ summary: "Start a replay from a file" })
+    @ApiResponse({ status: 201, description: "Game state with ID", type: ActionManagerReturn })
+    loadReplay(@Param('id', ParseIntPipe) id: number): ActionManagerReturn & { id: number } {
+        return this.service.loadReplay(id);
+    }
+
+    @Post("/replays/:id/forward")
+    @ApiOperation({ summary: "Step a replay forward" })
+    @ApiActionResponses()
+    stepReplayForward(@Param('id', ParseIntPipe) id: number): ActionManagerReturn {
+        return this.service.stepReplayForward(id);
+    }
+
+    @Post("/replays/:id/backward")
+    @ApiOperation({ summary: "Step a replay backward" })
+    @ApiActionResponses()
+    stepReplayBackward(@Param('id', ParseIntPipe) id: number): ActionManagerReturn {
+        return this.service.stepReplayBackward(id);
+    }
+
+    @Post("/replays/:id/move/:index")
+    @ApiOperation({ summary: "Move a replay to the required index" })
+    @ApiActionResponses()
+    moveReplayTo(@Param('id', ParseIntPipe) id: number, @Param('index', ParseIntPipe) index: number): ActionManagerReturn {
+        return this.service.moveReplayTo(id, index);
+    }
+
+    @Delete("/replays/:id")
+    @ApiOperation({ summary: "End an active replay" })
+    @ApiActionResponses(false)
+    endReplay(@Param('id', ParseIntPipe) replayId: number): ActionManagerReturn {
+        return this.service.endReplay(replayId);
     }
 }

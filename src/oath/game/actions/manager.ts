@@ -24,16 +24,18 @@ export class HistoryNode<T extends OathActionManager> {
         return this.events.map(e => JSON.stringify(e.serialize())).join("\n");
     }
 
-    parse(data: string, save: boolean = true) {
+    static loadChunk(manager: OathActionManager, data: string, save: boolean = true) {
         if (data === "") return;
         const lines = data.split("\n");
         for (const [i, line] of lines.entries()) {
             console.log(`   Resolving event ${i}: ${line}`);
-            const { name, player, data } = JSON.parse(line) as ReturnType<HistoryEvent["serialize"]>;
-            // This is a "dummy" event that just replays the actions. The replay takes care of adding the actual events back
-            const event = new eventsIndex[name](this.manager, player, data);
-            event.replay(save);
+            this.loadEvent(manager, line, save);
         }
+    }
+
+    static loadEvent(manager: OathActionManager, line: string, save: boolean = true) {
+        const { name, player, data } = JSON.parse(line) as ReturnType<HistoryEvent["serialize"]>;
+        eventsIndex[name].replay(manager, player, data, save);
     }
 }
 
@@ -43,15 +45,18 @@ export abstract class HistoryEvent {
     constructor(
         public manager: OathActionManager,
         public player: string,
+        public data: any,
     ) { }
 
-    abstract replay(save?: boolean): void;
+    static replay(manager: OathActionManager, player: string, data: any, save?: boolean) {
+        throw new TypeError("Not implemented");
+    }
     
     serialize() {
         return {
             name: this.constructor.name as keyof typeof eventsIndex,
             player: this.player,
-            data: undefined as any
+            data: this.data
         };
     }
 }
@@ -59,39 +64,25 @@ export class ContinueEvent extends HistoryEvent {
     constructor(
         manager: OathActionManager,
         player: string,
-        public values: Record<string, string[]>
-    ) { super(manager, player); }
+        values: Record<string, string[]>
+    ) { super(manager, player, values); }
 
-    replay(save: boolean = true) {
-        this.manager.continueAction(this.player, this.values, save);
-    }
-
-    serialize() {
-        return {
-            ...super.serialize(),
-            data: this.values
-        };
+    static replay(manager: OathActionManager, player: string, data: Record<string, string[]>, save: boolean = true) {
+        manager.continueAction(player, data, save);
     }
 }
 export class EditEvent extends HistoryEvent {
     constructor(
         manager: OathActionManager,
         player: string,
-        public gameState: SerializedNode<OathGame>
-    ) { super(manager, player); }
+        gameState: SerializedNode<OathGame>
+    ) { super(manager, player, gameState); }
 
-    replay(save: boolean = true) {
-        this.manager.editGameState(this.gameState, save);
-    }
-
-    serialize() {
-        return {
-            ...super.serialize(),
-            data: this.gameState
-        };
+    static replay(manager: OathActionManager, player: string, data: SerializedNode<OathGame>, save: boolean = true) {
+        manager.editGameState(data, save);
     }
 }
-const eventsIndex = {
+export const eventsIndex = {
     ContinueEvent,
     EditEvent
 }
@@ -178,20 +169,20 @@ export class OathActionManager extends EventPublisher<{
             this.currentEffectsStack.length = 0;
             this.rollbackConsent = undefined;
             this.markEventAsOneWay = false;
-            
+
             this.game.parse(node.game, true);
             if (this.history.length === 0) {
                 // console.log("Replaying from start");
-                this.initialActions();
+                this.addInitialActions();
             } else {
                 this.emptyStack();
             }
             this.checkForNextAction(save);  // Flush the initial actions onto the stack
             for (const [i, event] of node.events.entries()) {
                 // console.log(`Replaying event ${i}`);
-                event.replay(save);
+                (event.constructor as typeof HistoryEvent).replay(event.manager, event.player, event.data, save);
             }
-            
+
             this.checkForNextAction(save);
             return this.defer(save);
         } catch (e) {
@@ -227,7 +218,7 @@ export class OathActionManager extends EventPublisher<{
         return this.defer(save);
     }
 
-    public initialActions() {
+    public addInitialActions() {
         for (const player of this.game.players) {
             new SetupChoosePlayerBoardAction(this, player).doNext();
         }
@@ -407,8 +398,12 @@ export class OathActionManager extends EventPublisher<{
         return this.authorizeCancel();
     }
 
-    public stringify() {
-        return this.history.map(e => e.stringify()).join("\n\n") + "\n\n" + JSON.stringify(this.lastStartState);
+    public forceCancelAction() {
+        return this.authorizeCancel();
+    }
+
+    public stringify(archive: boolean) {
+        return this.history.map(e => e.stringify()).join("\n\n") + (archive ? "" : "\n\n" + JSON.stringify(this.lastStartState));
     }
 
     public parse(chunks: string[]) {
@@ -418,13 +413,13 @@ export class OathActionManager extends EventPublisher<{
         try {
             for (const [i, nodeData] of chunks.entries()) {
                 console.log(`Resolving chunk ${i}`);
-                if (i === chunks.length - 1) lastChunk = true;
-                const node = new HistoryNode(this, this.game.serialize(true) as SerializedNode<this["game"]>);
-                node.parse(nodeData, false);
+                if (i === chunks.length - 1) {
+                    if (JSON.stringify(this.gameState.game) !== JSON.stringify(this.lastStartState))
+                        console.warn(`Loading of game ${this.game.gameId} has conflicting final start state`);
+                    lastChunk = true;
+                }
+                HistoryNode.loadChunk(this, nodeData, false);
             }
-
-            if (JSON.stringify(this.gameState.game) !== JSON.stringify(this.lastStartState))
-                console.warn(`Loading of game ${this.game.gameId} has conflicting final start state`);
         } catch (e) {
             this.loaded = false;
             console.error(`Loading of game ${this.game.gameId} failed:`, e);
