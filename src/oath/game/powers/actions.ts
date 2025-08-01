@@ -4,7 +4,7 @@ import type { OathPower, ActionModifier } from ".";
 import { ActivePower } from ".";
 import type { MaskProxyManager } from "../utils";
 import { allCombinations } from "../utils";
-import { PlayerEffect, OathAction, ResolveCallbackEffect } from "../actions/base";
+import { PlayerEffect, OathAction, ResolveCallbackEffect, type ParametersType } from "../actions/base";
 import { SelectNOf } from "../actions/selects";
 import type { OathPowerManager } from "./manager";
 import type { OwnableCard } from "../model/cards";
@@ -111,7 +111,7 @@ export class ModifiableAction<T extends OathAction> extends OathAction {
         return this.action.parse(data);
     }
 
-    applyParameters(values: Record<string, any[]>): void {
+    applyParameters(values: Partial<ParametersType<this>>): void {
         this.action.applyParameters(values);
     }
 
@@ -176,7 +176,7 @@ export class UsePowerAction extends ExpandedAction {
         return super.start();
     }
 
-    applyParameters(values: Record<string, any[]>): void {
+    applyParameters(values: Partial<ParametersType<this>>): void {
         super.applyParameters(values);
         this.power = this.parameters.power[0]!;
     }

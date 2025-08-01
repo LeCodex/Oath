@@ -137,7 +137,7 @@ export abstract class ActionModifier<T extends WithPowers, U extends OathAction>
      * 
      * NO SIDE EFFECTS BESIDES THE MODIFIED ACTION. */
     applyAtStart(): void { }
-    /** Applied right before the modified execution of the action is put on the stack */
+    /** Applied right before the modified execution of the action is put on the stack. Choices are made right before */
     applyBefore(): void { }
     /** Applied right after the modified execution of the action */
     applyAfter(): void { }

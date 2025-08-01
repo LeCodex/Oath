@@ -10,7 +10,7 @@ import { InvalidActionResolution } from "./utils";
 //                   ACTIONS                    //
 //////////////////////////////////////////////////
 type SelectType<T> = T extends SelectNOf<infer U> ? U : never;
-type ParametersType<T extends OathAction> = { [k in keyof T["selects"]]: SelectType<T["selects"][k]>[] };
+export type ParametersType<T extends OathAction> = { [k in keyof T["selects"]]: SelectType<T["selects"][k]>[] };
 
 export abstract class OathAction {
     game: OathGame;
@@ -64,7 +64,7 @@ export abstract class OathAction {
         return values;
     }
 
-    applyParameters(values: Record<string, any[]>) {
+    applyParameters(values: Partial<ParametersType<this>>) {
         for (const [key, value] of Object.entries(values) as [keyof ParametersType<this>, any[]][]) {
             this.parameters[key] = value;
         }

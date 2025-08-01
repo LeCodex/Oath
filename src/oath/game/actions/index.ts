@@ -1,4 +1,4 @@
-import { OathAction } from "./base";
+import { OathAction, ParametersType } from "./base";
 import type { OathCard, Relic, WorldCard } from "../model/cards";
 import { Denizen, Edifice, Site } from "../model/cards";
 import type { SearchableDeck } from "../model/decks";
@@ -123,7 +123,7 @@ export abstract class PayDenizenAction extends MajorAction {
         return super.start();
     }
 
-    applyParameters(values: Record<string, any[]>): void {
+    applyParameters(values: Partial<ParametersType<this>>): void {
         super.applyParameters(values);
         this.cardProxy = this.parameters.cardProxy[0]!;
     }
@@ -210,7 +210,7 @@ export class TravelAction extends MajorAction {
         return super.start();
     }
 
-    applyParameters(values: Record<string, any[]>): void {
+    applyParameters(values: Partial<ParametersType<this>>): void {
         super.applyParameters(values)
         this.siteProxy = this.parameters.siteProxy[0]!;
         this.player = this.travelling;
@@ -241,7 +241,7 @@ export class RecoverAction extends MajorAction {
         return super.start();
     }
 
-    applyParameters(values: Record<string, any[]>): void {
+    applyParameters(values: Partial<ParametersType<this>>): void {
         super.applyParameters(values);
         this.targetProxy = this.parameters.targetProxy[0]!;
     }
@@ -268,7 +268,7 @@ export class RecoverBannerPitchAction extends OathAction {
         return super.start();
     }
 
-    applyParameters(values: Record<string, any[]>): void {
+    applyParameters(values: Partial<ParametersType<this>>): void {
         super.applyParameters(values);
         this.amount = this.parameters.amount[0]!;
     }
@@ -298,7 +298,7 @@ export class SearchAction extends MajorAction {
         return super.start();
     }
 
-    applyParameters(values: Record<string, any[]>): void {
+    applyParameters(values: Partial<ParametersType<this>>): void {
         super.applyParameters(values);
         this.deckProxy = this.parameters.deckProxy[0]!;
         this.supplyCost = new SupplyCost(this.deckProxy.searchCost);
@@ -335,7 +335,7 @@ export class SearchChooseAction extends OathAction {
         return super.start();
     }
 
-    applyParameters(values: Record<string, any[]>): void {
+    applyParameters(values: Partial<ParametersType<this>>): void {
         super.applyParameters(values);
         this.playing = this.parameters.cards;
     }
@@ -375,7 +375,7 @@ export class SearchDiscardAction extends OathAction {
         return super.start();
     }
 
-    applyParameters(values: Record<string, any[]>): void {
+    applyParameters(values: Partial<ParametersType<this>>): void {
         super.applyParameters(values);
         this.discarding = this.parameters.cards;
     }
@@ -386,7 +386,8 @@ export class SearchDiscardAction extends OathAction {
     }
 }
 
-export type CapacityInformation = [number, WorldCard[], boolean];
+/** Number of available slots, Cards that don't count towards capacity, Is the card played ignoring capacity */
+export type CapacityInformation = { capacity: number, takesNoSpaceProxies: Set<WorldCard>, ignoresCapacity: boolean };
 export class SearchPlayOrDiscardAction extends OathAction {
     declare readonly selects: { choice: SelectNOf<Site | boolean | undefined>}
     readonly message: string;
@@ -396,7 +397,6 @@ export class SearchPlayOrDiscardAction extends OathAction {
     facedown: boolean;
     discardOptions: DiscardOptions<OathCard>;
     canReplace: boolean;
-
     capacityInformation: CapacityInformation;
 
     constructor(actionManager: OathActionManager, player: OathPlayer, card: WorldCard, discardOptions?: DiscardOptions<OathCard>) {
@@ -419,43 +419,16 @@ export class SearchPlayOrDiscardAction extends OathAction {
         return super.start();
     }
 
-    applyParameters(values: Record<string, any[]>): void {
+    applyParameters(values: Partial<ParametersType<this>>): void {
         super.applyParameters(values);
         const choice = this.parameters.choice[0];
         this.siteProxy = typeof choice === "boolean" ? undefined : choice;
         this.facedown = typeof choice === "boolean" ? choice : false;
-        this.canReplace = this.siteProxy === undefined;
+        this.canReplace ??= this.siteProxy === undefined;
     }
 
-    static getCapacityInformation(playerProxy: OathPlayer, siteProxy?: Site): CapacityInformation {
-        // const capacityModifiers: CapacityModifier<WorldCard>[] = [];
-        // for (const [sourceProxy, modifier] of playerProxy.game.getPowers(CapacityModifier)) {
-        //     const instance = new modifier(sourceProxy.original, playerProxy.original, maskProxyManager);
-        //     if (instance.canUse(playerProxy, siteProxy)) capacityModifiers.push(instance);
-        // }
-
-        // if (playingProxy && !playingProxy.facedown) {
-        //     for (const modifier of playingProxy.powers) {
-        //         if (isExtended(modifier, CapacityModifier)) {
-        //             const instance = new modifier(playingProxy.original, playerProxy.original, maskProxyManager);
-        //             capacityModifiers.push(instance);  // Always assume the card influences the capacity
-        //         }
-        //     }
-        // }
-
-        const capacity = siteProxy ? siteProxy.capacity : 3;
-        const ignoresCapacity = false;
-        const takesNoSpaceProxies = new Set<WorldCard>();
-        const targetProxy = siteProxy ? siteProxy.denizens : playerProxy.advisers;
-
-        // for (const capacityModifier of capacityModifiers) {
-        //     const [cap, noSpaceProxy] = capacityModifier.updateCapacityInformation(targetProxy);
-        //     capacity = Math.min(capacity, cap);
-        //     for (const cardProxy of noSpaceProxy) takesNoSpaceProxies.add(cardProxy);
-        //     if (playingProxy) ignoresCapacity ||= capacityModifier.ignoreCapacity(playingProxy);
-        // }
-
-        return [capacity, [...targetProxy].filter(e => !takesNoSpaceProxies.has(e)), ignoresCapacity];
+    get targetProxy() {
+        return this.siteProxy?.denizens ?? this.playerProxy.advisers;
     }
 
     execute() {
@@ -464,8 +437,9 @@ export class SearchPlayOrDiscardAction extends OathAction {
             return;
         }
 
-        this.cardProxy.facedown = this.facedown;  // Editing the copy to reflect the new state
-        const [capacity, takesSpaceInTargetProxies, ignoresCapacity] = SearchPlayOrDiscardAction.getCapacityInformation(this.playerProxy, this.siteProxy);
+        this.cardProxy.facedown = this.facedown;  // Editing the copy to reflect the new state; TODO: Is this necessary?
+        const { capacity, takesNoSpaceProxies, ignoresCapacity } = this.capacityInformation;
+        const takesSpaceInTargetProxies = this.targetProxy.filter((e) => !takesNoSpaceProxies.has(e));
 
         const excess = Math.max(0, takesSpaceInTargetProxies.length - capacity + 1);  // +1 because we are playing a card there
         const discardable = takesSpaceInTargetProxies.filter(e => !(e instanceof Denizen && e.activelyLocked)).map(e => e.original);
@@ -477,7 +451,7 @@ export class SearchPlayOrDiscardAction extends OathAction {
                 new SearchDiscardAction(this.actionManager, this.player, discardable, excess, this.discardOptions).doNext();
         
         new PlayWorldCardEffect(this.actionManager, this.player, this.cardProxy.original, this.facedown, this.siteProxy?.original).doNext();
-        new CheckCapacityEffect(this.actionManager, this.player, [this.siteProxy?.original || this.player], this.discardOptions).doNext();
+        new CheckCapacityEffect(this.actionManager, this.player, [this.siteProxy?.original ?? this.player], this.discardOptions).doNext();
     }
 }
 
@@ -592,7 +566,7 @@ export class CampaignAttackAction extends OathAction {
     get campaignResult() { return this.next.campaignResult; }
     get campaignResultProxy() { return this.next.campaignResultProxy; }
 
-    applyParameters(values: Record<string, any[]>): void {
+    applyParameters(values: Partial<ParametersType<this>>): void {
         super.applyParameters(values);
         for (const targetProxy of this.parameters.targetProxies) this.campaignResult.targets.add(targetProxy.original);
         this.campaignResult.atkPool = this.parameters.pool[0]!;
@@ -718,7 +692,7 @@ export class CampaignEndAction extends OathAction {
         return super.start();
     }
 
-    applyParameters(values: Record<string, any[]>): void {
+    applyParameters(values: Partial<ParametersType<this>>): void {
         super.applyParameters(values);
         this.doSacrifice = this.parameters.doSacrifice[0]!;
         this.campaignResult.endCallbacks = [...this.parameters.callbacks, ...this.campaignResult.endCallbacks.filter(e => e.orderAgnostic)];
@@ -877,7 +851,7 @@ export class PlayFacedownAdviserAction extends OathAction {
         return super.start();
     }
 
-    applyParameters(values: Record<string, any[]>): void {
+    applyParameters(values: Partial<ParametersType<this>>): void {
         super.applyParameters(values);
         this.playing = this.parameters.cardProxies[0]!.original;
     }
@@ -920,7 +894,7 @@ export class MoveWarbandsAction extends OathAction {
         return super.start();
     }
 
-    applyParameters(values: Record<string, any[]>): void {
+    applyParameters(values: Partial<ParametersType<this>>): void {
         super.applyParameters(values);
         this.targetProxy = this.parameters.targetProxy[0]!;
         this.amount = this.parameters.amount[0]!;

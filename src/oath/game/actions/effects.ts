@@ -8,11 +8,10 @@ import type { OathResource, OathResourceType, ResourcesAndWarbands} from "../mod
 import { Favor, Secret } from "../model/resources";
 import type { SupplyCost } from "../costs";
 import { ResourceCost } from "../costs";
-import { Banner, DarkestSecret, PeoplesFavor } from "../model/banks";
-import { FavorBank } from "../model/banks";
+import { FavorBank, Banner, DarkestSecret, PeoplesFavor } from "../model/banks";
 import { isOwnable, type CampaignActionTarget, type OwnableObject, type RecoverActionTarget } from "../model/interfaces";
 import type { OathGameObject } from "../model/gameObject";
-import { BuildOrRepairEdificeAction, ChooseNewCitizensAction, VowOathAction, RestAction, WakeAction, SearchDiscardAction, SearchPlayOrDiscardAction, ChooseSuitsAction, ChooseNumberAction, RecoverBannerPitchAction, CampaignSeizeSiteAction, CampaignBanishPlayerAction } from ".";
+import { BuildOrRepairEdificeAction, ChooseNewCitizensAction, VowOathAction, RestAction, WakeAction, SearchDiscardAction, SearchPlayOrDiscardAction, ChooseSuitsAction, ChooseNumberAction, RecoverBannerPitchAction, CampaignSeizeSiteAction, CampaignBanishPlayerAction, CapacityInformation } from ".";
 import type { SearchableDeck , CardDeck } from "../model/decks";
 import { DiscardOptions  } from "../model/decks";
 import { inclusiveRange, maxInGroup, NumberMap } from "../utils";
@@ -25,8 +24,6 @@ import type { SiteName} from "../cards/sites";
 import { sitesData } from "../cards/sites";
 import type { CampaignResult } from "./utils";
 import type { OathActionManager } from "./manager";
-import { ActionModifier } from "../powers";
-import { Owned } from "../powers/base";
 
 
 
@@ -504,7 +501,7 @@ export class MoveDenizenToSiteEffect extends OathEffect {
 
         if (!this.target) return;
         new ParentToTargetEffect(this.actionManager, this.executor, [this.card], this.target).doNext()
-        new CheckCapacityEffect(this.actionManager, this.executor || this.game.currentPlayer, [this.target]).doNext();
+        new CheckCapacityEffect(this.actionManager, this.executor ?? this.game.currentPlayer, [this.target]).doNext();
     }
 
     serialize() {
@@ -546,6 +543,7 @@ export class DiscardCardGroupEffect extends PlayerEffect {
 
 export class CheckCapacityEffect extends PlayerEffect {
     origins: Set<OathPlayer | Site>;
+    capacityInformations = new Map<OathPlayer | Site, CapacityInformation>();
 
     constructor(
         actionManager: OathActionManager,
@@ -561,8 +559,10 @@ export class CheckCapacityEffect extends PlayerEffect {
         for (const origin of this.origins) {
             const site = origin instanceof Site ? origin : undefined;
             const player = origin instanceof OathPlayer ? origin : origin.ruler ?? this.executor;
-            
-            const [capacity, takesSpaceInTargetProxies, _] = SearchPlayOrDiscardAction.getCapacityInformation(player, site);
+            const target = site?.denizens ?? player.advisers;
+
+            const { capacity, takesNoSpaceProxies } = this.capacityInformations.get(origin)!;
+            const takesSpaceInTargetProxies = target.filter(e => !takesNoSpaceProxies.has(e));
             const excess = Math.max(0, takesSpaceInTargetProxies.length - capacity);
             const discardable = takesSpaceInTargetProxies.filter(e => !(e instanceof Denizen && e.activelyLocked)).map(e => e.original);
 

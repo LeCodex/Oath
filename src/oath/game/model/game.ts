@@ -28,7 +28,7 @@ import type { OathGameObject } from "./gameObject";
 
 
 export class OathGame extends TreeRoot<OathGame> implements WithPowers {
-    powers = new Set<PowerName>(["AddUsePowerAction", "FilterUnpayableActions", "ResolveWhenPlayed"]);
+    powers = new Set<PowerName>(["AddUsePowerAction", "FilterUnpayableActions", "FilterFullCardTargets", "ResolveWhenPlayed", "FillCapacityInformation"]);
     active = true;
     game = this;
     declare children: NodeGroup<OathGameObject>;

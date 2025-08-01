@@ -1,14 +1,20 @@
-import { ActionModifier, WhenPlayed } from ".";
-import { ActPhaseAction } from "../actions";
-import { PlayWorldCardEffect } from "../actions/effects";
+import { ActionModifier, CapacityModifier, WhenPlayed } from ".";
+import type { CapacityInformation} from "../actions";
+import { ActPhaseAction, SearchPlayOrDiscardAction } from "../actions";
+import { CheckCapacityEffect, PlayWorldCardEffect } from "../actions/effects";
 import { InvalidActionResolution } from "../actions/utils";
 import type { Cost, CostContext } from "../costs";
+import type { Denizen, WorldCard } from "../model/cards";
+import { Site } from "../model/cards";
 import type { OathGame } from "../model/game";
 import { hasCostContexts } from "../model/interfaces";
+import type { OathPlayer } from "../model/player";
+import type { MaskProxyManager } from "../utils";
 import { allChoices, allCombinations, isExtended } from "../utils";
-import { ChooseModifiers, ModifiableAction, UsePowerAction } from "./actions";
+import { ChooseModifiers, UsePowerAction } from "./actions";
 import { powersIndex } from "./classIndex";
 import { MultiCostContext } from "./context";
+import type { OathPowerManager } from "./manager";
 
 
 export class AddUsePowerAction extends ActionModifier<OathGame, ActPhaseAction> {
@@ -25,9 +31,9 @@ export class FilterUnpayableActions extends ActionModifier<OathGame, ActPhaseAct
 
     applyAtStart(): void {
         this.action.selects.action.filterChoices((factory) => {
-            const action = factory();
+            const dummyAction = factory();
             const maskProxyManager = this.action.maskProxyManager;
-            const { persistentModifiers, optionalModifiers } = ChooseModifiers.gatherActionModifiers(this.powerManager, action, this.action.player, this.action.maskProxyManager);
+            const { persistentModifiers, optionalModifiers } = ChooseModifiers.gatherActionModifiers(this.powerManager, dummyAction, this.action.player, maskProxyManager);
             for (const combination of allCombinations(optionalModifiers)) {
                 try {
                     const action = factory();  // Get a blank state, then update the modifiers to use that new action
@@ -63,6 +69,107 @@ export class FilterUnpayableActions extends ActionModifier<OathGame, ActPhaseAct
 
             return false;
         });
+    }
+}
+
+function getCapacityInformation(
+    powerManager: OathPowerManager,
+    maskProxyManager: MaskProxyManager,
+    siteProxy: Site | undefined,
+    playerProxy: OathPlayer,
+    playingProxy?: WorldCard,
+    facedown: boolean = false
+): CapacityInformation {
+    const takesNoSpaceProxies = new Set<WorldCard>();
+    const targetProxy = siteProxy ? siteProxy.denizens : playerProxy.advisers;
+    let ignoresCapacity = false;
+    let capacity = siteProxy ? siteProxy.capacity : 3;
+
+    const capacityModifiers: CapacityModifier<WorldCard>[] = [];
+    for (const [sourceProxy, modifier] of powerManager.getPowers(CapacityModifier)) {
+        const instance = new modifier(sourceProxy.original, playerProxy.original, maskProxyManager);
+        if (instance.canUse(playerProxy, siteProxy)) capacityModifiers.push(instance);
+    }
+
+    if (playingProxy && !facedown) {
+        for (const name of playingProxy.powers) {
+            const modifier = powersIndex[name];
+            if (isExtended(modifier, CapacityModifier)) {
+                const instance = new modifier(powerManager, playingProxy.original as Denizen, playerProxy.original, maskProxyManager);
+                capacityModifiers.push(instance);  // Always assume the card influences the capacity
+            }
+        }
+    }
+
+    for (const capacityModifier of capacityModifiers) {
+        const [cap, noSpaceProxy] = capacityModifier.updateCapacityInformation(targetProxy);
+        capacity = Math.min(capacity, cap);
+        for (const cardProxy of noSpaceProxy) takesNoSpaceProxies.add(cardProxy);
+        if (playingProxy) ignoresCapacity ||= capacityModifier.ignoreCapacity(playingProxy);
+    }
+
+    return { capacity, takesNoSpaceProxies, ignoresCapacity };
+}
+
+export class FilterFullCardTargets extends ActionModifier<OathGame, SearchPlayOrDiscardAction> {
+    modifiedAction = SearchPlayOrDiscardAction;
+    mustUse = true;
+
+    siteToCapacityInformation = new WeakMap<Site, CapacityInformation>();
+    playerCapacityInformation = new Map<boolean, CapacityInformation>();
+
+    applyAtStart(): void {
+        this.action.selects.choice.filterChoices((choice) => {
+            if (choice === undefined) return true;
+
+            const playingProxy = this.action.cardProxy;
+            const facedown = typeof choice === "boolean" ? choice : false;
+            const siteProxy = typeof choice === "boolean" ? undefined : choice;
+            const canReplace = this.action.canReplace || siteProxy === undefined;
+            const targetProxy = siteProxy ? siteProxy.denizens : this.playerProxy.advisers;
+
+            playingProxy.facedown = facedown;
+            const capacityInformation: CapacityInformation = getCapacityInformation(this.powerManager, this.action.maskProxyManager, siteProxy, this.action.playerProxy, playingProxy);
+            if (
+                !capacityInformation.ignoresCapacity &&
+                !canReplace &&
+                capacityInformation.capacity <= targetProxy.filter(e => !capacityInformation.takesNoSpaceProxies.has(e)).length
+            )
+                return false;
+
+            if (typeof choice === "boolean")
+                this.playerCapacityInformation.set(choice, capacityInformation);
+            else
+                this.siteToCapacityInformation.set(choice, capacityInformation);
+
+            return true;
+        });
+    }
+
+    applyBefore(): void {
+        const choice = this.action.parameters.choice[0];
+        if (choice !== undefined) {
+            if (typeof choice === "boolean")
+                this.action.capacityInformation = this.playerCapacityInformation.get(choice)!;
+            else
+                this.action.capacityInformation = this.siteToCapacityInformation.get(choice)!;
+        }
+    }
+}
+
+export class FillCapacityInformation extends ActionModifier<OathGame, CheckCapacityEffect> {
+    modifiedAction = CheckCapacityEffect;
+    mustUse = true;
+
+    applyBefore(): void {
+        for (const origin of this.action.origins) {
+            this.action.capacityInformations.set(origin, getCapacityInformation(
+                this.powerManager,
+                this.action.maskProxyManager,
+                origin instanceof Site ? origin : undefined,
+                this.action.playerProxy
+            ));
+        }
     }
 }
 

@@ -12,7 +12,10 @@ export function isEnumKey<E extends Enum<E>>(key: string | number | symbol, _enu
     return key in _enum;
 }
 
-/** For a set of set of elements, returns all combinations of an element from the first set, then the second, and so on. */
+/** For a set of set of elements, returns all combinations of an element from the first set, then the second, and so on.
+ * 
+ * Example: `allChoices([[1, 2], ["a", "b"]]) => [[1, "a"], [1, "b"], [2, "a"], [2, "b"]]`
+*/
 export function allChoices<T>(set: T[][]): T[][] {
     const combinations: T[][] = [[]];
     for (const choiceGroup of set) {
@@ -26,7 +29,10 @@ export function allChoices<T>(set: T[][]): T[][] {
     }
     return combinations;
 }
-/** For a set of elements, return all combinations of all sizes (including and excluding every element). */
+/** For a set of elements, return all combinations of all sizes (including and excluding every element).
+ * 
+ * Example: `allCombinations([1, 2, 3]) => [[], [1], [2], [3], [1, 2], [1, 3], [2, 3], [1, 2, 3]]` (order might vary)
+*/
 export function allCombinations<T>(set: Iterable<T>): T[][] {
     const combinations: T[][] = [[]];
     for (const element of set) {
@@ -59,6 +65,7 @@ export function MurmurHash3(str: string) {
     return (hash ^= hash >>> 16) >>> 0;
 }
 
+/** A pseudo-RNG utility class */
 export class PRNG {
     public seed: number;
 
@@ -78,7 +85,7 @@ export class PRNG {
 
     // http://indiegamr.com/generate-repeatable-random-numbers-in-js/
     public nextInt(min: number, max?: number): number {
-        if (max === undefined) {
+        if (typeof max === "undefined") {
             max = min;
             min = 0;
         }

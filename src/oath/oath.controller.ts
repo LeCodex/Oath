@@ -131,6 +131,7 @@ export class OathNestController {
         return this.service.moveReplayTo(id, index);
     }
 
+    // TODO: End replays automatically after a period of inactivity
     @Delete("/replays/:id")
     @ApiOperation({ summary: "End an active replay" })
     @ApiActionResponses(false)
