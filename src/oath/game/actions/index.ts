@@ -328,7 +328,7 @@ export class SearchChooseAction extends OathAction {
 
     constructor(actionManager: OathActionManager, player: OathPlayer, cards: Iterable<WorldCard>, discardOptions?: DiscardOptions<OathCard>, amount: number = 1) {
         super(actionManager, player);
-        this.discardOptions = discardOptions || this.player.discardOptions;
+        this.discardOptions = discardOptions ?? this.player.discardOptions;
         this.cards = new Set(cards);
         this.playingAmount = Math.min(amount, this.cards.size);
     }
@@ -369,8 +369,8 @@ export class SearchDiscardAction extends OathAction {
     constructor(actionManager: OathActionManager, player: OathPlayer, cards: Iterable<WorldCard>, amount?: number, discardOptions?: DiscardOptions<OathCard>) {
         super(actionManager, player);
         this.cards = new Set(cards);
-        this.amount = Math.min(this.cards.size, amount || this.cards.size);
-        this.discardOptions = discardOptions || this.player.discardOptions;
+        this.amount = Math.min(this.cards.size, amount ?? this.cards.size);
+        this.discardOptions = discardOptions ?? this.player.discardOptions;
     }
 
     start() {
@@ -406,7 +406,7 @@ export class SearchPlayOrDiscardAction extends OathAction {
         super(actionManager, player);
         this.cardProxy = this.maskProxyManager.get(card);
         this.message = "Play or discard " + this.cardProxy.name;
-        this.discardOptions = discardOptions || this.player.discardOptions;
+        this.discardOptions = discardOptions ?? this.player.discardOptions;
     }
 
     start() {
@@ -465,7 +465,7 @@ export class MayDiscardACardAction extends OathAction {
 
     constructor(actionManager: OathActionManager, player: OathPlayer, discardOptions?: DiscardOptions<OathCard>, cards?: Iterable<Denizen>) {
         super(actionManager, player);
-        this.discardOptions = discardOptions || this.player.discardOptions;
+        this.discardOptions = discardOptions ?? this.player.discardOptions;
         if (cards) {
             this.cards = new Set(cards);
         } else {
@@ -532,7 +532,7 @@ export class CampaignAttackAction extends OathAction {
 
     constructor(actionManager: OathActionManager, player: OathPlayer, defender: OathPlayer | undefined) {
         super(actionManager, player);
-        this.next = new CampaignDefenseAction(actionManager, defender || player, player);
+        this.next = new CampaignDefenseAction(actionManager, defender ?? player, player);
         this.campaignResult.attacker = player;
         this.campaignResult.defender = defender;
         this.defender = defender;
@@ -730,7 +730,7 @@ export class CampaignKillWarbandsInForceAction extends OathAction {
     amount: number;
 
     constructor(actionManager: OathActionManager, result: CampaignResult, attacker: boolean, amount: number) {
-        super(actionManager, attacker ? result.attacker.leader : result.defender?.leader || result.attacker.leader);
+        super(actionManager, attacker ? result.attacker.leader : result.defender?.leader ?? result.attacker.leader);
         this.message = `Kill ${amount} warbands`;
         this.result = result;
         this.owner = attacker ? result.attacker.leader : result.defender?.leader;
@@ -1353,7 +1353,7 @@ export class MakeBindingExchangeOfferAction extends OathAction {
         super(actionManager, player);
         this.other = other;
         this.otherProxy = this.maskProxyManager.get(other);
-        this.effect = next?.effect || new BindingExchangeEffect(actionManager, other, player);
+        this.effect = next?.effect ?? new BindingExchangeEffect(actionManager, other, player);
         this.next = next;
     }
 
@@ -1386,7 +1386,7 @@ export class DeedWriterOfferAction extends MakeBindingExchangeOfferAction {
 
     constructor(actionManager: OathActionManager, player: OathPlayer, other: OathPlayer, next?: DeedWriterOfferAction) {
         super(actionManager, player, other, next);
-        this.effect = next?.effect || new SiteExchangeOfferEffect(actionManager, other, player);
+        this.effect = next?.effect ?? new SiteExchangeOfferEffect(actionManager, other, player);
     }
 
     start(): boolean {
@@ -1412,7 +1412,7 @@ export abstract class ThingsExchangeOfferAction<T extends OathGameObject> extend
 
     constructor(actionManager: OathActionManager, player: OathPlayer, other: OathPlayer, next?: ThingsExchangeOfferAction<T>) {
         super(actionManager, player, other, next);
-        this.effect = next?.effect || new ThingsExchangeOfferEffect<T>(actionManager, other, player);
+        this.effect = next?.effect ?? new ThingsExchangeOfferEffect<T>(actionManager, other, player);
     }
 
     execute(): void {
@@ -1435,7 +1435,7 @@ export class TinkersFairOfferAction extends ThingsExchangeOfferAction<Relic> {
 
 export class FestivalDistrictOfferAction extends ThingsExchangeOfferAction<WorldCard> {
     start(): boolean {
-        this.selects.things = new SelectCard("Advisers", this.player, this.other.advisers);
+        this.selects.things = new SelectCard("Advisers", this.player, this.other.advisers.filter(e => !(e instanceof Denizen && e.activelyLocked)));
         return super.start();
     }
 
@@ -1447,7 +1447,7 @@ export class FestivalDistrictOfferAction extends ThingsExchangeOfferAction<World
 
 export class TheGatheringOfferAction extends ThingsExchangeOfferAction<Relic | WorldCard> {
     start(): boolean {
-        this.selects.things = new SelectCard("Relics and advisers", this.player, [...this.other.relics, ...this.other.advisers]);
+        this.selects.things = new SelectCard("Relics and advisers", this.player, [...this.other.relics, ...this.other.advisers.filter(e => !(e instanceof Denizen && e.activelyLocked))]);
         return super.start();
     }
 
@@ -1464,7 +1464,7 @@ export class CitizenshipOfferAction extends ThingsExchangeOfferAction<Relic | Ba
 
     constructor(actionManager: OathActionManager, player: OathPlayer, other: OathPlayer, next?: CitizenshipOfferAction) {
         super(actionManager, player, other, next);
-        this.effect = next?.effect || new CitizenshipOfferEffect(actionManager, other, player);
+        this.effect = next?.effect ?? new CitizenshipOfferEffect(actionManager, other, player);
     }
 
     start(): boolean {
