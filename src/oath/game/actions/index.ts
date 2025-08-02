@@ -670,7 +670,7 @@ export class CampaignDefenseAction extends OathAction {
 export class CampaignEndAction extends OathAction {
     declare readonly selects: { doSacrifice: SelectBoolean, callbacks: SelectWithName<CampaignEndCallback> };
     readonly message = "Handle the end of the campaign";
-    
+
     campaignResult = new CampaignResult(this.actionManager);
     campaignResultProxy = this.maskProxyManager.get(this.campaignResult);
     doSacrifice: boolean;
@@ -689,8 +689,8 @@ export class CampaignEndAction extends OathAction {
         }
 
         const callbacksToOrder = this.campaignResult.endCallbacks.filter(e => !e.orderAgnostic);
-        this.selects.callbacks = new SelectWithName("Order effects", callbacksToOrder);
-        
+        this.selects.callbacks = new SelectWithName("Order effects", callbacksToOrder, { min: callbacksToOrder.length });
+
         return super.start();
     }
 

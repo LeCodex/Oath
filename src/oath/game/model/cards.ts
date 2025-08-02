@@ -221,7 +221,7 @@ export class Denizen extends WorldCard implements AtSite {
     }
 
     get site() { return this.typedParent(Site); }
-    protected _ruler() { return super._ruler() || this.site?.ruler };
+    protected _ruler() { return super._ruler() ?? this.site?.ruler };
     protected _suit: OathSuit;
     get suit() { return this.facedown ? OathSuit.None : this._suit; }
     set suit(_suit: OathSuit) { this._suit = _suit; }

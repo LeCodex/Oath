@@ -193,17 +193,24 @@ export abstract class RestPower<T extends OwnableCard> extends ActionModifier<T,
 }
 
 export abstract class BattlePlan<T extends OwnableCard, U extends CampaignAttackAction | CampaignDefenseAction> extends ActionModifier<T, U> {
+    abstract ownerProxy: OathPlayer | undefined;
     canUse(): boolean {
-        return super.canUse() && this.playerProxy.rules(this.sourceProxy);
+        return super.canUse() && (!!this.ownerProxy?.rules(this.sourceProxy) || this.sourceProxy.ruler === undefined && this.ownerProxy === undefined);
     }
 }
 
 export abstract class AttackerBattlePlan<T extends OwnableCard> extends BattlePlan<T, CampaignAttackAction> {
     modifiedAction = CampaignAttackAction;
+    // Can't use campaignResultProxy since that's from the CampaignEndAction's MaskProxyManager
+    // This is voluntary, so the modifications brought by modifiers from each action in the chain can have an impact
+    // The ?. is because the action is still instantiated with other actions when checking if it can be used
+    // TODO: Find a fix to have a static modifiedAction
+    ownerProxy = this.action.maskProxyManager.get(this.action.campaignResult?.attacker);
 }
 
 export abstract class DefenderBattlePlan<T extends OwnableCard> extends BattlePlan<T, CampaignDefenseAction> {
     modifiedAction = CampaignDefenseAction;
+    ownerProxy = this.action.maskProxyManager.get(this.action.campaignResult?.defender);
 }
 
 export abstract class EnemyAttackerCampaignModifier<T extends OwnableCard> extends ActionModifier<T, CampaignAttackAction> {
