@@ -1,13 +1,14 @@
 import type { OathPlayer } from "./model/player";
-import type { OathResourceType} from "./model/resources";
+import type { OathResourceType } from "./model/resources";
 import { Favor, Secret } from "./model/resources";
-import { Factory, NumberMap } from "./utils";
+import type { Factory } from "./utils";
+import { NumberMap } from "./utils";
 import type { OathGameObject } from "./model/gameObject";
-import { Oath } from "./model/oaths";
 
 
 export abstract class Cost {
     abstract add(other: Cost): void;
+    abstract toString(): string;
 }
 
 export class ResourceCost extends Cost {
@@ -67,9 +68,13 @@ export class ResourceCost extends Cost {
 
 export class SupplyCost extends Cost {
     constructor(
+        /** Base amount of supply to pay */
         public base: number,
+        /** Additive modifier, affected by the multiplier */
         public modifier: number = 0,
+        /** Additive modifier, NOT affected by the multiplier */
         public flatModifier: number = 0,
+        /** Multiplicative modifier */
         public multiplier: number = 1,
     ) {
         super();
@@ -79,6 +84,10 @@ export class SupplyCost extends Cost {
 
     add(other: SupplyCost): void {
         this.flatModifier += other.amount;
+    }
+
+    toString() {
+        return `${this.amount} Supply`;
     }
 }
 

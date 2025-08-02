@@ -8,7 +8,7 @@ export class IgnoresCapacity extends CapacityModifier<Denizen> {
     get name() { return "Ignores Capacity"; }
 
     canUse(player: OathPlayer, site?: Site): boolean {
-        return player === this.source.ruler;
+        return super.canUse(player, site) && player === this.source.ruler;
     }
 
     ignoreCapacity(cardProxy: WorldCard): boolean {

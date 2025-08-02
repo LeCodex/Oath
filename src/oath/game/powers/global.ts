@@ -1,7 +1,8 @@
 import { ActionModifier, CapacityModifier, WhenPlayed } from ".";
 import type { CapacityInformation} from "../actions";
 import { ActPhaseAction, SearchPlayOrDiscardAction } from "../actions";
-import { CheckCapacityEffect, PlayWorldCardEffect } from "../actions/effects";
+import type { OathEffect } from "../actions/base";
+import { CheckCapacityEffect, PaySupplyEffect, PlayWorldCardEffect, TransferResourcesEffect } from "../actions/effects";
 import { InvalidActionResolution } from "../actions/utils";
 import type { Cost, CostContext } from "../costs";
 import type { Denizen, WorldCard } from "../model/cards";
@@ -9,9 +10,9 @@ import { Site } from "../model/cards";
 import type { OathGame } from "../model/game";
 import { hasCostContexts } from "../model/interfaces";
 import type { OathPlayer } from "../model/player";
-import type { MaskProxyManager } from "../utils";
+import type { AbstractConstructor, MaskProxyManager } from "../utils";
 import { allChoices, allCombinations, isExtended } from "../utils";
-import { ChooseModifiers, UsePowerAction } from "./actions";
+import { ChooseModifiers, ChoosePayableCostContextAction, UsePowerAction } from "./actions";
 import { powersIndex } from "./classIndex";
 import { MultiCostContext } from "./context";
 import type { OathPowerManager } from "./manager";
@@ -54,9 +55,8 @@ export class FilterUnpayableActions extends ActionModifier<OathGame, ActPhaseAct
                             costContextPerType.get(cls)!.push(context);
                         }
                         
-                        if ([...costContextPerType].every(
-                            ([cls, contexts]) => new MultiCostContext(this.powerManager, this.player, contexts, cls.dummyFactory(this.player))
-                                .payableCostsWithModifiers(maskProxyManager).length
+                        if ([...costContextPerType].every(([cls, contexts]) =>
+                            new MultiCostContext(this.powerManager, this.player, contexts, cls.dummyFactory(this.player)).payableCostsWithModifiers(maskProxyManager).length
                         )) {
                             return true;
                         }
@@ -71,6 +71,21 @@ export class FilterUnpayableActions extends ActionModifier<OathGame, ActPhaseAct
         });
     }
 }
+function ModifyCostContextResolver<T extends OathEffect<any> & { context: CostContext<Cost> }>(base: AbstractConstructor<T>) {
+    abstract class ModifyCostContextResolver extends ActionModifier<OathGame, T> {
+        modifiedAction = base;
+        mustUse = true;
+
+        applyBefore(): void {
+            new ChoosePayableCostContextAction(this.powerManager, this.player, this.action.context, (costContext) => {
+                this.action.context = costContext;
+            }).doNext();
+        }
+    }
+    return ModifyCostContextResolver;
+}
+export class ModifyResourceTransfer extends ModifyCostContextResolver(TransferResourcesEffect) { }
+export class ModifySupplyPayment extends ModifyCostContextResolver(PaySupplyEffect) { }
 
 function getCapacityInformation(
     powerManager: OathPowerManager,

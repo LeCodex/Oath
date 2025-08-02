@@ -12,7 +12,7 @@ export class OathkeeperDefense extends ActionModifier<OathkeeperTile, CampaignDe
     get name() { return "Oathkeeper"; }
 
     canUse(): boolean {
-        return this.playerProxy === this.sourceProxy.parent;
+        return super.canUse() && this.playerProxy === this.sourceProxy.parent;
     }
 
     applyBefore(): void {

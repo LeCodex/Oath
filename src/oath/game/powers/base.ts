@@ -54,7 +54,7 @@ export function HomelandSitePower(suit: OathSuit) {
 export function HomelandSiteLosePower(base: Concrete<ReturnType<typeof HomelandSitePower>> & { suit: OathSuit }) {
     abstract class HomelandSitePowerDeactivate extends LosePowersModifier(DiscardCardEffect<OathCard>, base) {
         canUse(): boolean {
-            return this.action.card instanceof Denizen && this.action.card.site === this.source && this.action.card.suit === base.suit;
+            return super.canUse() && this.action.card instanceof Denizen && this.action.card.site === this.source && this.action.card.suit === base.suit;
         }
     }
     return HomelandSitePowerDeactivate;
@@ -75,7 +75,7 @@ export function Reliquary<T extends AbstractConstructor<OathPower<ReliquarySlot>
         mustUse = true;
 
         canUse(...args: any[]): boolean {
-            return super.canUse(args) && this.playerProxy === this.gameProxy.chancellor;
+            return super.canUse(...args) && this.playerProxy === this.gameProxy.chancellor;
         }
     }
     return ReliquaryModifier;

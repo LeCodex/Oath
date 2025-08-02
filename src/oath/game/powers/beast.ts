@@ -9,8 +9,8 @@ import type { WithPowers } from "../model/interfaces";
 import type { OathPlayer } from "../model/player";
 import { ExileBoard } from "../model/player";
 import { Favor, Warband, Secret } from "../model/resources";
-import type { ResourceTransferContext, SupplyCostContext } from "../costs";
-import { ResourceCost } from "../costs";
+import type { SupplyCostContext } from "../costs";
+import { ResourceTransferContext , ResourceCost } from "../costs";
 import { AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, RestPower, ActivePower, EnemyAttackerCampaignModifier, EnemyDefenderCampaignModifier, Accessed, ActionModifier, EnemyActionModifier, BattlePlan, ResourceTransferModifier, NoSupplyCostActionModifier, SupplyCostModifier } from ".";
 import { AttackDieSymbol, DefenseDieSymbol } from "../dice";
 import { DiscardOptions } from "../model/decks";
@@ -125,7 +125,7 @@ export class WildCry extends Accessed(ActionModifier<Denizen, PlayWorldCardEffec
 
 export class AnimalPlaymates extends Accessed(SupplyCostModifier<Denizen>) {
     canUse(context: SupplyCostContext): boolean {
-        return context.origin instanceof MusterAction;
+        return super.canUse(context) && context.origin instanceof MusterAction;
     }
 
     apply(context: SupplyCostContext): void {
@@ -136,7 +136,7 @@ export class AnimalPlaymates extends Accessed(SupplyCostModifier<Denizen>) {
 
 export class Birdsong extends Accessed(SupplyCostModifier<Denizen>) {
     canUse(context: SupplyCostContext): boolean {
-        return context.origin instanceof TradeAction;
+        return super.canUse(context) && context.origin instanceof TradeAction;
     }
 
     apply(context: SupplyCostContext): void {
@@ -150,7 +150,7 @@ export class TheOldOak extends Accessed(ResourceTransferModifier<Denizen>) {
     mustUse = true;
 
     canUse(context: ResourceTransferContext): boolean {
-        return context.origin instanceof TradeForSecretAction;
+        return super.canUse(context) && context.origin instanceof TradeForSecretAction;
     }
 
     apply(context: ResourceTransferContext): void {
@@ -226,7 +226,7 @@ export class InsectSwarm extends ResourceTransferModifier<Denizen> {
         if (!(context.origin instanceof BattlePlan)) return false;
         const campaignResult = (context.origin.action as CampaignAttackAction | CampaignDefenseAction).campaignResult;
         const ruler = this.sourceProxy.ruler?.original;
-        return campaignResult.areEnemies(ruler, this.player);
+        return super.canUse(context) && campaignResult.areEnemies(ruler, this.player);
     }
 
     apply(context: ResourceTransferContext): void {
@@ -408,7 +408,7 @@ export class PiedPiper extends ActivePower<Denizen> {
             this.actionManager, this.action.player, "Send the Pied Piper to steal 2 favor",
             (targets: OathPlayer[]) => {
                 if (!targets[0]) return;
-                new TransferResourcesEffect(this.actionManager, this.action.player, new ResourceCost([[Favor, 2]]), this.action.player, targets[0]).doNext();
+                new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.action.player, this, new ResourceCost([[Favor, 2]]), this.action.player, targets[0])).doNext();
                 new MoveWorldCardToAdvisersEffect(this.actionManager, this.action.player, this.source, targets[0]).doNext();
             }
         ).doNext();

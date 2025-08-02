@@ -144,7 +144,7 @@ export class NewsFromAfar extends Accessed(SupplyCostModifier<Denizen>) {
     cost = new ResourceCost([[Favor, 2]]);  // TODO: Do costs for cost modifiers
 
     canUse(context: SupplyCostContext): boolean {
-        return context.origin instanceof TradeAction;
+        return super.canUse(context) && context.origin instanceof TradeAction;
     }
 
     apply(context: SupplyCostContext): void {

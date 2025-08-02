@@ -40,6 +40,10 @@ export abstract class OathPower<T extends WithPowers> {
     get game() { return this.source.game; }
 
     payCost(next?: (success: boolean) => void): void {
+        if (this.cost.free) {
+            if (next) next(true);
+            return;
+        }
         new PayPowerCostEffect(this.player, this).doNext(next);
     }
 }
@@ -155,7 +159,7 @@ export function ActionCostModifier<T extends WithPowers, U extends CostContext<a
 
         canUse(context: U): boolean {
             const instance = new base(this.powerManager, this.source, this.player, context.origin);  // Actions can't have modifiedAction as static because of initialization order making it a pain
-            return context.origin instanceof instance.modifiedAction && !!this.powerManager.futureActionsModifiable.get(context.origin)?.modifiers.some(e => e instanceof base);
+            return super.canUse(context) && context.origin instanceof instance.modifiedAction && !!this.powerManager.futureActionsModifiable.get(context.origin)?.modifiers.some(e => e instanceof base);
         }
     }
     return ActionCostModifier;
@@ -172,7 +176,7 @@ export abstract class EnemyActionModifier<T extends OwnableCard, U extends OathA
     mustUse = true;
 
     canUse(): boolean {
-        return this.playerProxy.enemyWith(this.sourceProxy.ruler);
+        return super.canUse() && this.playerProxy.enemyWith(this.sourceProxy.ruler);
     }
 }
 
@@ -190,7 +194,7 @@ export abstract class RestPower<T extends OwnableCard> extends ActionModifier<T,
 
 export abstract class BattlePlan<T extends OwnableCard, U extends CampaignAttackAction | CampaignDefenseAction> extends ActionModifier<T, U> {
     canUse(): boolean {
-        return this.playerProxy.rules(this.sourceProxy);
+        return super.canUse() && this.playerProxy.rules(this.sourceProxy);
     }
 }
 
@@ -208,7 +212,7 @@ export abstract class EnemyAttackerCampaignModifier<T extends OwnableCard> exten
 
     canUse(): boolean {
         const ruler = this.sourceProxy.ruler?.original;
-        return this.action.campaignResult.areEnemies(ruler, this.player);
+        return super.canUse() && this.action.campaignResult.areEnemies(ruler, this.player);
     }
 }
 
@@ -218,7 +222,7 @@ export abstract class EnemyDefenderCampaignModifier<T extends OwnableCard> exten
 
     canUse(): boolean {
         const ruler = this.sourceProxy.ruler?.original;
-        return this.action.campaignResult.areEnemies(ruler, this.player);
+        return super.canUse() && this.action.campaignResult.areEnemies(ruler, this.player);
     }
 }
 
@@ -227,7 +231,7 @@ export abstract class SeizeModifier<T extends CampaignActionTarget & WithPowers>
     mustUse = true;
 
     canUse(): boolean {
-        return this.action.target === this.source;
+        return super.canUse() && this.action.target === this.source;
     }
 }
 

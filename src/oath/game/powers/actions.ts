@@ -191,7 +191,7 @@ export class UsePowerAction extends ExpandedAction {
 
 export class ChoosePayableCostContextAction<T extends CostContext<any>> extends ExpandedAction {
     declare readonly selects: { costContext: SelectNOf<T | undefined>; };
-    readonly message: string;
+    readonly message = "Choose a cost to pay";
 
     constructor(
         powerManager: OathPowerManager,
@@ -206,7 +206,7 @@ export class ChoosePayableCostContextAction<T extends CostContext<any>> extends 
         const choices = new Map<string, T>();
         const payableCostContextsInfo = this.powerManager.payableCostsWithModifiers(this.costContext, this.maskProxyManager);
         for (const costContextInfo of payableCostContextsInfo)
-            choices.set(costContextInfo.context.cost.toString() + `(${costContextInfo.modifiers.map(e => e.name).join(", ") || "Base"})`, costContextInfo.context as T);
+            choices.set(costContextInfo.context.cost.toString() + ` (${costContextInfo.modifiers.map(e => e.name).join(", ") || "Base"})`, costContextInfo.context as T);
         this.selects.costContext = new SelectNOf("Cost", choices, { min: 1 });
         return super.start();
     }
@@ -230,9 +230,7 @@ export class PayPowerCostEffect extends PlayerEffect<boolean> {
     resolve(): void {
         const target = this.power.source instanceof ResourcesAndWarbands ? this.power.source : undefined;
         const costContext = new ResourceTransferContext(this.player, this.power.source, this.power.cost, target);
-        new ChoosePayableCostContextAction(this.powerManager, this.player, costContext, (costContext) => {
-            new TransferResourcesEffect(this.actionManager, costContext.player, costContext.cost, costContext.target, costContext.source).doNext(result => this.result = result);
-        }).doNext();
+        new TransferResourcesEffect(this.actionManager, costContext).doNext(result => this.result = result);
     }
 }
 

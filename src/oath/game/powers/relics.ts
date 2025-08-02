@@ -10,8 +10,8 @@ import type { OathPlayer} from "../model/player";
 import { ExileBoard } from "../model/player";
 import { isOwnable } from "../model/interfaces";
 import { Favor, Warband, Secret } from "../model/resources";
-import type { ResourceTransferContext, SupplyCostContext } from "../costs";
-import { ResourceCost } from "../costs";
+import type { SupplyCostContext} from "../costs";
+import { ResourceTransferContext, ResourceCost } from "../costs";
 import { EnemyActionModifier, AttackerBattlePlan, DefenderBattlePlan, ActionModifier, ActivePower, BattlePlan, EnemyAttackerCampaignModifier, Accessed, ResourceTransferModifier, SupplyCostModifier } from ".";
 import { DiscardOptions } from "../model/decks";
 import { inclusiveRange, isExtended } from "../utils";
@@ -62,7 +62,7 @@ export class GrandScepterExileCitizen extends ActivePower<GrandScepter> {
                 if (target === this.game.oathkeeper) amount++;
                 if (target === peoplesFavor?.owner) amount++;
                 
-                new TransferResourcesEffect(this.actionManager, this.action.player, new ResourceCost([[Favor, amount]]), target).doNext(success => {
+                new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.action.player, this, new ResourceCost([[Favor, amount]]), target)).doNext(success => {
                     if (!success) throw cannotPayError(this.selfCostContext.cost);
                     new BecomeExileEffect(this.actionManager, target).doNext();
                 });
@@ -73,7 +73,7 @@ export class GrandScepterExileCitizen extends ActivePower<GrandScepter> {
 }
 export class GrandScepterTake extends LosePowersModifier(TakeOwnableObjectEffect, GrandScepterPeek, GrandScepterGrantCitizenship, GrandScepterExileCitizen) {
     canUse(): boolean {
-        return this.action.target === this.source as GrandScepter;
+        return super.canUse() && this.action.target === this.source as GrandScepter;
     }
 }
 export class GrandScepterOn extends GainPowersModifier(WakeAction, GrandScepterPeek, GrandScepterGrantCitizenship, GrandScepterExileCitizen) {}
@@ -85,7 +85,7 @@ export class StickyFireAttack extends AttackerBattlePlan<Relic> {
 
         this.action.campaignResult.onAttackWin(new CampaignEndCallback(() => new MakeDecisionAction(this.actionManager, this.action.player, "Use Sticky Fire?", () => { 
             this.action.campaignResult.defenderKills(Infinity);
-            new TransferResourcesEffect(this.actionManager, this.action.player, new ResourceCost([[Favor, 1]]), defender).doNext();
+            new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.action.player, this, new ResourceCost([[Favor, 1]]), defender)).doNext();
         }).doNext(), this.source.name, false));
     }
 }
@@ -94,7 +94,7 @@ export class StickyFireDefense extends DefenderBattlePlan<Relic> {
         const attacker = this.action.campaignResult.attacker;
         this.action.campaignResult.onAttackWin(new CampaignEndCallback(() => new MakeDecisionAction(this.actionManager, this.action.player, "Use Sticky Fire?", () => { 
             this.action.campaignResult.attackerKills(Infinity);
-            new TransferResourcesEffect(this.actionManager, this.action.player, new ResourceCost([[Favor, 1]]), attacker).doNext();
+            new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.action.player, this, new ResourceCost([[Favor, 1]]), attacker)).doNext();
         }).doNext(), this.source.name, false));
     }
 }
@@ -166,7 +166,7 @@ export class ObsidianCageActive extends ActivePower<Relic> {
 
 export class CupOfPlenty extends Accessed(SupplyCostModifier<Relic>) {
     canUse(context: SupplyCostContext): boolean {
-        return context.origin instanceof TradeAction;
+        return super.canUse(context) && context.origin instanceof TradeAction;
     }
 
     apply(context: SupplyCostContext): void {
@@ -209,7 +209,7 @@ export class BookOfRecords extends Accessed(ResourceTransferModifier<Relic>) {
     mustUse = true;
 
     canUse(context: ResourceTransferContext): boolean {
-        return context.origin instanceof PlayDenizenAtSiteEffect;
+        return super.canUse(context) && context.origin instanceof PlayDenizenAtSiteEffect;
     }
 
     apply(context: ResourceTransferContext): void {
@@ -350,7 +350,7 @@ export class Whistle extends ActivePower<Relic> {
                 const travelAction = new TravelAction(this.actionManager, targets[0], this.action.player, (site: Site) => site === this.action.player.site);
                 travelAction.supplyCost.multiplier = 0;
                 travelAction.doNext();
-                new TransferResourcesEffect(this.actionManager, this.player, new ResourceCost([[Secret, 1]]), targets[0], this.source).doNext();
+                new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.player, this, new ResourceCost([[Secret, 1]]), targets[0], this.source)).doNext();
             },
             [this.gameProxy.players.filter(e => e.site !== this.action.playerProxy.site).map(e => e.original)]
         ).doNext();

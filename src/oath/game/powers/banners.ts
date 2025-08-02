@@ -39,7 +39,7 @@ export class DarkestSecretPower extends Owned(SupplyCostModifier<DarkestSecret>)
     mustUse = true;
 
     canUse(context: SupplyCostContext): boolean {
-        return context.origin instanceof SearchAction;
+        return super.canUse(context) && context.origin instanceof SearchAction;
     }
 
     apply(context: SupplyCostContext): void {

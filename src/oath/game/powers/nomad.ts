@@ -12,8 +12,8 @@ import { isOwnable } from "../model/interfaces";
 import type { OathPlayer } from "../model/player";
 import { ExileBoard } from "../model/player";
 import { Favor, Secret } from "../model/resources";
-import type { ResourceTransferContext, SupplyCostContext } from "../costs";
-import { ResourceCost } from "../costs";
+import type { SupplyCostContext } from "../costs";
+import { ResourceTransferContext , ResourceCost } from "../costs";
 import { ActivePower, CapacityModifier, AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, EnemyAttackerCampaignModifier, EnemyActionModifier, ActionModifier, BattlePlan, Accessed, ResourceTransferModifier, NoSupplyCostActionModifier, SupplyCostModifier } from ".";
 import { DefenseDieSymbol } from "../dice";
 import { powersIndex } from "./classIndex";
@@ -186,7 +186,7 @@ export class WayStation extends ActionModifier<Denizen, TravelAction> {
         if (this.action.siteProxy === this.sourceProxy.site) {
             if (!this.playerProxy.rules(this.sourceProxy)) {
                 const ruler = this.sourceProxy.ruler?.original;
-                new TransferResourcesEffect(this.actionManager, this.player, new ResourceCost([[Favor, 1]]), ruler).doNext(success => {
+                new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.player, this, new ResourceCost([[Favor, 1]]), ruler)).doNext(success => {
                     if (!success) throw new InvalidActionResolution("Cannot pay the Way Station's ruler");
                 });
             }
@@ -209,7 +209,7 @@ export class Tents extends Accessed(SupplyCostModifier<Denizen>) {
     cost = new ResourceCost([[Favor, 1]]);
 
     canUse(context: SupplyCostContext): boolean {
-        return context.origin instanceof TravelAction;
+        return super.canUse(context) && context.origin instanceof TravelAction;
     }
 
     apply(context: SupplyCostContext): void {
@@ -232,7 +232,7 @@ export class AFastSteed extends Accessed(SupplyCostModifier<Denizen>) {
     cost = new ResourceCost([[Favor, 1]]);
 
     canUse(context: SupplyCostContext): boolean {
-        return context.origin instanceof TravelAction;
+        return super.canUse(context) && context.origin instanceof TravelAction;
     }
 
     apply(context: SupplyCostContext): void {
@@ -354,19 +354,19 @@ export class AncientBinding extends ActivePower<Denizen> {
 
     usePower(): void {
         for (const player of this.game.players) {
-            new TransferResourcesEffect(this.actionManager, player, new ResourceCost([], [[Secret, player.byClass(Secret).length - (player === this.action.player ? 0 : 1)]]), undefined).doNext();
+            new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(player, this, new ResourceCost([], [[Secret, player.byClass(Secret).length - (player === this.action.player ? 0 : 1)]]), undefined)).doNext();
 
             for (const adviser of player.advisers)
-                new TransferResourcesEffect(this.actionManager, player, new ResourceCost([], [[Secret, Infinity]]), undefined, adviser).doNext();
+                new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(player, this, new ResourceCost([], [[Secret, Infinity]]), undefined, adviser)).doNext();
 
             for (const relic of player.relics)
-                new TransferResourcesEffect(this.actionManager, player, new ResourceCost([], [[Secret, Infinity]]), undefined, relic).doNext();
+                new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(player, this, new ResourceCost([], [[Secret, Infinity]]), undefined, relic)).doNext();
         }
 
         for (const site of this.game.map.sites())
             for (const denizen of site.denizens)
                 if (denizen !== this.source)
-                    new TransferResourcesEffect(this.actionManager, this.action.player, new ResourceCost([], [[Secret, Infinity]]), undefined, denizen).doNext();
+                    new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.action.player, this, new ResourceCost([], [[Secret, Infinity]]), undefined, denizen)).doNext();
     }
 }
 
@@ -433,7 +433,7 @@ export class SpellBreaker extends EnemyActionModifier<Denizen, PayPowerCostEffec
 
 export class FamilyWagon extends CapacityModifier<Denizen> {
     canUse(player: OathPlayer, site?: Site): boolean {
-        return player === this.source.ruler && !site;
+        return super.canUse(player, site) && player === this.source.ruler && !site;
     }
 
     updateCapacityInformation(targetProxy: Set<WorldCard>): [number, Iterable<WorldCard>] {

@@ -92,7 +92,7 @@ export abstract class MajorAction extends OathAction implements WithCostContexts
     get costContexts(): CostContext<any>[] { return [new SupplyCostContext(this.player, this, this.supplyCost)]; }
 
     execute() {
-        new PaySupplyEffect(this.actionManager, this.player, this.supplyCost).doNext(success => {
+        new PaySupplyEffect(this.actionManager, this.costContexts[0]!).doNext(success => {
             if (!success) throw new InvalidActionResolution(`Cannot pay Supply cost (${this.supplyCost.amount}).`);
             this.majorAction();
         });
@@ -129,7 +129,7 @@ export abstract class PayDenizenAction extends MajorAction {
     }
 
     majorAction(): void {
-        new TransferResourcesEffect(this.actionManager, this.player, this.cost, this.cardProxy.original).doNext(success => {
+        new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.player, this, this.cost, this.cardProxy.original)).doNext(success => {
             if (!success) throw cannotPayError(this.cost);
             this.getReward();
         });
@@ -171,7 +171,7 @@ export class TradeForFavorAction extends TradeAction {
         super.getReward();
         const bank = this.gameProxy.favorBank(this.cardProxy.suit)?.original;
         if (bank)
-            new TransferResourcesEffect(this.actionManager, this.player, new ResourceCost(this.getting), this.player, bank).doNext();
+            new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.player, this, new ResourceCost(this.getting), this.player, bank)).doNext();
     }
 }
 export class TradeForSecretAction extends TradeAction {
@@ -1191,7 +1191,7 @@ export class PeoplesFavorWakeAction extends ChooseSuitsAction {
 
     putOrReturnFavor(suit: OathSuit | undefined): void {
         const bank = suit !== undefined ? this.game.favorBank(suit) : undefined;
-        new TransferResourcesEffect(this.actionManager, this.player, new ResourceCost([[Favor, 1]]), bank ?? this.banner, bank ? this.banner : this.player).doNext();
+        new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.player, this, new ResourceCost([[Favor, 1]]), bank ?? this.banner, bank ? this.banner : this.player)).doNext();
 
         if (this.banner.amount >= 6)
             new SetPeoplesFavorMobState(this.actionManager, this.player, true).doNext();
@@ -1237,7 +1237,7 @@ export class TakeResourceFromPlayerAction extends ChoosePlayersAction {
             (targets: OathPlayer[]) => {
                 if (!targets[0]) return;
                 if (resource === Secret && targets[0].byClass(Secret).length <= 1) return;
-                new TransferResourcesEffect(this.actionManager, player, new ResourceCost([[resource, amount === undefined ? 1 : amount]]), player, targets[0]).doNext();
+                new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(player, this, new ResourceCost([[resource, amount === undefined ? 1 : amount]]), player, targets[0])).doNext();
             },
             players && [players]
         );

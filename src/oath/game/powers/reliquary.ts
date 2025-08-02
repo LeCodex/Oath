@@ -31,7 +31,7 @@ export class Greedy extends Reliquary(ActionModifier<ReliquarySlot, SearchAction
 
 export class Careless extends Reliquary(ResourceTransferModifier<ReliquarySlot>) {
     canUse(context: ResourceTransferContext): boolean {
-        return context.origin instanceof TradeAction;
+        return super.canUse(context) && context.origin instanceof TradeAction;
     }
 
     apply(context: ResourceTransferContext): void {
@@ -42,7 +42,7 @@ export class Careless extends Reliquary(ResourceTransferModifier<ReliquarySlot>)
 
 export class Decadent extends Reliquary(SupplyCostModifier<ReliquarySlot>) {
     canUse(context: SupplyCostContext): boolean {
-        return context.origin instanceof TravelAction;
+        return super.canUse(context) && context.origin instanceof TravelAction;
     }
 
     apply(context: SupplyCostContext): void {

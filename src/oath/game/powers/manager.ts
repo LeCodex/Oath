@@ -76,15 +76,15 @@ export class OathPowerManager {
     }
 
     payableCostsWithModifiers<T extends CostContext<Cost>>(costContext: T, maskProxyManager: MaskProxyManager) {
-        const modifiers: CostModifier<WithPowers, CostContext<Cost>>[] = [];
-        for (const [sourceProxy, modifier] of this.getPowers(CostModifier, maskProxyManager)) {
+        const modifiers: CostModifier<WithPowers, T>[] = [];
+        for (const [sourceProxy, modifier] of this.getPowers(CostModifier<WithPowers, T>, maskProxyManager)) {
             const instance = new modifier(this, sourceProxy.original, costContext.player, maskProxyManager);
             if (costContext instanceof instance.modifiedContext && instance.canUse(costContext))
                 modifiers.push(instance);
         }
         const mustUse = modifiers.filter(e => e.mustUse);
         const canUse = modifiers.filter(e => !e.mustUse);
-        return allCombinations(canUse).map(e => [...mustUse, ...e]).map(combination => {
+        return allCombinations(canUse).map(e => mustUse.concat(e)).map(combination => {
             const context: T = clone(costContext);
             context.cost = clone(costContext.cost);
             if (combination.length) {

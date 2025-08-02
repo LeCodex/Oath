@@ -94,7 +94,7 @@ export class CharmingValley extends AtSite(SupplyCostModifier<Site>) {
     mustUse = true;
 
     canUse(context: SupplyCostContext): boolean {
-        return context.origin instanceof TravelAction;
+        return super.canUse(context) && context.origin instanceof TravelAction;
     }
 
     apply(context: SupplyCostContext): void {

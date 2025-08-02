@@ -9,7 +9,7 @@ import type { WithPowers } from "../model/interfaces";
 import type { OathPlayer } from "../model/player";
 import { ExileBoard } from "../model/player";
 import { Favor } from "../model/resources";
-import { ResourceCost } from "../costs";
+import { ResourceCost, ResourceTransferContext } from "../costs";
 import { AttackerBattlePlan, DefenderBattlePlan, WhenPlayed, RestPower, ActivePower, ActionModifier, Accessed, EnemyActionModifier, BattlePlan, SeizeModifier, EnemyDefenderCampaignModifier } from ".";
 import { AttackDieSymbol } from "../dice";
 import { RelicWrapper } from "./utils";
@@ -157,7 +157,8 @@ export class PeaceEnvoyAttack extends AttackerBattlePlan<Denizen> {
         // TODO: This will mean no other modifiers get to do anything. Is this fine?
         if (this.action.campaignResultProxy.defender?.site === this.playerProxy.site) {
             new TransferResourcesEffect(
-                this.actionManager, this.player, new ResourceCost([[Favor, this.action.campaignResult.defPool]]), this.action.campaignResult.defender!
+                this.actionManager,
+                new ResourceTransferContext(this.player, this, new ResourceCost([[Favor, this.action.campaignResult.defPool]]), this.action.campaignResult.defender!)
             ).doNext(success => {
                 if (!success) return;
                 this.action.campaignResult.successful = true;
@@ -179,7 +180,8 @@ export class PeaceEnvoyDefense extends DefenderBattlePlan<Denizen> {
     applyWhenApplied(): boolean {
         if (this.action.campaignResultProxy.attacker.site === this.playerProxy.site) {
             new TransferResourcesEffect(
-                this.actionManager, this.player, new ResourceCost([[Favor, this.action.campaignResult.defPool]]), this.action.campaignResult.attacker
+                this.actionManager,
+                new ResourceTransferContext(this.player, this, new ResourceCost([[Favor, this.action.campaignResult.defPool]]), this.action.campaignResult.attacker)
             ).doNext(success => {
                 if (!success) return;
                 this.action.campaignResult.successful = false;
@@ -291,7 +293,7 @@ export class Curfew extends EnemyActionModifier<Denizen, TradeAction> {
     }
 
     applyBefore(): void {
-        new TransferResourcesEffect(this.actionManager, this.player, new ResourceCost([[Favor, 1]]), this.sourceProxy.ruler?.original).doNext(success => {
+        new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.player, this, new ResourceCost([[Favor, 1]]), this.sourceProxy.ruler?.original)).doNext(success => {
             if (!success) throw cannotPayError(this.selfCostContext.cost);
         });
     }
@@ -302,7 +304,7 @@ export class TollRoads extends EnemyActionModifier<Denizen, TravelAction> {
 
     applyBefore(): void {
         if (this.action.siteProxy.ruler === this.sourceProxy.ruler) {
-            new TransferResourcesEffect(this.actionManager, this.player, new ResourceCost([[Favor, 1]]), this.sourceProxy.ruler?.original).doNext(success => {
+            new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.player, this, new ResourceCost([[Favor, 1]]), this.sourceProxy.ruler?.original)).doNext(success => {
                 if (!success) throw cannotPayError(this.selfCostContext.cost);
             });
         }
@@ -317,7 +319,7 @@ export class ForcedLabor extends EnemyActionModifier<Denizen, SearchAction> {
     }
 
     applyBefore(): void {
-        new TransferResourcesEffect(this.actionManager, this.player, new ResourceCost([[Favor, 1]]), this.sourceProxy.ruler?.original).doNext(success => {
+        new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.player, this, new ResourceCost([[Favor, 1]]), this.sourceProxy.ruler?.original)).doNext(success => {
             if (!success) throw cannotPayError(this.selfCostContext.cost);
         });
     }
@@ -415,7 +417,7 @@ export class RoyalTax extends WhenPlayed<Denizen> {
     whenPlayed(): void {
         for (const playerProxy of this.gameProxy.players) {
             if (playerProxy.site.ruler === this.action.executorProxy.leader)
-                new TransferResourcesEffect(this.actionManager, this.action.executor, new ResourceCost([[Favor, 2]]), this.action.executor, playerProxy).doNext();
+                new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.action.executor,this, new ResourceCost([[Favor, 2]]), this.action.executor, playerProxy)).doNext();
         }
     }
 }
