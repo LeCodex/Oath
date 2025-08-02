@@ -551,12 +551,7 @@ export class CheckCapacityEffect extends PlayerEffect {
 
     resolve(): void {
         for (const origin of this.origins) {
-            const site = origin instanceof Site ? origin : undefined;
-            const player = origin instanceof OathPlayer ? origin : origin.ruler ?? this.executor;
-            const target = site?.denizens ?? player.advisers;
-
-            const { capacity, takesNoSpaceProxies } = this.capacityInformations.get(origin)!;
-            const takesSpaceInTargetProxies = target.filter(e => !takesNoSpaceProxies.has(e));
+            const { capacity, takesSpaceInTargetProxies } = this.capacityInformations.get(origin)!;
             const excess = Math.max(0, takesSpaceInTargetProxies.length - capacity);
             const discardable = takesSpaceInTargetProxies.filter(e => !(e instanceof Denizen && e.activelyLocked)).map(e => e.original);
 

@@ -6,6 +6,7 @@ import { Denizen } from "../model/cards";
 import { CardRestriction } from "../enums";
 import type { SupplyCostContext } from "../costs";
 import { ResourceCost } from "../costs";
+import { getCapacityInformation } from "./utils";
 
 
 export class PeoplesFavorSearch extends Owned(ActionModifier<PeoplesFavor, SearchPlayOrDiscardAction>) {
@@ -13,10 +14,14 @@ export class PeoplesFavorSearch extends Owned(ActionModifier<PeoplesFavor, Searc
     mustUse = true; // Not strictly true, but it involves a choice either way, so it's better to always include it
 
     applyAtStart(): void {
-        if (this.playerProxy.site.region && this.action.cardProxy instanceof Denizen && this.action.cardProxy.restriction !== CardRestriction.Adviser)
-            for (const siteProxy of this.playerProxy.site.region.sites)
-                if (!siteProxy.facedown)
+        if (this.playerProxy.site.region && this.action.cardProxy instanceof Denizen && this.action.cardProxy.restriction !== CardRestriction.Adviser) {
+            for (const siteProxy of this.playerProxy.site.region.sites) {
+                const capacityInformation = getCapacityInformation(this.powerManager, this.action.maskProxyManager, siteProxy, this.action.playerProxy);
+                if (!siteProxy.facedown && capacityInformation.capacity > capacityInformation.takesSpaceInTargetProxies.length) {
                     this.action.selects.choice.choices.set(siteProxy.name, siteProxy);
+                }
+            }
+        }
     }
 
     applyBefore(): void {

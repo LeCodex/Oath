@@ -1,11 +1,10 @@
-import { ActionModifier, CapacityModifier, WhenPlayed } from ".";
+import { ActionModifier, WhenPlayed } from ".";
 import type { CapacityInformation} from "../actions";
 import { ActPhaseAction, SearchPlayOrDiscardAction } from "../actions";
 import type { OathEffect } from "../actions/base";
 import { CheckCapacityEffect, PaySupplyEffect, PlayWorldCardEffect, TransferResourcesEffect } from "../actions/effects";
 import { InvalidActionResolution } from "../actions/utils";
 import type { Cost, CostContext } from "../costs";
-import type { Denizen, WorldCard } from "../model/cards";
 import { Site } from "../model/cards";
 import type { OathGame } from "../model/game";
 import { hasCostContexts } from "../model/interfaces";
@@ -16,6 +15,7 @@ import { ChooseModifiers, ChoosePayableCostContextAction, UsePowerAction } from 
 import { powersIndex } from "./classIndex";
 import { MultiCostContext } from "./context";
 import type { OathPowerManager } from "./manager";
+import { getCapacityInformation } from "./utils";
 
 
 export class AddUsePowerAction extends ActionModifier<OathGame, ActPhaseAction> {
@@ -87,45 +87,6 @@ function ModifyCostContextResolver<T extends OathEffect<any> & { context: CostCo
 export class ModifyResourceTransfer extends ModifyCostContextResolver(TransferResourcesEffect) { }
 export class ModifySupplyPayment extends ModifyCostContextResolver(PaySupplyEffect) { }
 
-function getCapacityInformation(
-    powerManager: OathPowerManager,
-    maskProxyManager: MaskProxyManager,
-    siteProxy: Site | undefined,
-    playerProxy: OathPlayer,
-    playingProxy?: WorldCard,
-    facedown: boolean = false
-): CapacityInformation {
-    const takesNoSpaceProxies = new Set<WorldCard>();
-    const targetProxy = siteProxy ? siteProxy.denizens : playerProxy.advisers;
-    let ignoresCapacity = false;
-    let capacity = siteProxy ? siteProxy.capacity : 3;
-
-    const capacityModifiers: CapacityModifier<WorldCard>[] = [];
-    for (const [sourceProxy, modifier] of powerManager.getPowers(CapacityModifier)) {
-        const instance = new modifier(sourceProxy.original, playerProxy.original, maskProxyManager);
-        if (instance.canUse(playerProxy, siteProxy)) capacityModifiers.push(instance);
-    }
-
-    if (playingProxy && !facedown) {
-        for (const name of playingProxy.powers) {
-            const modifier = powersIndex[name];
-            if (isExtended(modifier, CapacityModifier)) {
-                const instance = new modifier(powerManager, playingProxy.original as Denizen, playerProxy.original, maskProxyManager);
-                capacityModifiers.push(instance);  // Always assume the card influences the capacity
-            }
-        }
-    }
-
-    for (const capacityModifier of capacityModifiers) {
-        const [cap, noSpaceProxy] = capacityModifier.updateCapacityInformation(targetProxy);
-        capacity = Math.min(capacity, cap);
-        for (const cardProxy of noSpaceProxy) takesNoSpaceProxies.add(cardProxy);
-        if (playingProxy) ignoresCapacity ||= capacityModifier.ignoreCapacity(playingProxy);
-    }
-
-    return { capacity, takesNoSpaceProxies, ignoresCapacity };
-}
-
 export class FilterFullCardTargets extends ActionModifier<OathGame, SearchPlayOrDiscardAction> {
     modifiedAction = SearchPlayOrDiscardAction;
     mustUse = true;
@@ -148,7 +109,7 @@ export class FilterFullCardTargets extends ActionModifier<OathGame, SearchPlayOr
             if (
                 !capacityInformation.ignoresCapacity &&
                 !canReplace &&
-                capacityInformation.capacity <= targetProxy.filter(e => !capacityInformation.takesNoSpaceProxies.has(e)).length
+                capacityInformation.capacity <= capacityInformation.takesSpaceInTargetProxies.length
             )
                 return false;
 

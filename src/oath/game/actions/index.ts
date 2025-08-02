@@ -1,4 +1,5 @@
-import { OathAction, ParametersType } from "./base";
+import type { ParametersType } from "./base";
+import { OathAction } from "./base";
 import type { OathCard, Relic, WorldCard } from "../model/cards";
 import { Denizen, Edifice, Site } from "../model/cards";
 import type { SearchableDeck } from "../model/decks";
@@ -9,7 +10,8 @@ import { ALL_OATH_SUITS, ALL_PLAYER_COLORS, CardRestriction, OathPhase, OathSuit
 import { ChancellorBoard, ExileBoard, OathPlayer, VisionSlot } from "../model/player";
 import type { OathResource, OathResourceType, ResourcesAndWarbands} from "../model/resources";
 import { Favor, Secret } from "../model/resources";
-import { CostContext, ResourceCost, ResourceTransferContext, SupplyCost, SupplyCostContext } from "../costs";
+import type { CostContext} from "../costs";
+import { ResourceCost, ResourceTransferContext, SupplyCost, SupplyCostContext } from "../costs";
 import type { Banner, PeoplesFavor } from "../model/banks";
 import { FavorBank } from "../model/banks";
 import type { Constructor} from "../utils";
@@ -23,6 +25,7 @@ import { Citizenship } from "../parser/interfaces";
 import type { CampaignEndCallback } from "./utils";
 import { CampaignResult, cannotPayError, InvalidActionResolution } from "./utils";
 import type { OathActionManager } from "./manager";
+import type { NodeGroup } from "../model/utils";
 
 
 
@@ -387,7 +390,7 @@ export class SearchDiscardAction extends OathAction {
 }
 
 /** Number of available slots, Cards that don't count towards capacity, Is the card played ignoring capacity */
-export type CapacityInformation = { capacity: number, takesNoSpaceProxies: Set<WorldCard>, ignoresCapacity: boolean };
+export type CapacityInformation = { capacity: number, takesSpaceInTargetProxies: NodeGroup<WorldCard>, ignoresCapacity: boolean };
 export class SearchPlayOrDiscardAction extends OathAction {
     declare readonly selects: { choice: SelectNOf<Site | boolean | undefined>}
     readonly message: string;
@@ -438,9 +441,7 @@ export class SearchPlayOrDiscardAction extends OathAction {
         }
 
         this.cardProxy.facedown = this.facedown;  // Editing the copy to reflect the new state; TODO: Is this necessary?
-        const { capacity, takesNoSpaceProxies, ignoresCapacity } = this.capacityInformation;
-        const takesSpaceInTargetProxies = this.targetProxy.filter((e) => !takesNoSpaceProxies.has(e));
-
+        const { capacity, takesSpaceInTargetProxies, ignoresCapacity } = this.capacityInformation;
         const excess = Math.max(0, takesSpaceInTargetProxies.length - capacity + 1);  // +1 because we are playing a card there
         const discardable = takesSpaceInTargetProxies.filter(e => !(e instanceof Denizen && e.activelyLocked)).map(e => e.original);
 
