@@ -1374,7 +1374,11 @@ export class MakeBindingExchangeOfferAction extends OathAction {
         } else {
             this.effect.resourcesGiven.set(Favor, favors);
             this.effect.resourcesGiven.set(Secret, secrets);
-            new MakeDecisionAction(this.actionManager, this.other, "Complete the binding exchange?", () => this.effect.doNext()).doNext();
+            new MakeDecisionAction(this.actionManager, this.other, "Complete the binding exchange?", () =>
+                new MakeDecisionAction(this.actionManager, this.player, "Complete the binding exchange?", () =>
+                    this.effect.doNext()
+                ).doNext()
+            ).doNext();
         }
     }
 }
