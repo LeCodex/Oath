@@ -112,7 +112,8 @@ export abstract class PayDenizenAction extends MajorAction {
     
     readonly abstract cost: ResourceCost;
 
-    get costContexts(): CostContext<any>[] { return [...super.costContexts, new ResourceTransferContext(this.player, this, this.cost, this.cardProxy.original)]; }
+    get costContexts() { return [...super.costContexts, this.resourceCost]; }
+    get resourceCost() { return new ResourceTransferContext(this.player, this, this.cost, this.cardProxy.original); }
 
     validateCardProxies(cardProxies: Denizen[]) {
         // validCardProxies = validCardProxies.filter(e => new ResourceTransferContext(this.player, this, this.cost, e.original).payableCostsWithModifiers(this.maskProxyManager).length);
@@ -132,7 +133,7 @@ export abstract class PayDenizenAction extends MajorAction {
     }
 
     majorAction(): void {
-        new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.player, this, this.cost, this.cardProxy.original)).doNext(success => {
+        new TransferResourcesEffect(this.actionManager, this.resourceCost).doNext(success => {
             if (!success) throw cannotPayError(this.cost);
             this.getReward();
         });

@@ -140,7 +140,7 @@ export class TransferResourcesEffect extends PlayerEffect<boolean> {
                 new PutResourcesOnTargetEffect(this.actionManager, this.player, resource, amount, this.context.target);
             } else {
                 const resources = this.context.source.byClass(resource).filter(e => e.usable).max(amount);
-                if (resources.length < amount) {
+                if (!this.context.partial && resources.length < amount) {
                     this.result = false;
                     return;
                 }
@@ -159,7 +159,7 @@ export class PaySupplyEffect extends PlayerEffect<boolean> {
     }
 
     resolve(): void {
-        if (!this.context.isValid()) {
+        if (!this.context.valid) {
             this.result = false;
             return;
         }
@@ -1028,10 +1028,10 @@ export class BindingExchangeEffect extends PlayerEffect {
     }
 
     resolve(): void {
-        for (const [resource, amount]of this.resourcesGiven)
+        for (const [resource, amount] of this.resourcesGiven)
             new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.executor, this, new ResourceCost([[resource, amount]]), this.other)).doNext();
 
-        for (const [resource, amount]of this.resourcesTaken)
+        for (const [resource, amount] of this.resourcesTaken)
             new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.other, this, new ResourceCost([[resource, amount]]), this.executor)).doNext();
     }
 }

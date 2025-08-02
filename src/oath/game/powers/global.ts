@@ -4,14 +4,14 @@ import { ActPhaseAction, SearchPlayOrDiscardAction } from "../actions";
 import type { OathEffect } from "../actions/base";
 import { CheckCapacityEffect, PaySupplyEffect, PlayWorldCardEffect, TransferResourcesEffect } from "../actions/effects";
 import { InvalidActionResolution } from "../actions/utils";
-import type { Cost, CostContext } from "../costs";
+import { type Cost, type CostContext } from "../costs";
 import { Site } from "../model/cards";
 import type { OathGame } from "../model/game";
 import { hasCostContexts } from "../model/interfaces";
 import type { OathPlayer } from "../model/player";
 import type { AbstractConstructor, MaskProxyManager } from "../utils";
 import { allChoices, allCombinations, isExtended } from "../utils";
-import { ChooseModifiers, ChoosePayableCostContextAction, UsePowerAction } from "./actions";
+import { ChooseModifiers, ChooseModifiedCostContextAction, UsePowerAction } from "./actions";
 import { powersIndex } from "./classIndex";
 import { MultiCostContext } from "./context";
 import type { OathPowerManager } from "./manager";
@@ -56,7 +56,7 @@ export class FilterUnpayableActions extends ActionModifier<OathGame, ActPhaseAct
                         }
                         
                         if ([...costContextPerType].every(([cls, contexts]) =>
-                            new MultiCostContext(this.powerManager, this.player, contexts, cls.dummyFactory(this.player)).payableCostsWithModifiers(maskProxyManager).length
+                            new MultiCostContext(this.powerManager, this.player, contexts, cls.dummyFactory(this.player)).costsWithModifiers(maskProxyManager).length
                         )) {
                             return true;
                         }
@@ -77,7 +77,7 @@ function ModifyCostContextResolver<T extends OathEffect<any> & { context: CostCo
         mustUse = true;
 
         applyBefore(): void {
-            new ChoosePayableCostContextAction(this.powerManager, this.player, this.action.context, (costContext) => {
+            new ChooseModifiedCostContextAction(this.powerManager, this.player, this.action.context, (costContext) => {
                 this.action.context = costContext;
             }).doNext();
         }

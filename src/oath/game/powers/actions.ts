@@ -69,7 +69,7 @@ export class ChooseModifiers<T extends OathAction> extends ExpandedAction {
                 ResourceTransferContext.dummyFactory(this.player)
             );
             
-            if (totalContext.payableCostsWithModifiers(maskProxyManager).length) {
+            if (totalContext.costsWithModifiers(maskProxyManager).length) {
                 choices.set(combination.length ? combination.map(e => e.name).join(", ") : "None", completeCombination);
             }
         }
@@ -189,7 +189,7 @@ export class UsePowerAction extends ExpandedAction {
     }
 }
 
-export class ChoosePayableCostContextAction<T extends CostContext<any>> extends ExpandedAction {
+export class ChooseModifiedCostContextAction<T extends CostContext<any>> extends ExpandedAction {
     declare readonly selects: { costContext: SelectNOf<T | undefined>; };
     readonly message = "Choose a cost to pay";
 
@@ -204,7 +204,7 @@ export class ChoosePayableCostContextAction<T extends CostContext<any>> extends 
 
     start() {
         const choices = new Map<string, T>();
-        const payableCostContextsInfo = this.powerManager.payableCostsWithModifiers(this.costContext, this.maskProxyManager);
+        const payableCostContextsInfo = this.powerManager.costsWithModifiers(this.costContext, this.maskProxyManager);
         for (const costContextInfo of payableCostContextsInfo)
             choices.set(costContextInfo.context.cost.toString() + ` (${costContextInfo.modifiers.map(e => e.name).join(", ") || "Base"})`, costContextInfo.context as T);
         this.selects.costContext = new SelectNOf("Cost", choices, { min: 1 });
@@ -233,4 +233,3 @@ export class PayPowerCostEffect extends PlayerEffect<boolean> {
         new TransferResourcesEffect(this.actionManager, costContext).doNext(result => this.result = result);
     }
 }
-

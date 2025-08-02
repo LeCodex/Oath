@@ -100,7 +100,7 @@ export abstract class CostContext<T extends Cost, S = any> {
         public source: S
     ) { }
     
-    abstract isValid(): boolean;
+    abstract get valid(): boolean;
     
     static dummyFactory(player: OathPlayer): Factory<CostContext<Cost, any>, [any, Cost?]> {
         throw TypeError("Not implemented");
@@ -115,15 +115,17 @@ export class ResourceTransferContext extends CostContext<ResourceCost, OathGameO
         origin: any,
         cost: ResourceCost,
         public target: OathGameObject | undefined,
-        source?: OathGameObject
+        source?: OathGameObject,
+        public partial = (source ?? player) !== player
     ) {
         super(player, origin, cost, source ?? player);
     }
 
-    isValid(): boolean {
-        for (const [resource, amount] of this.cost.totalResources)
-            if (this.source.byClass(resource).filter(e => e.usable).length < amount)
-                return false;
+    get valid(): boolean {
+        if (!this.partial)
+            for (const [resource, amount] of this.cost.totalResources)
+                if (this.source.byClass(resource).filter(e => e.usable).length < amount)
+                    return false;
 
         return true;
     }
@@ -143,8 +145,8 @@ export class SupplyCostContext extends CostContext<SupplyCost, OathPlayer> {
         super(player, origin, cost, source ?? player);
     }
 
-    isValid(): boolean {
-        return this.player.supply >= this.cost.amount;
+    get valid(): boolean {
+        return this.source.supply >= this.cost.amount;
     }
 
     static dummyFactory(player: OathPlayer): Factory<SupplyCostContext, [OathPlayer, SupplyCost?]> {
