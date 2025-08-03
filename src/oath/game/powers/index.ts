@@ -201,16 +201,14 @@ export abstract class BattlePlan<T extends OwnableCard, U extends CampaignAttack
 
 export abstract class AttackerBattlePlan<T extends OwnableCard> extends BattlePlan<T, CampaignAttackAction> {
     modifiedAction = CampaignAttackAction;
-    // Can't use campaignResultProxy since that's from the CampaignEndAction's MaskProxyManager
-    // This is voluntary, so the modifications brought by modifiers from each action in the chain can have an impact
     // The ?. is because the action is still instantiated with other actions when checking if it can be used
     // TODO: Find a fix to have a static modifiedAction
-    ownerProxy = this.action.maskProxyManager.get(this.action.campaignResult?.attacker);
+    ownerProxy = this.action.campaignResultProxy?.attacker;
 }
 
 export abstract class DefenderBattlePlan<T extends OwnableCard> extends BattlePlan<T, CampaignDefenseAction> {
     modifiedAction = CampaignDefenseAction;
-    ownerProxy = this.action.maskProxyManager.get(this.action.campaignResult?.defender);
+    ownerProxy = this.action.campaignResultProxy?.defender;
 }
 
 export abstract class EnemyAttackerCampaignModifier<T extends OwnableCard> extends ActionModifier<T, CampaignAttackAction> {

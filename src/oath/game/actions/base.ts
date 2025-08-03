@@ -20,17 +20,16 @@ export abstract class OathAction {
     abstract readonly message: string;
 
     maskProxyManager = new MaskProxyManager();
-    gameProxy: OathGame; // Effects and powers are allowed to modify the proxies to "lie" to the action
-    playerProxy: OathPlayer; // This is a simple reference for simplicity
 
     constructor(
         public actionManager: OathActionManager,
         public player: OathPlayer
     ) {
         this.game = actionManager.game;
-        this.gameProxy = this.maskProxyManager.get(actionManager.game);
-        this.playerProxy = this.maskProxyManager.get(player);
     }
+
+    get gameProxy() { return this.maskProxyManager.get(this.game); } // Effects and powers are allowed to modify the proxies to "lie" to the action
+    get playerProxy() { return this.maskProxyManager.get(this.player); } // This is a simple reference for simplicity
 
     doNext(): void {
         this.actionManager.addFutureAction(this);

@@ -528,18 +528,21 @@ export class CampaignAttackAction extends OathAction {
     readonly next: CampaignDefenseAction;
     readonly message = "Choose targets and attack pool";
 
-    defender: OathPlayer | undefined;
-    defenderProxy: OathPlayer | undefined;
-
     constructor(actionManager: OathActionManager, player: OathPlayer, defender: OathPlayer | undefined) {
         super(actionManager, player);
         this.next = new CampaignDefenseAction(actionManager, defender ?? player, player);
         this.campaignResult.attacker = player;
         this.campaignResult.defender = defender;
-        this.defender = defender;
-        this.defenderProxy = this.maskProxyManager.get(defender);
+        // Generally unadvised, but since those actions work so closely together, it's better to merge
+        // their MaskProxyManager so modifiers can modify the proxy across the entire chain
+        this.maskProxyManager = this.next.maskProxyManager;
         this.campaignResult.checkForImperialInfighting(this.maskProxyManager);
     }
+
+    get campaignResult() { return this.next.campaignResult; }
+    get campaignResultProxy() { return this.next.campaignResultProxy; }
+    get defender() { return this.campaignResult.defender; }
+    get defenderProxy() { return this.campaignResultProxy.defender; }
 
     start() {
         const choices = new Map<string, CampaignActionTarget>();
@@ -564,9 +567,6 @@ export class CampaignAttackAction extends OathAction {
         
         return super.start();
     }
-
-    get campaignResult() { return this.next.campaignResult; }
-    get campaignResultProxy() { return this.next.campaignResultProxy; }
 
     applyParameters(values: Partial<ParametersType<this>>): void {
         super.applyParameters(values);
@@ -642,7 +642,9 @@ export class CampaignDefenseAction extends OathAction {
     constructor(actionManager: OathActionManager, player: OathPlayer, attacker: OathPlayer) {
         super(actionManager, player);
         this.next = new CampaignEndAction(actionManager, attacker);
-        this.campaignResult.checkForImperialInfighting(this.maskProxyManager);
+        this.maskProxyManager = this.next.maskProxyManager;
+        // Not needed to do it anymore since the MaskProxyManagers are merged
+        // this.campaignResult.checkForImperialInfighting(this.maskProxyManager);
     }
 
     get campaignResult() { return this.next.campaignResult; }

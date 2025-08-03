@@ -150,10 +150,11 @@ export class NarrowPassCampaign extends ActionModifier<Site, CampaignAttackActio
     mustUse = true;
 
     applyBefore(): void {
-        const targetProxies = [...this.action.campaignResultProxy.targets]
+        const targetProxies = [...this.action.campaignResultProxy.targets];
         if (
             this.playerProxy.site.region !== this.sourceProxy.region &&
-            !targetProxies.some((e) => hasPowers(e) && e.powers.has("NarrowPassCampaign")) && 
+            // The source will have had the NarrowPassCampaign power removed from it, so we need to check it explicitely
+            !targetProxies.some((e) => e === this.sourceProxy || hasPowers(e) && e.powers.has("NarrowPassCampaign")) &&
             targetProxies.some((e) => e instanceof Site && e.region?.key === this.sourceProxy.region?.key)
         )
             throw new InvalidActionResolution("Must target the Narrow Pass to target beyond it");

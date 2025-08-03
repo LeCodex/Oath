@@ -184,11 +184,8 @@ export class MaskProxyManager {
 
 export class MaskProxyHandler<T extends object> implements ProxyHandler<T> {
     mask: Partial<Record<keyof T, any>> = {};
-    maskProxyManager: MaskProxyManager;
 
-    constructor(maskProxyManager: MaskProxyManager) {
-        this.maskProxyManager = maskProxyManager;
-    }
+    constructor(public maskProxyManager: MaskProxyManager) { }
 
     get(target: T, key: string | symbol, receiver?: any) {
         const tKey = key as keyof T;
