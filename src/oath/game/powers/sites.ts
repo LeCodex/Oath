@@ -77,11 +77,11 @@ export class CoastalSite extends AtSite(ActionModifier<Site, TravelAction>) {
     }
 
     applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, TravelAction>>): Iterable<ActionModifier<WithPowers, TravelAction>> {
-        return [...modifiers].filter(e => e instanceof NarrowPassTravel);
+        return [...modifiers].filter((e) => e instanceof NarrowPassTravel);
     }
 
     applyAtStart(): void {
-        this.action.selects.siteProxy.filterChoices(e => !e.facedown && e.powers.has("CoastalSite"));
+        this.action.selects.siteProxy.filterChoices((e) => !e.facedown && e.powers.has("CoastalSite"));
     }
 }
 export class CoastalSiteCost extends ActionCostModifier(CoastalSite, SupplyCostContext) {
@@ -106,11 +106,11 @@ export class BuriedGiant extends AtSite(ActionModifier<Site, TravelAction>) {
     modifiedAction = TravelAction;
 
     applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, TravelAction>>): Iterable<ActionModifier<WithPowers, TravelAction>> {
-        return [...modifiers].filter(e => e instanceof NarrowPassTravel);
+        return [...modifiers].filter((e) => e instanceof NarrowPassTravel);
     }
 
     applyBefore(): void {
-        new FlipSecretsEffect(this.actionManager, this.player, 1, true).doNext(amount => {
+        new FlipSecretsEffect(this.actionManager, this.player, 1, true).doNext((amount) => {
             if (amount < 1) throw new InvalidActionResolution("Cannot flip a secret for Buried Giant");
         });
     }
@@ -122,7 +122,7 @@ export class ShroudedWood extends AtSite(ActionModifier<Site, TravelAction>) {
     mustUse = true;
 
     applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, TravelAction>>): Iterable<ActionModifier<WithPowers, TravelAction>> {
-        return [...modifiers].filter(e => e instanceof NarrowPassTravel || e instanceof TheHiddenPlaceTravel);
+        return [...modifiers].filter((e) => e instanceof NarrowPassTravel || e instanceof TheHiddenPlaceTravel);
     }
 
     applyWhenApplied(): boolean {
@@ -142,7 +142,7 @@ export class NarrowPassTravel extends ActionModifier<Site, TravelAction> {
 
     applyAtStart(): void {
         if (this.playerProxy.site.region !== this.sourceProxy.region)
-            this.action.selects.siteProxy.filterChoices(e => e.original.powers.has("NarrowPassTravel") || e.region !== this.sourceProxy.region);
+            this.action.selects.siteProxy.filterChoices((e) => e.original.powers.has("NarrowPassTravel") || e.region !== this.sourceProxy.region);
     }
 }
 export class NarrowPassCampaign extends ActionModifier<Site, CampaignAttackAction> {
@@ -167,7 +167,7 @@ export class TheHiddenPlaceTravel extends ActionModifier<Site, TravelAction> {
 
     applyBefore(): void {
         if (this.action.siteProxy !== this.sourceProxy) return;
-        new FlipSecretsEffect(this.actionManager, this.action.player, 1, true).doNext(amount => {
+        new FlipSecretsEffect(this.actionManager, this.action.player, 1, true).doNext((amount) => {
             if (amount < 1) throw new InvalidActionResolution("Cannot flip a secret for The Hidden Place");
         });
     }
@@ -179,7 +179,7 @@ export class TheHiddenPlaceCampaign extends ActionModifier<Site, CampaignAttackA
     applyBefore(): void {
         for (const target of this.action.campaignResult.targets) {
             if (target === this.source || isAtSite(target) && target.site === this.source) {
-                new FlipSecretsEffect(this.actionManager, this.action.player, 1, true).doNext(amount => {
+                new FlipSecretsEffect(this.actionManager, this.action.player, 1, true).doNext((amount) => {
                     if (amount < 1) throw new InvalidActionResolution("Cannot flip a secret for The Hidden Place");
                 });
                 break;

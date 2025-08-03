@@ -32,11 +32,11 @@ export class GrandScepterGrantCitizenship extends ActivePower<GrandScepter> {
     get name() { return super.name + "_GrantCitizenship"; }
 
     canUse(): boolean {
-        return super.canUse() && !!this.game.players.filter(e => e.board instanceof ExileBoard && !e.isImperial).length;
+        return super.canUse() && !!this.game.players.filter((e) => e.board instanceof ExileBoard && !e.isImperial).length;
     }
 
     usePower(): void {
-        const exiles = this.game.players.filter(e => e.board instanceof ExileBoard && !e.isImperial);
+        const exiles = this.game.players.filter((e) => e.board instanceof ExileBoard && !e.isImperial);
         new StartBindingExchangeAction(this.actionManager, this.action.player, CitizenshipOfferAction, exiles).doNext();
     }
 }
@@ -44,11 +44,11 @@ export class GrandScepterExileCitizen extends ActivePower<GrandScepter> {
     get name() { return super.name + "_ExileACitizen"; }
 
     canUse(): boolean {
-        return super.canUse() && !!this.game.players.filter(e => e.board instanceof ExileBoard && e.isImperial).length;
+        return super.canUse() && !!this.game.players.filter((e) => e.board instanceof ExileBoard && e.isImperial).length;
     }
 
     usePower(): void {
-        const citizens = this.game.players.filter(e => e.board instanceof ExileBoard && e.isImperial);
+        const citizens = this.game.players.filter((e) => e.board instanceof ExileBoard && e.isImperial);
         new ChoosePlayersAction(
             this.actionManager, this.action.player, "Exile a Citizen",
             (targets: OathPlayer[]) => {
@@ -62,7 +62,7 @@ export class GrandScepterExileCitizen extends ActivePower<GrandScepter> {
                 if (target === this.game.oathkeeper) amount++;
                 if (target === peoplesFavor?.owner) amount++;
                 
-                new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.action.player, this, new ResourceCost([[Favor, amount]]), target)).doNext(success => {
+                new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.action.player, this, new ResourceCost([[Favor, amount]]), target)).doNext((success) => {
                     if (!success) throw cannotPayError(this.selfCostContext.cost);
                     new BecomeExileEffect(this.actionManager, target).doNext();
                 });
@@ -187,7 +187,7 @@ export class CircletOfCommand extends EnemyActionModifier<Relic, TakeOwnableObje
 }
 export class CircletOfCommandCampaign extends EnemyAttackerCampaignModifier<Relic> {
     applyAtStart(): void {
-        this.action.selects.targetProxies.filterChoices(e => e === this.sourceProxy || !isOwnable(e) || e.owner !== this.sourceProxy.ruler);
+        this.action.selects.targetProxies.filterChoices((e) => e === this.sourceProxy || !isOwnable(e) || e.owner !== this.sourceProxy.ruler);
     }
 
     applyBefore(): void {
@@ -249,7 +249,7 @@ export class DowsingSticks extends ActivePower<Relic> {
     cost = new ResourceCost([[Secret, 1]], [[Favor, 2]]);
     
     usePower(): void {
-        new DrawFromDeckEffect(this.actionManager, this.action.player, this.game.relicDeck, 1).doNext(cards => {
+        new DrawFromDeckEffect(this.actionManager, this.action.player, this.game.relicDeck, 1).doNext((cards) => {
             if (!cards[0]) return;
             const relic = cards[0];
             new MakeDecisionAction(
@@ -272,8 +272,8 @@ export class HornedMask extends ActivePower<Relic> {
     cost = new ResourceCost([[Secret, 1]]);
 
     usePower(): void {
-        const advisers = [...this.action.playerProxy.advisers].filter(e => e instanceof Denizen).map(e => e.original);
-        const denizens = [...this.action.playerProxy.site.denizens].map(e => e.original);
+        const advisers = [...this.action.playerProxy.advisers].filter((e) => e instanceof Denizen).map((e) => e.original);
+        const denizens = [...this.action.playerProxy.site.denizens].map((e) => e.original);
 
         new ChooseCardsAction(
             this.actionManager, this.action.player, "Swap an adviser with a denizen at your site", [advisers, denizens],
@@ -352,7 +352,7 @@ export class Whistle extends ActivePower<Relic> {
                 travelAction.doNext();
                 new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.player, this, new ResourceCost([[Secret, 1]]), targets[0], this.source)).doNext();
             },
-            [this.gameProxy.players.filter(e => e.site !== this.action.playerProxy.site).map(e => e.original)]
+            [this.gameProxy.players.filter((e) => e.site !== this.action.playerProxy.site).map((e) => e.original)]
         ).doNext();
     }
 }
@@ -407,7 +407,7 @@ export class GrandMask extends ActionModifier<Relic, OathAction> {
         for (const siteProxy of this.gameProxy.map.sites()) {
             if (!siteProxy.ruler?.isImperial) continue;
             for (const denizenProxy of siteProxy.denizens) {
-                if (![...denizenProxy.powers].some(e => isExtended(powersIndex[e], BattlePlan))) continue;
+                if (![...denizenProxy.powers].some((e) => isExtended(powersIndex[e], BattlePlan))) continue;
                 denizenProxy.ruler = rulerProxy.original;
             }
         }

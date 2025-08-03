@@ -8,7 +8,7 @@ import type { OathPlayer } from "./player";
 export const oathData: Record<OathType, [(game: OathGame) => void, (player: OathPlayer) => number, (player: OathPlayer) => number]> = {
     [OathType.Supremacy]: [
         () => { },
-        (player) => [...player.game.map.sites()].filter(e => e.ruler === player).length,
+        (player) => [...player.game.map.sites()].filter((e) => e.ruler === player).length,
         (player) => player.relics.length + player.banners.length
     ],
     [OathType.Protection]: [

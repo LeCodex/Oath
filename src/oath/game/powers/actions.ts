@@ -65,12 +65,12 @@ export class ChooseModifiers<T extends OathAction> extends ExpandedAction {
         for (const combination of allCombinations(optionalModifiers)) {
             const completeCombination = [...persistentModifiers, ...combination];
             const totalContext = new MultiCostContext(
-                this.powerManager, this.player, completeCombination.map(e => e.selfCostContext),
+                this.powerManager, this.player, completeCombination.map((e) => e.selfCostContext),
                 ResourceTransferContext.dummyFactory(this.player)
             );
             
             if (totalContext.costsWithModifiers(maskProxyManager).length) {
-                choices.set(combination.length ? combination.map(e => e.name).join(", ") : "None", completeCombination);
+                choices.set(combination.length ? combination.map((e) => e.name).join(", ") : "None", completeCombination);
             }
         }
         this.selects.modifiers = new SelectNOf("Modifiers", choices, { defaults, min: 1 });
@@ -127,7 +127,7 @@ export class ModifiableAction<T extends OathAction> extends OathAction {
     serialize(): Record<string, any> | undefined {
         return {
             ...this.action.serialize(),
-            modifiers: this.modifiers.map(e => e.serialize())
+            modifiers: this.modifiers.map((e) => e.serialize())
         };
     }
 
@@ -144,7 +144,7 @@ export class ModifiableAction<T extends OathAction> extends OathAction {
         let shouldContinue = true;
         for (const modifier of modifiersSet) {
             if (!noPay) {
-                modifier.payCost(success => {
+                modifier.payCost((success) => {
                     if (!success) throw cannotPayError(modifier.cost);
                 });
             }
@@ -182,7 +182,7 @@ export class UsePowerAction extends ExpandedAction {
     }
 
     execute(): void {
-        this.power.payCost(success => {
+        this.power.payCost((success) => {
             if (!success) throw cannotPayError(this.power.cost);
             this.power.usePower();
         });
@@ -206,7 +206,7 @@ export class ChooseModifiedCostContextAction<T extends CostContext<any>> extends
         const choices = new Map<string, T>();
         const payableCostContextsInfo = this.powerManager.costsWithModifiers(this.costContext, this.maskProxyManager);
         for (const costContextInfo of payableCostContextsInfo)
-            choices.set(costContextInfo.context.cost.toString() + ` (${costContextInfo.modifiers.map(e => e.name).join(", ") || "Base"})`, costContextInfo.context as T);
+            choices.set(costContextInfo.context.cost.toString() + ` (${costContextInfo.modifiers.map((e) => e.name).join(", ") || "Base"})`, costContextInfo.context as T);
         this.selects.costContext = new SelectNOf("Cost", choices, { min: 1 });
         return super.start();
     }
@@ -230,6 +230,6 @@ export class PayPowerCostEffect extends PlayerEffect<boolean> {
     resolve(): void {
         const target = this.power.source instanceof ResourcesAndWarbands ? this.power.source : undefined;
         const costContext = new ResourceTransferContext(this.player, this.power.source, this.power.cost, target);
-        new TransferResourcesEffect(this.actionManager, costContext).doNext(result => this.result = result);
+        new TransferResourcesEffect(this.actionManager, costContext).doNext((result) => this.result = result);
     }
 }

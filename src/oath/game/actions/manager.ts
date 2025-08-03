@@ -21,7 +21,7 @@ export class HistoryNode<T extends OathActionManager> {
     ) { }
     
     stringify() {
-        return this.events.map(e => JSON.stringify(e.serialize())).join("\n");
+        return this.events.map((e) => JSON.stringify(e.serialize())).join("\n");
     }
 
     static loadChunk(manager: OathActionManager, data: string, save: boolean = true) {
@@ -133,7 +133,7 @@ export class OathActionManager extends EventPublisher<{
 
         return {
             game: this.game.serialize(true) as SerializedNode<this["game"]>,
-            stack: this.actionsStack.map(e => cloneDeepNext(e))
+            stack: this.actionsStack.map((e) => cloneDeepNext(e))
         };
     }
     get activePlayer() { return this.actionsStack[this.actionsStack.length - 1]?.player ?? this.game.currentPlayer; }
@@ -239,10 +239,10 @@ export class OathActionManager extends EventPublisher<{
                 player.putResources(Favor, player === this.game.chancellor ? 2 : 1);
                 player.putResources(Secret, 1);
                 player.leader.bag.moveChildrenTo(player, 3);
-                new DrawFromDeckEffect(this, player, this.game.worldDeck, 3, true).doNext(cards => {
+                new DrawFromDeckEffect(this, player, this.game.worldDeck, 3, true).doNext((cards) => {
                     if (player !== this.game.chancellor)
                         new ChooseSitesAction(
-                            this, player, "Put your pawn at a faceup site (Hand: " + cards.map(e => e.name).join(", ") + ")",  // TODO: Find a better solution for this
+                            this, player, "Put your pawn at a faceup site (Hand: " + cards.map((e) => e.name).join(", ") + ")",  // TODO: Find a better solution for this
                             (sites: Site[]) => { if (sites[0]) new PutPawnAtSiteEffect(this, player, sites[0]).doNext(); }
                         ).doNext();
                     else
@@ -255,7 +255,7 @@ export class OathActionManager extends EventPublisher<{
             const topCradleSite = this.game.map.children.byKey(RegionKey.Cradle)[0]!.byClass(Site)[0]!;
             this.game.chancellor.bag.moveChildrenTo(topCradleSite, 3);
             for (const site of this.game.map.sites())
-                if (site !== topCradleSite && site.byClass(Denizen).filter(e => e.suit !== OathSuit.None).length)
+                if (site !== topCradleSite && site.byClass(Denizen).filter((e) => e.suit !== OathSuit.None).length)
                     this.game.chancellor.bag.moveChildrenTo(site, 1);
 
             this.game.chancellor.addChild(this.game.grandScepter).turnFaceup();
@@ -304,7 +304,7 @@ export class OathActionManager extends EventPublisher<{
         new ChoosePlayersAction(
             this, this.game.chancellor, "Choose a Successor",
             (targets: OathPlayer[]) => { if (targets[0]) new WinGameEffect(this, targets[0]).doNext(); },
-            [[...candidates].filter(e => e.board instanceof ExileBoard && e.board.isCitizen)]
+            [[...candidates].filter((e) => e.board instanceof ExileBoard && e.board.isCitizen)]
         ).doNext();
     }
 
@@ -314,7 +314,7 @@ export class OathActionManager extends EventPublisher<{
         const action = this.actionsStack[this.actionsStack.length - 1];
         return {
             game: this.game.serialize(),
-            appliedEffects: this.currentEffectsStack.map(e => e.serialize()).filter(e => e !== undefined),
+            appliedEffects: this.currentEffectsStack.map((e) => e.serialize()).filter((e) => e !== undefined),
             activeAction: action?.serialize(),
             rollbackConsent: this.rollbackConsent,
             loaded: this.loaded
@@ -380,7 +380,7 @@ export class OathActionManager extends EventPublisher<{
         if (!lastNode || lastNode.events.length === 0) throw new InvalidActionResolution("Cannot roll back");
         const lastEvent = lastNode.events[lastNode.events.length - 1]!;
         if (lastEvent.player !== this.activePlayer.id || lastEvent.oneWay) {
-            this.rollbackConsent = Object.fromEntries(this.game.players.map(e => [e.id, e.id === playerId]));
+            this.rollbackConsent = Object.fromEntries(this.game.players.map((e) => [e.id, e.id === playerId]));
             return this.defer();
         }
 
@@ -403,7 +403,7 @@ export class OathActionManager extends EventPublisher<{
     }
 
     public stringify(archive: boolean) {
-        return this.history.map(e => e.stringify()).join("\n\n") + (archive ? "" : "\n\n" + JSON.stringify(this.lastStartState));
+        return this.history.map((e) => e.stringify()).join("\n\n") + (archive ? "" : "\n\n" + JSON.stringify(this.lastStartState));
     }
 
     public parse(chunks: string[]) {

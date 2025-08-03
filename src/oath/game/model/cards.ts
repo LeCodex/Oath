@@ -54,7 +54,7 @@ export abstract class OathCard extends ResourcesAndWarbands<string> implements H
         const obj = {
             ...super.liteSerialize(),
             facedown: this.facedown,
-            seenBy: [...this.seenBy].map(e => e.key) as number[] | undefined
+            seenBy: [...this.seenBy].map((e) => e.key) as number[] | undefined
         };
         if (obj.seenBy?.length === 0) delete obj.seenBy;
         return obj;
@@ -63,7 +63,7 @@ export abstract class OathCard extends ResourcesAndWarbands<string> implements H
     parse(obj: ReturnType<this["liteSerialize"]>, allowCreation?: boolean): void {
         super.parse(obj, allowCreation);
         this.facedown = obj.facedown;
-        this.seenBy = new Set(obj.seenBy ? this.game.players.filter(e => obj.seenBy?.includes(e.key)) : []);
+        this.seenBy = new Set(obj.seenBy ? this.game.players.filter((e) => obj.seenBy?.includes(e.key)) : []);
     }
 }
 

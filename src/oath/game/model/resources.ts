@@ -108,7 +108,7 @@ export abstract class ResourcesAndWarbands<T = any> extends OathGameObject<T> {
     }
 
     putWarbands(color: PlayerColor, amount: number): number {
-        this.game.players.find(e => e.board.id === color)?.bag.moveChildrenTo(this, amount);
+        this.game.players.find((e) => e.board.id === color)?.bag.moveChildrenTo(this, amount);
         return this.getWarbandsAmount(color);
     }
 

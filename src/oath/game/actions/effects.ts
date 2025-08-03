@@ -139,7 +139,7 @@ export class TransferResourcesEffect extends PlayerEffect<boolean> {
             } else if (resource === Secret && cantGiveSecrets) {
                 new PutResourcesOnTargetEffect(this.actionManager, this.player, resource, amount, this.context.target);
             } else {
-                const resources = this.context.source.byClass(resource).filter(e => e.usable).max(amount);
+                const resources = this.context.source.byClass(resource).filter((e) => e.usable).max(amount);
                 if (!this.context.partial && resources.length < amount) {
                     this.result = false;
                     return;
@@ -553,7 +553,7 @@ export class CheckCapacityEffect extends PlayerEffect {
         for (const origin of this.origins) {
             const { capacity, takesSpaceInTargetProxies } = this.capacityInformations.get(origin)!;
             const excess = Math.max(0, takesSpaceInTargetProxies.length - capacity);
-            const discardable = takesSpaceInTargetProxies.filter(e => !(e instanceof Denizen && e.activelyLocked)).map(e => e.original);
+            const discardable = takesSpaceInTargetProxies.filter((e) => !(e instanceof Denizen && e.activelyLocked)).map((e) => e.original);
 
             if (excess > discardable.length)
                 throw new InvalidActionResolution(`Cannot satisfy the capacity of ${origin.name}'s cards`);
@@ -703,7 +703,7 @@ export class RecoverTargetEffect extends PlayerEffect {
         if (this.target instanceof Relic) {
             if (!this.target.site) return;
             const cost = this.target.site.recoverCost;
-            new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.player, this, cost, this.game.favorBank(this.target.site.recoverSuit))).doNext(success => {
+            new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.player, this, cost, this.game.favorBank(this.target.site.recoverSuit))).doNext((success) => {
                 if (!success) throw cannotPayError(cost);
             });
         } else if (this.target instanceof Banner) {
@@ -874,7 +874,7 @@ export class NextTurnEffect extends OathEffect {
         }
 
         if (this.game.round > 5 && this.game.oathkeeper.isImperial) {
-            new RollDiceEffect(this.actionManager, this.game.chancellor, new D6(), 1).doNext(result => {
+            new RollDiceEffect(this.actionManager, this.game.chancellor, new D6(), 1).doNext((result) => {
                 const threshold = [6, 5, 3][this.game.round - 6] ?? 7;
                 if (result.value >= threshold)
                     return this.actionManager.empireWins();
@@ -1275,7 +1275,7 @@ export class FinishChronicleEffect extends PlayerEffect {
         }
 
         // Collect and deal relics (technically not at this point of the Chronicle, but this has no impact)
-        const futureReliquary = [...this.game.reliquary.children.map(e => e.children[0]).filter(e => e !== undefined)];
+        const futureReliquary = [...this.game.reliquary.children.map((e) => e.children[0]).filter((e) => e !== undefined)];
         const relicDeck = this.game.relicDeck;
         for (const player of this.game.players) {
             for (const relic of player.relics) {

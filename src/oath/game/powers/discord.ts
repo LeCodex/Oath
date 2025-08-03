@@ -143,9 +143,9 @@ export class RelicThief extends EnemyActionModifier<Denizen, TakeOwnableObjectEf
             new MakeDecisionAction(
                 this.actionManager, rulerProxy.original, "Try to steal " + this.action.target.name + "?",
                 () => {
-                    new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(rulerProxy.original, this, new ResourceCost([[Favor, 1], [Secret, 1]]), this.source)).doNext(success => {
+                    new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(rulerProxy.original, this, new ResourceCost([[Favor, 1], [Secret, 1]]), this.source)).doNext((success) => {
                         if (!success) throw cannotPayError(this.selfCostContext.cost);
-                        new RollDiceEffect(this.actionManager, rulerProxy.original, new DefenseDie(), 1).doNext(result => {
+                        new RollDiceEffect(this.actionManager, rulerProxy.original, new DefenseDie(), 1).doNext((result) => {
                             if (result.value === 0) new TakeOwnableObjectEffect(this.actionManager, rulerProxy.original, this.action.target).doNext();
                         });
                     });
@@ -216,7 +216,7 @@ export class SleightOfHand extends ActivePower<Denizen> {
     cost = new ResourceCost([[Favor, 1]]);
 
     usePower(): void {
-        const players = this.gameProxy.players.filter(e => e.site === this.action.playerProxy.site).map(e => e.original);
+        const players = this.gameProxy.players.filter((e) => e.site === this.action.playerProxy.site).map((e) => e.original);
         new TakeResourceFromPlayerAction(this.actionManager, this.action.player, Secret, 1, players).doNext();
     }
 }
@@ -241,7 +241,7 @@ export class GamblingHall extends ActivePower<Denizen> {
     cost = new ResourceCost([[Favor, 2]]);
 
     usePower(): void {
-        new RollDiceEffect(this.actionManager, this.action.player, new DefenseDie(), 4).doNext(result => {
+        new RollDiceEffect(this.actionManager, this.action.player, new DefenseDie(), 4).doNext((result) => {
             new TakeFavorFromBankAction(this.actionManager, this.action.player, result.value).doNext();
         });
     }
@@ -401,7 +401,7 @@ export class FalseProphetDiscard extends ActionModifier<Denizen, DiscardCardEffe
     }
 
     applyAfter(): void {
-        new DrawFromDeckEffect(this.actionManager, this.action.executor, this.action.discardOptions.discard, 1, this.action.discardOptions.onBottom).doNext(cards => {
+        new DrawFromDeckEffect(this.actionManager, this.action.executor, this.action.discardOptions.discard, 1, this.action.discardOptions.onBottom).doNext((cards) => {
             const card = cards[0];
             if (!(card instanceof Vision)) return;
             new SearchPlayOrDiscardAction(this.actionManager, this.action.executor, card).doNext();
@@ -434,7 +434,7 @@ export class Downtrodden extends Accessed(ActionModifier<Denizen, MusterAction>)
     modifiedAction = MusterAction;
 
     applyBefore(): void {
-        const minSuits = minInGroup(this.game.byClass(FavorBank), "amount").map(e => e.key);
+        const minSuits = minInGroup(this.game.byClass(FavorBank), "amount").map((e) => e.key);
         if (minSuits.length === 1 && minSuits[0] === this.action.cardProxy.suit)
             this.action.getting += 2;
     }
@@ -453,7 +453,7 @@ export class Gossip extends EnemyActionModifier<Denizen, SearchPlayOrDiscardActi
     modifiedAction = SearchPlayOrDiscardAction;
 
     applyAtStart(): void {
-        this.action.selects.choice.filterChoices(e => e !== false);
+        this.action.selects.choice.filterChoices((e) => e !== false);
     }
 }
 
@@ -536,7 +536,7 @@ export class VowOfRenewalRecover extends Accessed(ActionModifier<Denizen, Recove
     mustUse = true;
 
     applyAtStart(): void {
-        this.action.selects.targetProxy.filterChoices(e => e !== this.gameProxy.banners.get(BannerKey.PeoplesFavor));
+        this.action.selects.targetProxy.filterChoices((e) => e !== this.gameProxy.banners.get(BannerKey.PeoplesFavor));
     }
 }
 

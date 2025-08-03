@@ -54,7 +54,7 @@ export class SelectNOf<T> {
     }
 
     get allPossibleChoices() {
-        return allCombinations(this.choices.keys()).filter(e => this.min <= e.length && e.length <= this.max);
+        return allCombinations(this.choices.keys()).filter((e) => this.min <= e.length && e.length <= this.max);
     }
 
     parse(input: Iterable<string>): T[] {

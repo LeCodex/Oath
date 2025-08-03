@@ -62,7 +62,7 @@ export class ResourceCost extends Cost {
             if ([...resources].filter(([_, a]) => a > 0).length === 0) return undefined;
             return [...resources].map(([resource, number]) => `${number} ${resource.name}${number > 1 ? "s" : ""}`).join(", ") + suffix;
         };
-        return [printResources(this.placedResources, " placed"), printResources(this.burntResources, " burnt")].filter(e => e !== undefined).join(", ");
+        return [printResources(this.placedResources, " placed"), printResources(this.burntResources, " burnt")].filter((e) => e !== undefined).join(", ");
     }
 }
 
@@ -124,7 +124,7 @@ export class ResourceTransferContext extends CostContext<ResourceCost, OathGameO
     get valid(): boolean {
         if (!this.partial)
             for (const [resource, amount] of this.cost.totalResources)
-                if (this.source.byClass(resource).filter(e => e.usable).length < amount)
+                if (this.source.byClass(resource).filter((e) => e.usable).length < amount)
                     return false;
 
         return true;

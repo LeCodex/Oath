@@ -65,7 +65,7 @@ export class OathPowerManager {
     }
 
     modifiersCostContext(player: OathPlayer, modifiers: CostModifier<WithPowers, CostContext<any>>[]): MultiCostContext<ResourceTransferContext> {
-        const contexts: ResourceTransferContext[] = modifiers.map(e => new ResourceTransferContext(player, this, e.cost, e.source));
+        const contexts: ResourceTransferContext[] = modifiers.map((e) => new ResourceTransferContext(player, this, e.cost, e.source));
         return new MultiCostContext(this, player, contexts, ResourceTransferContext.dummyFactory(player));
     }
 
@@ -82,9 +82,9 @@ export class OathPowerManager {
             if (costContext instanceof instance.modifiedContext && instance.canUse(costContext))
                 modifiers.push(instance);
         }
-        const mustUse = modifiers.filter(e => e.mustUse);
-        const canUse = modifiers.filter(e => !e.mustUse);
-        return allCombinations(canUse).map(e => mustUse.concat(e)).map(combination => {
+        const mustUse = modifiers.filter((e) => e.mustUse);
+        const canUse = modifiers.filter((e) => !e.mustUse);
+        return allCombinations(canUse).map((e) => mustUse.concat(e)).map((combination) => {
             const context = clone(costContext);
             context.cost = clone(costContext.cost);
             if (combination.length) {
@@ -93,6 +93,6 @@ export class OathPowerManager {
             }
             if (!costContext.valid) return undefined;
             return { context, modifiers: combination };
-        }).filter(e => !!e);
+        }).filter((e) => !!e);
     }
 }

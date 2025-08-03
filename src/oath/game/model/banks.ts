@@ -39,7 +39,7 @@ export abstract class Banner<T extends OathResource = OathResource> extends Cont
 
     // TODO: Move this to a ResourceCost in the RecoverAction
     canRecover(action: RecoverAction): boolean {
-        return action.player.byClass(this.cls).filter(e => e.usable).length > this.amount;
+        return action.player.byClass(this.cls).filter((e) => e.usable).length > this.amount;
     }
 }
 

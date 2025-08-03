@@ -156,7 +156,7 @@ export class CharmingFriend extends ActivePower<Denizen> {
     cost = new ResourceCost([[Secret, 1]]);
 
     usePower(): void {
-        const players = this.gameProxy.players.filter(e => e.site === this.action.playerProxy.site).map(e => e.original);
+        const players = this.gameProxy.players.filter((e) => e.site === this.action.playerProxy.site).map((e) => e.original);
         new TakeResourceFromPlayerAction(this.actionManager, this.action.player, Favor, 1, players).doNext();
     }
 }
@@ -186,7 +186,7 @@ export class SaladDays extends WhenPlayed<Denizen> {
 
 export class FamilyHeirloom extends WhenPlayed<Denizen> {
     whenPlayed(): void {
-        new DrawFromDeckEffect(this.actionManager, this.action.executor, this.game.relicDeck, 1).doNext(cards => {
+        new DrawFromDeckEffect(this.actionManager, this.action.executor, this.game.relicDeck, 1).doNext((cards) => {
             const relic = cards[0];
             if (!relic) return;
             
@@ -304,7 +304,7 @@ export class Homesteaders extends ActivePower<Denizen> {
     usePower(): void {
         new ChooseCardsAction(
             this.actionManager, this.action.player, "Move a faceup adviser to your site",
-            [[...this.action.playerProxy.advisers].filter(e => e instanceof Denizen && !e.facedown).map(e => e.original)],
+            [[...this.action.playerProxy.advisers].filter((e) => e instanceof Denizen && !e.facedown).map((e) => e.original)],
             (cards: Denizen[]) => {
                 if (!cards[0]) return;
                 new MoveDenizenToSiteEffect(this.actionManager, this.action.player, cards[0], this.action.playerProxy.site.original).doNext()
@@ -400,8 +400,8 @@ export class Levelers extends ActivePower<Denizen> {
     cost = new ResourceCost([[Secret, 1]]);
 
     usePower(): void {
-        const maxSuits = new Set(maxInGroup(ALL_OATH_SUITS, e => this.game.favorBank(e)?.amount ?? 0));
-        const minSuits = new Set(minInGroup(ALL_OATH_SUITS, e => this.game.favorBank(e)?.amount ?? Infinity));
+        const maxSuits = new Set(maxInGroup(ALL_OATH_SUITS, (e) => this.game.favorBank(e)?.amount ?? 0));
+        const minSuits = new Set(minInGroup(ALL_OATH_SUITS, (e) => this.game.favorBank(e)?.amount ?? Infinity));
 
         new ChooseSuitsAction(
             this.actionManager, this.action.player, "Move 2 favor from a bank with the most favor to a bank with the least",
@@ -422,7 +422,7 @@ export class RelicBreaker extends ActivePower<Denizen> {
 
     usePower(): void {
         new ChooseCardsAction(
-            this.actionManager, this.action.player, "Discard a relic to gain 3 warbands", [[...this.action.playerProxy.site.relics].map(e => e.original)],
+            this.actionManager, this.action.player, "Discard a relic to gain 3 warbands", [[...this.action.playerProxy.site.relics].map((e) => e.original)],
             (cards: Relic[]) => {
                 if (!cards[0]) return;
                 new DiscardCardEffect(this.actionManager, this.action.player, cards[0], new DiscardOptions(this.game.relicDeck, true)).doNext();
@@ -450,7 +450,7 @@ export class HallOfDebate extends ActionModifier<Edifice, CampaignAttackAction> 
     mustUse = true;
 
     applyAtStart(): void {
-        this.action.selects.targetProxies.filterChoices(e => e !== this.game.banners.get(BannerKey.PeoplesFavor));
+        this.action.selects.targetProxies.filterChoices((e) => e !== this.game.banners.get(BannerKey.PeoplesFavor));
     }
 }
 

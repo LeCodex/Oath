@@ -90,7 +90,7 @@ export class OathReplayController {
         const setupData = JSON.parse(chunks.shift()!);
         const controller = new this(gameId, setupData);
         controller.actionManager.checkForNextAction(false);
-        controller.chunks = chunks.map(e => e.split("\n"));
+        controller.chunks = chunks.map((e) => e.split("\n"));
         return controller;
     }
 }

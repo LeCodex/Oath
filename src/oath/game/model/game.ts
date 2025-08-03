@@ -261,10 +261,10 @@ export class OathGame extends TreeRoot<OathGame> implements WithPowers {
             playerCitizenship: newCitizenship,
             oath: this.oathkeeperTile.oath.oathType,
             suitOrder: ALL_OATH_SUITS,
-            sites: [...this.map.sites()].map(e => ({ name: e.id, facedown: e.facedown, cards: [...e.denizens, ...times(3 - e.denizens.length - e.relics.length, constant({ id: "NONE" as const })), ...e.relics].map(e => ({ name: e.id })) })),
-            world: this.worldDeck.children.map(e => ({ name: e.id as keyof typeof CardName })),
-            dispossessed: [...this.dispossessed].map(e => ({ name: e })),
-            relics: this.relicDeck.children.map(e => ({ name: e.id })),
+            sites: [...this.map.sites()].map((e) => ({ name: e.id, facedown: e.facedown, cards: [...e.denizens, ...times(3 - e.denizens.length - e.relics.length, constant({ id: "NONE" as const })), ...e.relics].map((e) => ({ name: e.id })) })),
+            world: this.worldDeck.children.map((e) => ({ name: e.id as keyof typeof CardName })),
+            dispossessed: [...this.dispossessed].map((e) => ({ name: e })),
+            relics: this.relicDeck.children.map((e) => ({ name: e.id })),
 
             prevPlayerCitizenship: this.oldCitizenship,
             winner: winner

@@ -41,7 +41,7 @@ export class SetupChoosePlayerBoardAction extends OathAction {
         for (const player of this.game.players)
             if (player.board)
                 colors.delete(player.board.key);
-        const choices = [...colors].map<[string, PlayerColor]>(e => [e + (e !== PlayerColor.Purple && this.game.oldCitizenship[e] === Citizenship.Citizen ? " (Citizen)" : ""), e]);
+        const choices = [...colors].map<[string, PlayerColor]>((e) => [e + (e !== PlayerColor.Purple && this.game.oldCitizenship[e] === Citizenship.Citizen ? " (Citizen)" : ""), e]);
         this.selects.color = new SelectNOf("Color", choices, { min: 1 });
 
         return super.start();
@@ -79,7 +79,7 @@ export class SetupChooseAdviserAction extends OathAction {
         const card = this.parameters.card[0];
         if (!card) return;
         new MoveWorldCardToAdvisersEffect(this.actionManager, this.player, card).doNext();
-        new DiscardCardGroupEffect(this.actionManager, this.player, this.cards.filter(e => e !== card)).doNext();
+        new DiscardCardGroupEffect(this.actionManager, this.player, this.cards.filter((e) => e !== card)).doNext();
     }
 }
 
@@ -95,7 +95,7 @@ export abstract class MajorAction extends OathAction implements WithCostContexts
     get costContexts(): CostContext<any>[] { return [new SupplyCostContext(this.player, this, this.supplyCost)]; }
 
     execute() {
-        new PaySupplyEffect(this.actionManager, this.costContexts[0]!).doNext(success => {
+        new PaySupplyEffect(this.actionManager, this.costContexts[0]!).doNext((success) => {
             if (!success) throw new InvalidActionResolution(`Cannot pay Supply cost (${this.supplyCost.amount}).`);
             this.majorAction();
         });
@@ -116,8 +116,8 @@ export abstract class PayDenizenAction extends MajorAction {
     get resourceCost() { return new ResourceTransferContext(this.player, this, this.cost, this.cardProxy.original); }
 
     validateCardProxies(cardProxies: Denizen[]) {
-        // validCardProxies = validCardProxies.filter(e => new ResourceTransferContext(this.player, this, this.cost, e.original).payableCostsWithModifiers(this.maskProxyManager).length);
-        return cardProxies.filter(e => e.suit !== OathSuit.None && e.empty);
+        // validCardProxies = validCardProxies.filter((e) => new ResourceTransferContext(this.player, this, this.cost, e.original).payableCostsWithModifiers(this.maskProxyManager).length);
+        return cardProxies.filter((e) => e.suit !== OathSuit.None && e.empty);
     }
     
     start() {
@@ -133,7 +133,7 @@ export abstract class PayDenizenAction extends MajorAction {
     }
 
     majorAction(): void {
-        new TransferResourcesEffect(this.actionManager, this.resourceCost).doNext(success => {
+        new TransferResourcesEffect(this.actionManager, this.resourceCost).doNext((success) => {
             if (!success) throw cannotPayError(this.cost);
             this.getReward();
         });
@@ -210,7 +210,7 @@ export class TravelAction extends MajorAction {
 
     start() {
         this.player = this.choosing;
-        this.selects.siteProxy = new SelectCard("Site", this.player, [...this.gameProxy.map.sites()].filter(e => e !== this.maskProxyManager.get(this.travelling.site) && this.restriction(e.original)), { min: 1 });
+        this.selects.siteProxy = new SelectCard("Site", this.player, [...this.gameProxy.map.sites()].filter((e) => e !== this.maskProxyManager.get(this.travelling.site) && this.restriction(e.original)), { min: 1 });
         return super.start();
     }
 
@@ -241,7 +241,7 @@ export class RecoverAction extends MajorAction {
     targetProxy: RecoverActionTarget;
 
     start() {
-        this.selects.targetProxy = new SelectWithName("Target", [...this.playerProxy.site.relics, ...this.gameProxy.banners.values()].filter(e => e.canRecover(this)), { min: 1 });
+        this.selects.targetProxy = new SelectWithName("Target", [...this.playerProxy.site.relics, ...this.gameProxy.banners.values()].filter((e) => e.canRecover(this)), { min: 1 });
         return super.start();
     }
 
@@ -309,7 +309,7 @@ export class SearchAction extends MajorAction {
     }
 
     majorAction() {
-        new SearchDrawEffect(this.actionManager, this.player, this.deckProxy.original, this.amount, this.fromBottom).doNext(cards => {
+        new SearchDrawEffect(this.actionManager, this.player, this.deckProxy.original, this.amount, this.fromBottom).doNext((cards) => {
             this.cards = new Set(cards);
             new SearchChooseAction(this.actionManager, this.player, this.cards, this.discardOptions).doNext();
         });
@@ -444,7 +444,7 @@ export class SearchPlayOrDiscardAction extends OathAction {
         this.cardProxy.facedown = this.facedown;  // Editing the copy to reflect the new state; TODO: Is this necessary?
         const { capacity, takesSpaceInTargetProxies, ignoresCapacity } = this.capacityInformation;
         const excess = Math.max(0, takesSpaceInTargetProxies.length - capacity + 1);  // +1 because we are playing a card there
-        const discardable = takesSpaceInTargetProxies.filter(e => !(e instanceof Denizen && e.activelyLocked)).map(e => e.original);
+        const discardable = takesSpaceInTargetProxies.filter((e) => !(e instanceof Denizen && e.activelyLocked)).map((e) => e.original);
 
         if (!ignoresCapacity && excess)
             if (!this.canReplace || excess > discardable.length)
@@ -690,7 +690,7 @@ export class CampaignEndAction extends OathAction {
             this.parameters.doSacrifice = [false as any];
         }
 
-        const callbacksToOrder = this.campaignResult.endCallbacks.filter(e => !e.orderAgnostic);
+        const callbacksToOrder = this.campaignResult.endCallbacks.filter((e) => !e.orderAgnostic);
         this.selects.callbacks = new SelectWithName("Order effects", callbacksToOrder, { min: callbacksToOrder.length });
 
         return super.start();
@@ -699,7 +699,7 @@ export class CampaignEndAction extends OathAction {
     applyParameters(values: Partial<ParametersType<this>>): void {
         super.applyParameters(values);
         this.doSacrifice = this.parameters.doSacrifice[0]!;
-        this.campaignResult.endCallbacks = [...this.parameters.callbacks, ...this.campaignResult.endCallbacks.filter(e => e.orderAgnostic)];
+        this.campaignResult.endCallbacks = [...this.parameters.callbacks, ...this.campaignResult.endCallbacks.filter((e) => e.orderAgnostic)];
     }
 
     execute() {
@@ -744,7 +744,7 @@ export class CampaignKillWarbandsInForceAction extends OathAction {
 
     start(): boolean {
         if (this.owner) {
-            const sources: [string, number][] = [...this.force].map(e => [e.name, e.getWarbandsAmount(this.owner?.board.key)]);
+            const sources: [string, number][] = [...this.force].map((e) => [e.name, e.getWarbandsAmount(this.owner?.board.key)]);
             for (const [key, warbands] of sources) {
                 const min = Math.min(warbands, Math.max(0, this.amount - sources.filter(([k, _]) => k !== key).reduce((a, [_, v]) => a + Math.min(v, this.amount), 0)));
                 const max = Math.min(warbands, this.amount);
@@ -850,7 +850,7 @@ export class PlayFacedownAdviserAction extends OathAction {
     playing: WorldCard;
 
     start() {
-        this.cardProxies = new Set([...this.playerProxy.advisers].filter(e => e.facedown));
+        this.cardProxies = new Set([...this.playerProxy.advisers].filter((e) => e.facedown));
         this.selects.cardProxies = new SelectCard("Adviser", this.player, this.cardProxies, { min: 1 });
         return super.start();
     }
@@ -1007,7 +1007,7 @@ export class KillWarbandsOnTargetAction extends OathAction {
     }
 
     start(): boolean {
-        const owners: [string, number][] = this.game.players.map(e => [e.name, this.target.getWarbands(e.board.key).length]);
+        const owners: [string, number][] = this.game.players.map((e) => [e.name, this.target.getWarbands(e.board.key).length]);
         for (const [key, warbands] of owners) {
             if (warbands === 0) continue;
             const min = Math.min(warbands, Math.max(0, this.amount - owners.filter(([k, _]) => k !== key).reduce((a, [_, v]) => a + Math.min(v, this.amount), 0)));
@@ -1057,7 +1057,7 @@ export class TakeReliquaryRelicAction extends ChooseNumberAction {
     constructor(actionManager: OathActionManager, player: OathPlayer) {
         super(
             actionManager, player, "Take a Reliquary relic",
-            player.game.reliquary.children.filter(e => e.children[0]).map((_, i) => i),
+            player.game.reliquary.children.filter((e) => e.children[0]).map((_, i) => i),
             (index: number) => new TakeReliquaryRelicEffect(actionManager, player, index).doNext()
         )
     }
@@ -1134,7 +1134,7 @@ export abstract class ChooseTsAction<T> extends OathAction {
         this.message = message;
         this.callback = callback;
         this.ranges = ranges;
-        this.choices = choices && choices.map(e => new Set(e));
+        this.choices = choices && choices.map((e) => new Set(e));
     }
 
     rangeMin(i: number) { return this.ranges[i] ? this.ranges[i][0] : 1; }
@@ -1220,7 +1220,7 @@ export class ChooseRnWsAction extends ChooseTsAction<ResourcesAndWarbands> {
 
 export class ChoosePlayersAction extends ChooseTsAction<OathPlayer> {
     start() {
-        if (!this.choices) this.choices = [new Set(this.game.players.filter(e => e !== this.player))];
+        if (!this.choices) this.choices = [new Set(this.game.players.filter((e) => e !== this.player))];
 
         for (const [i, group] of this.choices.entries()) {
             const choices = new Map<string, OathPlayer>();
@@ -1262,7 +1262,7 @@ export class StartBindingExchangeAction extends ChoosePlayersAction {
 
 export class ChooseSitesAction extends ChooseTsAction<Site> {
     start() {
-        if (!this.choices) this.choices = [new Set([...this.game.map.sites()].filter(e => !e.facedown && e !== this.player.site))];
+        if (!this.choices) this.choices = [new Set([...this.game.map.sites()].filter((e) => !e.facedown && e !== this.player.site))];
         for (const [i, group] of this.choices.entries())
             this.selects["choices" + i] = new SelectCard("Site", this.player, group, { min: this.rangeMin(i), max: this.rangeMax(i) });
 
@@ -1295,7 +1295,7 @@ export class MoveWarbandsBetweenBoardAndSitesAction extends ChooseSitesAction {
                 action.doNext();
                 this.doNext();
             },
-            [[...playerProxy.game.map.sites()].filter(e => e.ruler === playerProxy).map(e => e.original)],
+            [[...playerProxy.game.map.sites()].filter((e) => e.ruler === playerProxy).map((e) => e.original)],
             [[0, 1]]
         );
     }
@@ -1397,7 +1397,7 @@ export class DeedWriterOfferAction extends MakeBindingExchangeOfferAction {
     }
 
     start(): boolean {
-        this.selects.sites = new SelectCard("Sites", this.player, [...this.gameProxy.map.sites()].filter(e => e.ruler === this.otherProxy).map(e => e.original));
+        this.selects.sites = new SelectCard("Sites", this.player, [...this.gameProxy.map.sites()].filter((e) => e.ruler === this.otherProxy).map((e) => e.original));
         return super.start();
     }
 
@@ -1442,7 +1442,7 @@ export class TinkersFairOfferAction extends ThingsExchangeOfferAction<Relic> {
 
 export class FestivalDistrictOfferAction extends ThingsExchangeOfferAction<WorldCard> {
     start(): boolean {
-        this.selects.things = new SelectCard("Advisers", this.player, this.other.advisers.filter(e => !(e instanceof Denizen && e.activelyLocked)));
+        this.selects.things = new SelectCard("Advisers", this.player, this.other.advisers.filter((e) => !(e instanceof Denizen && e.activelyLocked)));
         return super.start();
     }
 
@@ -1454,7 +1454,7 @@ export class FestivalDistrictOfferAction extends ThingsExchangeOfferAction<World
 
 export class TheGatheringOfferAction extends ThingsExchangeOfferAction<Relic | WorldCard> {
     start(): boolean {
-        this.selects.things = new SelectCard("Relics and advisers", this.player, [...this.other.relics, ...this.other.advisers.filter(e => !(e instanceof Denizen && e.activelyLocked))]);
+        this.selects.things = new SelectCard("Relics and advisers", this.player, [...this.other.relics, ...this.other.advisers.filter((e) => !(e instanceof Denizen && e.activelyLocked))]);
         return super.start();
     }
 
@@ -1582,7 +1582,7 @@ export class ChooseNewCitizensAction extends OathAction {
     readonly message = "Propose Citizenship to other Exiles";
 
     start() {
-        this.selects.players = new SelectWithName("Exile(s)", this.game.players.filter(e => !e.isImperial && e !== this.player));
+        this.selects.players = new SelectWithName("Exile(s)", this.game.players.filter((e) => !e.isImperial && e !== this.player));
         return super.start();
     }
 
@@ -1619,7 +1619,7 @@ export class BuildOrRepairEdificeAction extends OathAction {
             }
         }
         
-        this.selects.card = new SelectCard("Card", this.player, [...choices].filter(e => !bannedSuits.has(e.suit)));
+        this.selects.card = new SelectCard("Card", this.player, [...choices].filter((e) => !bannedSuits.has(e.suit)));
         return super.start();
     }
 

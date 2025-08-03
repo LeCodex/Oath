@@ -49,7 +49,7 @@ export class OathNestService implements OnModuleInit {
         const id = Math.max(0, ...this.games.keys()) + 1;
 
         // TEMP: Forcefully set the number of players
-        const controller = new OathController(id, [seed, range(4).map(e => "Player" + e)]);
+        const controller = new OathController(id, [seed, range(4).map((e) => "Player" + e)]);
         this.games.set(id, controller);
         
         controller.actionManager.checkForNextAction()

@@ -63,5 +63,5 @@ export function getCapacityInformation(
         if (playingProxy) ignoresCapacity ||= capacityModifier.ignoreCapacity(playingProxy);
     }
 
-    return { capacity, takesSpaceInTargetProxies: targetProxy.filter(e => !takesNoSpaceProxies.has(e)), ignoresCapacity };
+    return { capacity, takesSpaceInTargetProxies: targetProxy.filter((e) => !takesNoSpaceProxies.has(e)), ignoresCapacity };
 }

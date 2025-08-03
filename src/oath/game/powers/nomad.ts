@@ -106,7 +106,7 @@ export class WildMountsReplace extends ActionModifier<Denizen, DiscardCardEffect
     }
 
     applyWhenApplied(): boolean {
-        if (this.action.card instanceof Denizen && this.action.card.suit === OathSuit.Nomad && [...this.action.card.powers].some(e => powersIndex[e] instanceof BattlePlan)) {
+        if (this.action.card instanceof Denizen && this.action.card.suit === OathSuit.Nomad && [...this.action.card.powers].some((e) => powersIndex[e] instanceof BattlePlan)) {
             if (!WildMountsReplace.firstDiscardDone) {
                 WildMountsReplace.firstDiscardDone = true;
 
@@ -186,7 +186,7 @@ export class WayStation extends ActionModifier<Denizen, TravelAction> {
         if (this.action.siteProxy === this.sourceProxy.site) {
             if (!this.playerProxy.rules(this.sourceProxy)) {
                 const ruler = this.sourceProxy.ruler?.original;
-                new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.player, this, new ResourceCost([[Favor, 1]]), ruler)).doNext(success => {
+                new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.player, this, new ResourceCost([[Favor, 1]]), ruler)).doNext((success) => {
                     if (!success) throw new InvalidActionResolution("Cannot pay the Way Station's ruler");
                 });
             }
@@ -199,8 +199,8 @@ export class Hospitality extends Accessed(ActionModifier<Denizen, TravelAction>)
     modifiedAction = TravelAction;
 
     applyAfter(): void {
-        const adviserSuits = [...this.playerProxy.advisers].filter(e => e instanceof Denizen).map(e => e.suit);
-        const suits = [...this.action.siteProxy.denizens].map(e => e.suit).filter(e => adviserSuits.includes(e));
+        const adviserSuits = [...this.playerProxy.advisers].filter((e) => e instanceof Denizen).map((e) => e.suit);
+        const suits = [...this.action.siteProxy.denizens].map((e) => e.suit).filter((e) => adviserSuits.includes(e));
         if (suits.length) new TakeFavorFromBankAction(this.actionManager, this.player, 1, suits).doNext();
     }
 }
@@ -265,7 +265,7 @@ export class LostTongue extends EnemyActionModifier<Denizen, TakeOwnableObjectEf
 export class LostTongueCampaign extends EnemyAttackerCampaignModifier<Denizen> {
     applyAtStart(): void {
         if (this.action.playerProxy.suitRuledCount(OathSuit.Nomad) < 1)
-            this.action.selects.targetProxies.filterChoices(e => !isOwnable(e) || e.owner !== this.sourceProxy.ruler);
+            this.action.selects.targetProxies.filterChoices((e) => !isOwnable(e) || e.owner !== this.sourceProxy.ruler);
     }
 }
 
@@ -391,7 +391,7 @@ export class Resettle extends ActivePower<Denizen> {
     usePower(): void {
         new ChooseCardsAction(
             this.actionManager, this.action.player, "Choose a Nomad adviser",
-            [this.gameProxy.players.reduce((a, e) => [...a, ...[...e.advisers].filter(e => e instanceof Denizen && e.suit == OathSuit.Nomad)], [] as Denizen[])],
+            [this.gameProxy.players.reduce((a, e) => [...a, ...[...e.advisers].filter((e) => e instanceof Denizen && e.suit == OathSuit.Nomad)], [] as Denizen[])],
             (cards: Denizen[]) => {
                 if (!cards[0]) return;
                 new ChooseSitesAction(
@@ -441,7 +441,7 @@ export class FamilyWagon extends CapacityModifier<Denizen> {
         // is by setting the capacity to 2, and making all *other* Nomad cards not count towards the limit (effectively
         // making you have 1 spot for a non Nomad card, and infinite ones for Nomad cards, while allowing you
         // to replace Family Wagon if you want to)
-        return [2, [...targetProxy].filter(e => e !== this.sourceProxy && e instanceof Denizen && e.suit === OathSuit.Nomad)];
+        return [2, [...targetProxy].filter((e) => e !== this.sourceProxy && e instanceof Denizen && e.suit === OathSuit.Nomad)];
     }
 
     ignoreCapacity(cardProxy: WorldCard): boolean {
@@ -485,7 +485,7 @@ export class Pilgrimage extends WhenPlayed<Denizen> {
         }
 
         for (let i = 0; i < amount; i++) {
-            new GetRandomCardFromDispossessed(this.actionManager, this.action.executor).doNext(card => {
+            new GetRandomCardFromDispossessed(this.actionManager, this.action.executor).doNext((card) => {
                 new PeekAtCardEffect(this.actionManager, this.action.executor, card).doNext();
                 new DiscardCardEffect(this.actionManager, this.action.executor, card, new DiscardOptions(discard)).doNext();
             });
@@ -551,7 +551,7 @@ export class TheGathering extends WhenPlayed<Denizen> {
         }
 
         new ResolveCallbackEffect(this.actionManager, () => {
-            const participants = this.gameProxy.players.filter(e => e.site === this.sourceProxy.site).map(e => e.original);
+            const participants = this.gameProxy.players.filter((e) => e.site === this.sourceProxy.site).map((e) => e.original);
             for (const player of participants) {
                 new StartBindingExchangeAction(this.actionManager, player, TheGatheringOfferAction, participants).doNext();
             }
@@ -564,7 +564,7 @@ export class AncientForge extends ActivePower<Edifice> {
     cost = new ResourceCost([[Favor, 2]], [[Secret, 1]]);
     
     usePower(): void {
-        new DrawFromDeckEffect(this.actionManager, this.action.player, this.game.relicDeck, 1).doNext(cards => {
+        new DrawFromDeckEffect(this.actionManager, this.action.player, this.game.relicDeck, 1).doNext((cards) => {
             const relic = cards[0];
             if (!relic) return;
             

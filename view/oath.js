@@ -77,7 +77,7 @@ const render = () => {
         actionNode.appendChild(renderButton("Reload from the final state and lose the history (this prevents rollbacks and replays)", () => chooseReloadMethod(true)));
     } else {
         if (action) {
-            actionNode.innerText = "[" + action.message + "] (" + byType(game, "player").filter(e => e.id === action.player)[0]._name + ")";
+            actionNode.innerText = "[" + action.message + "] (" + byType(game, "player").filter((e) => e.id === action.player)[0]._name + ")";
             if (action.modifiers?.length) actionNode.appendChild(renderText("Modifiers: " + action.modifiers.join(", ")));
             for (const [k, select] of Object.entries(action.selects)) {
                 const selectNode = actionNode.appendChild(renderText(select.name + ` (${select.min}-${select.max})`));
@@ -132,7 +132,7 @@ const renderObject = (parent, obj) => {
         
         case "site":
             node = renderCard(obj);
-            node.innerText += " " + byType(game, "player").filter(e => e.site === obj.id).map(e => pawnColors[byType(e, "board")[0].id]).join("");
+            node.innerText += " " + byType(game, "player").filter((e) => e.site === obj.id).map((e) => pawnColors[byType(e, "board")[0].id]).join("");
             break;
         
         case "favorBank":
@@ -212,12 +212,12 @@ const renderDeck = (deck, name, separateVisions = false) => {
 
 const renderResourcesAndWarbands = (node, obj) => {
     if (!obj.children) return;
-    node.innerText += " " + byType(obj, "resource").sort((a, b) => a.class.localeCompare(b.class)).map(e => e.class === "Favor" ? "🟡" : e.flipped ? "📖" : "📘").join("");
-    node.innerText += " " + byType(obj, "warband").map(e => warbandsColors[e.color]).join("");
+    node.innerText += " " + byType(obj, "resource").sort((a, b) => a.class.localeCompare(b.class)).map((e) => e.class === "Favor" ? "🟡" : e.flipped ? "📖" : "📘").join("");
+    node.innerText += " " + byType(obj, "warband").map((e) => warbandsColors[e.color]).join("");
 }
 
 const byType = (obj, type) => {
-    return obj.children.filter(e => e.type === type);
+    return obj.children.filter((e) => e.type === type);
 }
 
 const typeOrder = ["oath", "vision", "denizen", "relic", "banner", "reliquary", "bank", "deck"];

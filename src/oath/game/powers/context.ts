@@ -15,13 +15,13 @@ export class MultiCostContext<T extends CostContext<Cost>> {
     ) { }
 
     costsWithModifiers(maskProxyManager: MaskProxyManager) {
-        const payableCostsInfo = this.costContexts.map(e => this.powerManager.costsWithModifiers(e, maskProxyManager));
-        return allChoices(payableCostsInfo).map(choice => {
+        const payableCostsInfo = this.costContexts.map((e) => this.powerManager.costsWithModifiers(e, maskProxyManager));
+        return allChoices(payableCostsInfo).map((choice) => {
             const context: MultiCostContext<T> = clone(this);
-            context.costContexts = choice.map(e => e.context as T);
+            context.costContexts = choice.map((e) => e.context as T);
             if (!context.valid) return undefined;
             return { context, modifiers: [] };  // Technically, none of the modifiers are applied to the Multi (and none should, for now)
-        }).filter(e => !!e);
+        }).filter((e) => !!e);
     }
 
     get valid(): boolean {

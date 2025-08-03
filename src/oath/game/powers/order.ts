@@ -150,7 +150,7 @@ export class PeaceEnvoyAttack extends AttackerBattlePlan<Denizen> {
     cost = new ResourceCost([[Favor, 1]]);
 
     applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, CampaignAttackAction>>): Iterable<ActionModifier<WithPowers, CampaignAttackAction>> {
-        return [...modifiers].filter(e => e !== this && e instanceof BattlePlan);
+        return [...modifiers].filter((e) => e !== this && e instanceof BattlePlan);
     }
 
     applyWhenApplied(): boolean {
@@ -159,7 +159,7 @@ export class PeaceEnvoyAttack extends AttackerBattlePlan<Denizen> {
             new TransferResourcesEffect(
                 this.actionManager,
                 new ResourceTransferContext(this.player, this, new ResourceCost([[Favor, this.action.campaignResult.defPool]]), this.action.campaignResult.defender!)
-            ).doNext(success => {
+            ).doNext((success) => {
                 if (!success) return;
                 this.action.campaignResult.successful = true;
                 this.action.campaignResult.ignoreKilling = true;
@@ -174,7 +174,7 @@ export class PeaceEnvoyDefense extends DefenderBattlePlan<Denizen> {
     cost = new ResourceCost([[Favor, 1]]);
 
     applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, CampaignDefenseAction>>): Iterable<ActionModifier<WithPowers, CampaignDefenseAction>> {
-        return [...modifiers].filter(e => e !== this && e instanceof BattlePlan);
+        return [...modifiers].filter((e) => e !== this && e instanceof BattlePlan);
     }
 
     applyWhenApplied(): boolean {
@@ -182,7 +182,7 @@ export class PeaceEnvoyDefense extends DefenderBattlePlan<Denizen> {
             new TransferResourcesEffect(
                 this.actionManager,
                 new ResourceTransferContext(this.player, this, new ResourceCost([[Favor, this.action.campaignResult.defPool]]), this.action.campaignResult.attacker)
-            ).doNext(success => {
+            ).doNext((success) => {
                 if (!success) return;
                 this.action.campaignResult.successful = false;
                 this.action.campaignResult.ignoreKilling = true;
@@ -273,7 +273,7 @@ export class RelicHunter extends AttackerBattlePlan<Denizen> {
     applyBefore(): void {
         for (const target of this.action.campaignResult.targets) {
             if (target instanceof RelicWrapper) {
-                const targetedSite = [...this.action.campaignResult.targets].some(e => target.relic.site === e);
+                const targetedSite = [...this.action.campaignResult.targets].some((e) => target.relic.site === e);
                 if (!targetedSite) throw new InvalidActionResolution("Must target the site to also target the relic");
             }
         }
@@ -293,7 +293,7 @@ export class Curfew extends EnemyActionModifier<Denizen, TradeAction> {
     }
 
     applyBefore(): void {
-        new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.player, this, new ResourceCost([[Favor, 1]]), this.sourceProxy.ruler?.original)).doNext(success => {
+        new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.player, this, new ResourceCost([[Favor, 1]]), this.sourceProxy.ruler?.original)).doNext((success) => {
             if (!success) throw cannotPayError(this.selfCostContext.cost);
         });
     }
@@ -304,7 +304,7 @@ export class TollRoads extends EnemyActionModifier<Denizen, TravelAction> {
 
     applyBefore(): void {
         if (this.action.siteProxy.ruler === this.sourceProxy.ruler) {
-            new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.player, this, new ResourceCost([[Favor, 1]]), this.sourceProxy.ruler?.original)).doNext(success => {
+            new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.player, this, new ResourceCost([[Favor, 1]]), this.sourceProxy.ruler?.original)).doNext((success) => {
                 if (!success) throw cannotPayError(this.selfCostContext.cost);
             });
         }
@@ -319,7 +319,7 @@ export class ForcedLabor extends EnemyActionModifier<Denizen, SearchAction> {
     }
 
     applyBefore(): void {
-        new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.player, this, new ResourceCost([[Favor, 1]]), this.sourceProxy.ruler?.original)).doNext(success => {
+        new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.player, this, new ResourceCost([[Favor, 1]]), this.sourceProxy.ruler?.original)).doNext((success) => {
             if (!success) throw cannotPayError(this.selfCostContext.cost);
         });
     }
@@ -349,7 +349,7 @@ export class TomeGuardiansAttack extends EnemyActionModifier<Denizen, CampaignAt
     modifiedAction = CampaignAttackAction;
 
     applyAtStart(): void {
-        this.action.selects.targetProxies.filterChoices(e => e !== this.gameProxy.banners.get(BannerKey.DarkestSecret));
+        this.action.selects.targetProxies.filterChoices((e) => e !== this.gameProxy.banners.get(BannerKey.DarkestSecret));
     }
 }
 
@@ -480,7 +480,7 @@ export class SiegeEngines extends ActivePower<Denizen> {
         new ChooseSitesAction(
             this.actionManager, this.action.player, "Kill two warbands",
             (sites: Site[]) => { if (sites[0]) new KillWarbandsOnTargetAction(this.actionManager, this.action.player, sites[0], 2).doNext(); },
-            [this.action.playerProxy.site.region?.original.sites.filter(e => e.warbands.length) ?? []]
+            [this.action.playerProxy.site.region?.original.sites.filter((e) => e.warbands.length) ?? []]
         ).doNext();
     }
 }
@@ -512,7 +512,7 @@ export class Palanquin extends ActivePower<Denizen> {
                     }
                 ).doNext();
             },
-            [this.gameProxy.players.filter(e => e !== this.action.playerProxy && e.site.region === this.action.playerProxy.site.region).map(e => e.original)]
+            [this.gameProxy.players.filter((e) => e !== this.action.playerProxy && e.site.region === this.action.playerProxy.site.region).map((e) => e.original)]
         ).doNext();
     }
 }

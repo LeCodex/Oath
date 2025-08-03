@@ -83,7 +83,7 @@ export abstract class TreeNode<RootType extends TreeRoot<RootType>, KeyType = an
         // if (this.root as any === this) console.log("SERIALIZED");
         const obj = {
             ...this.liteSerialize(),
-            children: this.children.map(e => e.serialize(lite)).filter(e => e !== undefined),
+            children: this.children.map((e) => e.serialize(lite)).filter((e) => e !== undefined),
             ...lite ? {} : this.constSerialize()
         } as SerializedNode<this>;
         if (obj.children?.length === 0) delete obj.children;
@@ -222,15 +222,15 @@ export class NodeGroup<T extends TreeNode<any>> extends Array<T> {
     hasOfClass(cls: AbstractConstructor<T> | string) {
         // const set = this.lookupByClass[cls.name];
         // return !!set && set.size > 0;
-        return this.some(e => this.typeCheck(e, cls));
+        return this.some((e) => this.typeCheck(e, cls));
     }
 
     byClass<U extends T>(cls: AbstractConstructor<U> | string): NodeGroup<U> {
-        return this.filter(e => this.typeCheck(e, cls)) as NodeGroup<U>;
+        return this.filter((e) => this.typeCheck(e, cls)) as NodeGroup<U>;
     }
 
     by<K extends keyof T>(key: K, value: T[K]) {
-        return new NodeGroup(...this.filter(e => e[key] === value));
+        return new NodeGroup(...this.filter((e) => e[key] === value));
     }
 
     byKey(key: T["key"]) {

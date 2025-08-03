@@ -332,7 +332,7 @@ export function parseOathTTSSavefileString(saveDataString: string): OathGameData
       SavefileDataType.Site7,
       SavefileDataType.Site8
     ]
-    .map(siteSlot => {
+    .map((siteSlot) => {
       const { start: siteStart, end: siteEnd } = getStartEndByIndex(siteSlot);
       const siteData = getHexFromStringAsNumber(siteStart, siteEnd);
       

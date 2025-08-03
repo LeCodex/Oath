@@ -90,11 +90,11 @@ export class ForestPaths extends Accessed(ActionModifier<Denizen, TravelAction>)
     cost = new ResourceCost([[Favor, 1]]);
 
     applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, TravelAction>>): Iterable<ActionModifier<WithPowers, TravelAction>> {
-        return [...modifiers].filter(e => e.source instanceof Site);
+        return [...modifiers].filter((e) => e.source instanceof Site);
     }
 
     applyAtStart(): void {
-        this.action.selects.siteProxy.filterChoices(e => [...e.denizens].some(e => e.suit === OathSuit.Beast));
+        this.action.selects.siteProxy.filterChoices((e) => [...e.denizens].some((e) => e.suit === OathSuit.Beast));
     }
 }
 export class ForestPathsCost extends NoSupplyCostActionModifier(ForestPaths) { }
@@ -154,7 +154,7 @@ export class TheOldOak extends Accessed(ResourceTransferModifier<Denizen>) {
     }
 
     apply(context: ResourceTransferContext): void {
-        if (context.source === this.sourceProxy && [...this.playerProxy.advisers].some(e => e instanceof Denizen && e.suit === OathSuit.Beast))
+        if (context.source === this.sourceProxy && [...this.playerProxy.advisers].some((e) => e instanceof Denizen && e.suit === OathSuit.Beast))
             context.cost.placedResources.set(Secret, context.cost.placedResources.get(Secret) + 1);
     }
 
@@ -199,14 +199,14 @@ export class ForestCouncilTrade extends EnemyActionModifier<Denizen, TradeAction
     modifiedAction = TradeAction;
 
     applyAtStart(): void {
-        this.action.selects.cardProxy.filterChoices(e => e.suit !== OathSuit.Beast);
+        this.action.selects.cardProxy.filterChoices((e) => e.suit !== OathSuit.Beast);
     }
 }
 export class ForestCouncilMuster extends EnemyActionModifier<Denizen, MusterAction> {
     modifiedAction = MusterAction;
 
     applyAtStart(): void {
-        this.action.selects.cardProxy.filterChoices(e => e.suit !== OathSuit.Beast);
+        this.action.selects.cardProxy.filterChoices((e) => e.suit !== OathSuit.Beast);
     }
 }
 
@@ -303,7 +303,7 @@ export class SmallFriends extends Accessed(ActionModifier<Denizen, TradeAction>)
 
     applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, TradeAction>>): Iterable<ActionModifier<WithPowers, TradeAction>> {
         // Ignore all other modifiers, since we are going to select them again anyways
-        return [...modifiers].filter(e => e !== this);
+        return [...modifiers].filter((e) => e !== this);
     }
 
     applyWhenApplied(): boolean {
@@ -329,7 +329,7 @@ export class GiantPython extends EnemyAttackerCampaignModifier<Denizen> {
 export class TrueNamesAttack extends EnemyAttackerCampaignModifier<Denizen> {
     applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, CampaignAttackAction>>): Iterable<ActionModifier<WithPowers, CampaignAttackAction>> {
         if (!this.sourceProxy.ruler) return [];
-        const suits = [...this.sourceProxy.ruler?.advisers].filter(e => e instanceof Denizen).map(e => e.suit);
+        const suits = [...this.sourceProxy.ruler?.advisers].filter((e) => e instanceof Denizen).map((e) => e.suit);
         
         for (const modifier of modifiers)
             if (
@@ -344,7 +344,7 @@ export class TrueNamesAttack extends EnemyAttackerCampaignModifier<Denizen> {
 export class TrueNamesDefense extends EnemyDefenderCampaignModifier<Denizen> {
     applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, CampaignDefenseAction>>): Iterable<ActionModifier<WithPowers, CampaignDefenseAction>> {
         if (!this.sourceProxy.ruler) return [];
-        const suits = [...this.sourceProxy.ruler?.advisers].filter(e => e instanceof Denizen).map(e => e.suit);
+        const suits = [...this.sourceProxy.ruler?.advisers].filter((e) => e instanceof Denizen).map((e) => e.suit);
         
         for (const modifier of modifiers)
             if (
@@ -419,14 +419,14 @@ export class FaeMerchant extends ActivePower<Denizen> {
     cost = new ResourceCost([[Secret, 1]]);
 
     usePower(): void {
-        new DrawFromDeckEffect(this.actionManager, this.action.player, this.game.relicDeck, 1).doNext(cards => {
+        new DrawFromDeckEffect(this.actionManager, this.action.player, this.game.relicDeck, 1).doNext((cards) => {
             const relic = cards[0];
             if (!relic) return;
             
             new TakeOwnableObjectEffect(this.actionManager, this.action.player, relic).doNext();
             new ChooseCardsAction(
                 this.actionManager, this.action.player, "Discard a relic",
-                [[...this.action.playerProxy.relics].filter(e => !(e instanceof GrandScepter)).map(e => e.original)],
+                [[...this.action.playerProxy.relics].filter((e) => !(e instanceof GrandScepter)).map((e) => e.original)],
                 (cards: Relic[]) => { if (cards[0]) new DiscardCardEffect(this.actionManager, this.action.player, cards[0], new DiscardOptions(this.game.relicDeck, true)).doNext(); }
             ).doNext();
         });
@@ -492,7 +492,7 @@ export class RovingTerror extends ActivePower<Denizen> {
     usePower(): void {
         new ChooseCardsAction(
             this.actionManager, this.action.player, "Replace another card at a site",
-            [[...this.gameProxy.map.sites()].reduce((a, e) => [...a, ...e.denizens], []).filter(e => !e.activelyLocked && e !== this.sourceProxy).map(e => e.original)],
+            [[...this.gameProxy.map.sites()].reduce((a, e) => [...a, ...e.denizens], []).filter((e) => !e.activelyLocked && e !== this.sourceProxy).map((e) => e.original)],
             (cards: Denizen[]) => {
                 if (!cards[0]) return;
                 const site = cards[0].site;
