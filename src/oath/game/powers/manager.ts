@@ -15,7 +15,7 @@ import { MultiCostContext } from "./context";
 import type { Cost, CostContext} from "../costs";
 import { ResourceTransferContext } from "../costs";
 
-
+export type CostContextInfo<T extends CostContext<Cost>> = { context: T, modifiers: CostModifier<WithPowers, T>[] };
 export class OathPowerManager {
     modifiedActions = new WeakSet<OathAction>();
     futureActionsModifiable = new WeakMap<OathAction, ModifiableAction<OathAction>>();
@@ -75,7 +75,7 @@ export class OathPowerManager {
         }
     }
 
-    costsWithModifiers<T extends CostContext<Cost>>(costContext: T, maskProxyManager: MaskProxyManager) {
+    costsWithModifiers<T extends CostContext<Cost>>(costContext: T, maskProxyManager: MaskProxyManager): CostContextInfo<T>[] {
         const modifiers: CostModifier<WithPowers, T>[] = [];
         for (const [sourceProxy, modifier] of this.getPowers(CostModifier<WithPowers, T>, maskProxyManager)) {
             const instance = new modifier(this, sourceProxy.original, costContext.player, maskProxyManager);

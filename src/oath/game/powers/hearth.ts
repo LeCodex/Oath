@@ -141,7 +141,7 @@ export class CropRotation extends Accessed(ActionModifier<Denizen, SearchPlayOrD
 }
 
 export class NewsFromAfar extends Accessed(SupplyCostModifier<Denizen>) {
-    cost = new ResourceCost([[Favor, 2]]);  // TODO: Do costs for cost modifiers
+    cost = new ResourceCost([[Favor, 2]]);
 
     canUse(context: SupplyCostContext): boolean {
         return super.canUse(context) && context.origin instanceof TradeAction;

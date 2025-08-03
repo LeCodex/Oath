@@ -399,6 +399,8 @@ export class OathActionManager extends EventPublisher<{
     }
 
     public forceCancelAction() {
+        if (!this.loaded) return this.defer(false);
+
         return this.authorizeCancel();
     }
 

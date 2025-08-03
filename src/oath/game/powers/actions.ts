@@ -6,7 +6,7 @@ import type { MaskProxyManager } from "../utils";
 import { allCombinations } from "../utils";
 import { PlayerEffect, OathAction, ResolveCallbackEffect, type ParametersType } from "../actions/base";
 import { SelectNOf } from "../actions/selects";
-import type { OathPowerManager } from "./manager";
+import type { CostContextInfo, OathPowerManager } from "./manager";
 import type { OwnableCard } from "../model/cards";
 import { MultiCostContext } from "./context";
 import { cannotPayError } from "../actions/utils";
@@ -190,7 +190,7 @@ export class UsePowerAction extends ExpandedAction {
 }
 
 export class ChooseModifiedCostContextAction<T extends CostContext<any>> extends ExpandedAction {
-    declare readonly selects: { costContext: SelectNOf<T | undefined>; };
+    declare readonly selects: { costContextInfo: SelectNOf<CostContextInfo<T>>; };
     readonly message = "Choose a cost to pay";
 
     constructor(
@@ -203,16 +203,28 @@ export class ChooseModifiedCostContextAction<T extends CostContext<any>> extends
     }
 
     start() {
-        const choices = new Map<string, T>();
+        const choices = new Map<string, CostContextInfo<T>>();
         const payableCostContextsInfo = this.powerManager.costsWithModifiers(this.costContext, this.maskProxyManager);
         for (const costContextInfo of payableCostContextsInfo)
-            choices.set(costContextInfo.context.cost.toString() + ` (${costContextInfo.modifiers.map((e) => e.name).join(", ") || "Base"})`, costContextInfo.context as T);
-        this.selects.costContext = new SelectNOf("Cost", choices, { min: 1 });
+            choices.set(costContextInfo.context.cost.toString() + ` (${costContextInfo.modifiers.map((e) => e.name).join(", ") || "Base"})`, costContextInfo);
+        this.selects.costContextInfo = new SelectNOf("Cost", choices, { min: 1 });
         return super.start();
     }
 
     execute(): void {
-        this.callback(this.parameters.costContext[0]!);
+        const costContextInfo = this.parameters.costContextInfo[0]!;
+        const payedModifiers = new Map(costContextInfo.modifiers.map((e) => [e, false]));
+        if (costContextInfo.modifiers.length) {
+            for (const modifier of costContextInfo.modifiers) {
+                modifier.payCost((success) => {
+                    if (!success) throw cannotPayError(modifier.cost);
+                    payedModifiers.set(modifier, true);
+                    if ([...payedModifiers.values()].every((e) => e)) this.callback(costContextInfo.context);
+                });
+            }
+        } else {
+            this.callback(costContextInfo.context);
+        }
     }
 }
 

@@ -42,7 +42,6 @@ export function HomelandSitePower(suit: OathSuit) {
         mustUse = true;
     
         applyAfter(): void {
-            // TODO: "and if you have not discarded a <suit> card here during this turn"
             if (this.action.site === this.source && this.action.card instanceof Denizen && this.action.card.suit === HomelandSitePower.suit)
                 this.giveReward(this.action.executorProxy);
         }
