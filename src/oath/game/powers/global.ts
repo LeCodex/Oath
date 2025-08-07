@@ -8,7 +8,6 @@ import { type Cost, type CostContext } from "../costs";
 import { Site } from "../model/cards";
 import type { OathGame } from "../model/game";
 import { hasCostContexts } from "../model/interfaces";
-import type { OathPlayer } from "../model/player";
 import type { AbstractConstructor, MaskProxyManager } from "../utils";
 import { allChoices, allCombinations, isExtended } from "../utils";
 import { ChooseModifiers, ChooseModifiedCostContextAction, UsePowerAction } from "./actions";
@@ -77,6 +76,7 @@ function ModifyCostContextResolver<T extends OathEffect<any> & { context: CostCo
         mustUse = true;
 
         applyBefore(): void {
+            if (!this.player) return;
             new ChooseModifiedCostContextAction(this.powerManager, this.player, this.action.context, (costContext) => {
                 this.action.context = costContext;
             }).doNext();
@@ -102,7 +102,6 @@ export class FilterFullCardTargets extends ActionModifier<OathGame, SearchPlayOr
             const facedown = typeof choice === "boolean" ? choice : false;
             const siteProxy = typeof choice === "boolean" ? undefined : choice;
             const canReplace = this.action.canReplace || siteProxy === undefined;
-            const targetProxy = siteProxy ? siteProxy.denizens : this.playerProxy.advisers;
 
             playingProxy.facedown = facedown;
             const capacityInformation: CapacityInformation = getCapacityInformation(this.powerManager, this.action.maskProxyManager, siteProxy, this.action.playerProxy, playingProxy);

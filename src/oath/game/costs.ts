@@ -81,6 +81,7 @@ export class SupplyCost extends Cost {
     }
 
     get amount() { return this.flatModifier + (this.base + this.modifier) * this.multiplier; }
+    get free() { return this.amount === 0; }
 
     add(other: SupplyCost): void {
         this.flatModifier += other.amount;
@@ -94,15 +95,15 @@ export class SupplyCost extends Cost {
 
 export abstract class CostContext<T extends Cost, S = any> {
     constructor(
-        public readonly player: OathPlayer,
+        public readonly player: OathPlayer | undefined,
         public readonly origin: any, // TODO: This sucks. Need to find a better way of differentiating contexts
         public cost: T,
-        public source: S
+        public source: S | undefined
     ) { }
     
     abstract get valid(): boolean;
     
-    static dummyFactory(player: OathPlayer): Factory<CostContext<Cost, any>, [any, Cost?]> {
+    static dummyFactory(player: OathPlayer | undefined): Factory<CostContext<Cost, any>, [any, Cost?]> {
         throw TypeError("Not implemented");
     };
 }
@@ -111,17 +112,19 @@ export type ContextCost<T extends CostContext<Cost>> = T extends CostContext<inf
 
 export class ResourceTransferContext extends CostContext<ResourceCost, OathGameObject> {
     constructor(
-        player: OathPlayer,
+        player: OathPlayer | undefined,
         origin: any,
         cost: ResourceCost,
         public target: OathGameObject | undefined,
-        source?: OathGameObject,
+        source: OathGameObject | undefined = player,
         public partial = (source ?? player) !== player
     ) {
-        super(player, origin, cost, source ?? player);
+        super(player, origin, cost, source);
     }
 
     get valid(): boolean {
+        if (!this.source) return this.cost.free;
+
         if (!this.partial)
             for (const [resource, amount] of this.cost.totalResources)
                 if (this.source.byClass(resource).filter((e) => e.usable).length < amount)
@@ -130,26 +133,27 @@ export class ResourceTransferContext extends CostContext<ResourceCost, OathGameO
         return true;
     }
 
-    static dummyFactory(player: OathPlayer): Factory<ResourceTransferContext, [OathGameObject, ResourceCost?]> {
+    static dummyFactory(player: OathPlayer | undefined): Factory<ResourceTransferContext, [OathGameObject, ResourceCost?]> {
         return (source, cost) => new ResourceTransferContext(player, undefined, cost ?? new ResourceCost(), source, source);
     }
 }
 
 export class SupplyCostContext extends CostContext<SupplyCost, OathPlayer> {
     constructor(
-        player: OathPlayer,
+        player: OathPlayer | undefined,
         origin: any,
         cost: SupplyCost,
-        source?: OathPlayer
+        source: OathPlayer | undefined = player
     ) {
-        super(player, origin, cost, source ?? player);
+        super(player, origin, cost, source);
     }
 
     get valid(): boolean {
+        if (!this.source) return this.cost.free;
         return this.source.supply >= this.cost.amount;
     }
 
-    static dummyFactory(player: OathPlayer): Factory<SupplyCostContext, [OathPlayer, SupplyCost?]> {
+    static dummyFactory(player: OathPlayer | undefined): Factory<SupplyCostContext, [OathPlayer | undefined, SupplyCost?]> {
         return (source, cost) => new SupplyCostContext(player, undefined, cost ?? new SupplyCost(0), source);
     }
 }

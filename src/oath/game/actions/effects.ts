@@ -39,7 +39,7 @@ export class ParentToTargetEffect extends OathEffect {
     constructor(actionManager: OathActionManager, player: OathPlayer | undefined, objects: Iterable<OathGameObject>, target?: OathGameObject, onTop: boolean = false) {
         super(actionManager, player);
         this.objects = new Set(objects);
-        this.target = target ?? this.executor;
+        this.target = target ?? this.player;
         this.onTop = onTop;
     }
 
@@ -76,7 +76,7 @@ export class PutResourcesOnTargetEffect extends OathEffect<number> {
         super(actionManager, player);
         this.resource = resource;
         this.amount = Math.max(0, amount);
-        this.target = target ?? this.executor;
+        this.target = target ?? this.player;
     }
 
     resolve(): void {
@@ -98,7 +98,7 @@ export class PutResourcesOnTargetEffect extends OathEffect<number> {
     }
 }
 
-export class TransferResourcesEffect extends PlayerEffect<boolean> {
+export class TransferResourcesEffect extends OathEffect<boolean> {
     constructor(
         actionManager: OathActionManager,
         public context: ResourceTransferContext,
@@ -107,7 +107,12 @@ export class TransferResourcesEffect extends PlayerEffect<boolean> {
     }
 
     resolve(): void {
-        if (this.context.target instanceof Denizen && this.game.currentPlayer !== this.executor) {
+        if (!this.context.valid) {
+            this.result = false;
+            return;
+        }
+
+        if (this.context.target instanceof Denizen && this.game.currentPlayer !== this.player) {
             const bank = this.game.favorBank(this.context.target.suit);
             if (!bank) {
                 this.result = false;
@@ -123,7 +128,7 @@ export class TransferResourcesEffect extends PlayerEffect<boolean> {
         }
 
         for (const [resource, amount] of this.context.cost.burntResources) {
-            const resources = this.context.source.byClass(resource).max(amount);
+            const resources = this.context.source!.byClass(resource).max(amount);
             if (resources.length < amount) {
                 this.result = false;
                 return;
@@ -135,22 +140,22 @@ export class TransferResourcesEffect extends PlayerEffect<boolean> {
         const cantHaveSecrets = this.context.target instanceof FavorBank;
         for (const [resource, amount] of this.context.cost.placedResources) {
             if (resource === Secret && cantHaveSecrets) {
-                new FlipSecretsEffect(this.actionManager, this.player, amount, true, this.context.source);
+                new FlipSecretsEffect(this.actionManager, this.player, amount, true, this.context.source).doNext();
             } else if (resource === Secret && cantGiveSecrets) {
-                new PutResourcesOnTargetEffect(this.actionManager, this.player, resource, amount, this.context.target);
+                new PutResourcesOnTargetEffect(this.actionManager, this.player, resource, amount, this.context.target).doNext();
             } else {
-                const resources = this.context.source.byClass(resource).filter((e) => e.usable).max(amount);
+                const resources = this.context.source!.byClass(resource).filter((e) => e.usable).max(amount);
                 if (!this.context.partial && resources.length < amount) {
                     this.result = false;
                     return;
                 }
-                new ParentToTargetEffect(this.actionManager, this.executor, resources, this.context.target).doNext();
+                new ParentToTargetEffect(this.actionManager, this.player, resources, this.context.target).doNext();
             }
         }
     }
 }
 
-export class PaySupplyEffect extends PlayerEffect<boolean> {
+export class PaySupplyEffect extends OathEffect<boolean> {
     constructor(
         actionManager: OathActionManager,
         public context: SupplyCostContext
@@ -164,7 +169,7 @@ export class PaySupplyEffect extends PlayerEffect<boolean> {
             return;
         }
 
-        this.context.source.supply -= this.context.cost.amount;
+        this.context.source!.supply -= this.context.cost.amount;
         this.result = true;
     }
 
@@ -185,7 +190,7 @@ export class FlipSecretsEffect extends OathEffect<number> {
         super(actionManager, player);
         this.amount = Math.max(0, amount);
         this.facedown = facedown;
-        this.source = source ?? this.executor;
+        this.source = source ?? this.player;
     }
 
     resolve(): void {
@@ -260,14 +265,14 @@ export class MoveOwnWarbandsEffect extends PlayerEffect<number> {
     }
 
     resolve(): void {
-        this.amount = this.executor.moveOwnWarbands(this.from, this.to, this.amount);
+        this.amount = this.player.moveOwnWarbands(this.from, this.to, this.amount);
         this.result = this.amount;
     }
 
     serialize() {
         return {
             ...super.serialize(),
-            owner: this.executor.name,
+            owner: this.player.name,
             source: this.from.name,
             target: this.to.name,
             amount: this.amount
@@ -282,11 +287,11 @@ export class PutPawnAtSiteEffect extends PlayerEffect {
     }
 
     resolve(): void {
-        this.executor.site = this.site;
+        this.player.site = this.site;
         if (this.site.facedown) this.site.turnFaceup();
 
         // TODO: Technically, this is a minor action
-        for (const relic of this.site.relics) new PeekAtCardEffect(this.actionManager, this.executor, relic).doNext();
+        for (const relic of this.site.relics) new PeekAtCardEffect(this.actionManager, this.player, relic).doNext();
     }
 
     serialize() {
@@ -303,7 +308,7 @@ export class PeekAtCardEffect extends PlayerEffect {
     }
 
     resolve(): void {
-        this.card.seenBy.add(this.executor);
+        this.card.seenBy.add(this.player);
         this.actionManager.markEventAsOneWay = true;
     }
 }
@@ -338,7 +343,7 @@ export class DrawFromDeckEffect<T extends OathCard> extends PlayerEffect<T[]> {
         this.result = this.deck.draw(this.amount, this.fromBottom, this.skip);
         for (const card of this.result) {
             if (this.result.length > 1) card.seenBy.clear();
-            new PeekAtCardEffect(this.actionManager, this.executor, card).doNext();
+            new PeekAtCardEffect(this.actionManager, this.player, card).doNext();
         }
     }
 }
@@ -365,7 +370,7 @@ export class SearchDrawEffect extends PlayerEffect<WorldCard[]> {
 
         for (const card of this.result) {
             if (this.result.length > 1) card.seenBy.clear();
-            new PeekAtCardEffect(this.actionManager, this.executor, card).doNext();
+            new PeekAtCardEffect(this.actionManager, this.player, card).doNext();
         }
     }
 }
@@ -386,17 +391,17 @@ export class PlayWorldCardEffect extends PlayerEffect {
             if (!(this.card instanceof Denizen)) throw new InvalidActionResolution("Only Denizens can be played to sites.");
             if (this.maskProxyManager.get(this.card).restriction === CardRestriction.Adviser) throw new InvalidActionResolution("Cannot play adviser-only cards to sites.");
 
-            new PlayDenizenAtSiteEffect(this.actionManager, this.executor, this.card, this.site).doNext();
+            new PlayDenizenAtSiteEffect(this.actionManager, this.player, this.card, this.site).doNext();
         } else {
             if (!this.facedown && this.card instanceof Denizen && this.maskProxyManager.get(this.card).restriction === CardRestriction.Site)
                 throw new InvalidActionResolution("Cannot play site-only cards to advisers.");
             
             if (!this.facedown && this.card instanceof Vision) {
-                new PlayVisionEffect(this.actionManager, this.executor, this.card).doNext();
+                new PlayVisionEffect(this.actionManager, this.player, this.card).doNext();
                 return;
             }
 
-            new PlayWorldCardToAdviserEffect(this.actionManager, this.executor, this.card, this.facedown).doNext();
+            new PlayWorldCardToAdviserEffect(this.actionManager, this.player, this.card, this.facedown).doNext();
         }
     }
 }
@@ -412,10 +417,10 @@ export class PlayDenizenAtSiteEffect extends PlayerEffect {
     }
 
     resolve(): void {
-        new ParentToTargetEffect(this.actionManager, this.executor, [this.card], this.site).doNext(() => {
+        new ParentToTargetEffect(this.actionManager, this.player, [this.card], this.site).doNext(() => {
             if (this.card.facedown) this.card.turnFaceup();
             const bank = this.game.favorBank(this.card.suit);
-            if (bank) new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.executor, this, new ResourceCost([[Favor, 1]]), this.executor, bank)).doNext();
+            if (bank) new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.player, this, new ResourceCost([[Favor, 1]]), this.player, bank)).doNext();
         });
     }
 }
@@ -426,7 +431,7 @@ export class PlayWorldCardToAdviserEffect extends PlayerEffect {
     }
 
     resolve(): void {
-        new ParentToTargetEffect(this.actionManager, this.executor, [this.card]).doNext(() => { if (!this.facedown) this.card.turnFaceup(); });
+        new ParentToTargetEffect(this.actionManager, this.player, [this.card]).doNext(() => { if (!this.facedown) this.card.turnFaceup(); });
     }
 }
 
@@ -442,9 +447,9 @@ export class PlayVisionEffect extends PlayerEffect {
     }
 
     resolve(): void {
-        if (!(this.executor.board instanceof ExileBoard) || this.executor.isImperial) throw new InvalidActionResolution("Only Exiles can play Visions faceup.");
-        this.oldVision = this.executor.board.setVision(this.card);
-        if (this.oldVision) new DiscardCardEffect(this.actionManager, this.executor, this.oldVision).doNext();
+        if (!(this.player.board instanceof ExileBoard) || this.player.isImperial) throw new InvalidActionResolution("Only Exiles can play Visions faceup.");
+        this.oldVision = this.player.board.setVision(this.card);
+        if (this.oldVision) new DiscardCardEffect(this.actionManager, this.player, this.oldVision).doNext();
     }
 }
 
@@ -458,7 +463,7 @@ export class MoveWorldCardToAdvisersEffect extends OathEffect {
         target?: OathPlayer
     ) {
         super(actionManager, player);
-        this.target = target ?? this.executor;
+        this.target = target ?? this.player;
     }
 
     resolve(): void {
@@ -466,7 +471,7 @@ export class MoveWorldCardToAdvisersEffect extends OathEffect {
             throw new InvalidActionResolution("Cannot move site-only cards to advisers.");
 
         if (!this.target) return;
-        new ParentToTargetEffect(this.actionManager, this.executor, [this.card], this.target).doNext()
+        new ParentToTargetEffect(this.actionManager, this.player, [this.card], this.target).doNext()
         new CheckCapacityEffect(this.actionManager, this.target, [this.target]).doNext();
     }
 
@@ -494,8 +499,8 @@ export class MoveDenizenToSiteEffect extends OathEffect {
             throw new InvalidActionResolution("Cannot move adviser-only cards to sites.");
 
         if (!this.target) return;
-        new ParentToTargetEffect(this.actionManager, this.executor, [this.card], this.target).doNext()
-        new CheckCapacityEffect(this.actionManager, this.executor ?? this.game.currentPlayer, [this.target]).doNext();
+        new ParentToTargetEffect(this.actionManager, this.player, [this.card], this.target).doNext()
+        new CheckCapacityEffect(this.actionManager, this.player ?? this.game.currentPlayer, [this.target]).doNext();
     }
 
     serialize() {
@@ -528,10 +533,10 @@ export class DiscardCardGroupEffect extends PlayerEffect {
             else if (card.owner)
                 origins.add(card.owner);
 
-            new DiscardCardEffect(this.actionManager, this.executor, card, this.discardOptions).doNext();
+            new DiscardCardEffect(this.actionManager, this.player, card, this.discardOptions).doNext();
         }
 
-        new CheckCapacityEffect(this.actionManager, this.executor, origins, this.discardOptions).doNext();
+        new CheckCapacityEffect(this.actionManager, this.player, origins, this.discardOptions).doNext();
     }
 }
 
@@ -558,26 +563,26 @@ export class CheckCapacityEffect extends PlayerEffect {
             if (excess > discardable.length)
                 throw new InvalidActionResolution(`Cannot satisfy the capacity of ${origin.name}'s cards`);
             else if (excess)
-                new SearchDiscardAction(this.actionManager, origin instanceof OathPlayer ? origin : this.executor, discardable, excess, this.discardOptions).doNext();
+                new SearchDiscardAction(this.actionManager, origin instanceof OathPlayer ? origin : this.player, discardable, excess, this.discardOptions).doNext();
         }
     }
 }
 
-export class DiscardCardEffect<T extends OathCard> extends PlayerEffect {
+export class DiscardCardEffect<T extends OathCard> extends OathEffect {
     discardOptions: DiscardOptions<OathCard>;
 
     constructor(
         actionManager: OathActionManager,
-        player: OathPlayer,
+        player: OathPlayer | undefined,
         public card: T,
         discardOptions?: DiscardOptions<T>
     ) {
         super(actionManager, player);
-        this.discardOptions = discardOptions || new DiscardOptions(card.discard ?? player.discard ?? this.game.worldDeck);
+        this.discardOptions = discardOptions || new DiscardOptions(card.discard ?? player?.discard ?? this.game.worldDeck);
     }
 
     resolve(): void {
-        new ParentToTargetEffect(this.actionManager, this.executor, [this.card], this.discardOptions.discard, !this.discardOptions.onBottom).doNext();
+        new ParentToTargetEffect(this.actionManager, this.player, [this.card], this.discardOptions.discard, !this.discardOptions.onBottom).doNext();
         new ReturnResourcesEffect(this.actionManager, this.card).doNext();
         this.card.turnFacedown();
         for (const player of this.game.players)
@@ -610,11 +615,11 @@ export class ReturnResourcesEffect extends OathEffect {
     }
 }
 
-export class ReturnAllResourcesEffect extends OathEffect {
+export class ReturnAllResourcesEffect extends PlayerEffect {
     ignore: Set<OathGameObject>;
 
     constructor(actionManager: OathActionManager, ignore?: Iterable<OathGameObject>) {
-        super(actionManager, undefined);
+        super(actionManager, actionManager.game.currentPlayer);
         this.ignore = new Set<OathGameObject>(ignore);
     }
 
@@ -679,7 +684,7 @@ export class TakeOwnableObjectEffect extends OathEffect {
             if (this.flipFaceup) this.target.turnFaceup();
         }
         
-        new ParentToTargetEffect(this.actionManager, this.executor, [this.target]).doNext();
+        new ParentToTargetEffect(this.actionManager, this.player, [this.target]).doNext();
     }
 
     serialize() {
@@ -778,13 +783,13 @@ export class CampaignJoinDefenderAlliesEffect extends PlayerEffect {
     }
 
     resolve(): void {
-        this.campaignResult.defenderAllies.add(this.executor);
+        this.campaignResult.defenderAllies.add(this.player);
     }
 }
 
 export class SetNewOathkeeperEffect extends PlayerEffect {
     resolve(): void {
-        this.executor.addChild(this.game.oathkeeperTile);
+        this.player.addChild(this.game.oathkeeperTile);
     }
 }
 
@@ -811,9 +816,9 @@ export class GainSupplyEffect extends PlayerEffect {
     }
 
     resolve(): void {
-        const newSupply = Math.min(7, this.executor.supply + this.amount);
-        this.amount = newSupply - this.executor.supply;
-        this.executor.supply += this.amount;
+        const newSupply = Math.min(7, this.player.supply + this.amount);
+        this.amount = newSupply - this.player.supply;
+        this.player.supply += this.amount;
     }
 
     serialize() {
@@ -892,34 +897,34 @@ export class NextTurnEffect extends OathEffect {
 
 export class BecomeCitizenEffect extends PlayerEffect {
     resolve(): void {
-        if (!(this.executor.board instanceof ExileBoard) || this.executor.board.isCitizen) return;
+        if (!(this.player.board instanceof ExileBoard) || this.player.board.isCitizen) return;
         
-        const exileBag = this.executorProxy.leader.bag.original;
-        const playerColor = this.executorProxy.leader.board.key;
-        for (const source of [...this.game.map.sites(), this.executor]) {
+        const exileBag = this.playerProxy.leader.bag.original;
+        const playerColor = this.playerProxy.leader.board.key;
+        for (const source of [...this.game.map.sites(), this.player]) {
             const amount = source.getWarbandsAmount(playerColor);
             if (!amount) continue;
-            new ParentToTargetEffect(this.actionManager, this.executor, source.getWarbands(playerColor), exileBag).doNext();
+            new ParentToTargetEffect(this.actionManager, this.player, source.getWarbands(playerColor), exileBag).doNext();
             new ParentToTargetEffect(this.actionManager, this.game.chancellor, this.game.chancellor.bag.get(amount), source).doNext();
         }
 
-        if (this.executor.board.vision) new DiscardCardEffect(this.actionManager, this.executor, this.executor.board.vision).doNext();
-        this.executor.board.isCitizen = true;
-        new GainSupplyEffect(this.actionManager, this.executor, Infinity).doNext();
-        if (this.game.currentPlayer === this.executor) new RestAction(this.actionManager, this.executor).doNext();
+        if (this.player.board.vision) new DiscardCardEffect(this.actionManager, this.player, this.player.board.vision).doNext();
+        this.player.board.isCitizen = true;
+        new GainSupplyEffect(this.actionManager, this.player, Infinity).doNext();
+        if (this.game.currentPlayer === this.player) new RestAction(this.actionManager, this.player).doNext();
     }
 }
 
 export class BecomeExileEffect extends PlayerEffect {
     resolve(): void {
-        if (!(this.executor.board instanceof ExileBoard) || !this.executor.board.isCitizen) return;
-        this.executor.board.isCitizen = false;
+        if (!(this.player.board instanceof ExileBoard) || !this.player.board.isCitizen) return;
+        this.player.board.isCitizen = false;
         
-        const amount = this.executor.getWarbandsAmount(PlayerColor.Purple);
-        new ParentToTargetEffect(this.actionManager, this.game.chancellor, this.executor.getWarbands(PlayerColor.Purple), this.game.chancellor.bag).doNext();
-        new ParentToTargetEffect(this.actionManager, this.executor, this.executorProxy.leader.bag.original.get(amount), this.executor).doNext();
+        const amount = this.player.getWarbandsAmount(PlayerColor.Purple);
+        new ParentToTargetEffect(this.actionManager, this.game.chancellor, this.player.getWarbands(PlayerColor.Purple), this.game.chancellor.bag).doNext();
+        new ParentToTargetEffect(this.actionManager, this.player, this.playerProxy.leader.bag.original.get(amount), this.player).doNext();
 
-        if (this.game.currentPlayer === this.executor) new RestAction(this.actionManager, this.executor).doNext();
+        if (this.game.currentPlayer === this.player) new RestAction(this.actionManager, this.player).doNext();
     }
 }
 
@@ -1005,13 +1010,13 @@ export class RegionDiscardEffect extends PlayerEffect {
 
     resolve(): void {
         const cards: Denizen[] = [];
-        if (this.executor.site.region)
-            for (const site of this.executor.site.region.sites)
+        if (this.player.site.region)
+            for (const site of this.player.site.region.sites)
                 for (const denizen of site.denizens)
                     if (this.suits.includes(denizen.suit) && denizen !== this.source)
                         cards.push(denizen);
 
-        new DiscardCardGroupEffect(this.actionManager, this.executor, cards).doNext();
+        new DiscardCardGroupEffect(this.actionManager, this.player, cards).doNext();
     }
 }
 
@@ -1029,10 +1034,10 @@ export class BindingExchangeEffect extends PlayerEffect {
 
     resolve(): void {
         for (const [resource, amount] of this.resourcesGiven)
-            new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.executor, this, new ResourceCost([[resource, amount]]), this.other)).doNext();
+            new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.player, this, new ResourceCost([[resource, amount]]), this.other)).doNext();
 
         for (const [resource, amount] of this.resourcesTaken)
-            new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.other, this, new ResourceCost([[resource, amount]]), this.executor)).doNext();
+            new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.other, this, new ResourceCost([[resource, amount]]), this.player)).doNext();
     }
 }
 
@@ -1044,7 +1049,7 @@ export class SiteExchangeOfferEffect extends BindingExchangeEffect {
         super.resolve();
 
         for (const site of this.sitesGiven) {
-            new MoveOwnWarbandsEffect(this.actionManager, this.executor, site, this.executor).doNext();
+            new MoveOwnWarbandsEffect(this.actionManager, this.player, site, this.player).doNext();
             new ChooseNumberAction(
                 this.actionManager, this.other, "Move warbands to " + site.name,
                 inclusiveRange(Math.max(0, 1 - site.getWarbandsAmount(this.other.leader.board.key)), this.other.getWarbandsAmount(this.other.leader.board.key)),
@@ -1055,9 +1060,9 @@ export class SiteExchangeOfferEffect extends BindingExchangeEffect {
         for (const site of this.sitesTaken) {
             new MoveOwnWarbandsEffect(this.actionManager, this.other, site, this.other).doNext();
             new ChooseNumberAction(
-                this.actionManager, this.executor, "Move warbands to " + site.name,
-                inclusiveRange(Math.max(0, 1 - site.getWarbandsAmount(this.executor.leader.board.key)), this.executor.getWarbandsAmount(this.executor.leader.board.key)),
-                (amount: number) => new MoveOwnWarbandsEffect(this.actionManager, this.executor, this.executor, site, amount).doNext()
+                this.actionManager, this.player, "Move warbands to " + site.name,
+                inclusiveRange(Math.max(0, 1 - site.getWarbandsAmount(this.player.leader.board.key)), this.player.getWarbandsAmount(this.player.leader.board.key)),
+                (amount: number) => new MoveOwnWarbandsEffect(this.actionManager, this.player, this.player, site, amount).doNext()
             ).doNext();
         }
     }
@@ -1074,7 +1079,7 @@ export class ThingsExchangeOfferEffect<T extends OathGameObject> extends Binding
             new ParentToTargetEffect(this.actionManager, this.other, [thing]).doNext();
 
         for (const thing of this.thingsTaken)
-            new ParentToTargetEffect(this.actionManager, this.executor, [thing]).doNext();
+            new ParentToTargetEffect(this.actionManager, this.player, [thing]).doNext();
     }
 }
 
@@ -1105,7 +1110,7 @@ export class TakeReliquaryRelicEffect extends PlayerEffect {
         if (!this.relic)
             throw new InvalidActionResolution("No relics at the designated Reliquary slot");
 
-        new TakeOwnableObjectEffect(this.actionManager, this.executor, this.relic).doNext();
+        new TakeOwnableObjectEffect(this.actionManager, this.player, this.relic).doNext();
     }
 
     serialize() {
@@ -1140,14 +1145,14 @@ export class ClearResourcesAndWarbandsEffect extends OathEffect {
 // NOTE: In theory, none of those should get rolled back, but you never know
 export class WinGameEffect extends PlayerEffect {
     resolve(): void {
-        new VowOathAction(this.actionManager, this.executor).doNext();
+        new VowOathAction(this.actionManager, this.player).doNext();
 
-        if (!this.executor.isImperial)
-            new ChooseNewCitizensAction(this.actionManager, this.executor).doNext();
+        if (!this.player.isImperial)
+            new ChooseNewCitizensAction(this.actionManager, this.player).doNext();
         else
-            new BuildOrRepairEdificeAction(this.actionManager, this.executor).doNext();
+            new BuildOrRepairEdificeAction(this.actionManager, this.player).doNext();
         
-        new FinishChronicleEffect(this.actionManager, this.executor).doNext();
+        new FinishChronicleEffect(this.actionManager, this.player).doNext();
     }
 }
 
@@ -1171,12 +1176,12 @@ export class BuildEdificeFromDenizenEffect extends OathEffect {
             if (suit === this.denizen.suit) {
                 this.edifice = new Edifice(key);
                 this.edifice.turnFaceup();
-                new ParentToTargetEffect(this.actionManager, this.executor, [this.edifice], site).doNext();
-                new ParentToTargetEffect(this.actionManager, this.executor, this.denizen.children, this.edifice).doNext();
+                new ParentToTargetEffect(this.actionManager, this.player, [this.edifice], site).doNext();
+                new ParentToTargetEffect(this.actionManager, this.player, this.denizen.children, this.edifice).doNext();
                 break;
             }
         }
-        new ParentToTargetEffect(this.actionManager, this.executor, [this.denizen], site.region?.discard).doNext();
+        new ParentToTargetEffect(this.actionManager, this.player, [this.denizen], site.region?.discard).doNext();
     }
 
     serialize() {
@@ -1204,8 +1209,8 @@ export class FlipEdificeEffect extends OathEffect {
         for (const [key, other] of Object.entries(edificeFlipside)) {
             if (key === this.edifice.name) {
                 this.newEdifice = new Edifice(other);
-                new ParentToTargetEffect(this.actionManager, this.executor, [this.newEdifice], this.edifice.site).doNext();
-                new ParentToTargetEffect(this.actionManager, this.executor, this.edifice.children, this.newEdifice).doNext();
+                new ParentToTargetEffect(this.actionManager, this.player, [this.newEdifice], this.edifice.site).doNext();
+                new ParentToTargetEffect(this.actionManager, this.player, this.edifice.children, this.newEdifice).doNext();
                 this.newEdifice.turnFaceup();
                 break;
             }
@@ -1232,7 +1237,7 @@ export class FinishChronicleEffect extends PlayerEffect {
         for (const regionProxy of this.gameProxy.map.children) {
             for (const siteProxy of regionProxy.sites) {
                 let keepSite = false;
-                if (!siteProxy.ruler?.isImperial && siteProxy.ruler !== this.executorProxy) {
+                if (!siteProxy.ruler?.isImperial && siteProxy.ruler !== this.playerProxy) {
                     for (const denizenProxy of siteProxy.denizens) {
                         if (denizenProxy instanceof Edifice && denizenProxy.suit !== OathSuit.None) {
                             new FlipEdificeEffect(this.actionManager, denizenProxy).doNext();
@@ -1281,7 +1286,7 @@ export class FinishChronicleEffect extends PlayerEffect {
             for (const relic of player.relics) {
                 if (relic === this.game.grandScepter) continue;
 
-                if (player === this.executor)
+                if (player === this.player)
                     futureReliquary.push(relic);
                 else
                     relicDeck.addChild(relic);
@@ -1300,9 +1305,9 @@ export class FinishChronicleEffect extends PlayerEffect {
         relicDeck.addChildren(futureReliquary, true);
 
         new ChooseSuitsAction(
-            this.actionManager, this.executor, "Choose a suit to add to the World Deck", 
+            this.actionManager, this.player, "Choose a suit to add to the World Deck", 
             (suits: OathSuit[]) => { if (suits[0] !== undefined) this.addCardsToWorldDeck(suits[0]); },
-            [maxInGroup(ALL_OATH_SUITS, this.executor.suitAdviserCount.bind(this.executor))]
+            [maxInGroup(ALL_OATH_SUITS, this.player.suitAdviserCount.bind(this.player))]
         ).doNext();
     }
 
@@ -1336,7 +1341,7 @@ export class FinishChronicleEffect extends PlayerEffect {
         // Remove cards to the Dispossessed
         const firstDiscard = this.game.map.children[0]!.discard;
         for (const player of this.game.players) {
-            const deck = player === this.executor ? worldDeck : firstDiscard;
+            const deck = player === this.player ? worldDeck : firstDiscard;
             deck.addChildren(player.advisers);
         }
         for (const region of this.game.map.children) {
@@ -1353,10 +1358,10 @@ export class FinishChronicleEffect extends PlayerEffect {
                 continue;
             }
 
-            new PutDenizenIntoDispossessedEffect(this.actionManager, this.executor, card).doNext();
+            new PutDenizenIntoDispossessedEffect(this.actionManager, this.player, card).doNext();
         }
 
-        new DiscardCardGroupEffect(this.actionManager, this.executor, firstDiscard.children, new DiscardOptions(worldDeck, false, true)).doNext(() => {
+        new DiscardCardGroupEffect(this.actionManager, this.player, firstDiscard.children, new DiscardOptions(worldDeck, false, true)).doNext(() => {
             worldDeck.shuffle();
 
             // Rebuild the World Deck
@@ -1381,7 +1386,7 @@ export class FinishChronicleEffect extends PlayerEffect {
             worldDeck.addChildren(middlePile, true);
             worldDeck.addChildren(topPile, true);
     
-            this.game.updateSeed(this.executor.board.key);
+            this.game.updateSeed(this.player.board.key);
         });
         new ChangePhaseEffect(this.actionManager, OathPhase.Over).doNext();
     }

@@ -328,7 +328,7 @@ export class OathActionManager extends EventPublisher<{
         if (!action) throw new InvalidActionResolution("No action to continue");
 
         const player = this.getPlayerFromId(playerId);
-        if (action.player !== player) throw new InvalidActionResolution(`Action must be resolved by ${action.player.name}, not ${player.name}`);
+        if (action.player !== player) throw new InvalidActionResolution(`Action must be resolved by ${action.player?.name}, not ${player.name}`);
 
         this.markEventAsOneWay = false;
         this.currentEffectsStack.length = 0;

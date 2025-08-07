@@ -26,11 +26,11 @@ export class ConspiracyWhenPlayed extends WhenPlayed<Conspiracy> {
     whenPlayed(): void {
         const targets: OathPlayer[] = [];
         for (const playerProxy of this.gameProxy.players) {
-            if (playerProxy.site === this.action.executorProxy.site) {
+            if (playerProxy.site === this.action.playerProxy.site) {
                 let totalAdviserSuitCount = 0;
                 for (const adviserProxy of playerProxy.advisers)
                     if (!adviserProxy.facedown && adviserProxy instanceof Denizen)
-                        totalAdviserSuitCount += this.action.executorProxy.suitAdviserCount(adviserProxy.suit);
+                        totalAdviserSuitCount += this.action.playerProxy.suitAdviserCount(adviserProxy.suit);
 
                 if (totalAdviserSuitCount >= 2)
                     targets.push(playerProxy);
@@ -38,8 +38,8 @@ export class ConspiracyWhenPlayed extends WhenPlayed<Conspiracy> {
         }
 
         new ChoosePlayersAction(
-            this.actionManager, this.action.executor, "Target a player (or no-one) with the Conspiracy",
-            (targets: OathPlayer[]) => { if (targets[0]) new ConspiracyStealAction(this.actionManager, this.action.executor, targets[0]).doNext(); }, 
+            this.actionManager, this.action.player, "Target a player (or no-one) with the Conspiracy",
+            (targets: OathPlayer[]) => { if (targets[0]) new ConspiracyStealAction(this.actionManager, this.action.player, targets[0]).doNext(); }, 
             [targets],
             [[0, 1]]
         ).doNext();

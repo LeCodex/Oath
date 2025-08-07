@@ -43,7 +43,7 @@ export function HomelandSitePower(suit: OathSuit) {
     
         applyAfter(): void {
             if (this.action.site === this.source && this.action.card instanceof Denizen && this.action.card.suit === HomelandSitePower.suit)
-                this.giveReward(this.action.executorProxy);
+                this.giveReward(this.action.playerProxy);
         }
     
         abstract giveReward(player: OathPlayer): void;
@@ -83,7 +83,7 @@ export function Reliquary<T extends AbstractConstructor<OathPower<ReliquarySlot>
 export function AtSite<T extends AbstractConstructor<OathPower<Site> & { canUse(...args: any[]): boolean; }>>(Base: T) {
     abstract class AtSiteModifier extends Base {
         canUse(...args: any[]): boolean {
-            return super.canUse(...args) && this.playerProxy.site === this.sourceProxy;
+            return super.canUse(...args) && this.playerProxy?.site === this.sourceProxy;
         }
     }
     return AtSiteModifier;

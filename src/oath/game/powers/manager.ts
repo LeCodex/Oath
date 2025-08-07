@@ -44,27 +44,26 @@ export class OathPowerManager {
         while (stack.length) {
             const node = stack.pop()!;
             stack.push(...node.children);
-            if (hasPowers(node) && node.active) {
-                for (const power of node.powers) {
-                    const powerCls = powersIndex[power];
-                    if (isExtended(powerCls, type))
-                        yield [node as SourceType<T>, powerCls];
-                }
+            if (!hasPowers(node) || !node.active) continue;
+            for (const power of node.powers) {
+                const powerCls = powersIndex[power];
+                if (isExtended(powerCls, type))
+                    yield [node as SourceType<T>, powerCls];
             }
         }
     }
 
-    gatherActionModifiers<T extends OathAction>(action: T, activator: OathPlayer, maskProxyManager?: MaskProxyManager): Set<ActionModifier<WithPowers, T>> {
+    gatherActionModifiers<T extends OathAction>(action: T, activator: OathPlayer | undefined, maskProxyManager?: MaskProxyManager): Set<ActionModifier<WithPowers, T>> {
         const instances = new Set<ActionModifier<WithPowers, T>>();
         for (const [source, modifier] of this.getPowers(ActionModifier<WithPowers, T>, maskProxyManager)) {
-            const instance = new modifier(this, source.original, activator, action, activator);
+            const instance = new modifier(this, source.original, activator, action);
             if (action instanceof instance.modifiedAction && instance.canUse()) instances.add(instance);
         }
 
         return instances;
     }
 
-    modifiersCostContext(player: OathPlayer, modifiers: CostModifier<WithPowers, CostContext<any>>[]): MultiCostContext<ResourceTransferContext> {
+    modifiersCostContext(player: OathPlayer | undefined, modifiers: CostModifier<WithPowers, CostContext<any>>[]): MultiCostContext<ResourceTransferContext> {
         const contexts: ResourceTransferContext[] = modifiers.map((e) => new ResourceTransferContext(player, this, e.cost, e.source));
         return new MultiCostContext(this, player, contexts, ResourceTransferContext.dummyFactory(player));
     }

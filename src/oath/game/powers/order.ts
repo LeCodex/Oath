@@ -100,7 +100,8 @@ export class MilitaryParadeAttack extends AttackerBattlePlan<Denizen> {
 }
 export class MilitaryParadeDefense extends DefenderBattlePlan<Denizen> {
     applyBefore(): void {
-        this.action.campaignResult.onDefenseWin(new CampaignEndCallback(() => militaryParadeResolution(this.action.campaignResult, this.player), this.source.name));
+        if (!this.player) return;
+        this.action.campaignResult.onDefenseWin(new CampaignEndCallback(() => militaryParadeResolution(this.action.campaignResult, this.player!), this.source.name));
     }
 }
 
@@ -116,10 +117,12 @@ export class MartialCultureAttack extends AttackerBattlePlan<Denizen> {
 }
 export class MartialCultureDefense extends DefenderBattlePlan<Denizen> {
     applyBefore(): void {
+        if (!this.player) return;
+        if (!this.action.playerProxy) return;
         if (!(this.action.playerProxy.board instanceof ExileBoard)) return;
         if (!this.action.campaignResult.defender?.isImperial)
             this.action.campaignResult.onDefenseWin(new CampaignEndCallback(
-                () => new MakeDecisionAction(this.actionManager, this.player, "Become a Citizen?", () => new BecomeCitizenEffect(this.actionManager, this.player).doNext()),
+                () => new MakeDecisionAction(this.actionManager, this.player!, "Become a Citizen?", () => new BecomeCitizenEffect(this.actionManager, this.player!).doNext()),
                 this.source.name
             ));
     }
@@ -139,8 +142,9 @@ export class FieldPromotionDefense extends DefenderBattlePlan<Denizen> {
     cost = new ResourceCost([[Favor, 1]]);
 
     applyBefore(): void {
+        if (!this.playerProxy) return;
         this.action.campaignResult.onDefenseWin(new CampaignEndCallback(
-            () => new ParentToTargetEffect(this.actionManager, this.player, this.playerProxy.leader.original.bag.get(3)).doNext(),
+            () => new ParentToTargetEffect(this.actionManager, this.player, this.playerProxy!.leader.original.bag.get(3)).doNext(),
             this.source.name
         ));
     }
@@ -156,18 +160,19 @@ export class PeaceEnvoyAttack extends AttackerBattlePlan<Denizen> {
     applyWhenApplied(): boolean {
         // TODO: This will mean no other modifiers get to do anything. Is this fine?
         if (this.action.campaignResultProxy.defender?.site === this.playerProxy.site) {
+            const cost = new ResourceCost([[Favor, this.action.campaignResult.defPool]]);
             new TransferResourcesEffect(
                 this.actionManager,
-                new ResourceTransferContext(this.player, this, new ResourceCost([[Favor, this.action.campaignResult.defPool]]), this.action.campaignResult.defender!)
+                new ResourceTransferContext(this.player, this, cost, this.action.campaignResult.defender!)
             ).doNext((success) => {
-                if (!success) return;
+                if (!success) throw cannotPayError(cost);
                 this.action.campaignResult.successful = true;
                 this.action.campaignResult.ignoreKilling = true;
                 this.action.next.next.doNext();
             });
+            return false;
         }
-
-        return false;
+        return true;
     }
 }
 export class PeaceEnvoyDefense extends DefenderBattlePlan<Denizen> {
@@ -178,19 +183,21 @@ export class PeaceEnvoyDefense extends DefenderBattlePlan<Denizen> {
     }
 
     applyWhenApplied(): boolean {
+        if (!this.playerProxy) return true;
         if (this.action.campaignResultProxy.attacker.site === this.playerProxy.site) {
+            const cost = new ResourceCost([[Favor, this.action.campaignResult.defPool]]);
             new TransferResourcesEffect(
                 this.actionManager,
-                new ResourceTransferContext(this.player, this, new ResourceCost([[Favor, this.action.campaignResult.defPool]]), this.action.campaignResult.attacker)
+                new ResourceTransferContext(this.player, this, cost, this.action.campaignResult.attacker)
             ).doNext((success) => {
-                if (!success) return;
+                if (!success) throw cannotPayError(cost);
                 this.action.campaignResult.successful = false;
                 this.action.campaignResult.ignoreKilling = true;
                 this.action.next.doNext();
             });
+            return false;
         }
-
-        return false;
+        return true;
     }
 }
 
@@ -214,6 +221,7 @@ export class Wrestlers extends DefenderBattlePlan<Denizen> {
 
 export class BearTraps extends DefenderBattlePlan<Denizen> {
     applyBefore(): void {
+        if (!this.action.player) return;
         this.action.campaignResult.atkPool--;
         new KillWarbandsOnTargetAction(this.actionManager, this.action.player, this.action.campaignResult.attacker, 1).doNext();
     }
@@ -329,7 +337,7 @@ export class SecretPolice extends EnemyActionModifier<Denizen, PlayVisionEffect>
     modifiedAction = PlayVisionEffect;
 
     canUse(): boolean {
-        return super.canUse() && this.action.executorProxy.site?.ruler === this.sourceProxy.ruler;
+        return super.canUse() && this.action.playerProxy.site?.ruler === this.sourceProxy.ruler;
     }
 
     applyBefore(): void {
@@ -416,8 +424,8 @@ export class HuntingParty extends Accessed(ActionModifier<Denizen, SearchAction>
 export class RoyalTax extends WhenPlayed<Denizen> {
     whenPlayed(): void {
         for (const playerProxy of this.gameProxy.players) {
-            if (playerProxy.site.ruler === this.action.executorProxy.leader)
-                new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.action.executor,this, new ResourceCost([[Favor, 2]]), this.action.executor, playerProxy)).doNext();
+            if (playerProxy.site.ruler === this.action.playerProxy.leader)
+                new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.action.player,this, new ResourceCost([[Favor, 2]]), this.action.player, playerProxy)).doNext();
         }
     }
 }
@@ -425,19 +433,19 @@ export class RoyalTax extends WhenPlayed<Denizen> {
 export class Garrison extends WhenPlayed<Denizen> {
     whenPlayed(): void {
         const sites = new Set<Site>();
-        const leader = this.action.executorProxy.leader.original;
+        const leader = this.action.playerProxy.leader.original;
         for (const siteProxy of this.gameProxy.map.sites()) {
-            if (siteProxy.ruler === this.action.executorProxy.leader) {
-                new ParentToTargetEffect(this.actionManager, this.action.executor, this.action.executorProxy.leader.original.bag.get(1), siteProxy.original).doNext();
+            if (siteProxy.ruler === this.action.playerProxy.leader) {
+                new ParentToTargetEffect(this.actionManager, this.action.player, this.action.playerProxy.leader.original.bag.get(1), siteProxy.original).doNext();
                 sites.add(siteProxy.original);
             }
         }
         
         new ChooseSitesAction(
-            this.actionManager, this.action.executor, "Place a warband on each site you rule",
-            (sites: Site[]) => { for (const site of sites) new MoveOwnWarbandsEffect(this.actionManager, leader, this.action.executor, site).doNext() },
+            this.actionManager, this.action.player, "Place a warband on each site you rule",
+            (sites: Site[]) => { for (const site of sites) new MoveOwnWarbandsEffect(this.actionManager, leader, this.action.player, site).doNext() },
             [sites],
-            [[Math.min(sites.size, this.action.executor.getWarbandsAmount(leader.board.key))]]
+            [[Math.min(sites.size, this.action.player.getWarbandsAmount(leader.board.key))]]
         ).doNext();
     }
 }

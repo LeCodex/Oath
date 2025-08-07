@@ -20,9 +20,17 @@ import { ResourceTransferContext } from "../costs";
 export abstract class ExpandedAction extends OathAction {
     powerManagerProxy: OathPowerManager;
 
-    constructor(public powerManager: OathPowerManager, player: OathPlayer) {
+    constructor(public powerManager: OathPowerManager, player: OathPlayer | undefined) {
         super(powerManager.actionManager, player);
         this.powerManagerProxy = this.maskProxyManager.get(powerManager);
+    }
+}
+
+export abstract class ExpandedPlayerAction extends ExpandedAction {
+    declare player: OathPlayer;
+
+    constructor(public powerManager: OathPowerManager, player: OathPlayer) {
+        super(powerManager, player);
     }
 }
 
@@ -32,13 +40,19 @@ export class ChooseModifiers<T extends OathAction> extends ExpandedAction {
     readonly next: ModifiableAction<T> | ChooseModifiers<T>;
     readonly message = "Choose modifiers";
 
-    constructor(powerManager: OathPowerManager, next: ModifiableAction<T> | ChooseModifiers<T>, chooser: OathPlayer = next.player) {
+    constructor(powerManager: OathPowerManager, next: ModifiableAction<T> | ChooseModifiers<T>, chooser: OathPlayer | undefined = next.player) {
         super(powerManager, chooser);
         this.next = next;
         this.modifiableAction = next instanceof ChooseModifiers ? next.modifiableAction : next;
     }
 
-    static gatherActionModifiers<T extends OathAction>(powerManager: OathPowerManager, action: T, player: OathPlayer, maskProxyManager: MaskProxyManager) {
+    get defaultChoices() {
+        return {
+            modifiers: this.selects.modifiers && [...this.selects.modifiers.choices.values()].reduce((a, e) => e.length > a.length ? e : a)
+        };
+    }
+
+    static gatherActionModifiers<T extends OathAction>(powerManager: OathPowerManager, action: T, player: OathPlayer | undefined, maskProxyManager: MaskProxyManager) {
         const persistentModifiers = new Set<ActionModifier<WithPowers, T>>();
         const optionalModifiers = new Set<ActionModifier<WithPowers, T>>();
         for (const modifier of powerManager.gatherActionModifiers(action, player, maskProxyManager)) {
@@ -61,6 +75,7 @@ export class ChooseModifiers<T extends OathAction> extends ExpandedAction {
         const { persistentModifiers, optionalModifiers } = ChooseModifiers.gatherActionModifiers(this.powerManager, this.modifiableAction.action, this.player, maskProxyManager);
         
         // TODO: Change to permutations to handle order (maybe have order agnosticity as a property)
+        // Also very unwieldy with many modifiers. Old method with checks might be better, or more advanced Selects
         const choices = new Map<string, ActionModifier<WithPowers, T>[]>();
         for (const combination of allCombinations(optionalModifiers)) {
             const completeCombination = [...persistentModifiers, ...combination];
@@ -68,7 +83,7 @@ export class ChooseModifiers<T extends OathAction> extends ExpandedAction {
                 this.powerManager, this.player, completeCombination.map((e) => e.selfCostContext),
                 ResourceTransferContext.dummyFactory(this.player)
             );
-            
+
             if (totalContext.costsWithModifiers(maskProxyManager).length) {
                 choices.set(combination.length ? combination.map((e) => e.name).join(", ") : "None", completeCombination);
             }
@@ -80,7 +95,6 @@ export class ChooseModifiers<T extends OathAction> extends ExpandedAction {
 
     execute() {
         const modifiers = new Set(this.parameters.modifiers[0]);
-
         if (this.modifiableAction.applyModifiers(modifiers)) {
             this.next.doNext();
         }
@@ -159,7 +173,7 @@ export class ModifiableAction<T extends OathAction> extends OathAction {
     }
 }
 
-export class UsePowerAction extends ExpandedAction {
+export class UsePowerAction extends ExpandedPlayerAction {
     declare readonly selects: { power: SelectNOf<ActivePower<OwnableCard>>; };
     readonly autocompleteSelects = false;
     readonly message = "Choose a power to use";
@@ -189,7 +203,7 @@ export class UsePowerAction extends ExpandedAction {
     }
 }
 
-export class ChooseModifiedCostContextAction<T extends CostContext<any>> extends ExpandedAction {
+export class ChooseModifiedCostContextAction<T extends CostContext<any>> extends ExpandedPlayerAction {
     declare readonly selects: { costContextInfo: SelectNOf<CostContextInfo<T>>; };
     readonly message = "Choose a cost to pay";
 

@@ -63,6 +63,7 @@ export class KindredWarriorsDefense extends DefenderBattlePlan<Denizen> {
     cost = new ResourceCost([[Secret, 1]]);
 
     applyBefore(): void {
+        if (!this.player) return;
         this.action.campaignResult.atkPool -= (this.player.ruledSuits - 1);
     }
 }
@@ -117,7 +118,7 @@ export class SpiritSnare extends ActivePower<Denizen> {
 
 export class Dazzle extends WhenPlayed<Denizen> {
     whenPlayed(): void {
-        new RegionDiscardEffect(this.actionManager, this.action.executor, [OathSuit.Hearth, OathSuit.Order], this.source).doNext();
+        new RegionDiscardEffect(this.actionManager, this.action.player, [OathSuit.Hearth, OathSuit.Order], this.source).doNext();
     }
 }
 
@@ -274,12 +275,12 @@ export class Jinx extends ActionModifier<Denizen, RollDiceEffect<AttackDie | Def
     cost = new ResourceCost([[Secret, 1]]);
 
     canUse(): boolean {
-        return super.canUse() && !!this.action.executorProxy && this.action.executorProxy.rules(this.sourceProxy) && !(!this.sourceProxy.empty && this.gameProxy.currentPlayer === this.action.executorProxy);
+        return super.canUse() && !!this.action.playerProxy && this.action.playerProxy.rules(this.sourceProxy) && !(!this.sourceProxy.empty && this.gameProxy.currentPlayer === this.action.playerProxy);
     }
 
     applyAfter(): void {
         const result = this.action.result;
-        const player = this.action.executor;
+        const player = this.action.player;
         if (!player) return;
         if (!(this.action.result.die instanceof AttackDie) || !(this.action.result.die instanceof DefenseDie)) return;
 
@@ -452,10 +453,10 @@ export class WitchsBargain extends ActivePower<Denizen> {
 export class Bewitch extends WhenPlayed<Denizen> {
     whenPlayed(): void {
         if (!(this.action.playerProxy.board instanceof ExileBoard)) return;
-        if (this.action.executorProxy.getAllResources(Secret) > this.gameProxy.chancellor.byClass(Secret).length)
+        if (this.action.playerProxy.getAllResources(Secret) > this.gameProxy.chancellor.byClass(Secret).length)
             new MakeDecisionAction(
-                this.actionManager, this.action.executor, "Become a Citizen?",
-                () => new BecomeCitizenEffect(this.actionManager, this.action.executor).doNext()
+                this.actionManager, this.action.player, "Become a Citizen?",
+                () => new BecomeCitizenEffect(this.actionManager, this.action.player).doNext()
             ).doNext();
     }
 }

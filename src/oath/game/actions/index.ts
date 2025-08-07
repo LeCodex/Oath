@@ -1,5 +1,5 @@
 import type { ParametersType } from "./base";
-import { OathAction } from "./base";
+import { OathAction, PlayerAction } from "./base";
 import type { OathCard, Relic, WorldCard } from "../model/cards";
 import { Denizen, Edifice, Site } from "../model/cards";
 import type { SearchableDeck } from "../model/decks";
@@ -32,7 +32,7 @@ import type { NodeGroup } from "../model/utils";
 ////////////////////////////////////////////
 //                 SETUP                  //
 ////////////////////////////////////////////
-export class SetupChoosePlayerBoardAction extends OathAction {
+export class SetupChoosePlayerBoardAction extends PlayerAction {
     declare readonly selects: { color: SelectNOf<PlayerColor> };
     readonly message = "Choose a board to start with";
 
@@ -59,7 +59,7 @@ export class SetupChoosePlayerBoardAction extends OathAction {
     }
 }
 
-export class SetupChooseAdviserAction extends OathAction {
+export class SetupChooseAdviserAction extends PlayerAction {
     declare readonly selects: { card: SelectCard<WorldCard> };
     readonly message = "Choose a card to start with";
 
@@ -88,7 +88,7 @@ export class SetupChooseAdviserAction extends OathAction {
 ////////////////////////////////////////////
 //              MAJOR ACTIONS             //
 ////////////////////////////////////////////
-export abstract class MajorAction extends OathAction implements WithCostContexts {
+export abstract class MajorAction extends PlayerAction implements WithCostContexts {
     readonly autocompleteSelects: boolean = false;
     abstract supplyCost: SupplyCost;
 
@@ -255,7 +255,7 @@ export class RecoverAction extends MajorAction {
     }
 }
 
-export class RecoverBannerPitchAction extends OathAction {
+export class RecoverBannerPitchAction extends PlayerAction {
     declare readonly selects: { amount: SelectNumber };
     readonly message = "Put resources onto the banner";
 
@@ -316,7 +316,7 @@ export class SearchAction extends MajorAction {
     }
 }
 
-export class SearchChooseAction extends OathAction {
+export class SearchChooseAction extends PlayerAction {
     declare readonly selects: { cards: SelectCard<WorldCard> };
     readonly message = "Choose which card(s) to keep";
 
@@ -357,7 +357,7 @@ export class SearchChooseAction extends OathAction {
     }
 }
 
-export class SearchDiscardAction extends OathAction {
+export class SearchDiscardAction extends PlayerAction {
     declare readonly selects: { cards: SelectCard<WorldCard> };
     readonly autocompleteSelects = false;  // What's important is the order
     readonly message = "Choose and order the discards";
@@ -392,7 +392,7 @@ export class SearchDiscardAction extends OathAction {
 
 /** Number of available slots, Cards that don't count towards capacity, Is the card played ignoring capacity */
 export type CapacityInformation = { capacity: number, takesSpaceInTargetProxies: NodeGroup<WorldCard>, ignoresCapacity: boolean };
-export class SearchPlayOrDiscardAction extends OathAction {
+export class SearchPlayOrDiscardAction extends PlayerAction {
     declare readonly selects: { choice: SelectNOf<Site | boolean | undefined>}
     readonly message: string;
     
@@ -457,7 +457,7 @@ export class SearchPlayOrDiscardAction extends OathAction {
     }
 }
 
-export class MayDiscardACardAction extends OathAction {
+export class MayDiscardACardAction extends PlayerAction {
     declare readonly selects: { card: SelectCard<Denizen> };
     readonly message = "You may discard a card";
 
@@ -523,7 +523,7 @@ export class CampaignAction extends MajorAction {
     }
 }
 
-export class CampaignAttackAction extends OathAction {
+export class CampaignAttackAction extends PlayerAction {
     declare readonly selects: { targetProxies: SelectNOf<CampaignActionTarget>, pool: SelectNumber };
     readonly next: CampaignDefenseAction;
     readonly message = "Choose targets and attack pool";
@@ -639,7 +639,7 @@ export class CampaignDefenseAction extends OathAction {
     readonly next: CampaignEndAction;
     readonly message = "";
 
-    constructor(actionManager: OathActionManager, player: OathPlayer, attacker: OathPlayer) {
+    constructor(actionManager: OathActionManager, player: OathPlayer | undefined, attacker: OathPlayer) {
         super(actionManager, player);
         this.next = new CampaignEndAction(actionManager, attacker);
         this.maskProxyManager = this.next.maskProxyManager;
@@ -669,7 +669,7 @@ export class CampaignDefenseAction extends OathAction {
     }
 }
 
-export class CampaignEndAction extends OathAction {
+export class CampaignEndAction extends PlayerAction {
     declare readonly selects: { doSacrifice: SelectBoolean, callbacks: SelectWithName<CampaignEndCallback> };
     readonly message = "Handle the end of the campaign";
 
@@ -687,6 +687,7 @@ export class CampaignEndAction extends OathAction {
             this.selects.doSacrifice = new SelectBoolean("Sacrifice needed", [`Sacrifice ${this.campaignResultProxy.requiredSacrifice} warbands`, "Abandon"]);
         } else {
             // Unfortunately the magic trick I use to get typed parameters makes assignment tricky
+            // The Prettify magic type doesn't help
             this.parameters.doSacrifice = [false as any];
         }
 
@@ -722,7 +723,7 @@ export class CampaignEndAction extends OathAction {
     }
 }
 
-export class CampaignKillWarbandsInForceAction extends OathAction {
+export class CampaignKillWarbandsInForceAction extends PlayerAction {
     readonly selects: Record<string, SelectNumber> = {};
     readonly message;
 
@@ -782,7 +783,7 @@ export class CampaignBanishPlayerAction extends TravelAction {
     }
 }
 
-export class CampaignSeizeSiteAction extends OathAction {
+export class CampaignSeizeSiteAction extends PlayerAction {
     declare readonly selects: { amount: SelectNumber };
     readonly message: string;
     readonly autocompleteSelects = false;
@@ -806,7 +807,7 @@ export class CampaignSeizeSiteAction extends OathAction {
 }
 
 
-export class WakeAction extends OathAction {
+export class WakeAction extends PlayerAction {
     readonly message = "";
 
     execute(): void {
@@ -827,7 +828,7 @@ export class WakeAction extends OathAction {
 }
 
 
-export class RestAction extends OathAction {
+export class RestAction extends PlayerAction {
     readonly message = "";
     
     execute(): void {
@@ -842,7 +843,7 @@ export class RestAction extends OathAction {
 ////////////////////////////////////////////
 //              MINOR ACTIONS             //
 ////////////////////////////////////////////
-export class PlayFacedownAdviserAction extends OathAction {
+export class PlayFacedownAdviserAction extends PlayerAction {
     declare readonly selects: { cardProxies: SelectCard<WorldCard> }
     readonly message = "Choose an adviser to play";
 
@@ -867,7 +868,7 @@ export class PlayFacedownAdviserAction extends OathAction {
 }
 
 
-export class MoveWarbandsAction extends OathAction {
+export class MoveWarbandsAction extends PlayerAction {
     declare readonly selects: { targetProxy: SelectWithName<Site | OathPlayer>, amount: SelectNumber, giving: SelectBoolean };
     readonly message = "Give or take warbands";
 
@@ -927,7 +928,7 @@ export class MoveWarbandsAction extends OathAction {
     }
 }
 
-export class ActPhaseAction extends OathAction {
+export class ActPhaseAction extends PlayerAction {
     declare readonly selects: { action: SelectNOf<() => OathAction> };
     readonly autocompleteSelects: boolean = false;
     readonly message = "Start an action";
@@ -963,7 +964,7 @@ export class ActPhaseAction extends OathAction {
 ////////////////////////////////////////////
 //              OTHER ACTIONS             //
 ////////////////////////////////////////////
-export class MakeDecisionAction extends OathAction {
+export class MakeDecisionAction extends PlayerAction {
     declare readonly selects: { allow: SelectBoolean };
     readonly message;
 
@@ -992,7 +993,7 @@ export class MakeDecisionAction extends OathAction {
     }
 }
 
-export class KillWarbandsOnTargetAction extends OathAction {
+export class KillWarbandsOnTargetAction extends PlayerAction {
     readonly selects: Record<string, SelectNumber> = {};
     readonly message;
 
@@ -1029,7 +1030,7 @@ export class KillWarbandsOnTargetAction extends OathAction {
 }
 
 
-export class ChooseNumberAction extends OathAction {
+export class ChooseNumberAction extends PlayerAction {
     declare readonly selects: { value: SelectNumber };
     readonly message: string;
 
@@ -1064,7 +1065,7 @@ export class TakeReliquaryRelicAction extends ChooseNumberAction {
 }
 
 
-export class ChooseResourceToTakeAction extends OathAction {
+export class ChooseResourceToTakeAction extends PlayerAction {
     declare readonly selects: { resource: SelectWithName<OathResource> };
     readonly message = "Take a resource";
 
@@ -1088,7 +1089,7 @@ export class ChooseResourceToTakeAction extends OathAction {
 }
 
 
-export class ChooseRegionAction extends OathAction {
+export class ChooseRegionAction extends PlayerAction {
     declare readonly selects: { region: SelectNOf<Region | undefined> };
     readonly message: string;
 
@@ -1121,7 +1122,7 @@ export class ChooseRegionAction extends OathAction {
 }
 
 
-export abstract class ChooseTsAction<T> extends OathAction {
+export abstract class ChooseTsAction<T> extends PlayerAction {
     declare readonly selects: Record<string, SelectNOf<T>>;
     readonly message: string;
 
@@ -1271,7 +1272,7 @@ export class ChooseSitesAction extends ChooseTsAction<Site> {
 }
 
 export class ActAsIfAtSiteAction extends ChooseSitesAction {
-    constructor(actionManager: OathActionManager, player: OathPlayer, action: OathAction, sites?: Iterable<Site>) {
+    constructor(actionManager: OathActionManager, player: OathPlayer, action: PlayerAction, sites?: Iterable<Site>) {
         super(
             actionManager, player, "Choose a site to act at",
             (sites: Site[]) => {
@@ -1317,7 +1318,7 @@ export class ChooseCardsAction<T extends OathCard> extends ChooseTsAction<T> {
 }
 
 
-export class ConspiracyStealAction extends OathAction {
+export class ConspiracyStealAction extends PlayerAction {
     declare readonly selects: { taking: SelectNOf<Relic | Banner> };
     readonly message = "Take a relic or banner";
 
@@ -1343,7 +1344,7 @@ export class ConspiracyStealAction extends OathAction {
 }
 
 
-export class MakeBindingExchangeOfferAction extends OathAction {
+export class MakeBindingExchangeOfferAction extends PlayerAction {
     declare readonly selects: { favors: SelectNumber, secrets: SelectNumber };
     readonly message = "Choose what you want in the exchange";
 
@@ -1499,7 +1500,7 @@ export class CitizenshipOfferAction extends ThingsExchangeOfferAction<Relic | Ba
 }
 
 
-export class SkeletonKeyAction extends OathAction {
+export class SkeletonKeyAction extends PlayerAction {
     declare readonly selects: { index: SelectNumber };
     readonly message = "Peek at a relic in the Reliquary";
 
@@ -1525,7 +1526,7 @@ export class SkeletonKeyAction extends OathAction {
 }
 
 
-export class BrackenAction extends OathAction {
+export class BrackenAction extends PlayerAction {
     declare readonly selects: { region: SelectWithName<Region>, onTop: SelectBoolean };
     readonly message = "Choose where you'll discard";
 
@@ -1553,7 +1554,7 @@ export class BrackenAction extends OathAction {
 ////////////////////////////////////////////
 //             END OF THE GAME            //
 ////////////////////////////////////////////
-export class VowOathAction extends OathAction {
+export class VowOathAction extends PlayerAction {
     declare readonly selects: { oath: SelectNOf<OathType> };
     readonly message = "Vow an Oath";
 
@@ -1577,7 +1578,7 @@ export class VowOathAction extends OathAction {
     }
 }
 
-export class ChooseNewCitizensAction extends OathAction {
+export class ChooseNewCitizensAction extends PlayerAction {
     declare readonly selects: { players: SelectWithName<OathPlayer> };
     readonly message = "Propose Citizenship to other Exiles";
 
@@ -1602,7 +1603,7 @@ export class ChooseNewCitizensAction extends OathAction {
     }
 }
 
-export class BuildOrRepairEdificeAction extends OathAction {
+export class BuildOrRepairEdificeAction extends PlayerAction {
     declare readonly selects: { card: SelectCard<Denizen> };
     readonly message = "Build or repair an edifice";
 

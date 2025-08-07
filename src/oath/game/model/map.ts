@@ -1,8 +1,10 @@
 import { Site } from "./cards";
 import type { Discard } from "./decks";
+import type { OathSuit } from "../enums";
 import { RegionKey, RegionSize } from "../enums";
 import { isEnumKey } from "../utils";
 import { Container, OathGameObject } from "./gameObject";
+import type { OathPlayer } from "./player";
 
 
 export class OathMap extends Container<Region, string> {
@@ -37,6 +39,16 @@ export class OathMap extends Container<Region, string> {
         for (const region of this.children)
             for (const site of region.byClass(Site))
                 yield site;
+    }
+
+    suitRuledCount(ruler: OathPlayer | undefined, suit: OathSuit) {
+        let total = 0;
+        for (const site of this.sites())
+            for (const denizen of site.denizens)
+                if (denizen.ruler === ruler && denizen.suit === suit)
+                    total++;
+
+        return total;
     }
 
     constSerialize(): Record<`_${string}`, any> {

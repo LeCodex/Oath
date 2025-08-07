@@ -81,7 +81,7 @@ export class HospitalAttack extends AttackerBattlePlan<Denizen> {
 export class HospitalDefense extends DefenderBattlePlan<Denizen> {
     applyBefore(): void {
         this.action.campaignResult.atEnd(new CampaignEndCallback(() => {
-            if (this.sourceProxy.site?.ruler === this.playerProxy.leader)
+            if (this.player && this.playerProxy && this.sourceProxy.site?.ruler === this.playerProxy.leader)
                 new ParentToTargetEffect(this.actionManager, this.player.leader, this.playerProxy.leader.original.bag.get(this.action.campaignResult.defenderLoss), this.source.site).doNext();
         }, this.source.name, false));
     }
@@ -164,18 +164,18 @@ export class CharmingFriend extends ActivePower<Denizen> {
 export class FabledFeast extends WhenPlayed<Denizen> {
     whenPlayed(): void {
         const bank = this.game.favorBank(OathSuit.Hearth);
-        if (bank) new ParentToTargetEffect(this.actionManager, this.action.executor, bank.get(this.action.executorProxy.suitRuledCount(OathSuit.Hearth))).doNext();
+        if (bank) new ParentToTargetEffect(this.actionManager, this.action.player, bank.get(this.action.playerProxy.suitRuledCount(OathSuit.Hearth))).doNext();
     }
 }
 
 export class SaladDays extends WhenPlayed<Denizen> {
     whenPlayed(): void {
         new ChooseSuitsAction(
-            this.actionManager, this.action.executor, "Take 1 favor from three different banks",
+            this.actionManager, this.action.player, "Take 1 favor from three different banks",
             (suits: OathSuit[]) => { 
                 for (const suit of suits) {
                     const bank = this.game.favorBank(suit);
-                    if (bank) new ParentToTargetEffect(this.actionManager, this.action.executor, bank.get(1)).doNext(); 
+                    if (bank) new ParentToTargetEffect(this.actionManager, this.action.player, bank.get(1)).doNext(); 
                 }
             },
             undefined,
@@ -186,13 +186,13 @@ export class SaladDays extends WhenPlayed<Denizen> {
 
 export class FamilyHeirloom extends WhenPlayed<Denizen> {
     whenPlayed(): void {
-        new DrawFromDeckEffect(this.actionManager, this.action.executor, this.game.relicDeck, 1).doNext((cards) => {
+        new DrawFromDeckEffect(this.actionManager, this.action.player, this.game.relicDeck, 1).doNext((cards) => {
             const relic = cards[0];
             if (!relic) return;
             
             new MakeDecisionAction(
-                this.actionManager, this.action.executor, "Keep the relic?",
-                () => new TakeOwnableObjectEffect(this.actionManager, this.action.executor, relic).doNext(),
+                this.actionManager, this.action.player, "Keep the relic?",
+                () => new TakeOwnableObjectEffect(this.actionManager, this.action.player, relic).doNext(),
                 () => new DiscardCardEffect(this.actionManager, this.action.player, relic, new DiscardOptions(this.game.relicDeck, true)).doNext()
             ).doNext();
         });

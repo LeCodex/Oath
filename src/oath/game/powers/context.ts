@@ -9,7 +9,7 @@ import type { OathPowerManager } from "./manager";
 export class MultiCostContext<T extends CostContext<Cost>> {
     constructor(
         public powerManager: OathPowerManager,
-        public player: OathPlayer,
+        public player: OathPlayer | undefined,
         public costContexts: T[],
         public dummyFactory: Factory<T, [ContextSource<T>, ContextCost<T>?]>
     ) { }

@@ -27,6 +27,7 @@ export class NatureWorshipDefense extends DefenderBattlePlan<Denizen> {
     cost = new ResourceCost([[Secret, 1]]);
 
     applyBefore(): void {
+        if (!this.player) return;
         this.action.campaignResult.atkPool -= this.player.suitAdviserCount(OathSuit.Beast);
     }
 }
@@ -117,8 +118,8 @@ export class WildCry extends Accessed(ActionModifier<Denizen, PlayWorldCardEffec
 
     applyBefore(): void {
         if (!this.action.facedown && this.action.card instanceof Denizen && this.action.card.suit === OathSuit.Beast) {
-            new GainSupplyEffect(this.actionManager, this.action.executor, 1).doNext();
-            new ParentToTargetEffect(this.actionManager, this.action.executor, this.action.executorProxy.leader.original.bag.get(2)).doNext();
+            new GainSupplyEffect(this.actionManager, this.action.player, 1).doNext();
+            new ParentToTargetEffect(this.actionManager, this.action.player, this.action.playerProxy.leader.original.bag.get(2)).doNext();
         }
     }
 }
@@ -154,7 +155,7 @@ export class TheOldOak extends Accessed(ResourceTransferModifier<Denizen>) {
     }
 
     apply(context: ResourceTransferContext): void {
-        if (context.source === this.sourceProxy && [...this.playerProxy.advisers].some((e) => e instanceof Denizen && e.suit === OathSuit.Beast))
+        if (this.playerProxy && context.source === this.sourceProxy && [...this.playerProxy.advisers].some((e) => e instanceof Denizen && e.suit === OathSuit.Beast))
             context.cost.placedResources.set(Secret, context.cost.placedResources.get(Secret) + 1);
     }
 
@@ -236,7 +237,7 @@ export class InsectSwarm extends ResourceTransferModifier<Denizen> {
 
 export class ThreateningRoar extends WhenPlayed<Denizen> {
     whenPlayed(): void {
-        new RegionDiscardEffect(this.actionManager, this.action.executor, [OathSuit.Beast, OathSuit.Nomad], this.source).doNext();
+        new RegionDiscardEffect(this.actionManager, this.action.player, [OathSuit.Beast, OathSuit.Nomad], this.source).doNext();
     }
 }
 
@@ -248,7 +249,7 @@ export class AnimalHost extends WhenPlayed<Denizen> {
                 if (denizenProxy.suit === OathSuit.Beast)
                     amount++;
 
-        new ParentToTargetEffect(this.actionManager, this.action.executor, this.action.executorProxy.leader.original.bag.get(amount)).doNext();
+        new ParentToTargetEffect(this.actionManager, this.action.player, this.action.playerProxy.leader.original.bag.get(amount)).doNext();
     }
 }
 
@@ -361,8 +362,8 @@ export class LongLostHeir extends WhenPlayed<Denizen> {
     whenPlayed(): void {
         if (!(this.action.playerProxy.board instanceof ExileBoard)) return;
         new MakeDecisionAction(
-            this.actionManager, this.action.executor, "Become a Citizen?",
-            () => new BecomeCitizenEffect(this.actionManager, this.action.executor).doNext()
+            this.actionManager, this.action.player, "Become a Citizen?",
+            () => new BecomeCitizenEffect(this.actionManager, this.action.player).doNext()
         ).doNext();
     }
 }
@@ -513,7 +514,7 @@ export class ForestTemple extends ActionModifier<Edifice, FinishChronicleEffect>
         for (const siteProxy of this.gameProxy.map.sites()) {
             for (const denizenProxy of siteProxy.denizens) {
                 if (denizenProxy.suit === OathSuit.Beast) {
-                    siteProxy.addChild(new Warband().colorize(this.action.executor.board.key));
+                    siteProxy.addChild(new Warband().colorize(this.action.player.board.key));
                     break;
                 }
             }

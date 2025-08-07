@@ -83,34 +83,36 @@ export class StickyFireAttack extends AttackerBattlePlan<Relic> {
         const defender = this.action.campaignResult.defender;
         if (!defender) return;
 
-        this.action.campaignResult.onAttackWin(new CampaignEndCallback(() => new MakeDecisionAction(this.actionManager, this.action.player, "Use Sticky Fire?", () => { 
+        this.action.campaignResult.onAttackWin(new CampaignEndCallback(() => new MakeDecisionAction(this.actionManager, this.player, "Use Sticky Fire?", () => { 
             this.action.campaignResult.defenderKills(Infinity);
-            new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.action.player, this, new ResourceCost([[Favor, 1]]), defender)).doNext();
+            new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.player, this, new ResourceCost([[Favor, 1]]), defender)).doNext();
         }).doNext(), this.source.name, false));
     }
 }
 export class StickyFireDefense extends DefenderBattlePlan<Relic> {
     applyBefore(): void {
+        if (!this.player) return;
         const attacker = this.action.campaignResult.attacker;
-        this.action.campaignResult.onAttackWin(new CampaignEndCallback(() => new MakeDecisionAction(this.actionManager, this.action.player, "Use Sticky Fire?", () => { 
+        this.action.campaignResult.onAttackWin(new CampaignEndCallback(() => new MakeDecisionAction(this.actionManager, this.player!, "Use Sticky Fire?", () => { 
             this.action.campaignResult.attackerKills(Infinity);
-            new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.action.player, this, new ResourceCost([[Favor, 1]]), attacker)).doNext();
+            new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.player!, this, new ResourceCost([[Favor, 1]]), attacker)).doNext();
         }).doNext(), this.source.name, false));
     }
 }
 
 export class CursedCauldronAttack extends AttackerBattlePlan<Relic> {
     applyBefore(): void {
-        this.action.campaignResult.onAttackWin(new CampaignEndCallback(() =>
-            new ParentToTargetEffect(this.actionManager, this.player, this.playerProxy.leader.bag.original.get(this.action.campaignResult.loserLoss)).doNext(),
+        this.action.campaignResult.onAttackWin(new CampaignEndCallback(
+            () => this.playerProxy && new ParentToTargetEffect(this.actionManager, this.player, this.playerProxy.leader.bag.original.get(this.action.campaignResult.loserLoss)).doNext(),
             this.source.name, false
         ));
     }
 }
 export class CursedCauldronDefense extends DefenderBattlePlan<Relic> {
     applyBefore(): void {
+        if (!this.player) return;
         this.action.campaignResult.onAttackWin(new CampaignEndCallback(
-            () => new ParentToTargetEffect(this.actionManager, this.player, this.playerProxy.leader.bag.original.get(this.action.campaignResult.loserLoss)).doNext(),
+            () => new ParentToTargetEffect(this.actionManager, this.player, this.playerProxy!.leader.bag.original.get(this.action.campaignResult.loserLoss)).doNext(),
             this.source.name, false
         ));
     }
@@ -170,7 +172,8 @@ export class CupOfPlenty extends Accessed(SupplyCostModifier<Relic>) {
     }
 
     apply(context: SupplyCostContext): void {
-        if (this.playerProxy.suitAdviserCount(context.origin.cardProxy.suit) > 0) context.cost.multiplier = 0;
+        if (this.playerProxy && this.playerProxy.suitAdviserCount(context.origin.cardProxy.suit) > 0)
+            context.cost.multiplier = 0;
     }
 }
 

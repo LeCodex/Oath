@@ -46,7 +46,7 @@ export default [
             "@typescript-eslint/no-unused-vars": "off",
             "@typescript-eslint/no-non-null-asserted-optional-chain": "warn",
             "@typescript-eslint/no-empty-object-type": "off",
-            "import/no-cycle": "warn"
+            // "import/no-cycle": "warn"
         },
     }
 ];

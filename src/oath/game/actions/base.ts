@@ -10,7 +10,7 @@ import { InvalidActionResolution } from "./utils";
 //                   ACTIONS                    //
 //////////////////////////////////////////////////
 type SelectType<T> = T extends SelectNOf<infer U> ? U : never;
-export type ParametersType<T extends OathAction> = { [k in keyof T["selects"]]: SelectType<T["selects"][k]>[] };
+export type ParametersType<T extends OathAction> = { [K in keyof T["selects"]]: SelectType<T["selects"][K]>[] };
 
 export abstract class OathAction {
     game: OathGame;
@@ -23,13 +23,13 @@ export abstract class OathAction {
 
     constructor(
         public actionManager: OathActionManager,
-        public player: OathPlayer
+        public player: OathPlayer | undefined
     ) {
         this.game = actionManager.game;
     }
 
-    get gameProxy() { return this.maskProxyManager.get(this.game); } // Effects and powers are allowed to modify the proxies to "lie" to the action
-    get playerProxy() { return this.maskProxyManager.get(this.player); } // This is a simple reference for simplicity
+    get gameProxy(): this["game"] { return this.maskProxyManager.get(this.game); } // Effects and powers are allowed to modify the proxies to "lie" to the action
+    get playerProxy(): this["player"] { return this.maskProxyManager.get(this.player); } // This is a simple reference for simplicity
 
     doNext(): void {
         this.actionManager.addFutureAction(this);
@@ -44,6 +44,18 @@ export abstract class OathAction {
             }
         }
 
+        // No player will make the choices: try and auto-fill with default choices
+        if (!this.player) {
+            for (const [key, values] of Object.entries(this.defaultChoices) as [keyof ParametersType<this>, any][]) {
+                if (!values) continue;
+                this.parameters[key] = values;
+                delete this.selects[key as string];
+            }
+            if (Object.keys(this.selects).length > 0) {
+                throw new InvalidActionResolution(`Missing default choice for selects ${Object.keys(this.selects).join(", ")} in action ${this.constructor.name}`);
+            }
+        }
+
         // If all needed parameters were filled out (or there are no selects), just execute immediately
         if (Object.keys(this.selects).length === 0) {
             this.applyParameters({});
@@ -53,10 +65,15 @@ export abstract class OathAction {
         return false;
     }
 
+    /** Choices made in case {@link player} is undefined. In most cases it's never called and doesn't need to be defined. */
+    get defaultChoices() {
+        return {};
+    }
+
     parse(data: Record<string, string[]>): Record<string, any[]> {
         const values: Record<string, any[]> = {};
         for (const [key, select] of Object.entries(this.selects)) {
-            if (!data[key]) throw new InvalidActionResolution(`Missing choice for select ${key}`);
+            if (!data[key]) throw new InvalidActionResolution(`Missing choice for select ${key} in action ${this.constructor.name}`);
             values[key] = select.parse(data[key]);
         }
 
@@ -74,9 +91,17 @@ export abstract class OathAction {
     serialize(): Record<string, any> | undefined {
         return {
             message: this.message,
-            player: this.player.id,
+            player: this.player?.id,
             selects: Object.fromEntries(Object.entries(this.selects).map(([k, v]) => [k, v.serialize()])),
         };
+    }
+}
+
+export abstract class PlayerAction extends OathAction {
+    declare player: OathPlayer;
+
+    constructor(actionManager: OathActionManager, player: OathPlayer) {
+        super(actionManager, player);
     }
 }
 
@@ -89,12 +114,6 @@ export abstract class OathEffect<T = never> extends OathAction {
 
     callback?: (e: T) => void;
     result: T;
-    executorProxy: OathPlayer | undefined;
-
-    constructor(actionManager: OathActionManager, public executor: OathPlayer | undefined) {
-        super(actionManager, executor ?? actionManager.game.currentPlayer);
-        this.executorProxy = executor && this.maskProxyManager.get(executor);
-    }
 
     doNext(callback?: (e: T) => void): void {
         this.callback = callback;
@@ -113,7 +132,6 @@ export abstract class OathEffect<T = never> extends OathAction {
         const data = {
             ...super.serialize(),
             effect: this.constructor.name,
-            player: this.executor?.id,
             message: undefined,
             selects: undefined,
             modifiers: undefined
@@ -123,8 +141,7 @@ export abstract class OathEffect<T = never> extends OathAction {
 }
 
 export abstract class PlayerEffect<T = never> extends OathEffect<T> {
-    declare executor: OathPlayer;
-    declare executorProxy: OathPlayer;
+    declare player: OathPlayer;
 
     constructor(actionManager: OathActionManager, player: OathPlayer) {
         super(actionManager, player);
@@ -136,7 +153,7 @@ export class ResolveCallbackEffect extends OathAction {
     callback: () => void;
 
     constructor(actionManager: OathActionManager, callback: () => void) {
-        super(actionManager, actionManager.game.currentPlayer);
+        super(actionManager, undefined);
         this.callback = callback;
     }
 

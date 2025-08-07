@@ -139,7 +139,7 @@ export class RelicThief extends EnemyActionModifier<Denizen, TakeOwnableObjectEf
         // TODO: Trigger when multiple things are taken
         const rulerProxy = this.sourceProxy.ruler;
         if (!rulerProxy) return;
-        if (this.action.target instanceof Relic && this.action.executorProxy?.site.region === rulerProxy.site.region) {
+        if (this.action.target instanceof Relic && this.action.playerProxy?.site.region === rulerProxy.site.region) {
             new MakeDecisionAction(
                 this.actionManager, rulerProxy.original, "Try to steal " + this.action.target.name + "?",
                 () => {
@@ -163,7 +163,7 @@ export class KeyToTheCity extends WhenPlayed<Denizen> {
         for (const player of this.game.players)
             new ParentToTargetEffect(this.actionManager, player, this.source.site.getWarbands(player.board.key), player.bag).doNext();
 
-        new ParentToTargetEffect(this.actionManager, this.action.executor, this.action.executorProxy.leader.original.bag.get(1), this.source.site).doNext();
+        new ParentToTargetEffect(this.actionManager, this.action.player, this.action.playerProxy.leader.original.bag.get(1), this.source.site).doNext();
     }
 }
 
@@ -233,7 +233,7 @@ export class ChaosCult extends EnemyActionModifier<Denizen, SetNewOathkeeperEffe
 
     applyAfter(): void {
         if (!this.source.ruler) return
-        new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.source.ruler, this, new ResourceCost([[Favor, 1]]), this.source.ruler, this.action.executor)).doNext();
+        new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.source.ruler, this, new ResourceCost([[Favor, 1]]), this.source.ruler, this.action.player)).doNext();
     }
 }
 
@@ -261,7 +261,7 @@ export class Scryer extends ActivePower<Denizen> {
 export class Charlatan extends WhenPlayed<Denizen> {
     whenPlayed(): void {
         const banner = this.game.banners.get(BannerKey.DarkestSecret);
-        if (banner) new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.action.executor, this, new ResourceCost([], [[Secret, banner.amount - 1]]), undefined, banner)).doNext();
+        if (banner) new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.action.player, this, new ResourceCost([], [[Secret, banner.amount - 1]]), undefined, banner)).doNext();
     }
 }
 
@@ -295,13 +295,13 @@ export class Riots extends WhenPlayed<Denizen> {
         }
 
         new ChooseSuitsAction(
-            this.actionManager, this.action.executor, "Discard all other cards at site of the suit with the most",
+            this.actionManager, this.action.player, "Discard all other cards at site of the suit with the most",
             (suits: OathSuit[]) => {
                 if (suits[0] === undefined) return;
                 for (const siteProxy of this.gameProxy.map.sites())
                     for (const denizenProxy of siteProxy.denizens)
                         if (denizenProxy.suit === suits[0] && denizenProxy !== this.sourceProxy)
-                            new DiscardCardEffect(this.actionManager, this.action.executor, denizenProxy.original).doNext();
+                            new DiscardCardEffect(this.actionManager, this.action.player, denizenProxy.original).doNext();
             },
             [suits]
         ).doNext();
@@ -312,23 +312,23 @@ export class Blackmail extends WhenPlayed<Denizen> {
     whenPlayed(): void {
         const relics = new Set<Relic>();
         for (const playerProxy of this.gameProxy.players) {
-            if (playerProxy === this.action.executorProxy || playerProxy.site === this.action.executorProxy.site) continue;
+            if (playerProxy === this.action.playerProxy || playerProxy.site === this.action.playerProxy.site) continue;
             for (const relicProxy of playerProxy.relics) relics.add(relicProxy.original);
         }
 
         new ChooseCardsAction(
-            this.actionManager, this.action.executor, "Steal a relic unless its owner gives you 3 favor", [relics],
+            this.actionManager, this.action.player, "Steal a relic unless its owner gives you 3 favor", [relics],
             (cards: Relic[]) => {
                 const relic = cards[0];
                 if (!relic?.owner) return;
                 
                 if (relic.owner.byClass(Favor).length < 3)
-                    new TakeOwnableObjectEffect(this.actionManager, this.action.executor, relic).doNext();
+                    new TakeOwnableObjectEffect(this.actionManager, this.action.player, relic).doNext();
                 else
                     new MakeDecisionAction(
-                        this.actionManager, relic.owner, "Let " + this.action.executor.name + " take " + relic.name + ", or give them 3 favor?",
-                        () => new TakeOwnableObjectEffect(this.actionManager, this.action.executor, relic).doNext(),
-                        () => new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(relic.owner!, this, new ResourceCost([[Favor, 3]]), this.action.executor)).doNext(),
+                        this.actionManager, relic.owner, "Let " + this.action.player.name + " take " + relic.name + ", or give them 3 favor?",
+                        () => new TakeOwnableObjectEffect(this.actionManager, this.action.player, relic).doNext(),
+                        () => new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(relic.owner!, this, new ResourceCost([[Favor, 3]]), this.action.player)).doNext(),
                         ["Give the relic", "Give 3 favor"]
                     ).doNext();
             }
@@ -338,14 +338,14 @@ export class Blackmail extends WhenPlayed<Denizen> {
 
 export class ASmallFavor extends WhenPlayed<Denizen> {
     whenPlayed(): void {
-        new ParentToTargetEffect(this.actionManager, this.action.executor, this.action.executorProxy.leader.bag.original.get(4)).doNext();
+        new ParentToTargetEffect(this.actionManager, this.action.player, this.action.playerProxy.leader.bag.original.get(4)).doNext();
     }
 }
 
 export class BanditChiefWhenPlayed extends WhenPlayed<Denizen> {
     whenPlayed(): void {
         for (const site of this.game.map.sites())
-            new KillWarbandsOnTargetAction(this.actionManager, this.action.executor, site, 1).doNext();
+            new KillWarbandsOnTargetAction(this.actionManager, this.action.player, site, 1).doNext();
     }
 }
 export class BanditChief extends ActionModifier<Denizen, OathAction> {
@@ -362,7 +362,7 @@ export class BanditChief extends ActionModifier<Denizen, OathAction> {
 
 export class FalseProphet extends WhenPlayed<Denizen> {
     whenPlayed(): void {
-        if (this.action.executorProxy?.isImperial) return;
+        if (this.action.playerProxy?.isImperial) return;
 
         const visions = new Set<Vision>();
         for (const player of this.game.players)
@@ -370,8 +370,8 @@ export class FalseProphet extends WhenPlayed<Denizen> {
                 visions.add(player.board.vision);
 
         new ChooseCardsAction(
-            this.actionManager, this.action.executor, "Place a warband on a revealed Vision", [visions],
-            (cards: OathCard[]) => { if (cards[0]) new ParentToTargetEffect(this.actionManager, this.action.executor, this.action.executorProxy.leader.original.bag.get(1), cards[0]).doNext(); }
+            this.actionManager, this.action.player, "Place a warband on a revealed Vision", [visions],
+            (cards: OathCard[]) => { if (cards[0]) new ParentToTargetEffect(this.actionManager, this.action.player, this.action.playerProxy.leader.original.bag.get(1), cards[0]).doNext(); }
         ).doNext();
     }
 }
@@ -401,10 +401,11 @@ export class FalseProphetDiscard extends ActionModifier<Denizen, DiscardCardEffe
     }
 
     applyAfter(): void {
-        new DrawFromDeckEffect(this.actionManager, this.action.executor, this.action.discardOptions.discard, 1, this.action.discardOptions.onBottom).doNext((cards) => {
+        if (!this.sourceProxy.ruler) return;
+        new DrawFromDeckEffect(this.actionManager, this.sourceProxy.ruler, this.action.discardOptions.discard, 1, this.action.discardOptions.onBottom).doNext((cards) => {
             const card = cards[0];
             if (!(card instanceof Vision)) return;
-            new SearchPlayOrDiscardAction(this.actionManager, this.action.executor, card).doNext();
+            new SearchPlayOrDiscardAction(this.actionManager, this.sourceProxy.ruler!, card).doNext();
         })
     }
 }
@@ -412,10 +413,10 @@ export class FalseProphetDiscard extends ActionModifier<Denizen, DiscardCardEffe
 export class RoyalAmbitions extends WhenPlayed<Denizen> {
     whenPlayed(): void {
         if (!(this.action.playerProxy.board instanceof ExileBoard)) return;
-        if (this.action.executorProxy.ruledSites > this.gameProxy.chancellor.ruledSites)
-            new MakeDecisionAction(this.actionManager, this.action.executor, "Become a Citizen?", () => {
-                new BecomeCitizenEffect(this.actionManager, this.action.executor).doNext(); 
-                new TakeReliquaryRelicAction(this.actionManager, this.action.executor).doNext();
+        if (this.action.playerProxy.ruledSites > this.gameProxy.chancellor.ruledSites)
+            new MakeDecisionAction(this.actionManager, this.action.player, "Become a Citizen?", () => {
+                new BecomeCitizenEffect(this.actionManager, this.action.player).doNext(); 
+                new TakeReliquaryRelicAction(this.actionManager, this.action.player).doNext();
             }).doNext();
     }
 }

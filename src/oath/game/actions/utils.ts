@@ -92,10 +92,10 @@ export class CampaignResult {
     }
     get couldSacrifice() { return this.requiredSacrifice > 0 && this.requiredSacrifice <= this.totalAtkForce; }
 
-    areEnemies(player1: OathPlayer | undefined, player2: OathPlayer) {
+    areEnemies(player1: OathPlayer | undefined, player2: OathPlayer | undefined) {
         return (
             (player1 === this.defender || !!player1 && this.defenderAllies.has(player1)) && player2 === this.attacker ||
-            (player2 === this.defender || this.defenderAllies.has(player2)) && player1 === this.attacker
+            (player2 === this.defender || !!player2 && this.defenderAllies.has(player2)) && player1 === this.attacker
         )
     }
 

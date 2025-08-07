@@ -47,7 +47,7 @@ export class Decadent extends Reliquary(SupplyCostModifier<ReliquarySlot>) {
 
     apply(context: SupplyCostContext): void {
         const action = context.origin as TravelAction;
-        if (action.siteProxy.inRegion(RegionKey.Cradle) && !this.playerProxy.site.inRegion(RegionKey.Cradle))
+        if (action.siteProxy.inRegion(RegionKey.Cradle) && !this.playerProxy?.site.inRegion(RegionKey.Cradle))
             context.cost.multiplier = 0;
     
         if (action.siteProxy.inRegion(RegionKey.Hinterland))

@@ -14,7 +14,7 @@ export class PeoplesFavorSearch extends Owned(ActionModifier<PeoplesFavor, Searc
     mustUse = true; // Not strictly true, but it involves a choice either way, so it's better to always include it
 
     applyAtStart(): void {
-        if (this.playerProxy.site.region && this.action.cardProxy instanceof Denizen && this.action.cardProxy.restriction !== CardRestriction.Adviser) {
+        if (this.playerProxy?.site.region && this.action.cardProxy instanceof Denizen && this.action.cardProxy.restriction !== CardRestriction.Adviser) {
             for (const siteProxy of this.playerProxy.site.region.sites) {
                 const capacityInformation = getCapacityInformation(this.powerManager, this.action.maskProxyManager, siteProxy, this.action.playerProxy);
                 if (!siteProxy.facedown && capacityInformation.capacity > capacityInformation.takesSpaceInTargetProxies.length) {
@@ -25,7 +25,8 @@ export class PeoplesFavorSearch extends Owned(ActionModifier<PeoplesFavor, Searc
     }
 
     applyBefore(): void {
-        if (this.action.siteProxy) new MayDiscardACardAction(this.actionManager, this.player, this.action.discardOptions).doNext();
+        if (this.action.siteProxy && this.player)
+            new MayDiscardACardAction(this.actionManager, this.player, this.action.discardOptions).doNext();
     }
 }
 export class PeoplesFavorWake extends Owned(ActionModifier<PeoplesFavor, WakeAction>) {

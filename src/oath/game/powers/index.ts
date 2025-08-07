@@ -6,7 +6,6 @@ import { OathCard, OwnableCard, Site, WorldCard } from "../model/cards";
 import { CostContext, ResourceCost, ResourceTransferContext, SupplyCostContext } from "../costs";
 import { OathPlayer } from "../model/player";
 import { AbstractConstructor, Constructor, MaskProxyManager } from "../utils";
-import { OathGame } from "../model/game";
 import { CampaignActionTarget, RecoverActionTarget, WithPowers } from "../model/interfaces";
 import { OathPowerManager } from "./manager";
 
@@ -16,30 +15,25 @@ import { OathPowerManager } from "./manager";
 //////////////////////////////////////////////////
 export abstract class OathPower<T extends WithPowers> {
     cost: ResourceCost = new ResourceCost();
-    powerManagerProxy: OathPowerManager;
-    gameProxy: OathGame;
-    playerProxy: OathPlayer;
-    sourceProxy: T;
     
     constructor(
         public powerManager: OathPowerManager,
         public source: T,
-        public player: OathPlayer,
+        public player: OathPlayer | undefined,
         public maskProxyManager: MaskProxyManager
-    ) {
-        this.powerManagerProxy = maskProxyManager.get(powerManager);
-        this.gameProxy = maskProxyManager.get(source.game);
-        this.playerProxy = maskProxyManager.get(player);
-        this.sourceProxy = maskProxyManager.get(source);
-    }
+    ) { }
 
+    get powerManagerProxy() { return this.maskProxyManager.get(this.powerManager); }
+    get gameProxy() { return this.maskProxyManager.get(this.source.game); }
+    get playerProxy() { return this.maskProxyManager.get(this.player); }
+    get sourceProxy() { return this.maskProxyManager.get(this.source); }
     get actionManager() { return this.powerManager.actionManager; }
     get selfCostContext() { return new ResourceTransferContext(this.player, this, this.cost, this.source); }
     get name() { return this.source.name; }
     get game() { return this.source.game; }
 
     payCost(next?: (success: boolean) => void): void {
-        if (this.cost.free) {
+        if (this.cost.free || !this.player) {  // Do what you want 'cause a pirate is free!
             if (next) next(true);
             return;
         }
@@ -88,10 +82,13 @@ export abstract class ResourceTransferModifier<T extends WithPowers> extends Cos
 };
 
 export abstract class ActionPower<T extends WithPowers, U extends OathAction> extends OathPower<T> {
+    declare player: U['player'];
+    get playerProxy(): U['player'] { return super.playerProxy; }
+
     constructor(
         powerManager: OathPowerManager,
         source: T,
-        player: OathPlayer,
+        player: U['player'],
         public action: U
     ) {
         super(powerManager, source, player, action.maskProxyManager);
@@ -122,6 +119,8 @@ export abstract class WhenPlayed<T extends WorldCard> extends ActionPower<T, Pla
 
 export abstract class ActionModifier<T extends WithPowers, U extends OathAction> extends ActionPower<T, U> {
     abstract modifiedAction: AbstractConstructor<U>;
+    declare player: U['player'];
+    get playerProxy(): U['player'] { return super.playerProxy; };
     mustUse: boolean = false;
 
     canUse(): boolean {
@@ -175,7 +174,7 @@ export abstract class EnemyActionModifier<T extends OwnableCard, U extends OathA
     mustUse = true;
 
     canUse(): boolean {
-        return super.canUse() && this.playerProxy.enemyWith(this.sourceProxy.ruler);
+        return super.canUse() && !!this.playerProxy?.enemyWith(this.sourceProxy.ruler);
     }
 }
 
