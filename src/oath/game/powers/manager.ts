@@ -33,7 +33,9 @@ export class OathPowerManager {
 
     get game() { return this.actionManager.game; }
 
-    getModifiable(action: OathAction) {
+    getModifiable<T extends OathAction>(action: T) {
+        const existing = this.futureActionsModifiable.get(action);
+        if (existing) return existing as ModifiableAction<T>;
         const modifiableAction = new ModifiableAction(action);
         this.futureActionsModifiable.set(action, modifiableAction);
         return modifiableAction;

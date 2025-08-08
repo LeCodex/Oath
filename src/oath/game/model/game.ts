@@ -35,7 +35,8 @@ export class OathGame extends TreeRoot<OathGame> implements WithPowers {
         "ResolveWhenPlayed",
         "FillCapacityInformation",
         "ModifyResourceTransfer",
-        "ModifySupplyPayment"
+        "ModifySupplyPayment",
+        "AllowDefenderAlliesToModify"
     ]);
     active = true;
     game = this;

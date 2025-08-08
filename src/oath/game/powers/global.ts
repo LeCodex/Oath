@@ -1,7 +1,7 @@
 import { ActionModifier, WhenPlayed } from ".";
-import type { CapacityInformation} from "../actions";
+import { CampaignDefenseAction, CapacityInformation} from "../actions";
 import { ActPhaseAction, SearchPlayOrDiscardAction } from "../actions";
-import type { OathEffect } from "../actions/base";
+import type { OathAction, OathEffect } from "../actions/base";
 import { CheckCapacityEffect, PaySupplyEffect, PlayWorldCardEffect, TransferResourcesEffect } from "../actions/effects";
 import { InvalidActionResolution } from "../actions/utils";
 import { type Cost, type CostContext } from "../costs";
@@ -10,7 +10,7 @@ import type { OathGame } from "../model/game";
 import { hasCostContexts } from "../model/interfaces";
 import type { AbstractConstructor, MaskProxyManager } from "../utils";
 import { allChoices, allCombinations, isExtended } from "../utils";
-import { ChooseModifiers, ChooseModifiedCostContextAction, UsePowerAction } from "./actions";
+import { ChooseModifiers, ChooseModifiedCostContextAction, UsePowerAction, ModifiableAction } from "./actions";
 import { powersIndex } from "./classIndex";
 import { MultiCostContext } from "./context";
 import type { OathPowerManager } from "./manager";
@@ -161,5 +161,23 @@ export class ResolveWhenPlayed extends ActionModifier<OathGame, PlayWorldCardEff
                 new powerCls(this.powerManager, this.action.card as any, this.action.player, this.action).whenPlayed();
             }
         }
+    }
+}
+
+export class AllowDefenderAlliesToModify extends ActionModifier<OathGame, CampaignDefenseAction> {
+    modifiedAction = CampaignDefenseAction;
+    mustUse = true;
+
+    applyWhenApplied(): boolean {
+        if (this.action.campaignResult.defenderAllies.size && this.player === this.action.campaignResult.defender) {
+            let next: ModifiableAction<CampaignDefenseAction> | ChooseModifiers<CampaignDefenseAction> = this.powerManager.getModifiable(this.action);
+            for (const ally of this.action.campaignResult.defenderAllies) 
+                if (ally !== this.player)
+                    next = new ChooseModifiers(this.powerManager, next, ally);
+            next.doNext();
+            return false;
+        }
+
+        return true;
     }
 }

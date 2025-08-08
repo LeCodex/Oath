@@ -621,17 +621,6 @@ export class CampaignAttackAction extends PlayerAction {
         this.campaignResult.atkForce = new Set([this.player]);
 
         this.next.doNext();
-        // Bandits use all battle plans that are free
-        // const modifiers: ActionModifier<WithPowers, CampaignDefenseAction>[] = [];
-        // for (const modifier of this.game.gatherActionModifiers(this.next, this.player)) {
-        //     if (modifier.mustUse || modifier.cost.free)
-        //         modifiers.push(modifier);
-        // }
-
-        // If any powers cost something, then the attacker pays. Shouldn't happen though
-        // if (this.next.applyModifiers(modifiers)) {
-        //     this.next.doNextWithoutModifiers();
-        // }
     }
 }
 
@@ -650,14 +639,6 @@ export class CampaignDefenseAction extends OathAction {
     get campaignResult() { return this.next.campaignResult; }
     get campaignResultProxy() { return this.next.campaignResultProxy; }
 
-    // doNext(): void {
-        // let next = new ChooseModifiers(actionManager, this);
-        // for (const ally of this.campaignResult.defenderAllies) 
-        //     if (ally !== this.player)
-        //         next = new ChooseModifiers(next, ally);
-        // next.doNext();
-    // }
-    
     execute() {
         this.campaignResult.resolve(() => {
             this.campaignResult.successful = this.campaignResult.atk > this.campaignResult.def;
