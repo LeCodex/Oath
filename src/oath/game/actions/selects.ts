@@ -60,7 +60,7 @@ export class SelectNOf<T> {
     parse(input: Iterable<string>): T[] {
         const values = new Set<T>();
         for (const val of input) {
-            if (!this.choices.has(val)) throw new InvalidActionResolution(`Invalid choice for select ${this.name}: ${val} (Expected one of ${[...this.choices.keys()].join(', ')})`);
+            if (!this.choices.has(val)) throw new InvalidActionResolution(`Invalid choice for select ${this.name}: ${val} (Expected ${this.min}-${this.max} of ${[...this.choices.keys()].join(', ')})`);
             const obj = this.choices.get(val);
             values.add(obj as T); // We know the value exists, and if it's undefined, then we want it to be
         }

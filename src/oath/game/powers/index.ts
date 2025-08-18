@@ -122,6 +122,8 @@ export abstract class ActionModifier<T extends WithPowers, U extends OathAction>
     declare player: U['player'];
     get playerProxy(): U['player'] { return super.playerProxy; };
     mustUse: boolean = false;
+    // Only taken into account if the action is a mustUse. Can use actions are always ordered anyways
+    orderAgnostic: boolean = true;
 
     canUse(): boolean {
         return true;

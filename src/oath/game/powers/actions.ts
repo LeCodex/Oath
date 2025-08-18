@@ -1,6 +1,6 @@
 import type { WithPowers } from "../model/interfaces";
 import type { OathPlayer } from "../model/player";
-import type { OathPower, ActionModifier } from ".";
+import type { OathPower, ActionModifier} from ".";
 import { ActivePower } from ".";
 import type { MaskProxyManager } from "../utils";
 import { allCombinations } from "../utils";
@@ -9,7 +9,7 @@ import { SelectNOf } from "../actions/selects";
 import type { CostContextInfo, OathPowerManager } from "./manager";
 import type { OwnableCard } from "../model/cards";
 import { MultiCostContext } from "./context";
-import { cannotPayError } from "../actions/utils";
+import { cannotPayError, InvalidActionResolution } from "../actions/utils";
 import { TransferResourcesEffect } from "../actions/effects";
 import { ResourcesAndWarbands } from "../model/resources";
 import type { PowerName } from "./classIndex";
@@ -35,10 +35,12 @@ export abstract class ExpandedPlayerAction extends ExpandedAction {
 }
 
 export class ChooseModifiers<T extends OathAction> extends ExpandedAction {
-    declare readonly selects: { modifiers: SelectNOf<ActionModifier<WithPowers, T>[]>; };
+    declare readonly selects: { modifiers: SelectNOf<ActionModifier<WithPowers, T>>; };
     readonly modifiableAction: ModifiableAction<T>;
     readonly next: ModifiableAction<T> | ChooseModifiers<T>;
-    readonly message = "Choose modifiers";
+    readonly message = "Choose and order modifiers";
+
+    persistentModifiers = new Set<ActionModifier<WithPowers, T>>();
 
     constructor(powerManager: OathPowerManager, next: ModifiableAction<T> | ChooseModifiers<T>, chooser: OathPlayer | undefined = next.player) {
         super(powerManager, chooser);
@@ -48,7 +50,7 @@ export class ChooseModifiers<T extends OathAction> extends ExpandedAction {
 
     get defaultChoices() {
         return {
-            modifiers: this.selects.modifiers && [...this.selects.modifiers.choices.values()].reduce((a, e) => e.length > a.length ? e : a)
+            modifiers: this.selects.modifiers && [...this.selects.modifiers.choices.values()].filter((e) => e.cost.free)
         };
     }
 
@@ -70,13 +72,12 @@ export class ChooseModifiers<T extends OathAction> extends ExpandedAction {
     }
 
     start() {
-        const defaults: string[] = [];
+        const defaults = new Set<string>();
         const maskProxyManager = this.modifiableAction.maskProxyManager;
         const { persistentModifiers, optionalModifiers } = ChooseModifiers.gatherActionModifiers(this.powerManager, this.modifiableAction.action, this.player, maskProxyManager);
-        
-        // TODO: Change to permutations to handle order (maybe have order agnosticity as a property)
-        // Also very unwieldy with many modifiers. Old method with checks might be better, or more advanced Selects
-        const choices = new Map<string, ActionModifier<WithPowers, T>[]>();
+        this.persistentModifiers = persistentModifiers;
+
+        const combinations: ActionModifier<WithPowers, T>[][] = [];
         for (const combination of allCombinations(optionalModifiers)) {
             const completeCombination = [...persistentModifiers, ...combination];
             const totalContext = new MultiCostContext(
@@ -85,16 +86,33 @@ export class ChooseModifiers<T extends OathAction> extends ExpandedAction {
             );
 
             if (totalContext.costsWithModifiers(maskProxyManager).length) {
-                choices.set(combination.length ? combination.map((e) => e.name).join(", ") : "None", completeCombination);
+                combinations.push(completeCombination);
             }
         }
-        this.selects.modifiers = new SelectNOf("Modifiers", choices, { defaults, min: 1 });
+        const choices = new Map<string, ActionModifier<WithPowers, T>>();
+        for (const combination of combinations) {
+            for (const modifier of combination) {
+                if (!modifier.mustUse && modifier.orderAgnostic) {
+                    choices.set(modifier.name, modifier);
+                    if (modifier.cost.free || modifier.mustUse) defaults.add(modifier.name);
+                }
+            }
+        }
+        this.selects.modifiers = new SelectNOf("Modifiers", choices, { defaults });
         
         return super.start();
     }
 
     execute() {
-        const modifiers = new Set(this.parameters.modifiers[0]);
+        const modifiers = new Set<ActionModifier<WithPowers, T>>(this.parameters.modifiers);
+        for (const modifier of this.persistentModifiers) {
+            if (modifier.orderAgnostic) {
+                modifiers.add(modifier);
+            } else if (!modifiers.has(modifier)) {
+                throw new InvalidActionResolution(`Must use modifier ${modifier.name}`);
+            }
+        }
+
         if (this.modifiableAction.applyModifiers(modifiers)) {
             this.next.doNext();
         }

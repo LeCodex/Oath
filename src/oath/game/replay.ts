@@ -24,12 +24,12 @@ export class OathReplayController {
             lineIndex++;
             const lines = this.chunks[chunkIndex]!;
             if (lineIndex >= lines.length) {
-                console.log(`Resolving chunk ${chunkIndex}`);
+                // console.log(`Resolving chunk ${chunkIndex}`);
                 chunkIndex++;
                 lineIndex = 0;
             }
             const line = this.chunks[chunkIndex]![lineIndex]!;
-            console.log(`   Resolving event ${lineIndex}: ${line}`);
+            // console.log(`   Resolving event ${lineIndex}: ${line}`);
             HistoryNode.loadEvent(this.actionManager, line, false);
         } catch (e) {
             console.error(`Replay of game ${this.game.gameId} failed:`, e);

@@ -53,7 +53,7 @@ export class ResourceCost extends Cost {
 
     static parse(obj: ReturnType<ResourceCost["serialize"]>): ResourceCost {
         const resourceClasses = { Favor, Secret };
-        const parseResources = (resources: { [k: string]: number; }) => Object.entries(resources).map<[OathResourceType, number]>(([k, v]: [keyof typeof resourceClasses, number]) => [resourceClasses[k]!, v]);
+        const parseResources = (resources: Record<string, number>) => Object.entries(resources).map<[OathResourceType, number]>(([k, v]: [keyof typeof resourceClasses, number]) => [resourceClasses[k]!, v]);
         return new this(parseResources(obj.placedResources), parseResources(obj.burntResources));
     }
 
