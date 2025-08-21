@@ -207,7 +207,7 @@ export class OathActionManager extends EventPublisher<{
  
     public checkForNextAction(save: boolean = true): ActionManagerReturn {
         if (!this.loaded) return this.defer(false);
-        if (!this.actionsStack.length && !this.futureActionsList.length) this.emptyStack(save);
+        if (!this.actionsStack.length && !this.futureActionsList.length) this.emptyStack();
 
         for (const action of this.futureActionsList) this.actionsStack.push(action);
         this.futureActionsList.length = 0;
@@ -268,8 +268,8 @@ export class OathActionManager extends EventPublisher<{
         this.history.push(new HistoryNode(this, this.game.serialize(true) as SerializedNode<typeof this["game"]>));
     }
 
-    private emptyStack(save: boolean = true) {
-        if (save) this.lastStartState = this.gameState.game;
+    private emptyStack() {
+        this.lastStartState = this.gameState.game;
 
         this.emit("emptyStack");
         if (this.game.phase !== OathPhase.Over) {
@@ -410,13 +410,13 @@ export class OathActionManager extends EventPublisher<{
 
     public parse(chunks: string[]) {
         this.checkForNextAction(false);  // Flush the initial actions onto the stack
-        this.lastStartState = JSON.parse(chunks.pop()!);
+        const lastStartState = JSON.parse(chunks.pop()!);
         let lastChunk = false;
         try {
             for (const [i, nodeData] of chunks.entries()) {
                 console.log(`Resolving chunk ${i}`);
                 if (i === chunks.length - 1) {
-                    if (JSON.stringify(this.gameState.game) !== JSON.stringify(this.lastStartState))
+                    if (JSON.stringify(this.lastStartState) !== JSON.stringify(lastStartState))
                         console.warn(`Loading of game ${this.game.gameId} has conflicting final start state`);
                     lastChunk = true;
                 }
@@ -425,6 +425,7 @@ export class OathActionManager extends EventPublisher<{
         } catch (e) {
             this.loaded = false;
             console.error(`Loading of game ${this.game.gameId} failed:`, e);
+            this.lastStartState = lastStartState;
             if (lastChunk) {
                 console.warn("Reloading was past last start state. Reloading from history");
                 this.reloadFromHistory();

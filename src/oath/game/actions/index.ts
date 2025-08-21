@@ -700,7 +700,7 @@ export class CampaignEndAction extends PlayerAction {
         for (const callback of this.campaignResult.endCallbacks)
             callback.resolve();
 
-        console.log(this.campaignResult);
+        // console.log(this.campaignResult);
     }
 }
 

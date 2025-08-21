@@ -120,7 +120,7 @@ export abstract class TreeNode<RootType extends TreeRoot<RootType>, KeyType = an
             for (const [i, child] of objWithChildren.children.entries()) {
                 let node = this.root.search(child.type, child.id);
                 if (!node) {
-                    if (!allowCreation) throw TypeError(`Could not find node of class ${child.type} and id ${child.id}, and creation is not allowed`);
+                    if (!allowCreation) throw TypeError(`Could not find node of type ${child.type} and id ${child.id}, and creation is not allowed`);
                     console.warn(`Didn't find node of type ${child.type} and id ${child.id}`);
                     node = this.root.create(child.class, child.id);
                 }
