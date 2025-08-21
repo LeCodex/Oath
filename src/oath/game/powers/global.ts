@@ -1,10 +1,10 @@
 import { ActionModifier, WhenPlayed } from ".";
-import type { CapacityInformation} from "../actions";
-import { CampaignDefenseAction, ActPhaseAction, SearchPlayOrDiscardAction } from "../actions";
+import type { CapacityInformation } from "../actions";
+import { SearchAction, CampaignDefenseAction, ActPhaseAction, SearchPlayOrDiscardAction } from "../actions";
 import type { OathEffect } from "../actions/base";
 import { CheckCapacityEffect, PaySupplyEffect, PlayWorldCardEffect, TransferResourcesEffect } from "../actions/effects";
 import { InvalidActionResolution } from "../actions/utils";
-import { type Cost, type CostContext } from "../costs";
+import { SupplyCostContext, type Cost, type CostContext } from "../costs";
 import { Site } from "../model/cards";
 import type { OathGame } from "../model/game";
 import { hasCostContexts } from "../model/interfaces";
@@ -69,6 +69,19 @@ export class FilterUnpayableActions extends ActionModifier<OathGame, ActPhaseAct
 
             return false;
         });
+    }
+}
+export class FilterDecksWithCosts extends ActionModifier<OathGame, SearchAction> {
+    modifiedAction = SearchAction;
+    mustUse = true;
+
+    applyAtStart(): void {
+        this.action.selects.deckProxy.filterChoices((e) =>
+            this.powerManager.validCostsWithModifiers(
+                new SupplyCostContext(this.action.player, this.action, this.action.possibleCosts.get(e)!),
+                this.action.maskProxyManager
+            ).length > 0
+        );
     }
 }
 function ModifyCostContextResolver<T extends OathEffect<any> & { context: CostContext<Cost> }>(base: AbstractConstructor<T>) {

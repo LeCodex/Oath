@@ -236,7 +236,10 @@ export class ChooseModifiedCostContextAction<T extends CostContext<any>> extends
 
     start() {
         const choices = new Map<string, CostContextInfo<T>>();
-        const payableCostContextsInfo = this.powerManager.costsWithModifiers(this.costContext, this.maskProxyManager);
+        const payableCostContextsInfo = this.powerManager.validCostsWithModifiers(this.costContext, this.maskProxyManager);
+        if (payableCostContextsInfo.length === 0)
+            throw new InvalidActionResolution(`Cannot pay cost: ${this.costContext.cost}`);
+
         for (const costContextInfo of payableCostContextsInfo)
             choices.set(costContextInfo.context.cost.toString() + ` (${costContextInfo.modifiers.map((e) => e.name).join(", ") || "Base"})`, costContextInfo);
         this.selects.costContextInfo = new SelectNOf("Cost", choices, { min: 1 });

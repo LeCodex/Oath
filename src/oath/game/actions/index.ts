@@ -288,6 +288,7 @@ export class SearchAction extends MajorAction {
     readonly message = "Draw 3 cards from a deck";
 
     supplyCost: SupplyCost;
+    possibleCosts: Map<SearchableDeck, SupplyCost>;
     deckProxy: SearchableDeck;
     amount = 3;
     fromBottom = false;
@@ -298,6 +299,7 @@ export class SearchAction extends MajorAction {
         const choices: SearchableDeck[] = [this.gameProxy.worldDeck];
         const region = this.playerProxy.site.region;
         if (region) choices.push(region.discard);
+        this.possibleCosts = new Map(choices.map((e) => [e, new SupplyCost(e.searchCost)]));
         this.selects.deckProxy = new SelectWithName("Deck", choices, { min: 1 });
         return super.start();
     }
@@ -305,7 +307,7 @@ export class SearchAction extends MajorAction {
     applyParameters(values: Partial<ParametersType<this>>): void {
         super.applyParameters(values);
         this.deckProxy = this.parameters.deckProxy[0]!;
-        this.supplyCost = new SupplyCost(this.deckProxy.searchCost);
+        this.supplyCost = this.possibleCosts.get(this.deckProxy)!;
     }
 
     majorAction() {

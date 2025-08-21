@@ -100,7 +100,7 @@ export abstract class ActionPower<T extends WithPowers, U extends OathAction> ex
 export abstract class ActivePower<T extends OathCard> extends ActionPower<T, UsePowerAction> {
     canUse(): boolean {
         return (
-            this.powerManager.costsWithModifiers(this.selfCostContext, this.action.maskProxyManager).length > 0 &&  // TODO: Make this global
+            this.powerManager.validCostsWithModifiers(this.selfCostContext, this.action.maskProxyManager).length > 0 &&  // TODO: Make this global
             this.sourceProxy.accessibleBy(this.action.playerProxy) &&
             (this.sourceProxy.empty || !this.cost.placesResources)
         );

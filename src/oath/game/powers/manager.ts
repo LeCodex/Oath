@@ -76,7 +76,7 @@ export class OathPowerManager {
         }
     }
 
-    costsWithModifiers<T extends CostContext<Cost>>(costContext: T, maskProxyManager: MaskProxyManager): CostContextInfo<T>[] {
+    validCostsWithModifiers<T extends CostContext<Cost>>(costContext: T, maskProxyManager: MaskProxyManager): CostContextInfo<T>[] {
         const modifiers: CostModifier<WithPowers, T>[] = [];
         for (const [sourceProxy, modifier] of this.getPowers(CostModifier<WithPowers, T>, maskProxyManager)) {
             const instance = new modifier(this, sourceProxy.original, costContext.player, maskProxyManager);

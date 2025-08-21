@@ -256,7 +256,7 @@ export class DowsingSticks extends ActivePower<Relic> {
             if (!cards[0]) return;
             const relic = cards[0];
             new MakeDecisionAction(
-                this.actionManager, this.action.player, "Keep the relic?",
+                this.actionManager, this.action.player, `Keep ${relic.name}?`,
                 () => new TakeOwnableObjectEffect(this.actionManager, this.action.player, relic).doNext(),
                 () => new DiscardCardEffect(this.actionManager, this.action.player, relic, new DiscardOptions(this.game.relicDeck, true)).doNext()
             ).doNext();

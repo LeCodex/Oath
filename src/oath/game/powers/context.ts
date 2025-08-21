@@ -15,7 +15,7 @@ export class MultiCostContext<T extends CostContext<Cost>> {
     ) { }
 
     costsWithModifiers(maskProxyManager: MaskProxyManager) {
-        const payableCostsInfo = this.costContexts.map((e) => this.powerManager.costsWithModifiers(e, maskProxyManager));
+        const payableCostsInfo = this.costContexts.map((e) => this.powerManager.validCostsWithModifiers(e, maskProxyManager));
         return allChoices(payableCostsInfo).map((choice) => {
             const context: MultiCostContext<T> = clone(this);
             context.costContexts = choice.map((e) => e.context as T);

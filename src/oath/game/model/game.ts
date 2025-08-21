@@ -32,6 +32,7 @@ export class OathGame extends TreeRoot<OathGame> implements WithPowers {
         "AddUsePowerAction",
         "FilterUnpayableActions",
         "FilterFullCardTargets",
+        "FilterDecksWithCosts",
         "ResolveWhenPlayed",
         "FillCapacityInformation",
         "ModifyResourceTransfer",
