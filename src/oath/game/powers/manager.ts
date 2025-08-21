@@ -70,12 +70,6 @@ export class OathPowerManager {
         return new MultiCostContext(this, player, contexts, ResourceTransferContext.dummyFactory(player));
     }
 
-    modifyCostContext<T extends CostContext<Cost>>(costContext: T, modifiers: Iterable<CostModifier<WithPowers, T>>) {
-        for (const modifier of modifiers) {
-            modifier.apply(costContext);
-        }
-    }
-
     validCostsWithModifiers<T extends CostContext<Cost>>(costContext: T, maskProxyManager: MaskProxyManager): CostContextInfo<T>[] {
         const modifiers: CostModifier<WithPowers, T>[] = [];
         for (const [sourceProxy, modifier] of this.getPowers(CostModifier<WithPowers, T>, maskProxyManager)) {
@@ -86,13 +80,18 @@ export class OathPowerManager {
         const mustUse = modifiers.filter((e) => e.mustUse);
         const canUse = modifiers.filter((e) => !e.mustUse);
         return allCombinations(canUse).map((e) => mustUse.concat(e)).map((combination) => {
-            const context = clone(costContext);
+            const context = clone(costContext);  // TODO: Move those to methods
             context.cost = clone(costContext.cost);
             if (combination.length) {
-                this.modifyCostContext(context, combination);
-                if (!this.modifiersCostContext(costContext.player, combination).costsWithModifiers(maskProxyManager).length) return undefined;
+                const modifiersCostContext = this.modifiersCostContext(costContext.player, combination);
+                if (!modifiersCostContext.validCostsWithModifiers(maskProxyManager).length)
+                    return undefined;
+
+                for (const modifier of combination) {
+                    modifier.apply(context);
+                }
             }
-            if (!costContext.valid) return undefined;
+            if (!context.valid) return undefined;
             return { context, modifiers: combination };
         }).filter((e) => !!e);
     }

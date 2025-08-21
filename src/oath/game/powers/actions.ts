@@ -85,7 +85,7 @@ export class ChooseModifiers<T extends OathAction> extends ExpandedAction {
                 ResourceTransferContext.dummyFactory(this.player)
             );
 
-            if (totalContext.costsWithModifiers(maskProxyManager).length) {
+            if (totalContext.validCostsWithModifiers(maskProxyManager).length) {
                 combinations.push(completeCombination);
             }
         }

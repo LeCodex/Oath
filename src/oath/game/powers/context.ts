@@ -14,7 +14,7 @@ export class MultiCostContext<T extends CostContext<Cost>> {
         public dummyFactory: Factory<T, [ContextSource<T>, ContextCost<T>?]>
     ) { }
 
-    costsWithModifiers(maskProxyManager: MaskProxyManager) {
+    validCostsWithModifiers(maskProxyManager: MaskProxyManager) {
         const payableCostsInfo = this.costContexts.map((e) => this.powerManager.validCostsWithModifiers(e, maskProxyManager));
         return allChoices(payableCostsInfo).map((choice) => {
             const context: MultiCostContext<T> = clone(this);

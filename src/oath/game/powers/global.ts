@@ -56,7 +56,7 @@ export class FilterUnpayableActions extends ActionModifier<OathGame, ActPhaseAct
                         }
                         
                         if ([...costContextPerType].every(([cls, contexts]) =>
-                            new MultiCostContext(this.powerManager, this.player, contexts, cls.dummyFactory(this.player)).costsWithModifiers(maskProxyManager).length
+                            new MultiCostContext(this.powerManager, this.player, contexts, cls.dummyFactory(this.player)).validCostsWithModifiers(maskProxyManager).length
                         )) {
                             return true;
                         }
@@ -76,12 +76,13 @@ export class FilterDecksWithCosts extends ActionModifier<OathGame, SearchAction>
     mustUse = true;
 
     applyAtStart(): void {
-        this.action.selects.deckProxy.filterChoices((e) =>
-            this.powerManager.validCostsWithModifiers(
+        this.action.selects.deckProxy.filterChoices((e) => {
+            const costs = this.powerManager.validCostsWithModifiers(
                 new SupplyCostContext(this.action.player, this.action, this.action.possibleCosts.get(e)!),
                 this.action.maskProxyManager
-            ).length > 0
-        );
+            );
+            return costs.length > 0;
+        });
     }
 }
 function ModifyCostContextResolver<T extends OathEffect<any> & { context: CostContext<Cost> }>(base: AbstractConstructor<T>) {
