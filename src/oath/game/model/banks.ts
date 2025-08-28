@@ -3,10 +3,11 @@ import type { RecoverActionTarget, CampaignActionTarget, WithPowers, OwnableObje
 import { OathSuit } from "../enums";
 import { isEnumKey } from "../utils";
 import { OathPlayer } from "./player";
-import type { OathResource, OathResourceType } from "./resources";
+import type { OathResource } from "./resources";
 import { Favor, Secret } from "./resources";
 import { Container } from "./gameObject";
 import type { BannerPowerName } from "../powers/classIndex";
+import type { SerializedNode } from "./utils";
 
 export class FavorBank extends Container<Favor, OathSuit> {
     declare readonly id: keyof typeof OathSuit;
@@ -62,9 +63,10 @@ export class PeoplesFavor extends Banner<Favor> {
         };
     }
 
-    parse(obj: ReturnType<this["liteSerialize"]>, allowCreation?: boolean): void {
+    parse(obj: SerializedNode<this>, allowCreation?: boolean): this {
         super.parse(obj, allowCreation);
         this.isMob = obj.isMob;
+        return this;
     }
 }
 

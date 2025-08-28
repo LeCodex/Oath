@@ -16,6 +16,7 @@ import type { RelicName } from "../cards/relics";
 import { relicsData } from "../cards/relics";
 import type { CardPowerName, DenizenPowerName, RelicPowerName, SitePowerName, VisionPowerName } from "../powers/classIndex";
 import { Oath } from "./oaths";
+import type { SerializedNode } from "./utils";
 
 
 export abstract class OathCard extends ResourcesAndWarbands<string> implements HiddenInformation, WithPowers {
@@ -60,10 +61,11 @@ export abstract class OathCard extends ResourcesAndWarbands<string> implements H
         return obj;
     }
 
-    parse(obj: ReturnType<this["liteSerialize"]>, allowCreation?: boolean): void {
+    parse(obj: SerializedNode<this>, allowCreation?: boolean): this {
         super.parse(obj, allowCreation);
         this.facedown = obj.facedown;
         this.seenBy = new Set(obj.seenBy ? this.game.players.filter((e) => obj.seenBy?.includes(e.key)) : []);
+        return this;
     }
 }
 

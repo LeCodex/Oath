@@ -3,6 +3,7 @@ import { isEnumKey } from "../utils";
 import { Container } from "./gameObject";
 import type { OathCard } from "./cards";
 import { WorldCard, VisionBack, Relic } from "./cards";
+import type { SerializedNode } from "./utils";
 
 
 export abstract class CardDeck<T extends OathCard, U = any> extends Container<T, U> {
@@ -79,9 +80,10 @@ export class WorldDeck extends SearchableDeck<string> {
         };
     }
 
-    parse(obj: ReturnType<this["liteSerialize"]>, allowCreation?: boolean): void {
+    parse(obj: SerializedNode<this>, allowCreation?: boolean): this {
         super.parse(obj, allowCreation);
         this.visionsDrawn = obj.visionsDrawn;
+        return this;
     }
 }
 

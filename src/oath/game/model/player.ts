@@ -9,6 +9,7 @@ import type { OathResourceType } from "./resources";
 import { Warband, ResourcesAndWarbands } from "./resources";
 import { Container, OathGameObject } from "./gameObject";
 import { Banner } from "./banks";
+import type { SerializedNode } from "./utils";
 
 export class WarbandsSupply extends Container<Warband, PlayerColor> {
     readonly type = "bag";
@@ -116,11 +117,12 @@ export class OathPlayer extends ResourcesAndWarbands<number> implements Campaign
         };
     }
 
-    parse(obj: ReturnType<this["liteSerialize"]>, allowCreation?: boolean): void {
+    parse(obj: SerializedNode<this>, allowCreation?: boolean): this {
         super.parse(obj, allowCreation);
         this.supply = obj.supply;
         const site = this.game.search<Site>("site", obj.site);
         this.site = site!;  // It can be undefined at the start of the game. It's bad, but it's controlled
+        return this;
     }
 }
 
@@ -213,8 +215,9 @@ export class ExileBoard extends PlayerBoard {
         };
     }
 
-    parse(obj: ReturnType<this["liteSerialize"]>, allowCreation?: boolean): void {
+    parse(obj: SerializedNode<this>, allowCreation?: boolean): this {
         super.parse(obj, allowCreation);
         this.isCitizen = obj.isCitizen;
+        return this;
     }
 }

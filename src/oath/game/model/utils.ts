@@ -60,9 +60,10 @@ export abstract class TreeNode<RootType extends TreeRoot<RootType>, KeyType = an
     }
 
     addChildren<T extends TreeNode<RootType>>(children: T[], onTop: boolean = false) {
-        for (const child of [...children].reverse())
+        const revChildren = [...children].toReversed()
+        for (const child of revChildren)
             this.addChild(child, onTop);
-        return children;
+        return revChildren;
     }
 
     typedParent<T extends TreeNode<RootType>>(cls: AbstractConstructor<T>) {
@@ -107,36 +108,39 @@ export abstract class TreeNode<RootType extends TreeRoot<RootType>, KeyType = an
         };
     }
 
-    parse(obj: ReturnType<this["liteSerialize"]>, allowCreation: boolean = false) {
+    parse(obj: SerializedNode<this>, allowCreation: boolean = false, rootCall = true, confirmedDescendants = new Set<TreeNode<RootType>>()): this {
         if (obj.class !== this.constructor.name) throw TypeError(`Class parsing doesn't match: expected ${this.constructor.name}, got ${obj.class}`);
         if (obj.type !== this.type) throw TypeError(`Type parsing doesn't match: expected ${this.type}, got ${obj.type}`);
         if (obj.id !== this.id) throw TypeError(`Id parsing doesn't match: expected ${this.id}, got ${obj.id}`);
 
-        const confirmedChildren = new Set<TreeNode<RootType>>();
-        // Ugly type casting, since recursive types with generic parameters cause "type serialization is too deep" errors,
-        // and I want the child classes to use ReturnType<this["liteSerialize"]> and using it here causes issues with the recursivity
-        const objWithChildren = obj as SerializedNode<this>;
-        if (objWithChildren.children) {
-            for (const [i, child] of objWithChildren.children.entries()) {
+        if (obj.children) {
+            for (const [i, child] of obj.children.entries()) {
                 let node = this.root.search(child.type, child.id);
                 if (!node) {
                     if (!allowCreation) throw TypeError(`Could not find node of type ${child.type} and id ${child.id}, and creation is not allowed`);
                     console.warn(`Didn't find node of type ${child.type} and id ${child.id}`);
                     node = this.root.create(child.class, child.id);
+                    if (node.type !== child.type) throw TypeError(`Created node's type doesn't match: expected ${child.type}, got ${node.type}`);
                 }
                 if (node.parent !== this || node.parent.children.indexOf(node) !== i) this.addChild(node);
-                confirmedChildren.add(node);
-                node.parse(child, allowCreation);
+                confirmedDescendants.add(node);
+                node.parse(child, allowCreation, false, confirmedDescendants);
             }
         }
 
-        for (const child of [...this.children])
-            if (!confirmedChildren.has(child))
-                child.prune();
+        if (rootCall) {
+            for (const child of [...this.children]) {
+                if (!confirmedDescendants.has(child)) {
+                    child.prune();
+                }
+            }
+        }
+
+        return this;
     }
 }
 
-export type SerializedNode<T extends TreeNode<any>> = ReturnType<T["liteSerialize"]> & { children?: SerializedNode<TreeNode<any>>[]; };
+export type SerializedNode<T extends TreeNode<any>> = ReturnType<T["liteSerialize"]> & { children?: Array<SerializedNode<TreeNode<any>>>; };
 
 export abstract class TreeRoot<RootType extends TreeRoot<RootType>> extends TreeNode<RootType, "root"> {
     readonly type = "root";
