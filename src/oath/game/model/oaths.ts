@@ -6,7 +6,7 @@ import { maxInGroup } from "../utils";
 import type { PowerName } from "../powers/classIndex";
 import { oathData } from "./constants";
 import type { OathGame } from "./game";
-import type { SerializedNode } from "./utils";
+import type { ParseOptions, SerializedNode } from "./utils";
 
 
 export class Oath {
@@ -63,8 +63,8 @@ export class OathkeeperTile extends OathGameObjectLeaf<string> implements Ownabl
         };
     }
 
-    parse(obj: SerializedNode<this>, allowCreation?: boolean): this {
-        super.parse(obj, allowCreation);
+    parse(obj: SerializedNode<this>, options?: Partial<ParseOptions<OathGame>>): this {
+        super.parse(obj, options);
         this.setType(obj.oath);
         return this;
     }

@@ -12,7 +12,7 @@ import { OathPlayer } from "./player";
 import type { Banner} from "./banks";
 import { DarkestSecret, FavorBank, PeoplesFavor } from "./banks";
 import { MurmurHash3, PRNG } from "../utils";
-import type { NodeGroup, SerializedNode } from "./utils";
+import type { NodeGroup, ParseOptions, SerializedNode } from "./utils";
 import { TreeRoot } from "./utils";
 import { parseOathTTSSavefileString, serializeOathGame } from "../parser";
 import type { CardName, PlayerCitizenship } from "../parser/interfaces";
@@ -230,8 +230,8 @@ export class OathGame extends TreeRoot<OathGame> implements WithPowers {
         }
     }
 
-    parse(obj: SerializedNode<this>, allowCreation: boolean = false): this {
-        super.parse(obj, allowCreation);
+    parse(obj: SerializedNode<this>, options?: Partial<ParseOptions<OathGame>>): this {
+        super.parse(obj, options);
         this.name = obj.name;
         this.chronicleNumber = obj.chronicleNumber;
         this.isUsurper = obj.isUsurper;

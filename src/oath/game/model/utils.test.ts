@@ -197,7 +197,7 @@ describe("test tree structure", () => {
     });
 
     it("parses serialized data", () => {
-        const copyTree = new ConcreteRoot().parse(tree.serialize(), true);
+        const copyTree = new ConcreteRoot().parse(tree.serialize(), { allowCreation: true });
         expect(copyTree.serialize()).toEqual(tree.serialize());
     });
 
@@ -231,15 +231,21 @@ describe("test tree structure", () => {
     });
 
     it("fails to create during parse if not allowed", () => {
-        expect(() => tree.parse({ type: "root", class: "ConcreteRoot", id: "root", children: [{ id: "4", type: "foo", class: "ConcreteNode" }]})).toThrow(TypeError);
+        expect(() => tree.parse({
+            type: "root", class: "ConcreteRoot", id: "root", children: [{ id: "4", type: "foo", class: "ConcreteNode" }]
+        })).toThrow(TypeError);
     });
 
     it("fails to create during parse if type mismatches", () => {
-        expect(() => tree.parse({ type: "root", class: "ConcreteRoot", id: "root", children: [{ id: "4", type: "bar", class: "ConcreteNode" }]}, true)).toThrow(TypeError);
+        expect(() => tree.parse({
+            type: "root", class: "ConcreteRoot", id: "root", children: [{ id: "4", type: "bar", class: "ConcreteNode" }]
+        }, { allowCreation: true })).toThrow(TypeError);
     });
 
     it("fails to create unindexed classes", () => {
-        expect(() => tree.parse({ type: "root", class: "ConcreteRoot", id: "root", children: [{ id: "4", type: "foo", class: "InexistantNode" }]}, true)).toThrow(TypeError);
+        expect(() => tree.parse({
+            type: "root", class: "ConcreteRoot", id: "root", children: [{ id: "4", type: "foo", class: "InexistantNode" }]
+        }, { allowCreation: true })).toThrow(TypeError);
     });
 
     it("fails to add duplicate id/type pairs", () => {

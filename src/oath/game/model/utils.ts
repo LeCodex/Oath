@@ -2,12 +2,40 @@ import type { AbstractConstructor } from "../utils";
 
 export abstract class WithOriginal { original = this; }
 
+export interface ParseOptions<RootType extends TreeRoot<RootType>> {
+    allowCreation: boolean,
+    rootCall: boolean,
+    confirmedDescendants: Set<TreeNode<RootType>>
+}
+
 export abstract class TreeNode<RootType extends TreeRoot<RootType>, KeyType = any> extends WithOriginal {
     /** Different objects of the same type MUST have different ids. */
     readonly id: string;
+    /** Direct children of the node. */
     children = new NodeGroup<TreeNode<RootType>>();
-    /** Use {@linkcode typedParent()} to get a strongly typed version of this. */
+    /** Direct parent of the node. Use {@linkcode typedParent()} to get a strongly typed version of this. */
     parent: TreeNode<RootType>;
+    /** All descendants of the node in breadth-first order. */
+    get descendants() {
+        const descendants = new NodeGroup<TreeNode<RootType>>();
+        const stack = this.children.slice();
+        while (stack.length) {
+            const descendant = stack.shift()!;
+            descendants.push(descendant);
+            stack.push(...descendant.children);
+        }
+        return descendants;
+    }
+    /** All ancestors of the node, from closest to furthest. */
+    get ancestors() {
+        const ancestors = new NodeGroup<TreeNode<RootType>>();
+        let current = this.parent;
+        while (current !== this) {
+            ancestors.push(current);
+            current = current.parent;
+        }
+        return ancestors;
+    }
     /** Used for serialization and lookup. General categorization, above classes. */
     abstract readonly type: string;
     /** Used for serialization. Printing name. */
@@ -108,7 +136,12 @@ export abstract class TreeNode<RootType extends TreeRoot<RootType>, KeyType = an
         };
     }
 
-    parse(obj: SerializedNode<this>, allowCreation: boolean = false, rootCall = true, confirmedDescendants = new Set<TreeNode<RootType>>()): this {
+    parse(obj: SerializedNode<this>, options?: Partial<ParseOptions<RootType>>): this {
+        options ??= {};
+        options.allowCreation ??= false;
+        options.rootCall ??= true;
+        options.confirmedDescendants ??= new Set();
+
         if (obj.class !== this.constructor.name) throw TypeError(`Class parsing doesn't match: expected ${this.constructor.name}, got ${obj.class}`);
         if (obj.type !== this.type) throw TypeError(`Type parsing doesn't match: expected ${this.type}, got ${obj.type}`);
         if (obj.id !== this.id) throw TypeError(`Id parsing doesn't match: expected ${this.id}, got ${obj.id}`);
@@ -117,20 +150,20 @@ export abstract class TreeNode<RootType extends TreeRoot<RootType>, KeyType = an
             for (const [i, child] of obj.children.entries()) {
                 let node = this.root.search(child.type, child.id);
                 if (!node) {
-                    if (!allowCreation) throw TypeError(`Could not find node of type ${child.type} and id ${child.id}, and creation is not allowed`);
+                    if (!options.allowCreation) throw TypeError(`Could not find node of type ${child.type} and id ${child.id}, and creation is not allowed`);
                     console.warn(`Didn't find node of type ${child.type} and id ${child.id}`);
                     node = this.root.create(child.class, child.id);
                     if (node.type !== child.type) throw TypeError(`Created node's type doesn't match: expected ${child.type}, got ${node.type}`);
                 }
                 if (node.parent !== this || node.parent.children.indexOf(node) !== i) this.addChild(node);
-                confirmedDescendants.add(node);
-                node.parse(child, allowCreation, false, confirmedDescendants);
+                options.confirmedDescendants.add(node);
+                node.parse(child, { ...options, rootCall: false });
             }
         }
 
-        if (rootCall) {
-            for (const child of [...this.children]) {
-                if (!confirmedDescendants.has(child)) {
+        if (options.rootCall) {
+            for (const child of this.descendants) {
+                if (!options.confirmedDescendants.has(child)) {
                     child.prune();
                 }
             }

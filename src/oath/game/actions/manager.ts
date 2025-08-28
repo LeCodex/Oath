@@ -170,7 +170,7 @@ export class OathActionManager extends EventPublisher<{
             this.rollbackConsent = undefined;
             this.markEventAsOneWay = false;
 
-            this.game.parse(node.game, true);
+            this.game.parse(node.game, { allowCreation: true });
             if (this.history.length === 0) {
                 // console.log("Replaying from start");
                 this.addInitialActions();
@@ -195,7 +195,7 @@ export class OathActionManager extends EventPublisher<{
 
     private revertCurrentAction({ game, stack }: this["gameState"]): void {
         // Last ditch effort to revert. Has shown to be unreliable
-        this.game.parse(game, true);
+        this.game.parse(game, { allowCreation: true });
         this.actionsStack = stack;
         this.currentEffectsStack.length = 0;
     }
@@ -355,7 +355,7 @@ export class OathActionManager extends EventPublisher<{
         if (!this.loaded) return this.defer(false);
 
         try {
-            this.game.parse(gameState, true);
+            this.game.parse(gameState, { allowCreation: true });
         } catch (e) {
             throw new BadRequestException(e);
         }

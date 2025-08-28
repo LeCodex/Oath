@@ -7,7 +7,8 @@ import type { OathResource } from "./resources";
 import { Favor, Secret } from "./resources";
 import { Container } from "./gameObject";
 import type { BannerPowerName } from "../powers/classIndex";
-import type { SerializedNode } from "./utils";
+import type { ParseOptions, SerializedNode } from "./utils";
+import type { OathGame } from "./game";
 
 export class FavorBank extends Container<Favor, OathSuit> {
     declare readonly id: keyof typeof OathSuit;
@@ -63,8 +64,8 @@ export class PeoplesFavor extends Banner<Favor> {
         };
     }
 
-    parse(obj: SerializedNode<this>, allowCreation?: boolean): this {
-        super.parse(obj, allowCreation);
+    parse(obj: SerializedNode<this>, options?: Partial<ParseOptions<OathGame>>): this {
+        super.parse(obj, options);
         this.isMob = obj.isMob;
         return this;
     }

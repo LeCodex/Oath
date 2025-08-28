@@ -1,7 +1,8 @@
 import { OathGameObject, OathGameObjectLeaf } from "./gameObject";
 import { PlayerColor } from "../enums";
-import type { NodeGroup, SerializedNode } from "./utils";
+import type { NodeGroup, ParseOptions, SerializedNode } from "./utils";
 import { isEnumKey } from "../utils";
+import type { OathGame } from "./game";
 
 
 export abstract class OathResource extends OathGameObjectLeaf<number> {
@@ -54,8 +55,8 @@ export class Secret extends OathResource {
         };
     }
 
-    parse(obj: SerializedNode<this>, allowCreation?: boolean): this {
-        super.parse(obj, allowCreation);
+    parse(obj: SerializedNode<this>, options?: Partial<ParseOptions<OathGame>>): this {
+        super.parse(obj, options);
         this.flipped = obj.flipped;
         return this;
     }
@@ -86,8 +87,8 @@ export class Warband extends OathGameObjectLeaf<number> {
         };
     }
 
-    parse(obj: SerializedNode<this>, allowCreation?: boolean): this {
-        super.parse(obj, allowCreation);
+    parse(obj: SerializedNode<this>, options?: Partial<ParseOptions<OathGame>>): this {
+        super.parse(obj, options);
         this.color = obj.color;
         return this;
     }
