@@ -94,7 +94,7 @@ export class PRNG {
     }
 
     public pick<T>(collection: T[]): T {
-        return collection[this.nextInt(0, collection.length - 1)]!;
+        return collection[this.nextInt(0, collection.length)]!;
     }
 
     public shuffleArray(array: any[]) {

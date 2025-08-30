@@ -1,8 +1,8 @@
 import type { PRNG } from "./utils";
 import { NumberMap } from "./utils";
 
-export class Die<T extends number> {
-    readonly faces: T[][];
+export abstract class Die<T extends number> {
+    readonly abstract faces: T[][];
 
     getValue(symbols: Map<T, number>, ignore?: Set<T>): number {
         let total = 0;
@@ -62,7 +62,7 @@ export class DefenseDie extends Die<DefenseDieSymbol> {
 }
 
 export class D6 extends Die<number> {
-    static readonly faces = [[1], [2], [3], [4], [5], [6]];
+    readonly faces = [[1], [2], [3], [4], [5], [6]];
 }
 
 export type SymbolType<T extends Die<number>> = T extends Die<infer U> ? U : never;

@@ -41,7 +41,7 @@ describe("helper functions", () => {
         expect(inclusiveRange(3, 10, 3)).toEqual([3, 6, 9]);
     });
 
-    const group = [{ a: 1, b: 3 }, { a: 2, b: 2 }, { a: 3, b: 1 }];
+    const group = [{ a: 1, b: 3, c: "a" }, { a: 2, b: 2, c: "b" }, { a: 3, b: 1, c: "c" }];
     it("gets the min in a group", () => {
         expect(minInGroup(group, "a")).toEqual([group[0]]);
         expect(minInGroup(group, "b")).toEqual([group[2]]);
@@ -57,6 +57,11 @@ describe("helper functions", () => {
         expect(maxInGroup(group, (e) => Math.max(e.a, e.b))).toEqual([group[0], group[2]]);
         expect(maxInGroup(group, (e) => Math.min(e.a, e.b))).toEqual([group[1]]);
     });
+
+    it("cannot get min/max in group from non-number properties", () => {
+        expect(() => minInGroup(group, "c")).toThrow(TypeError);
+        expect(() => maxInGroup(group, "c")).toThrow(TypeError);
+    })
 });
 
 describe("number map", () => {
