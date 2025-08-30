@@ -74,11 +74,11 @@ export abstract class TreeNode<RootType extends TreeRoot<RootType>, KeyType = an
             throw TypeError("Cannot parent an object to itself");
 
         child.prune(false);
-        if (onTop)
+        if (onTop) {
             this.children.unshift(child);
-
-        else
+        } else {
             this.children.push(child);
+        }
 
         // this.children.addToLookup(child);
         child.parent = this;

@@ -14,7 +14,7 @@ export function isEnumKey<E extends Enum<E>>(key: string | number | symbol, _enu
 
 /** For a set of set of elements, returns all combinations of an element from the first set, then the second, and so on.
  * 
- * Example: `allChoices([[1, 2], ["a", "b"]]) => [[1, "a"], [1, "b"], [2, "a"], [2, "b"]]`
+ * Example: `allChoices([[1, 2], [4, 5]]) => [[1, 4], [1, 5], [2, 4], [2, 5]]`
 */
 export function allChoices<T>(set: T[][]): T[][] {
     const combinations: T[][] = [[]];
@@ -73,10 +73,7 @@ export class PRNG {
         this.seed = seed ?? Date.now();
     }
 
-    private next(min?: number, max?: number): number {
-        max = max ?? 0;
-        min = min ?? 0;
-
+    private next(min: number, max: number): number {
         this.seed = (this.seed * 9301 + 49297) % 233280;
         const rnd = this.seed / 233280;
 
@@ -157,10 +154,8 @@ export class MaskProxyManager {
     get<T>(value: T): T {
         if (typeof value !== "object" || value === null) return value;
         if (this.proxies.has(value)) return value;
-        if (value instanceof MaskedSet || value instanceof MaskedMap) {
-            if (value.maskProxyManager !== this) throw TypeError(`Trying to access a ${value.constructor.name} from another MaskProxyManager`);
-            return value;
-        }
+        if (value instanceof MaskedSet || value instanceof MaskedMap)  // If it reached here, then the masked set/map isn't ours
+            throw TypeError(`Trying to access a ${value.constructor.name} from another MaskProxyManager`);
         
         let proxy = this.originalToProxy.get(value);
         if (!proxy) {
@@ -204,8 +199,8 @@ export class MaskProxyHandler<T extends object> implements ProxyHandler<T> {
 
     deleteProperty(target: T, key: string | symbol): boolean {
         const tKey = key as keyof T;
-        const wasIn = tKey in this.mask;
-        delete this.mask[tKey];
+        const wasIn = tKey in target;
+        if (wasIn) this.mask[tKey] = undefined;
         return wasIn;
     }
 }
@@ -225,7 +220,7 @@ class MaskedSet<T extends object> implements Set<T> {
     get size(): number { return this.set.size; }
     has(value: T): boolean { return this.set.has(value); }
 
-    mask() {
+    private mask() {
         if (this.masked) return;
         this.masked = true;
         this.set = new Set(this.set);
@@ -278,7 +273,7 @@ export class MaskedMap<K, V extends object> implements Map<K, V> {
         return value && this.maskProxyManager.get(value);
     }
 
-    mask() {
+    private mask() {
         if (this.masked) return;
         this.masked = true;
         this.map = new Map(this.map);

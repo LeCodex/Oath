@@ -591,4 +591,3 @@ export class BrokenForge extends ActivePower<Edifice> {
         new FlipEdificeEffect(this.actionManager, this.source).doNext();
     }
 }
-
