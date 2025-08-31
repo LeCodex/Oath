@@ -59,8 +59,9 @@ export class ResourceCost extends Cost {
 
     toString() {
         const printResources = function (resources: Map<OathResourceType, number>, suffix: string) {
-            if ([...resources].filter(([_, a]) => a > 0).length === 0) return undefined;
-            return [...resources].map(([resource, number]) => `${number} ${resource.name}${number > 1 ? "s" : ""}`).join(", ") + suffix;
+            const presentResources = [...resources].filter(([_, a]) => a > 0);
+            if (presentResources.length === 0) return undefined;
+            return presentResources.map(([resource, number]) => `${number} ${resource.name}${number > 1 ? "s" : ""}`).join(", ") + suffix;
         };
         return [printResources(this.placedResources, " placed"), printResources(this.burntResources, " burnt")].filter((e) => e !== undefined).join(", ");
     }
@@ -96,7 +97,7 @@ export class SupplyCost extends Cost {
 export abstract class CostContext<T extends Cost, S = any> {
     constructor(
         public readonly player: OathPlayer | undefined,
-        public readonly origin: any, // TODO: This sucks. Need to find a better way of differentiating contexts
+        public readonly origin: any, // TODO: This sucks, but also is useful. Need to find a better way of differentiating contexts
         public cost: T,
         public source: S | undefined
     ) { }
@@ -105,7 +106,7 @@ export abstract class CostContext<T extends Cost, S = any> {
     
     static dummyFactory(player: OathPlayer | undefined): Factory<CostContext<Cost, any>, [any, Cost?]> {
         throw TypeError("Not implemented");
-    };
+    }
 }
 export type ContextSource<T extends CostContext<Cost>> = T extends CostContext<Cost, infer S> ? S : never; 
 export type ContextCost<T extends CostContext<Cost>> = T extends CostContext<infer T> ? T : never; 
@@ -117,7 +118,7 @@ export class ResourceTransferContext extends CostContext<ResourceCost, OathGameO
         cost: ResourceCost,
         public target: OathGameObject | undefined,
         source: OathGameObject | undefined = player,
-        public partial = (source ?? player) !== player
+        public partial = (source ?? player) !== player  // In case a player is just moving resources, and not paying from their pocket
     ) {
         super(player, origin, cost, source);
     }

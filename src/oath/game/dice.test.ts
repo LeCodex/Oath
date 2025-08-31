@@ -37,5 +37,5 @@ describe("attack die", () => {
 });
 
 describe("defense die", () => {
-    it.todo("rolls expected results");
+    it.todo("rolls expected results");  // Exponential results, so annoying to test. Needs to do on average on a bunch of RollResults
 });

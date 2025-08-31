@@ -76,7 +76,7 @@ export class OathGame extends TreeRoot<OathGame> implements WithPowers {
     get relicDeck() { return this.search<RelicDeck>("deck", "relicDeck")!; }
     get map() { return this.search<OathMap>("map", "map")!; }
     get grandScepter() { return this.search<GrandScepter>("relic", "GrandScepter")!; }
-    
+
     setup([seed, playerNames]: this["setupData"]) {
         this.seed = seed;
         this.random = new PRNG(MurmurHash3(this.seed));

@@ -82,7 +82,7 @@ export abstract class TreeNode<RootType extends TreeRoot<RootType>, KeyType = an
 
         // this.children.addToLookup(child);
         child.parent = this;
-        this.root.addToLookup(child);
+        this.root?.addToLookup(child);
 
         return child;
     }
