@@ -1,3 +1,4 @@
+import { recordExecutionTime } from "../utils";
 import { OathActionManager } from "./actions/manager";
 import { OathPhase } from "./enums";
 import { OathGame } from "./model/game";
@@ -38,6 +39,7 @@ export class OathController {
         fs.rmSync(this.savePath)
     }
 
+    @recordExecutionTime()
     static load(gameId: number, data: string) {
         const chunks = data.split('\n\n');
         const metadata = JSON.parse(chunks.shift()!);

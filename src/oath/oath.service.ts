@@ -7,6 +7,7 @@ import { Injectable, OnModuleInit, BadRequestException, NotFoundException } from
 import { OathGame } from './game/model/game';
 import { SerializedNode } from './game/model/utils';
 import { OathReplayController } from './game/replay';
+import { logRecordedTimes } from './utils';
 
 
 @Injectable()
@@ -35,6 +36,7 @@ export class OathNestService implements OnModuleInit {
                 this.replayFiles.set(id, file);
             }
         }
+        logRecordedTimes("avgTime");
     }
 
     public getGames(): number[] {

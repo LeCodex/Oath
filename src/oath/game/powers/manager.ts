@@ -14,6 +14,7 @@ import { powersIndex } from "./classIndex";
 import { MultiCostContext } from "./context";
 import type { Cost, CostContext} from "../costs";
 import { ResourceTransferContext } from "../costs";
+import { recordCallback } from "../../utils";
 
 export type CostContextInfo<T extends CostContext<Cost>> = { context: T, modifiers: CostModifier<WithPowers, T>[] };
 export class OathPowerManager {
@@ -21,14 +22,14 @@ export class OathPowerManager {
     futureActionsModifiable = new WeakMap<OathAction, ModifiableAction<OathAction>>();
 
     constructor(public actionManager: OathActionManager) {
-        actionManager.on("addFutureAction", (action) => {
+        actionManager.on("addFutureAction", recordCallback("Swap for ModifiableAction", (action) => {
             if (action instanceof ResolveCallbackEffect || action instanceof ModifiableAction || action instanceof ChooseModifiers) return;
             // console.log("      Intercepted adding", action.constructor.name);
             const modifiableAction = this.getModifiable(action);
             const chooseModifiers = new ChooseModifiers(this, modifiableAction);
             actionManager.futureActionsList.shift();
             chooseModifiers.doNext();
-        });
+        }));
     }
 
     get game() { return this.actionManager.game; }

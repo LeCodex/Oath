@@ -1,3 +1,4 @@
+import { recordExecutionTime } from "../../utils";
 import type { AbstractConstructor } from "../utils";
 
 export abstract class WithOriginal { original = this; }
@@ -111,6 +112,7 @@ export abstract class TreeNode<RootType extends TreeRoot<RootType>, KeyType = an
     }
 
     /** Serialize the node into a simple object. If `lite` is true, only the necessary properties are recorded. */
+    @recordExecutionTime()
     serialize(lite: boolean = false): SerializedNode<this> {
         // if (this.root as any === this) console.log("SERIALIZED");
         const obj = {

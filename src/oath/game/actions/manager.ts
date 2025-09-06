@@ -11,81 +11,7 @@ import { Warband, Favor, Secret } from "../model/resources";
 import { clone } from "lodash";
 import { ApiProperty } from "@nestjs/swagger";
 import { BadRequestException } from "@nestjs/common";
-
-
-export class HistoryNode<T extends OathActionManager> {
-    constructor(
-        public manager: T,
-        public game: SerializedNode<T["game"]>,
-        public events: HistoryEvent[] = []
-    ) { }
-    
-    stringify() {
-        return this.events.map((e) => JSON.stringify(e.serialize())).join("\n");
-    }
-
-    static loadChunk(manager: OathActionManager, data: string, save: boolean = true) {
-        if (data === "") return;
-        const lines = data.split("\n");
-        for (const [i, line] of lines.entries()) {
-            console.log(`   Resolving event ${i}: ${line}`);
-            this.loadEvent(manager, line, save);
-        }
-    }
-
-    static loadEvent(manager: OathActionManager, line: string, save: boolean = true) {
-        const { name, player, data } = JSON.parse(line) as ReturnType<HistoryEvent["serialize"]>;
-        eventsIndex[name].replay(manager, player, data, save);
-    }
-}
-
-export abstract class HistoryEvent {
-    oneWay: boolean = false;
-    
-    constructor(
-        public manager: OathActionManager,
-        public player: string,
-        public data: any,
-    ) { }
-
-    static replay(manager: OathActionManager, player: string, data: any, save?: boolean) {
-        throw new TypeError("Not implemented");
-    }
-    
-    serialize() {
-        return {
-            name: this.constructor.name as keyof typeof eventsIndex,
-            player: this.player,
-            data: this.data
-        };
-    }
-}
-export class ContinueEvent extends HistoryEvent {
-    constructor(
-        manager: OathActionManager,
-        player: string,
-        values: Record<string, string[]>
-    ) { super(manager, player, values); }
-
-    static replay(manager: OathActionManager, player: string, data: Record<string, string[]>, save: boolean = true) {
-        manager.continueAction(player, data, save);
-    }
-}
-export class EditEvent extends HistoryEvent {
-    constructor(
-        manager: OathActionManager,
-        player: string,
-        gameState: SerializedNode<OathGame>
-    ) { super(manager, player, gameState); }
-
-    static replay(manager: OathActionManager, player: string, data: SerializedNode<OathGame>, save: boolean = true) {
-        manager.editGameState(data, save);
-    }
-}
-export const eventsIndex = {
-    ContinueEvent,
-    EditEvent
-}
+import { recordCallTime, recordExecutionTime } from "../../utils";
 
 export class ActionManagerReturn {
     @ApiProperty({ example: { seed: "12345", children: [] }, description: "Serialized game data" })
@@ -144,14 +70,15 @@ export class OathActionManager extends EventPublisher<{
         return player;
     }
 
+    @recordExecutionTime()
     private resolveTopAction(save: boolean = false) {
         const action = this.actionsStack.pop();
         if (!action) {
             this.currentEffectsStack.pop();
             return this.checkForNextAction(save);
         }
-
-        action.execute();
+        
+        recordCallTime.skip(`${action.constructor.name}.execute`, action.execute.bind(action));
         return this.checkForNextAction(save);
     }
 
@@ -205,6 +132,7 @@ export class OathActionManager extends EventPublisher<{
         this.emit("addFutureAction", action);
     }
  
+    @recordExecutionTime()
     public checkForNextAction(save: boolean = true): ActionManagerReturn {
         if (!this.loaded) return this.defer(false);
         if (!this.actionsStack.length && !this.futureActionsList.length) this.emptyStack();
@@ -268,6 +196,7 @@ export class OathActionManager extends EventPublisher<{
         this.history.push(new HistoryNode(this, this.game.serialize(true) as SerializedNode<typeof this["game"]>));
     }
 
+    @recordExecutionTime()
     private emptyStack() {
         this.lastStartState = this.gameState.game;
 
@@ -278,6 +207,7 @@ export class OathActionManager extends EventPublisher<{
         }
     }
 
+    @recordExecutionTime()
     public checkForOathkeeper() {
         const candidates = this.game.oathkeeperTile.oath.getOathkeeperCandidates();
         if (!this.game.oathkeeper) return false;
@@ -308,6 +238,7 @@ export class OathActionManager extends EventPublisher<{
         ).doNext();
     }
 
+    @recordExecutionTime()
     public defer(save: boolean = true): ActionManagerReturn {
         if (save) this.emit("save");
 
@@ -321,6 +252,7 @@ export class OathActionManager extends EventPublisher<{
         };
     }
 
+    @recordExecutionTime()
     public continueAction(playerId: string, values: Record<string, string[]>, save: boolean = true) {
         if (!this.loaded) return this.defer(false);
 
@@ -408,6 +340,7 @@ export class OathActionManager extends EventPublisher<{
         return this.history.map((e) => e.stringify()).join("\n\n") + (archive ? "" : "\n\n" + JSON.stringify(this.lastStartState));
     }
 
+    @recordExecutionTime()
     public parse(chunks: string[]) {
         this.checkForNextAction(false);  // Flush the initial actions onto the stack
         const lastStartState = JSON.parse(chunks.pop()!);
@@ -452,4 +385,82 @@ export class OathActionManager extends EventPublisher<{
             return this.reloadFromHistory();
         }
     }
+}
+
+export class HistoryNode<T extends OathActionManager> {
+    constructor(
+        public manager: T,
+        public game: SerializedNode<T["game"]>,
+        public events: HistoryEvent[] = []
+    ) { }
+    
+    stringify() {
+        return this.events.map((e) => JSON.stringify(e.serialize())).join("\n");
+    }
+
+    @recordExecutionTime()
+    static loadChunk(manager: OathActionManager, data: string, save: boolean = true) {
+        if (data === "") return;
+        const lines = data.split("\n");
+        for (const [i, line] of lines.entries()) {
+            console.log(`   Resolving event ${i}: ${line}`);
+            this.loadEvent(manager, line, save);
+        }
+    }
+
+    @recordExecutionTime()
+    static loadEvent(manager: OathActionManager, line: string, save: boolean = true) {
+        const { name, player, data } = JSON.parse(line) as ReturnType<HistoryEvent["serialize"]>;
+        eventsIndex[name].replay(manager, player, data, save);
+    }
+}
+
+export abstract class HistoryEvent {
+    oneWay: boolean = false;
+    
+    constructor(
+        public manager: OathActionManager,
+        public player: string,
+        public data: any,
+    ) { }
+
+    static replay(manager: OathActionManager, player: string, data: any, save?: boolean) {
+        throw new TypeError("Not implemented");
+    }
+    
+    serialize() {
+        return {
+            name: this.constructor.name as keyof typeof eventsIndex,
+            player: this.player,
+            data: this.data
+        };
+    }
+}
+export class ContinueEvent extends HistoryEvent {
+    constructor(
+        manager: OathActionManager,
+        player: string,
+        values: Record<string, string[]>
+    ) { super(manager, player, values); }
+
+    @recordExecutionTime()
+    static replay(manager: OathActionManager, player: string, data: Record<string, string[]>, save: boolean = true) {
+        manager.continueAction(player, data, save);
+    }
+}
+export class EditEvent extends HistoryEvent {
+    constructor(
+        manager: OathActionManager,
+        player: string,
+        gameState: SerializedNode<OathGame>
+    ) { super(manager, player, gameState); }
+
+    @recordExecutionTime()
+    static replay(manager: OathActionManager, player: string, data: SerializedNode<OathGame>, save: boolean = true) {
+        manager.editGameState(data, save);
+    }
+}
+export const eventsIndex = {
+    ContinueEvent,
+    EditEvent
 }

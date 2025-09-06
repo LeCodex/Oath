@@ -1052,11 +1052,8 @@ export class ChooseResourceToTakeAction extends PlayerAction {
     declare readonly selects: { resource: SelectWithName<OathResource> };
     readonly message = "Take a resource";
 
-    source: ResourcesAndWarbands;
-
-    constructor(actionManager: OathActionManager, player: OathPlayer, source: ResourcesAndWarbands) {
+    constructor(actionManager: OathActionManager, player: OathPlayer, public source: ResourcesAndWarbands) {
         super(actionManager, player);
-        this.source = source;
     }
 
     start() {
@@ -1074,18 +1071,16 @@ export class ChooseResourceToTakeAction extends PlayerAction {
 
 export class ChooseRegionAction extends PlayerAction {
     declare readonly selects: { region: SelectNOf<Region | undefined> };
-    readonly message: string;
 
-    regions: Set<Region> | undefined;
-    none: string | undefined;
-    callback: (region: Region | undefined) => void;
-
-    constructor(actionManager: OathActionManager, player: OathPlayer, message: string, callback: (region: Region | undefined) => void, regions?: Iterable<Region>, none?: string) {
+    constructor(
+        actionManager: OathActionManager,
+        player: OathPlayer,
+        public readonly message: string,
+        public callback: (region: Region | undefined) => void,
+        public regions?: Iterable<Region>,
+        public none?: string
+    ) {
         super(actionManager, player);
-        this.message = message;
-        this.callback = callback;
-        this.regions = regions && new Set(regions);
-        this.none = none;
     }
 
     start() {
@@ -1107,22 +1102,20 @@ export class ChooseRegionAction extends PlayerAction {
 
 export abstract class ChooseTsAction<T> extends PlayerAction {
     declare readonly selects: Record<string, SelectNOf<T>>;
-    readonly message: string;
 
-    choices: Set<T>[] | undefined;
-    ranges: [number, number?][]
-    callback: (...choices: T[][]) => void;
-
-    constructor(actionManager: OathActionManager, player: OathPlayer, message: string, callback: (...choices: T[][]) => void, choices?: Iterable<T>[], ranges: [number, number?][] = []) {
+    constructor(
+        actionManager: OathActionManager,
+        player: OathPlayer,
+        public readonly message: string,
+        public callback: (...choices: T[][]) => void,
+        public choices?: Iterable<T>[],
+        public ranges: [number, number?][] = []
+    ) {
         super(actionManager, player);
-        this.message = message;
-        this.callback = callback;
-        this.ranges = ranges;
-        this.choices = choices && choices.map((e) => new Set(e));
     }
 
     rangeMin(i: number) { return this.ranges[i] ? this.ranges[i][0] : 1; }
-    rangeMax(i: number) { return this.ranges[i] ? this.ranges[i][1] === undefined ? this.rangeMin(i): this.ranges[i][1] : this.rangeMin(i); }
+    rangeMax(i: number) { return this.ranges[i] ? this.ranges[i][1] === undefined ? this.rangeMin(i) : this.ranges[i][1] : this.rangeMin(i); }
 
     execute(): void {
         this.callback(...Object.values(this.parameters));
@@ -1132,7 +1125,7 @@ export abstract class ChooseTsAction<T> extends PlayerAction {
 
 export class ChooseSuitsAction extends ChooseTsAction<OathSuit> {
     start() {
-        if (!this.choices) this.choices = [new Set(ALL_OATH_SUITS)];
+        this.choices ??= [new Set(ALL_OATH_SUITS)];
 
         for (const [i, group] of this.choices.entries()) {
             const choices = new Map<string, OathSuit>();

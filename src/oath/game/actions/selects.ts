@@ -12,7 +12,6 @@ type SelectParams = {
 };
 
 export class SelectNOf<T> {
-    name: string;
     choices: Map<string, T>;
     defaults: string[];
     min: number;
@@ -25,7 +24,7 @@ export class SelectNOf<T> {
      * 
      * If only min is specified, then it's used for both min and max. If only max is specified, then it's used with a min of 0.
      */
-    constructor(name: string, choices: Iterable<[string, T]>, params: SelectParams = {}) {
+    constructor(public name: string, choices: Iterable<[string, T]>, params: SelectParams = {}) {
         this.name = name;
         this.choices = new Map(choices);
 
