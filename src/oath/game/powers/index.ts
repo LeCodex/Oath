@@ -11,7 +11,7 @@ import { OathPowerManager } from "./manager";
 
 
 //////////////////////////////////////////////////
-//                BASE CLASSES                  //
+//                 BASE CLASSES                 //
 //////////////////////////////////////////////////
 export abstract class OathPower<T extends WithPowers> {
     cost: ResourceCost = new ResourceCost();
@@ -122,8 +122,8 @@ export abstract class ActionModifier<T extends WithPowers, U extends OathAction>
     declare player: U['player'];
     get playerProxy(): U['player'] { return super.playerProxy; };
     mustUse: boolean = false;
-    // Only taken into account if the action is a mustUse. Can use actions are always ordered anyways
-    orderAgnostic: boolean = true;
+    /** Higher number is applied later, undefined means it's order agnostic (always applied last, in selected order). */
+    order?: number;
 
     canUse(): boolean {
         return true;

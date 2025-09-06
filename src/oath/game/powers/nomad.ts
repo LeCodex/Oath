@@ -7,7 +7,7 @@ import { Denizen, Relic, VisionBack } from "../model/cards";
 import { DiscardOptions } from "../model/decks";
 import { TransferResourcesEffect, TakeOwnableObjectEffect, PutResourcesOnTargetEffect, BecomeCitizenEffect, DrawFromDeckEffect, FlipEdificeEffect, DiscardCardEffect, GainSupplyEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, PeekAtCardEffect, MoveWorldCardToAdvisersEffect, MoveDenizenToSiteEffect, DiscardCardGroupEffect, PlayVisionEffect, ParentToTargetEffect, PutPawnAtSiteEffect, RecoverTargetEffect } from "../actions/effects";
 import { PayPowerCostEffect } from "./actions";
-import { BannerKey, OathSuit } from "../enums";
+import { BannerKey, OathSuit, PowerLayers } from "../enums";
 import { isOwnable } from "../model/interfaces";
 import type { OathPlayer } from "../model/player";
 import { ExileBoard } from "../model/player";
@@ -270,6 +270,8 @@ export class LostTongue extends EnemyActionModifier<Denizen, TakeOwnableObjectEf
     }
 }
 export class LostTongueCampaign extends EnemyAttackerCampaignModifier<Denizen> {
+    order = PowerLayers.FILTERS_CHOICES;
+
     applyAtStart(): void {
         if (this.action.playerProxy.suitRuledCount(OathSuit.Nomad) < 1)
             this.action.selects.targetProxies.filterChoices((e) => !isOwnable(e) || e.owner !== this.sourceProxy.ruler);

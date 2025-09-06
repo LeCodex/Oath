@@ -4,7 +4,7 @@ import { OathAction } from "../actions/base";
 import type { Edifice, Relic, WorldCard } from "../model/cards";
 import { Denizen } from "../model/cards";
 import { PlayVisionEffect, PlayWorldCardEffect, PeekAtCardEffect, DiscardCardEffect, BecomeCitizenEffect, SetPeoplesFavorMobState, GainSupplyEffect, DrawFromDeckEffect, TakeOwnableObjectEffect, MoveDenizenToSiteEffect, ParentToTargetEffect, PutResourcesOnTargetEffect, RecoverTargetEffect, ReturnAllResourcesEffect } from "../actions/effects";
-import { BannerKey, OathSuit, ALL_OATH_SUITS } from "../enums";
+import { BannerKey, OathSuit, ALL_OATH_SUITS, PowerLayers } from "../enums";
 import type { WithPowers } from "../model/interfaces";
 import { Favor, Secret } from "../model/resources";
 import type { SupplyCostContext } from "../costs";
@@ -448,6 +448,7 @@ export class DeedWriter extends ActivePower<Denizen> {
 export class HallOfDebate extends ActionModifier<Edifice, CampaignAttackAction> {
     modifiedAction = CampaignAttackAction;
     mustUse = true;
+    order = PowerLayers.FILTERS_CHOICES;
 
     applyAtStart(): void {
         this.action.selects.targetProxies.filterChoices((e) => e !== this.game.banners.get(BannerKey.PeoplesFavor));

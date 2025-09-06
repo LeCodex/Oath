@@ -5,6 +5,7 @@ import type { OathEffect } from "../actions/base";
 import { CheckCapacityEffect, PaySupplyEffect, PlayWorldCardEffect, TransferResourcesEffect } from "../actions/effects";
 import { InvalidActionResolution } from "../actions/utils";
 import { SupplyCostContext, type Cost, type CostContext } from "../costs";
+import { PowerLayers } from "../enums";
 import { Site } from "../model/cards";
 import type { OathGame } from "../model/game";
 import { hasCostContexts } from "../model/interfaces";
@@ -21,6 +22,7 @@ import { getCapacityInformation } from "./utils";
 export class AddUsePowerAction extends ActionModifier<OathGame, ActPhaseAction> {
     modifiedAction = ActPhaseAction;
     mustUse = true;
+    order = PowerLayers.ADDS_CHOICES;
 
     applyAtStart(): void {
         this.action.selects.action.choices.set("Use", () => this.action.next = new UsePowerAction(this.powerManager, this.action.player));
@@ -29,6 +31,7 @@ export class AddUsePowerAction extends ActionModifier<OathGame, ActPhaseAction> 
 export class FilterUnpayableActions extends ActionModifier<OathGame, ActPhaseAction> {
     modifiedAction = ActPhaseAction;
     mustUse = true;
+    order = PowerLayers.FILTERS_CHOICES;
 
     applyAtStart(): void {
         this.action.selects.action.filterChoices((factory) => {
@@ -74,6 +77,7 @@ export class FilterUnpayableActions extends ActionModifier<OathGame, ActPhaseAct
 export class FilterDecksWithCosts extends ActionModifier<OathGame, SearchAction> {
     modifiedAction = SearchAction;
     mustUse = true;
+    order = PowerLayers.FILTERS_CHOICES;
 
     applyAtStart(): void {
         this.action.selects.deckProxy.filterChoices((e) => {
@@ -106,6 +110,7 @@ export class ModifySupplyPayment extends ModifyCostContextResolver(PaySupplyEffe
 export class FilterFullCardTargets extends ActionModifier<OathGame, SearchPlayOrDiscardAction> {
     modifiedAction = SearchPlayOrDiscardAction;
     mustUse = true;
+    order = PowerLayers.FILTERS_CHOICES;
 
     siteToCapacityInformation = new WeakMap<Site, CapacityInformation>();
     playerCapacityInformation = new Map<boolean, CapacityInformation>();

@@ -164,6 +164,7 @@ export class OathGame extends TreeRoot<OathGame> implements WithPowers {
                 const cardId = denizenOrRelicData.name;
                 if (cardId in denizenData) {
                     const card = cardId in edificeFlipside ? new Edifice(cardId as DenizenName) : new Denizen(cardId as DenizenName);
+                    for (const player of this.players) card.seenBy.add(player);
                     site.addChild(card).turnFaceup();
                     continue;
                 }

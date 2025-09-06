@@ -2,7 +2,7 @@ import { ChooseResourceToTakeAction, WakeAction, TravelAction, CampaignAttackAct
 import { InvalidActionResolution } from "../actions/utils";
 import { Site } from "../model/cards";
 import { PutResourcesOnTargetEffect, FlipSecretsEffect, ParentToTargetEffect, RecoverTargetEffect } from "../actions/effects";
-import { OathSuit } from "../enums";
+import { OathSuit, PowerLayers } from "../enums";
 import type { WithPowers } from "../model/interfaces";
 import { hasPowers, isAtSite } from "../model/interfaces";
 import type { OathPlayer } from "../model/player";
@@ -66,6 +66,7 @@ export class DeepWoodsOn extends GainPowersModifier(WakeAction, DeepWoods) {}
 
 export class CoastalSite extends AtSite(ActionModifier<Site, TravelAction>) {
     modifiedAction = TravelAction;
+    order = PowerLayers.FILTERS_CHOICES;
 
     canUse(): boolean {
         for (const siteProxy of this.gameProxy.map.sites())
@@ -139,6 +140,7 @@ export class ShroudedWoodCost extends ActionCostModifier(ShroudedWood, SupplyCos
 export class NarrowPassTravel extends ActionModifier<Site, TravelAction> {
     modifiedAction = TravelAction;
     mustUse = true;
+    order = PowerLayers.FILTERS_CHOICES;
 
     applyAtStart(): void {
         if (this.playerProxy.site.region !== this.sourceProxy.region)

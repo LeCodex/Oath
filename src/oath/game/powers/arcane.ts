@@ -5,7 +5,7 @@ import { Conspiracy, Denizen, Relic, Site } from "../model/cards";
 import { DiscardOptions } from "../model/decks";
 import { AttackDie, AttackDieSymbol, DefenseDie, RollResult } from "../dice";
 import { RegionDiscardEffect, PutResourcesOnTargetEffect, RollDiceEffect, BecomeCitizenEffect, DiscardCardEffect, PeekAtCardEffect, PutDenizenIntoDispossessedEffect, GetRandomCardFromDispossessed, MoveWorldCardToAdvisersEffect, ParentToTargetEffect, TransferResourcesEffect } from "../actions/effects";
-import { BannerKey, OathSuit } from "../enums";
+import { BannerKey, OathSuit, PowerLayers } from "../enums";
 import type { OathPlayer } from "../model/player";
 import { ExileBoard } from "../model/player";
 import type { OathResourceType, ResourcesAndWarbands} from "../model/resources";
@@ -296,6 +296,7 @@ export class Jinx extends ActionModifier<Denizen, RollDiceEffect<AttackDie | Def
 export class Portal extends Accessed(ActionModifier<Denizen, TravelAction>) {
     modifiedAction = TravelAction;
     cost = new ResourceCost([[Secret, 1]]);
+    order = PowerLayers.FILTERS_CHOICES;
 
     applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, TravelAction>>): Iterable<ActionModifier<WithPowers, TravelAction>> {
         return [...modifiers].filter((e) => e.source instanceof Site);
@@ -350,6 +351,7 @@ export class Augury extends Accessed(ActionModifier<Denizen, SearchAction>) {
 
 export class Observatory extends Accessed(ActionModifier<Denizen, SearchAction>) {
     modifiedAction = SearchAction;
+    order = PowerLayers.ADDS_CHOICES;
     
     applyAtStart(): void {
         if (this.action.playerProxy.site === this.sourceProxy.site)
@@ -361,6 +363,7 @@ export class Observatory extends Accessed(ActionModifier<Denizen, SearchAction>)
 export class MagiciansCode extends Accessed(ActionModifier<Denizen, RecoverBannerPitchAction>) {
     modifiedAction = RecoverBannerPitchAction;  // Technically should be chosen at the time you recover, but this is way simpler
     cost = new ResourceCost([[Favor, 2]]);
+    order = PowerLayers.ADDS_CHOICES;
 
     canUse(): boolean {
         return super.canUse() && this.action.banner instanceof DarkestSecret;
@@ -488,6 +491,7 @@ export class VowOfSilence extends Accessed(ActionModifier<Denizen, ParentToTarge
 export class VowOfSilenceRecover extends Accessed(ActionModifier<Denizen, RecoverAction>) {
     modifiedAction = RecoverAction;
     mustUse = true;
+    order = PowerLayers.FILTERS_CHOICES;
 
     applyAtStart(): void {
         this.action.selects.targetProxy.filterChoices((e) => e !== this.gameProxy.banners.get(BannerKey.DarkestSecret))

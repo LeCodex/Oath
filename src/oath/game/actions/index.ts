@@ -532,7 +532,7 @@ export class CampaignAttackAction extends PlayerAction {
 
     constructor(actionManager: OathActionManager, player: OathPlayer, defender: OathPlayer | undefined) {
         super(actionManager, player);
-        this.next = new CampaignDefenseAction(actionManager, defender ?? player, player);
+        this.next = new CampaignDefenseAction(actionManager, defender, player);
         this.campaignResult.attacker = player;
         this.campaignResult.defender = defender;
         // Generally unadvised, but since those actions work so closely together, it's better to merge

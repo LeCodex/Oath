@@ -9,7 +9,7 @@ import type { Edifice, OathCard, WorldCard } from "../model/cards";
 import { Denizen, Relic, Site, Vision } from "../model/cards";
 import { D6, DefenseDie } from "../dice";
 import { TakeOwnableObjectEffect, PutResourcesOnTargetEffect, SetNewOathkeeperEffect, RollDiceEffect, DiscardCardEffect, BecomeCitizenEffect, TransferResourcesEffect, PeekAtCardEffect, WinGameEffect, DrawFromDeckEffect, MoveWorldCardToAdvisersEffect, ParentToTargetEffect } from "../actions/effects";
-import { BannerKey, OathSuit } from "../enums";
+import { BannerKey, OathSuit, PowerLayers } from "../enums";
 import type { OathPlayer } from "../model/player";
 import { ExileBoard } from "../model/player";
 import { Favor, Secret } from "../model/resources";
@@ -452,6 +452,7 @@ export class BoilingLake extends EnemyActionModifier<Denizen, TravelAction> {
 
 export class Gossip extends EnemyActionModifier<Denizen, SearchPlayOrDiscardAction> {
     modifiedAction = SearchPlayOrDiscardAction;
+    order = PowerLayers.FILTERS_CHOICES;
 
     applyAtStart(): void {
         this.action.selects.choice.filterChoices((e) => e !== false);
@@ -535,6 +536,7 @@ export class VowOfRenewal extends ActionModifier<Denizen, TransferResourcesEffec
 export class VowOfRenewalRecover extends Accessed(ActionModifier<Denizen, RecoverAction>) {
     modifiedAction = RecoverAction;
     mustUse = true;
+    order = PowerLayers.FILTERS_CHOICES;
 
     applyAtStart(): void {
         this.action.selects.targetProxy.filterChoices((e) => e !== this.gameProxy.banners.get(BannerKey.PeoplesFavor));

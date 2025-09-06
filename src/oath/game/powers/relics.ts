@@ -5,7 +5,7 @@ import type { GrandScepter, OathCard, Relic} from "../model/cards";
 import { Denizen, Site } from "../model/cards";
 import { TakeOwnableObjectEffect, PlayDenizenAtSiteEffect, MoveOwnWarbandsEffect, PeekAtCardEffect, GainSupplyEffect, DrawFromDeckEffect, RevealCardEffect, TransferResourcesEffect, BecomeExileEffect, MoveDenizenToSiteEffect, MoveWorldCardToAdvisersEffect, ParentToTargetEffect, DiscardCardEffect } from "../actions/effects";
 import type { PlayerColor } from "../enums";
-import { BannerKey } from "../enums";
+import { BannerKey, PowerLayers } from "../enums";
 import type { OathPlayer} from "../model/player";
 import { ExileBoard } from "../model/player";
 import { isOwnable } from "../model/interfaces";
@@ -189,6 +189,8 @@ export class CircletOfCommand extends EnemyActionModifier<Relic, TakeOwnableObje
     }
 }
 export class CircletOfCommandCampaign extends EnemyAttackerCampaignModifier<Relic> {
+    order = PowerLayers.FILTERS_CHOICES;
+    
     applyAtStart(): void {
         this.action.selects.targetProxies.filterChoices((e) => e === this.sourceProxy || !isOwnable(e) || e.owner !== this.sourceProxy.ruler);
     }

@@ -262,7 +262,7 @@ const renderCheckbox = (key, index, text, checked=false) => {
 
 
 const startAction = async (actionName) => {
-    const response = await fetch("http://localhost:3000/oath/" + gameId + "/" + game._currentPlayer + "/start/" + actionName, { 
+    const response = await fetch(`http://localhost:3000/oath/${gameId}/${game._currentPlayer}/start/${actionName}`, { 
         method: "POST", 
         mode: "cors", 
         headers: { 'Access-Control-Allow-Origin': '*' }
@@ -271,7 +271,7 @@ const startAction = async (actionName) => {
 }
 
 const continueAction = async () => {
-    const response = await fetch("http://localhost:3000/oath/" + gameId + "/" + action.player + "/continue", { 
+    const response = await fetch(`http://localhost:3000/oath/${gameId}/${action.player}/continue`, { 
         method: "POST", 
         mode: "cors", 
         headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' },
@@ -281,7 +281,7 @@ const continueAction = async () => {
 }
 
 const cancelAction = async () => {
-    const response = await fetch("http://localhost:3000/oath/" + gameId + "/" + (action?.player ?? game._currentPlayer) + "/cancel", { 
+    const response = await fetch(`http://localhost:3000/oath/${gameId}/${action?.player ?? game._currentPlayer}/cancel`, { 
         method: "POST", 
         mode: "cors", 
         headers: { 'Access-Control-Allow-Origin': '*' }
@@ -290,7 +290,7 @@ const cancelAction = async () => {
 }
 
 const consentToRollback = async (color) => {
-    const response = await fetch("http://localhost:3000/oath/" + gameId + "/" + color + "/consent", { 
+    const response = await fetch(`http://localhost:3000/oath/${gameId}/${color}/consent`, { 
         method: "POST", 
         mode: "cors", 
         headers: { 'Access-Control-Allow-Origin': '*' }
@@ -299,7 +299,7 @@ const consentToRollback = async (color) => {
 }
 
 const reload = async () => {
-    const response = await fetch("http://localhost:3000/oath/" + gameId + "/", { 
+    const response = await fetch(`http://localhost:3000/oath/${gameId}/`, { 
         method: "GET", 
         mode: "cors", 
         headers: { 'Access-Control-Allow-Origin': '*' }
@@ -308,7 +308,7 @@ const reload = async () => {
 }
 
 const chooseReloadMethod = async (fromState) => {
-    const response = await fetch("http://localhost:3000/oath/" + gameId + "/reload/" + (fromState ? "state" : "history"), { 
+    const response = await fetch(`http://localhost:3000/oath/${gameId}/reload/${fromState ? "state" : "history"}`, { 
         method: "POST", 
         mode: "cors", 
         headers: { 'Access-Control-Allow-Origin': '*' }

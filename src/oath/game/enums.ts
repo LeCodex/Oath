@@ -21,7 +21,6 @@ export enum OathSuit {
 
 export const ALL_OATH_SUITS = [OathSuit.Discord, OathSuit.Arcane, OathSuit.Order, OathSuit.Hearth, OathSuit.Beast, OathSuit.Nomad];
 
-
 export enum OathType {
     Supremacy,
     ThePeople,
@@ -36,12 +35,10 @@ export const OathTypeVisionName = {
     "Devotion": "Faith",
 }
 
-
 export enum BannerKey {
     PeoplesFavor,
     DarkestSecret
 }
-
 
 export enum RegionKey {
     Cradle,
@@ -55,13 +52,11 @@ export const RegionSize = {
     [RegionKey.Hinterland]: 3,
 }
 
-
 export enum CardRestriction {
     None,
     Site,
     Adviser
 }
-
 
 export enum OathPhase {
     Wake,
@@ -70,3 +65,7 @@ export enum OathPhase {
     Over
 }
 
+export enum PowerLayers {
+    ADDS_CHOICES,
+    FILTERS_CHOICES,
+}

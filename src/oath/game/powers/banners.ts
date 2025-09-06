@@ -3,7 +3,7 @@ import type { PeoplesFavor, DarkestSecret} from "../model/banks";
 import { ActionModifier, SupplyCostModifier } from ".";
 import { Owned } from "./base";
 import { Denizen } from "../model/cards";
-import { CardRestriction } from "../enums";
+import { CardRestriction, PowerLayers } from "../enums";
 import type { SupplyCostContext } from "../costs";
 import { ResourceCost } from "../costs";
 import { getCapacityInformation } from "./utils";
@@ -12,12 +12,13 @@ import { getCapacityInformation } from "./utils";
 export class PeoplesFavorSearch extends Owned(ActionModifier<PeoplesFavor, SearchPlayOrDiscardAction>) {
     modifiedAction = SearchPlayOrDiscardAction;
     mustUse = true; // Not strictly true, but it involves a choice either way, so it's better to always include it
+    order = PowerLayers.ADDS_CHOICES;
 
     applyAtStart(): void {
         if (this.playerProxy?.site.region && this.action.cardProxy instanceof Denizen && this.action.cardProxy.restriction !== CardRestriction.Adviser) {
+            this.action.canReplace = true;
             for (const siteProxy of this.playerProxy.site.region.sites) {
-                const capacityInformation = getCapacityInformation(this.powerManager, this.action.maskProxyManager, siteProxy, this.action.playerProxy);
-                if (!siteProxy.facedown && capacityInformation.capacity > capacityInformation.takesSpaceInTargetProxies.length) {
+                if (!siteProxy.facedown) {
                     this.action.selects.choice.choices.set(siteProxy.name, siteProxy);
                 }
             }
@@ -25,8 +26,12 @@ export class PeoplesFavorSearch extends Owned(ActionModifier<PeoplesFavor, Searc
     }
 
     applyBefore(): void {
-        if (this.action.siteProxy && this.player)
-            new MayDiscardACardAction(this.actionManager, this.player, this.action.discardOptions).doNext();
+        if (this.action.siteProxy && this.player) {
+            const { takesSpaceInTargetProxies, capacity } = getCapacityInformation(this.powerManager, this.action.maskProxyManager, this.action.siteProxy, this.playerProxy, this.action.cardProxy);
+            if (capacity - takesSpaceInTargetProxies.length > 0) {  // If we're playing to somewhere that's full, we let the canReplace handle it
+                new MayDiscardACardAction(this.actionManager, this.player, this.action.discardOptions).doNext();
+            }
+        }
     }
 }
 export class PeoplesFavorWake extends Owned(ActionModifier<PeoplesFavor, WakeAction>) {

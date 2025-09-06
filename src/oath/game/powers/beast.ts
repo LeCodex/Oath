@@ -4,7 +4,7 @@ import { InvalidActionResolution } from "../actions/utils";
 import type { Edifice, Relic} from "../model/cards";
 import { Denizen, GrandScepter, Site } from "../model/cards";
 import { BecomeCitizenEffect, DiscardCardEffect, TransferResourcesEffect, DrawFromDeckEffect, FinishChronicleEffect, GainSupplyEffect, MoveDenizenToSiteEffect, MoveWorldCardToAdvisersEffect, ParentToTargetEffect, PlayWorldCardEffect, RegionDiscardEffect, TakeOwnableObjectEffect } from "../actions/effects";
-import { CardRestriction, OathSuit } from "../enums";
+import { CardRestriction, OathSuit, PowerLayers } from "../enums";
 import type { WithPowers } from "../model/interfaces";
 import type { OathPlayer } from "../model/player";
 import { ExileBoard } from "../model/player";
@@ -79,6 +79,7 @@ export class Bracken extends Accessed(ActionModifier<Denizen, SearchAction>) {
 export class ErrandBoy extends Accessed(ActionModifier<Denizen, SearchAction>) {
     modifiedAction = SearchAction;
     cost = new ResourceCost([[Favor, 1]]);
+    order = PowerLayers.ADDS_CHOICES;
 
     applyAtStart(): void {
         for (const regionProxy of this.gameProxy.map.children)
@@ -89,6 +90,7 @@ export class ErrandBoy extends Accessed(ActionModifier<Denizen, SearchAction>) {
 export class ForestPaths extends Accessed(ActionModifier<Denizen, TravelAction>) {
     modifiedAction = TravelAction;
     cost = new ResourceCost([[Favor, 1]]);
+    order = PowerLayers.FILTERS_CHOICES;
 
     applyImmediately(modifiers: Iterable<ActionModifier<WithPowers, TravelAction>>): Iterable<ActionModifier<WithPowers, TravelAction>> {
         return [...modifiers].filter((e) => e.source instanceof Site);
@@ -102,6 +104,7 @@ export class ForestPathsCost extends NoSupplyCostActionModifier(ForestPaths) { }
 
 export class NewGrowth extends Accessed(ActionModifier<Denizen, SearchPlayOrDiscardAction>) {
     modifiedAction = SearchPlayOrDiscardAction;
+    order = PowerLayers.ADDS_CHOICES;
 
     applyAtStart(): void {
         if (!(this.action.cardProxy instanceof Denizen) || this.action.cardProxy.restriction === CardRestriction.Adviser) return;
@@ -198,6 +201,7 @@ export class MarshSpirit extends ActionModifier<Denizen, CampaignAttackAction> {
 
 export class ForestCouncilTrade extends EnemyActionModifier<Denizen, TradeAction> {
     modifiedAction = TradeAction;
+    order = PowerLayers.FILTERS_CHOICES;
 
     applyAtStart(): void {
         this.action.selects.cardProxy.filterChoices((e) => e.suit !== OathSuit.Beast);
@@ -205,6 +209,7 @@ export class ForestCouncilTrade extends EnemyActionModifier<Denizen, TradeAction
 }
 export class ForestCouncilMuster extends EnemyActionModifier<Denizen, MusterAction> {
     modifiedAction = MusterAction;
+    order = PowerLayers.FILTERS_CHOICES;
 
     applyAtStart(): void {
         this.action.selects.cardProxy.filterChoices((e) => e.suit !== OathSuit.Beast);

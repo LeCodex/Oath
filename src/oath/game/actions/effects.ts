@@ -403,6 +403,7 @@ export class PlayWorldCardEffect extends PlayerEffect {
 
             new PlayWorldCardToAdviserEffect(this.actionManager, this.player, this.card, this.facedown).doNext();
         }
+        if (!this.facedown) new RevealCardEffect(this.actionManager, this.player, this.card).doNext();
     }
 }
 

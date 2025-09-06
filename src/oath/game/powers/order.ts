@@ -4,7 +4,7 @@ import { CampaignEndCallback , InvalidActionResolution, cannotPayError } from ".
 import type { Denizen, Edifice} from "../model/cards";
 import { Site, Vision } from "../model/cards";
 import { TransferResourcesEffect, GainSupplyEffect, BecomeCitizenEffect, PutPawnAtSiteEffect, MoveOwnWarbandsEffect, BecomeExileEffect, PlayVisionEffect, TakeOwnableObjectEffect, ParentToTargetEffect } from "../actions/effects";
-import { BannerKey, OathSuit } from "../enums";
+import { BannerKey, OathSuit, PowerLayers } from "../enums";
 import type { WithPowers } from "../model/interfaces";
 import type { OathPlayer } from "../model/player";
 import { ExileBoard } from "../model/player";
@@ -268,6 +268,8 @@ export class SpecialistRestriction extends EnemyDefenderCampaignModifier<Denizen
 }
 
 export class RelicHunter extends AttackerBattlePlan<Denizen> {
+    order = PowerLayers.ADDS_CHOICES;
+
     applyAtStart(): void {
         for (const choiceProxy of this.action.selects.targetProxies.choices.values()) {
             if (choiceProxy instanceof Site) {
@@ -355,6 +357,7 @@ export class TomeGuardians extends EnemyActionModifier<Denizen, TakeOwnableObjec
 }
 export class TomeGuardiansAttack extends EnemyActionModifier<Denizen, CampaignAttackAction> {
     modifiedAction = CampaignAttackAction;
+    order = PowerLayers.FILTERS_CHOICES;
 
     applyAtStart(): void {
         this.action.selects.targetProxies.filterChoices((e) => e !== this.gameProxy.banners.get(BannerKey.DarkestSecret));
@@ -382,6 +385,7 @@ export class CouncilSeat extends Accessed(ActionModifier<Denizen, BecomeExileEff
 export class Pressgangs extends Accessed(ActionModifier<Denizen, MusterAction>) {
     modifiedAction = MusterAction;
     mustUse = true;  // Nicer to have it automatically apply
+    order = PowerLayers.ADDS_CHOICES;
 
     applyAtStart(): void {
         for (const denizenProxy of this.action.accessibleDenizenProxies)

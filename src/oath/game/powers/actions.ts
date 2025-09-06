@@ -41,6 +41,7 @@ export class ChooseModifiers<T extends OathAction> extends ExpandedAction {
     readonly message = "Choose and order modifiers";
 
     persistentModifiers = new Set<ActionModifier<WithPowers, T>>();
+    chosenModifiers = new Set<ActionModifier<WithPowers, T>>()
 
     constructor(powerManager: OathPowerManager, next: ModifiableAction<T> | ChooseModifiers<T>, chooser: OathPlayer | undefined = next.player) {
         super(powerManager, chooser);
@@ -92,24 +93,28 @@ export class ChooseModifiers<T extends OathAction> extends ExpandedAction {
         const choices = new Map<string, ActionModifier<WithPowers, T>>();
         for (const combination of combinations) {
             for (const modifier of combination) {
-                if (!modifier.mustUse && modifier.orderAgnostic) {
+                if (!modifier.mustUse || modifier.order !== undefined && combination.filter((e) => e.order === modifier.order && e.mustUse === modifier.mustUse).length > 1) {
                     choices.set(modifier.name, modifier);
+                    this.chosenModifiers.add(modifier);
                     if (modifier.cost.free || modifier.mustUse) defaults.add(modifier.name);
                 }
             }
         }
         this.selects.modifiers = new SelectNOf("Modifiers", choices, { defaults });
         
+
         return super.start();
     }
 
     execute() {
         const modifiers = new Set<ActionModifier<WithPowers, T>>(this.parameters.modifiers);
         for (const modifier of this.persistentModifiers) {
-            if (modifier.orderAgnostic) {
+            if (this.chosenModifiers.has(modifier)) {
+                if (!modifiers.has(modifier)) {
+                    throw new InvalidActionResolution(`Must use modifier ${modifier.name}`);
+                }
+            } else {
                 modifiers.add(modifier);
-            } else if (!modifiers.has(modifier)) {
-                throw new InvalidActionResolution(`Must use modifier ${modifier.name}`);
             }
         }
 
@@ -173,6 +178,7 @@ export class ModifiableAction<T extends OathAction> extends OathAction {
         for (const modifier of ignore) modifiersSet.delete(modifier);
 
         this.modifiers.push(...modifiersSet);
+        this.modifiers.sort((a, b) => (a.order ?? Infinity) - (b.order ?? Infinity));
         let shouldContinue = true;
         for (const modifier of modifiersSet) {
             if (!noPay) {

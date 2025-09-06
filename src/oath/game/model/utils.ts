@@ -83,6 +83,9 @@ export abstract class TreeNode<RootType extends TreeRoot<RootType>, KeyType = an
         // this.children.addToLookup(child);
         child.parent = this;
         this.root?.addToLookup(child);
+        for (const descendendant of child.descendants) {
+            this.root?.addToLookup(descendendant);
+        }
 
         return child;
     }
@@ -197,7 +200,10 @@ export abstract class TreeRoot<RootType extends TreeRoot<RootType>> extends Tree
     addToLookup(node: TreeNode<RootType>) {
         // console.log(`+ ${node.type} ${node.id} ${node.name}`);
         const typeGroup = this.lookup[node.type] ??= {};
-        if (typeGroup[node.id]) throw TypeError(`Object of type ${node.type} and id ${node.id} already exists`);
+        if (typeGroup[node.id]) {
+            if (typeGroup[node.id] !== node) throw TypeError(`Another node of type ${node.type} and id ${node.id} already exists`);
+            return;
+        }
         typeGroup[node.id] = node;
     }
 
