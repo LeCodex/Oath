@@ -264,4 +264,4 @@ describe("test tree structure", () => {
     it("fails to parent nodes to themselves", () => {
         expect(() => nodes[0]!.parentTo(nodes[0]!)).toThrow(TypeError);
     });
-})
+});

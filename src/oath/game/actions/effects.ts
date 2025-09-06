@@ -450,6 +450,7 @@ export class PlayVisionEffect extends PlayerEffect {
     resolve(): void {
         if (!(this.player.board instanceof ExileBoard) || this.player.isImperial) throw new InvalidActionResolution("Only Exiles can play Visions faceup.");
         this.oldVision = this.player.board.setVision(this.card);
+        this.card.turnFaceup();
         if (this.oldVision) new DiscardCardEffect(this.actionManager, this.player, this.oldVision).doNext();
     }
 }
