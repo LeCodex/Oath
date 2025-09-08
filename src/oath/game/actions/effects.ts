@@ -4,7 +4,7 @@ import type { WorldCard } from "../model/cards";
 import { Relic , Denizen, Edifice, OathCard, Site, Vision, VisionBack } from "../model/cards";
 import { ALL_OATH_SUITS, BannerKey, CardRestriction, OathPhase, OathSuit, PlayerColor } from "../enums";
 import { ExileBoard, OathPlayer } from "../model/player";
-import type { OathResource, OathResourceType, ResourcesAndWarbands} from "../model/resources";
+import { OathResource, OathResourceType, ResourcesAndWarbands, Warband} from "../model/resources";
 import { Favor, Secret } from "../model/resources";
 import type { SupplyCost, SupplyCostContext } from "../costs";
 import { ResourceTransferContext , ResourceCost } from "../costs";
@@ -139,6 +139,7 @@ export class TransferResourcesEffect extends OathEffect<boolean> {
         const cantGiveSecrets = this.context.source instanceof FavorBank;
         const cantHaveSecrets = this.context.target instanceof FavorBank;
         for (const [resource, amount] of this.context.cost.placedResources) {
+            if (!amount) continue;
             if (resource === Secret && cantHaveSecrets) {
                 new FlipSecretsEffect(this.actionManager, this.player, amount, true, this.context.source).doNext();
             } else if (resource === Secret && cantGiveSecrets) {
@@ -149,7 +150,8 @@ export class TransferResourcesEffect extends OathEffect<boolean> {
                     this.result = false;
                     return;
                 }
-                new ParentToTargetEffect(this.actionManager, this.player, resources, this.context.target).doNext();
+                if (resources.length)
+                    new ParentToTargetEffect(this.actionManager, this.player, resources, this.context.target).doNext();
             }
         }
     }
@@ -580,15 +582,18 @@ export class DiscardCardEffect<T extends OathCard> extends OathEffect {
         discardOptions?: DiscardOptions<T>
     ) {
         super(actionManager, player);
-        this.discardOptions = discardOptions || new DiscardOptions(card.discard ?? player?.discard ?? this.game.worldDeck);
+        this.discardOptions = discardOptions ?? new DiscardOptions(card.discard ?? player?.discard ?? this.game.worldDeck);
     }
 
     resolve(): void {
         new ParentToTargetEffect(this.actionManager, this.player, [this.card], this.discardOptions.discard, !this.discardOptions.onBottom).doNext();
         new ReturnResourcesEffect(this.actionManager, this.card).doNext();
         this.card.turnFacedown();
-        for (const player of this.game.players)
-            new ParentToTargetEffect(this.actionManager, player, this.card.getWarbands(player.board.key), player.bag).doNext();
+        for (const player of this.game.players) {
+            const warbands = this.card.getWarbands(player.board.key)
+            if (warbands.length)
+                new ParentToTargetEffect(this.actionManager, player, warbands, player.bag).doNext();
+        }
     }
 }
 
@@ -628,19 +633,19 @@ export class ReturnAllResourcesEffect extends PlayerEffect {
     resolve(): void {
         for (const site of this.game.map.sites())
             for (const denizen of site.denizens)
-                if (!this.ignore.has(denizen))
+                if (!this.ignore.has(denizen) && denizen.byClass(OathResource).length)
                     new ReturnResourcesEffect(this.actionManager, denizen).doNext();
-    
+
         for (const player of this.game.players) {
             for (const adviser of player.advisers)
-                if (!this.ignore.has(adviser))
+                if (!this.ignore.has(adviser) && adviser.byClass(OathResource).length)
                     new ReturnResourcesEffect(this.actionManager, adviser).doNext();
             
             for (const relic of player.relics)
-                if (!this.ignore.has(relic))
+                if (!this.ignore.has(relic) && relic.byClass(OathResource).length)
                     new ReturnResourcesEffect(this.actionManager, relic).doNext();
         }
-    
+
         new FlipSecretsEffect(this.actionManager, this.player, Infinity, false).doNext();
     }
 }

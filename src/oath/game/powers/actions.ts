@@ -15,7 +15,7 @@ import { ResourcesAndWarbands } from "../model/resources";
 import type { PowerName } from "./classIndex";
 import type { CostContext } from "../costs";
 import { ResourceTransferContext } from "../costs";
-import { recordCallTime } from "../../utils";
+import { recordExecutionTime } from "../../utils";
 
 
 export abstract class ExpandedAction extends OathAction {
@@ -38,15 +38,13 @@ export abstract class ExpandedPlayerAction extends ExpandedAction {
 export class ChooseModifiers<T extends OathAction> extends ExpandedAction {
     declare readonly selects: { modifiers: SelectNOf<ActionModifier<WithPowers, T>>; };
     readonly modifiableAction: ModifiableAction<T>;
-    readonly next: ModifiableAction<T> | ChooseModifiers<T>;
     readonly message = "Choose and order modifiers";
 
     persistentModifiers = new Set<ActionModifier<WithPowers, T>>();
     chosenModifiers = new Set<ActionModifier<WithPowers, T>>()
 
-    constructor(powerManager: OathPowerManager, next: ModifiableAction<T> | ChooseModifiers<T>, chooser: OathPlayer | undefined = next.player) {
+    constructor(powerManager: OathPowerManager, public readonly next: ModifiableAction<T> | ChooseModifiers<T>, chooser: OathPlayer | undefined = next.player) {
         super(powerManager, chooser);
-        this.next = next;
         this.modifiableAction = next instanceof ChooseModifiers ? next.modifiableAction : next;
     }
 
@@ -156,7 +154,7 @@ export class ModifiableAction<T extends OathAction> extends OathAction {
     execute() {
         for (const modifier of this.modifiers) modifier.applyBefore();
         new ResolveCallbackEffect(this.actionManager, () => {
-            recordCallTime.skip(`${this.action.constructor.name}.execute`, this.action.execute.bind(this.action));
+            recordExecutionTime(`${this.action.constructor.name}.execute`, this.action.execute.bind(this.action));
             for (const modifier of this.modifiers) modifier.applyAfter();
         }).doNext();
         new ResolveCallbackEffect(this.actionManager, () => { for (const modifier of this.modifiers) modifier.applyAtEnd(); }).doNext();

@@ -56,9 +56,8 @@ export abstract class OathCard extends ResourcesAndWarbands<string> implements H
         const obj = {
             ...super.liteSerialize(),
             facedown: this.facedown,
-            seenBy: [...this.seenBy].map((e) => e.key).toSorted() as number[] | undefined
+            ...this.seenBy.size ? { seenBy: [...this.seenBy].map((e) => e.key).toSorted() } : {}
         };
-        if (obj.seenBy?.length === 0) delete obj.seenBy;
         return obj;
     }
 

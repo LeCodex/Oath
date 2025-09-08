@@ -9,6 +9,7 @@ import type { ResourceCost } from "../costs";
 import { CampaignKillWarbandsInForceAction } from ".";
 import { DiscardCardEffect, RollDiceEffect } from "./effects";
 import type { OathActionManager } from "./manager";
+import { recordMethodExecutionTime } from "../../utils";
 
 
 export class EventPublisher<E extends Record<string, any[]>> {
@@ -24,6 +25,7 @@ export class EventPublisher<E extends Record<string, any[]>> {
         this.listeners[event].delete(listener);
     }
 
+    @recordMethodExecutionTime()
     emit<K extends keyof E>(event: K, ...args: E[K]) {
         if (!this.listeners[event]) return;
         for (const listener of this.listeners[event]) {

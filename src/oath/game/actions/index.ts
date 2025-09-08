@@ -50,10 +50,11 @@ export class SetupChoosePlayerBoardAction extends PlayerAction {
     execute(): void {
         const color = this.parameters.color[0]!;
         if (color === PlayerColor.Purple) {
-            this.player.addChild(new ChancellorBoard());
+            new ParentToTargetEffect(this.actionManager, this.player, [new ChancellorBoard()]).doNext();
         } else {
-            const board = this.player.addChild(new ExileBoard(color));
-            board.addChild(new VisionSlot(color));
+            const board = new ExileBoard(color);
+            new ParentToTargetEffect(this.actionManager, this.player, [board]).doNext();
+            new ParentToTargetEffect(this.actionManager, this.player, [new VisionSlot(color)], board).doNext();
             board.isCitizen = this.game.oldCitizenship[color as ExileColor] === Citizenship.Citizen;
         }
     }

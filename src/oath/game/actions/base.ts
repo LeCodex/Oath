@@ -1,4 +1,4 @@
-import { recordCallTime, recordExecutionTime } from "../../utils";
+import { recordExecutionTime, recordMethodExecutionTime, recordInstantiationTime } from "../../utils";
 import type { OathGame } from "../model/game";
 import type { OathPlayer } from "../model/player";
 import { MaskProxyManager } from "../utils";
@@ -13,6 +13,7 @@ import { InvalidActionResolution } from "./utils";
 type SelectType<T> = T extends SelectNOf<infer U> ? U : never;
 export type ParametersType<T extends OathAction> = { [K in keyof T["selects"]]: SelectType<T["selects"][K]>[] };
 
+@recordInstantiationTime
 export abstract class OathAction {
     game: OathGame;
     readonly selects: Record<string, SelectNOf<any>> = {};
@@ -32,16 +33,16 @@ export abstract class OathAction {
     get gameProxy(): this["game"] { return this.maskProxyManager.get(this.game); } // Effects and powers are allowed to modify the proxies to "lie" to the action
     get playerProxy(): this["player"] { return this.maskProxyManager.get(this.player); } // This is a simple reference for simplicity
 
-    @recordExecutionTime({ useSubclassNames: true })
+    @recordMethodExecutionTime()
     doNext(): void {
         this.actionManager.addFutureAction(this);
     }
 
-    @recordExecutionTime()
+    @recordMethodExecutionTime()
     start(): boolean {
         // NOTE: Setup the selects before
         for (const [key, select] of Object.entries(this.selects) as [keyof ParametersType<this>, SelectNOf<any>][]) {
-            if (this.autocompleteSelects && select.choices.size <= select.min || select.choices.size === 0) {
+            if (select.choices.size === 0 || this.autocompleteSelects && select.choices.size <= select.min) {
                 this.parameters[key] = [...select.choices.values()];
                 delete this.selects[key as string];
             }
@@ -73,7 +74,7 @@ export abstract class OathAction {
         return {};
     }
 
-    @recordExecutionTime()
+    @recordMethodExecutionTime()
     parse(data: Record<string, string[]>): Record<string, any[]> {
         const values: Record<string, any[]> = {};
         for (const [key, select] of Object.entries(this.selects)) {
@@ -84,7 +85,7 @@ export abstract class OathAction {
         return values;
     }
 
-    @recordExecutionTime()
+    @recordMethodExecutionTime()
     applyParameters(values: Partial<ParametersType<this>>) {
         for (const [key, value] of Object.entries(values) as [keyof ParametersType<this>, any[]][]) {
             this.parameters[key] = value;
@@ -93,7 +94,7 @@ export abstract class OathAction {
 
     abstract execute(): void;
 
-    @recordExecutionTime()
+    @recordMethodExecutionTime()
     serialize(): Record<string, any> | undefined {
         return {
             message: this.message,
@@ -128,7 +129,7 @@ export abstract class OathEffect<T = never> extends OathAction {
 
     execute(): void {
         this.actionManager.currentEffectsStack.push(this);
-        recordCallTime.skip(`${this.constructor.name}.resolve`, this.resolve.bind(this));
+        recordExecutionTime.skip(`${this.constructor.name}.resolve`, this.resolve.bind(this));
         if (this.callback) new ResolveCallbackEffect(this.actionManager, () => { this.callback!(this.result); }).doNext();
     }
 

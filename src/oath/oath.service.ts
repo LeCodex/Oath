@@ -36,7 +36,7 @@ export class OathNestService implements OnModuleInit {
                 this.replayFiles.set(id, file);
             }
         }
-        logRecordedTimes("avgTime");
+        logRecordedTimes();
     }
 
     public getGames(): number[] {
