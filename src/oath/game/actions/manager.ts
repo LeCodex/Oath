@@ -191,7 +191,7 @@ export class OathActionManager extends EventPublisher<{
             this.game.chancellor.addChild(this.game.reliquary);
 
             new WakeAction(this, this.game.currentPlayer).doNext();
-        }).doNext();  
+        }).doNext();
 
         this.history.push(new HistoryNode(this, this.game.serialize(true) as SerializedNode<typeof this["game"]>));
     }
@@ -246,7 +246,7 @@ export class OathActionManager extends EventPublisher<{
         const action = this.actionsStack[this.actionsStack.length - 1];
         return {
             game: this.game.serialize(),
-            appliedEffects: this.currentEffectsStack.map((e) => e.serialize()).filter((e) => e !== undefined),
+            appliedEffects: this.currentEffectsStack.map((e) => e.serialize()),
             activeAction: action?.serialize(),
             rollbackConsent: this.rollbackConsent,
             loaded: this.loaded

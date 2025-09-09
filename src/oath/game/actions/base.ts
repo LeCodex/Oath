@@ -95,7 +95,7 @@ export abstract class OathAction {
     abstract execute(): void;
 
     @recordMethodExecutionTime()
-    serialize(): Record<string, any> | undefined {
+    serialize(): Record<string, any> {
         return {
             message: this.message,
             player: this.player?.id,
@@ -136,14 +136,13 @@ export abstract class OathEffect<T = never> extends OathAction {
     abstract resolve(): void;
 
     serialize() {
-        const data = {
+        return {
             ...super.serialize(),
             effect: this.constructor.name,
             message: undefined,
             selects: undefined,
             modifiers: undefined
         };
-        return data;
     }
 }
 

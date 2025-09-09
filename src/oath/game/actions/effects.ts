@@ -796,7 +796,7 @@ export class CampaignJoinDefenderAlliesEffect extends PlayerEffect {
 
 export class SetNewOathkeeperEffect extends PlayerEffect {
     resolve(): void {
-        this.player.addChild(this.game.oathkeeperTile);
+        new ParentToTargetEffect(this.actionManager, this.player, [this.game.oathkeeperTile]).doNext();
     }
 }
 

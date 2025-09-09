@@ -115,12 +115,11 @@ export abstract class TreeNode<RootType extends TreeRoot<RootType>, KeyType = an
     @recordMethodExecutionTime()
     serialize(lite: boolean = false): SerializedNode<this> {
         // if (this.root as any === this) console.log("SERIALIZED");
-        const obj = {
+        return {
             ...this.liteSerialize(),
             ...this.children.length ? { children: this.children.map((e) => e.serialize(lite)) } : {},
             ...lite ? {} : this.constSerialize()
         } as SerializedNode<this>;
-        return obj;
     }
 
     /** Serialize the data necessary for parsing (what is returned in a lite serialization). */

@@ -53,12 +53,11 @@ export abstract class OathCard extends ResourcesAndWarbands<string> implements H
     abstract accessibleBy(player: OathPlayer): boolean;
 
     liteSerialize() {
-        const obj = {
+        return {
             ...super.liteSerialize(),
             facedown: this.facedown,
             ...this.seenBy.size ? { seenBy: [...this.seenBy].map((e) => e.key).toSorted() } : {}
         };
-        return obj;
     }
 
     parse(obj: SerializedNode<this>, options?: Partial<ParseOptions<OathGame>>): this {

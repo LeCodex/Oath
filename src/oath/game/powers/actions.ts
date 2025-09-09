@@ -160,7 +160,7 @@ export class ModifiableAction<T extends OathAction> extends OathAction {
         new ResolveCallbackEffect(this.actionManager, () => { for (const modifier of this.modifiers) modifier.applyAtEnd(); }).doNext();
     }
 
-    serialize(): Record<string, any> | undefined {
+    serialize(): Record<string, any> {
         return {
             ...this.action.serialize(),
             modifiers: this.modifiers.map((e) => e.serialize())
