@@ -1,7 +1,6 @@
 import { ResourceCost, ResourceTransferContext, SupplyCost, SupplyCostContext } from "./costs";
 import { FavorBank } from "./model/banks";
 import { Denizen } from "./model/cards";
-import { OathGame } from "./model/game";
 import { OathPlayer } from "./model/player";
 import { Favor, Secret } from "./model/resources";
 
@@ -98,8 +97,7 @@ describe("resource transfer context", () => {
 
     it("determines validity with partiality", () => {
         const player = new OathPlayer("1");
-        const source = new Denizen("AFastSteed").parentTo(player);
-        new Favor().parentTo(source);
+        const source = new Denizen("AFastSteed").parentTo(player).addChild(new Favor());
         const target = new FavorBank("Arcane");
         const context1 = new ResourceTransferContext(player, undefined, new ResourceCost([[Favor, 1]]), target, source);
         const context2 = new ResourceTransferContext(player, undefined, new ResourceCost([[Favor, 2]]), target, source);

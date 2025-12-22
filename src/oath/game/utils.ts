@@ -12,10 +12,11 @@ export function isEnumKey<E extends Enum<E>>(key: string | number | symbol, _enu
     return key in _enum;
 }
 
-/** For a set of set of elements, returns all combinations of an element from the first set, then the second, and so on.
+/**
+ * For a set of set of elements, returns all combinations of an element from the first set, then one from the second, and so on.
  * 
  * Example: `allChoices([[1, 2], [4, 5]]) => [[1, 4], [1, 5], [2, 4], [2, 5]]`
-*/
+ */
 export function allChoices<T>(set: T[][]): T[][] {
     const combinations: T[][] = [[]];
     for (const choiceGroup of set) {
@@ -29,10 +30,11 @@ export function allChoices<T>(set: T[][]): T[][] {
     }
     return combinations;
 }
-/** For a set of elements, return all combinations of all sizes (including and excluding every element).
+/**
+ * For a set of elements, return all combinations of all sizes (including and excluding every element).
  * 
  * Example: `allCombinations([1, 2, 3]) => [[], [1], [2], [3], [1, 2], [1, 3], [2, 3], [1, 2, 3]]` (order might vary)
-*/
+ */
 export function allCombinations<T>(set: Iterable<T>): T[][] {
     const combinations: T[][] = [[]];
     for (const element of set) {

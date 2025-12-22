@@ -39,7 +39,7 @@ export class OathController {
         fs.rmSync(this.savePath)
     }
 
-    @recordMethodExecutionTime()
+    @recordMethodExecutionTime.skip()
     static load(gameId: number, data: string) {
         const chunks = data.split('\n\n');
         const metadata = JSON.parse(chunks.shift()!);

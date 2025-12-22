@@ -1,12 +1,13 @@
 
 /** Oath TTS Seed parser by seiyria: https://github.com/Vagabottos/OathParser 
  *  Adapted to fit into the rest of the system
-*/
+ */
 import { OathType, PlayerColor } from '../enums';
 import type {
   CardData,
   OathGameData,
-  PlayerCitizenship} from './interfaces';
+  PlayerCitizenship
+} from './interfaces';
 import {
   CardName,
   CardNameIndexes,

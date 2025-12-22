@@ -17,15 +17,15 @@ class Metrics {
     }
 
     minTime() {
-        return this.topmostCalls.toSorted()[0]!;
+        return this.topmostCalls.toSorted()[0] ?? NaN;
     }
 
     maxTime() {
-        return this.topmostCalls.toSorted()[this.topmostCalls.length - 1]!;
+        return this.topmostCalls.toSorted()[this.topmostCalls.length - 1] ?? NaN;
     }
 
     medTime() {
-        return this.topmostCalls.toSorted()[Math.floor(this.topmostCalls.length / 2)]!;
+        return this.topmostCalls.toSorted()[Math.floor(this.topmostCalls.length / 2)] ?? NaN;
     }
 
     get avgDepth() {
@@ -55,9 +55,10 @@ recordMethodExecutionTime.skip = function (options?: MethodRecorderOptions): Met
 }
 
 export function recordCallback<Args extends Array<any>, Return>(key: string, callback: (...args: Args) => Return) {
-    return (...args: Args) => {
-        return recordExecutionTime(key, callback, ...args);
-    }
+    return (...args: Args) => recordExecutionTime(key, callback, ...args);
+}
+recordCallback.skip = function(key: string, callback: (...args: Array<any>) => any) {
+    return callback;
 }
 
 export function recordInstantiationTime<T extends AbstractConstructor<any>>(constructor: T) {
@@ -69,6 +70,9 @@ export function recordInstantiationTime<T extends AbstractConstructor<any>>(cons
         }
     }
     return InstantiationRecorder;
+}
+recordInstantiationTime.skip = function<T extends AbstractConstructor<any>>(constructor: T) {
+    return constructor;
 }
 
 export function recordExecutionTime<Args extends Array<any>, Return>(key: string, fn: (...args: Args) => Return, ...args: Args): Return {
@@ -157,6 +161,7 @@ export function logRecordedTimes(sortBy: Exclude<keyof Metrics, "topmostCalls"> 
     }
     if (!lines.length) {
         console.log("No recorded time!");
+        return;
     }
     const maxLengths: Array<number> = [];
     for (let i = 0; i < lines[0]!.length; i++) {

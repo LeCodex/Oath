@@ -12,14 +12,14 @@ export class OathMap extends Container<Region, string> {
     declare readonly id: "map";
     name = "Map";
     travelCosts = new Map<RegionKey, Map<RegionKey, number>>([
-        [RegionKey.Cradle, new Map([[RegionKey.Cradle, 1], [RegionKey.Provinces, 2], [RegionKey.Hinterland, 4]])],
-        [RegionKey.Provinces, new Map([[RegionKey.Cradle, 2], [RegionKey.Provinces, 2], [RegionKey.Hinterland, 2]])],
-        [RegionKey.Hinterland, new Map([[RegionKey.Cradle, 4], [RegionKey.Provinces, 2], [RegionKey.Hinterland, 3]])],
+        [RegionKey.Cradle,      new Map([[RegionKey.Cradle, 1], [RegionKey.Provinces, 2], [RegionKey.Hinterland, 4]])],
+        [RegionKey.Provinces,   new Map([[RegionKey.Cradle, 2], [RegionKey.Provinces, 2], [RegionKey.Hinterland, 2]])],
+        [RegionKey.Hinterland,  new Map([[RegionKey.Cradle, 4], [RegionKey.Provinces, 2], [RegionKey.Hinterland, 3]])],
     ]);
     nextRegionKey = new Map<RegionKey, RegionKey>([
-        [RegionKey.Cradle, RegionKey.Provinces],
-        [RegionKey.Provinces, RegionKey.Hinterland],
-        [RegionKey.Hinterland, RegionKey.Cradle],
+        [RegionKey.Cradle,      RegionKey.Provinces],
+        [RegionKey.Provinces,   RegionKey.Hinterland],
+        [RegionKey.Hinterland,  RegionKey.Cradle],
     ]);
 
     constructor() {

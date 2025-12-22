@@ -25,7 +25,7 @@ export class EventPublisher<E extends Record<string, any[]>> {
         this.listeners[event].delete(listener);
     }
 
-    @recordMethodExecutionTime()
+    @recordMethodExecutionTime.skip()
     emit<K extends keyof E>(event: K, ...args: E[K]) {
         if (!this.listeners[event]) return;
         for (const listener of this.listeners[event]) {

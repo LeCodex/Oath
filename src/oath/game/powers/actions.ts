@@ -154,7 +154,7 @@ export class ModifiableAction<T extends OathAction> extends OathAction {
     execute() {
         for (const modifier of this.modifiers) modifier.applyBefore();
         new ResolveCallbackEffect(this.actionManager, () => {
-            recordExecutionTime(`${this.action.constructor.name}.execute`, this.action.execute.bind(this.action));
+            recordExecutionTime.skip(`${this.action.constructor.name}.execute`, this.action.execute.bind(this.action));
             for (const modifier of this.modifiers) modifier.applyAfter();
         }).doNext();
         new ResolveCallbackEffect(this.actionManager, () => { for (const modifier of this.modifiers) modifier.applyAtEnd(); }).doNext();

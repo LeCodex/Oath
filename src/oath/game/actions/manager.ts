@@ -70,7 +70,7 @@ export class OathActionManager extends EventPublisher<{
         return player;
     }
 
-    @recordMethodExecutionTime()
+    @recordMethodExecutionTime.skip()
     private resolveTopAction(save: boolean = false) {
         const action = this.actionsStack.pop();
         if (!action) {
@@ -78,7 +78,7 @@ export class OathActionManager extends EventPublisher<{
             return this.checkForNextAction(save);
         }
         
-        recordExecutionTime(`${action.constructor.name}.execute`, action.execute.bind(action));
+        recordExecutionTime.skip(`${action.constructor.name}.execute`, action.execute.bind(action));
         return this.checkForNextAction(save);
     }
 
@@ -132,7 +132,7 @@ export class OathActionManager extends EventPublisher<{
         this.emit("addFutureAction", action);
     }
  
-    @recordMethodExecutionTime()
+    @recordMethodExecutionTime.skip()
     public checkForNextAction(save: boolean = true): ActionManagerReturn {
         if (!this.loaded) return this.defer(false);
         if (!this.actionsStack.length && !this.futureActionsList.length) this.emptyStack();
@@ -196,7 +196,7 @@ export class OathActionManager extends EventPublisher<{
         this.history.push(new HistoryNode(this, this.game.serialize(true) as SerializedNode<typeof this["game"]>));
     }
 
-    @recordMethodExecutionTime()
+    @recordMethodExecutionTime.skip()
     private emptyStack() {
         this.lastStartState = this.gameState.game;
 
@@ -208,7 +208,7 @@ export class OathActionManager extends EventPublisher<{
         }
     }
 
-    @recordMethodExecutionTime()
+    @recordMethodExecutionTime.skip()
     public checkForOathkeeper() {
         const candidates = this.game.oathkeeperTile.oath.getOathkeeperCandidates();
         if (!this.game.oathkeeper) return false;
@@ -239,7 +239,7 @@ export class OathActionManager extends EventPublisher<{
         ).doNext();
     }
 
-    @recordMethodExecutionTime()
+    @recordMethodExecutionTime.skip()
     public defer(save: boolean = true): ActionManagerReturn {
         if (save) this.emit("save");
 
@@ -253,7 +253,7 @@ export class OathActionManager extends EventPublisher<{
         };
     }
 
-    @recordMethodExecutionTime()
+    @recordMethodExecutionTime.skip()
     public continueAction(playerId: string, values: Record<string, string[]>, save: boolean = true) {
         if (!this.loaded) return this.defer(false);
 
@@ -341,7 +341,7 @@ export class OathActionManager extends EventPublisher<{
         return this.history.map((e) => e.stringify()).join("\n\n") + (archive ? "" : "\n\n" + JSON.stringify(this.lastStartState));
     }
 
-    @recordMethodExecutionTime()
+    @recordMethodExecutionTime.skip()
     public parse(chunks: string[]) {
         this.checkForNextAction(false);  // Flush the initial actions onto the stack
         const lastStartState = JSON.parse(chunks.pop()!);
@@ -399,7 +399,7 @@ export class HistoryNode<T extends OathActionManager> {
         return this.events.map((e) => JSON.stringify(e.serialize())).join("\n");
     }
 
-    @recordMethodExecutionTime()
+    @recordMethodExecutionTime.skip()
     static loadChunk(manager: OathActionManager, data: string, save: boolean = true) {
         if (data === "") return;
         const lines = data.split("\n");
@@ -409,7 +409,7 @@ export class HistoryNode<T extends OathActionManager> {
         }
     }
 
-    @recordMethodExecutionTime()
+    @recordMethodExecutionTime.skip()
     static loadEvent(manager: OathActionManager, line: string, save: boolean = true) {
         const { name, player, data } = JSON.parse(line) as ReturnType<HistoryEvent["serialize"]>;
         eventsIndex[name].replay(manager, player, data, save);
@@ -444,7 +444,7 @@ export class ContinueEvent extends HistoryEvent {
         values: Record<string, string[]>
     ) { super(manager, player, values); }
 
-    @recordMethodExecutionTime()
+    @recordMethodExecutionTime.skip()
     static replay(manager: OathActionManager, player: string, data: Record<string, string[]>, save: boolean = true) {
         manager.continueAction(player, data, save);
     }
@@ -456,7 +456,7 @@ export class EditEvent extends HistoryEvent {
         gameState: SerializedNode<OathGame>
     ) { super(manager, player, gameState); }
 
-    @recordMethodExecutionTime()
+    @recordMethodExecutionTime.skip()
     static replay(manager: OathActionManager, player: string, data: SerializedNode<OathGame>, save: boolean = true) {
         manager.editGameState(data, save);
     }

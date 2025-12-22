@@ -13,7 +13,7 @@ import { InvalidActionResolution } from "./utils";
 type SelectType<T> = T extends SelectNOf<infer U> ? U : never;
 export type ParametersType<T extends OathAction> = { [K in keyof T["selects"]]: SelectType<T["selects"][K]>[] };
 
-@recordInstantiationTime
+@recordInstantiationTime.skip
 export abstract class OathAction {
     game: OathGame;
     readonly selects: Record<string, SelectNOf<any>> = {};
@@ -33,12 +33,12 @@ export abstract class OathAction {
     get gameProxy(): this["game"] { return this.maskProxyManager.get(this.game); } // Effects and powers are allowed to modify the proxies to "lie" to the action
     get playerProxy(): this["player"] { return this.maskProxyManager.get(this.player); } // This is a simple reference for simplicity
 
-    @recordMethodExecutionTime()
+    @recordMethodExecutionTime.skip()
     doNext(): void {
         this.actionManager.addFutureAction(this);
     }
 
-    @recordMethodExecutionTime()
+    @recordMethodExecutionTime.skip()
     start(): boolean {
         // NOTE: Setup the selects before
         for (const [key, select] of Object.entries(this.selects) as [keyof ParametersType<this>, SelectNOf<any>][]) {
@@ -74,7 +74,7 @@ export abstract class OathAction {
         return {};
     }
 
-    @recordMethodExecutionTime()
+    @recordMethodExecutionTime.skip()
     parse(data: Record<string, string[]>): Record<string, any[]> {
         const values: Record<string, any[]> = {};
         for (const [key, select] of Object.entries(this.selects)) {
@@ -85,7 +85,7 @@ export abstract class OathAction {
         return values;
     }
 
-    @recordMethodExecutionTime()
+    @recordMethodExecutionTime.skip()
     applyParameters(values: Partial<ParametersType<this>>) {
         for (const [key, value] of Object.entries(values) as [keyof ParametersType<this>, any[]][]) {
             this.parameters[key] = value;
@@ -94,7 +94,7 @@ export abstract class OathAction {
 
     abstract execute(): void;
 
-    @recordMethodExecutionTime()
+    @recordMethodExecutionTime.skip()
     serialize(): Record<string, any> {
         return {
             message: this.message,
