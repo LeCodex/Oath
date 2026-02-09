@@ -40,7 +40,7 @@
     "@types/node": "^24",
     "@types/supertest": "^6",
     "@typescript-eslint/eslint-plugin": "^8.43.0",
-    "@typescript-eslint/parser": "^8.42.0",
+    "@typescript-eslint/parser": "^8.54.0",
     "eslint": "^9.35.0",
     "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-import": "^2.31.0",
