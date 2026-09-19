@@ -1,6 +1,7 @@
 import type { RecoverAction } from "../actions";
 import type { RecoverActionTarget, CampaignActionTarget, WithPowers, OwnableObject } from "./interfaces";
 import { OathSuit } from "../enums";
+import type { LooseString } from "../utils";
 import { isEnumKey } from "../utils";
 import { OathPlayer } from "./player";
 import type { OathResource } from "./resources";
@@ -15,7 +16,7 @@ export class FavorBank extends Container<Favor, OathSuit> {
     readonly type = "favorBank";
     declare cls: typeof Favor;
 
-    constructor(id: keyof typeof OathSuit) {
+    constructor(id: LooseString<keyof typeof OathSuit>) {
         if (!isEnumKey(id, OathSuit)) throw TypeError(`${id} is not a valid suit`);
         super(id, Favor);
     }

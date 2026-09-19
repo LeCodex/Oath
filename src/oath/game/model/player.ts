@@ -4,6 +4,7 @@ import { Denizen, Relic, Vision, WorldCard } from "./cards";
 import { DiscardOptions } from "./decks";
 import type { OathSuit } from "../enums";
 import { ALL_OATH_SUITS, PlayerColor } from "../enums";
+import type { LooseString } from "../utils";
 import { isEnumKey } from "../utils";
 import type { OathResourceType } from "./resources";
 import { Warband, ResourcesAndWarbands } from "./resources";
@@ -17,7 +18,7 @@ export class WarbandsSupply extends Container<Warband, PlayerColor> {
     declare readonly id: PlayerColor;
     get hidden() { return true; }
 
-    constructor(id: PlayerColor) {
+    constructor(id: LooseString<PlayerColor>) {
         if (!isEnumKey(id, PlayerColor)) throw TypeError(`${id} is not a valid player color`);
         super(id, Warband);
     }
@@ -133,7 +134,7 @@ export abstract class PlayerBoard extends OathGameObject<PlayerColor> implements
 
     bagAmount: number = 14;
     
-    constructor(id: PlayerColor) {
+    constructor(id: LooseString<PlayerColor>) {
         if (!isEnumKey(id, PlayerColor)) throw TypeError(`${id} is not a valid player color`);
         super(id);
     }
@@ -174,7 +175,7 @@ export class VisionSlot extends Container<Vision, PlayerColor> {
     readonly type = "visionSlot";
     declare readonly id: PlayerColor;
 
-    constructor(id: PlayerColor) {
+    constructor(id: LooseString<PlayerColor>) {
         if (!isEnumKey(id, PlayerColor)) throw new TypeError(`${id} is not a valid player color`);
         super(id, Vision);
     }
@@ -187,7 +188,7 @@ export class VisionSlot extends Container<Vision, PlayerColor> {
 export class ExileBoard extends PlayerBoard {
     isCitizen: boolean;
 
-    constructor(id: PlayerColor) {
+    constructor(id: LooseString<PlayerColor>) {
         super(id);
     }
 

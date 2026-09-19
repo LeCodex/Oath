@@ -304,7 +304,7 @@ export class Homesteaders extends ActivePower<Denizen> {
     usePower(): void {
         new ChooseCardsAction(
             this.actionManager, this.action.player, "Move a faceup adviser to your site",
-            [[...this.action.playerProxy.advisers].filter((e) => e instanceof Denizen && !e.facedown).map((e) => e.original)],
+            [[...this.action.playerProxy.advisers].filter((e): e is Denizen => e instanceof Denizen && !e.facedown).map((e) => e.original)],
             (cards: Denizen[]) => {
                 if (!cards[0]) return;
                 new MoveDenizenToSiteEffect(this.actionManager, this.action.player, cards[0], this.action.playerProxy.site.original).doNext()

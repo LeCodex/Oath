@@ -2,6 +2,7 @@ import { Site } from "./cards";
 import type { Discard } from "./decks";
 import type { OathSuit } from "../enums";
 import { RegionKey, RegionSize } from "../enums";
+import type { LooseString } from "../utils";
 import { isEnumKey } from "../utils";
 import { Container, OathGameObject } from "./gameObject";
 import type { OathPlayer } from "./player";
@@ -65,7 +66,7 @@ export class Region extends OathGameObject<RegionKey> {
     declare readonly id: keyof typeof RegionKey;
     size: number;
 
-    constructor(id: keyof typeof RegionKey) {
+    constructor(id: LooseString<keyof typeof RegionKey>) {
         if (!isEnumKey(id, RegionKey)) throw TypeError(`${id} is not a valid region key`);
         super(id);
         this.size = RegionSize[this.key];

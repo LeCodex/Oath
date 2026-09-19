@@ -284,8 +284,8 @@ export class NodeGroup<T extends TreeNode<any>> extends Array<T> {
         return new NodeGroup(...this.slice(0, amount));
     }
 
-    filter(predicate: (value: T, index: number, arr: Array<T>) => unknown, thisArg?: unknown): NodeGroup<T>
     filter<S extends T>(predicate: (value: T, index: number, arr: Array<T>) => value is S, thisArg?: unknown): NodeGroup<S>
+    filter(predicate: (value: T, index: number, arr: Array<T>) => unknown, thisArg?: unknown): NodeGroup<T>
     filter(predicate: (value: T, index: number, arr: Array<T>) => unknown, thisArg?: unknown): NodeGroup<T> {
         return new NodeGroup(...super.filter(predicate, thisArg))
     }

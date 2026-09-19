@@ -4,9 +4,9 @@ import type { WorldCard } from "../model/cards";
 import { Relic , Denizen, Edifice, OathCard, Site, Vision, VisionBack } from "../model/cards";
 import { ALL_OATH_SUITS, BannerKey, CardRestriction, OathPhase, OathSuit, PlayerColor } from "../enums";
 import { ExileBoard, OathPlayer } from "../model/player";
-import { OathResource, OathResourceType, ResourcesAndWarbands, Warband} from "../model/resources";
-import { Favor, Secret } from "../model/resources";
-import type { SupplyCost, SupplyCostContext } from "../costs";
+import type { OathResourceType, ResourcesAndWarbands } from "../model/resources";
+import { OathResource, Favor, Secret } from "../model/resources";
+import type { SupplyCostContext } from "../costs";
 import { ResourceTransferContext , ResourceCost } from "../costs";
 import { FavorBank, Banner, DarkestSecret, PeoplesFavor } from "../model/banks";
 import { isOwnable, type CampaignActionTarget, type OwnableObject, type RecoverActionTarget } from "../model/interfaces";
@@ -743,7 +743,7 @@ export class RecoverTargetEffect extends PlayerEffect {
                 const amount = this.target.amount;
                 new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.player, this, new ResourceCost([[Secret, 1]]), this.player, this.target)).doNext();
                 if (this.target.owner)
-                    new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.target.owner, this, new ResourceCost([[Secret, amount - 1]]), this.target)).doNext();
+                    new TransferResourcesEffect(this.actionManager, new ResourceTransferContext(this.target.owner, this, new ResourceCost([[Secret, amount - 1]]), this.target.owner, this.target)).doNext();
             }
         }
 

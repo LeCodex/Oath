@@ -17,8 +17,12 @@ export class OathController {
         this.powerManager = new OathPowerManager(this.actionManager);
 
         this.actionManager.addInitialActions();
-        this.actionManager.on("save", () => { this.save(); });
-        this.actionManager.on("emptyStack", () => { if (this.game.phase === OathPhase.Over) this.archiveSave(); });
+        this.actionManager.on("save", () => {
+            if (this.game.phase !== OathPhase.Over) this.save();
+        });
+        this.actionManager.on("emptyStack", () => {
+            if (this.game.phase === OathPhase.Over) this.archiveSave();
+        });
     }
 
     stringify(archive: boolean) {
@@ -36,7 +40,7 @@ export class OathController {
     archiveSave() {
         const data = this.stringify(true);
         fs.writeFileSync(this.archivePath, data);
-        fs.rmSync(this.savePath)
+        fs.rmSync(this.savePath);
     }
 
     @recordMethodExecutionTime.skip()

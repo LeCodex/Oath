@@ -43,7 +43,7 @@ export function recordMethodExecutionTime(options?: MethodRecorderOptions): Meth
     return (target, name, descriptor) => {
         const method = descriptor.value;
         if (typeof method !== "function") throw TypeError("Can only record execution time of methods");
-        descriptor.value = function (...args: any[]) {
+        descriptor.value = function (this: any, ...args: any[]) {
             const prefixOrigin = options?.useSubclassNames ? this : target;
             return recordExecutionTime(`${typeof prefixOrigin === "function" ? prefixOrigin.name : prefixOrigin.constructor.name}.${name.toString()}`, method.bind(this) as (...args: any[]) => unknown, ...args);
         } as any;

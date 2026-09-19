@@ -539,7 +539,7 @@ export class CampaignAttackAction extends PlayerAction {
         // Generally unadvised, but since those actions work so closely together, it's better to merge
         // their MaskProxyManager so modifiers can modify the proxy across the entire chain
         this.maskProxyManager = this.next.maskProxyManager;
-        this.campaignResult.checkForImperialInfighting(this.maskProxyManager);
+        // this.campaignResult.checkForImperialInfighting(this.maskProxyManager);
     }
 
     get campaignResult() { return this.next.campaignResult; }
@@ -578,13 +578,12 @@ export class CampaignAttackAction extends PlayerAction {
         this.campaignResult.defPool = 0;
 
         const allyProxiesCandidates = new Set<OathPlayer>();
-        for (const target of this.campaignResult.targets) {
-            const targetProxy = this.maskProxyManager.get(target);
+        for (const targetProxy of this.campaignResultProxy.targets) {
             this.campaignResult.defPool += targetProxy.defense;
             
             for (const playerProxy of this.gameProxy.players) {
                 const siteProxy = targetProxy instanceof Site ? targetProxy : this.playerProxy.site;
-                if (playerProxy.site === siteProxy)
+                if (playerProxy.site === siteProxy && playerProxy !== this.campaignResultProxy.attacker && playerProxy !== this.campaignResultProxy.defender)
                     allyProxiesCandidates.add(playerProxy);
             }
         }
@@ -592,7 +591,7 @@ export class CampaignAttackAction extends PlayerAction {
         for (const allyProxy of allyProxiesCandidates) {
             const ally = allyProxy.original;
             console.log("Trying allying with", ally.name);
-            if (!this.campaignResult.defenderAllies.has(ally) && allyProxy.leader === this.defenderProxy?.leader)
+            if (!this.campaignResult.defenderAllies.has(ally) && allyProxy.leader === this.campaignResultProxy.defender?.leader)
                 new MakeDecisionAction(
                     this.actionManager, ally, "Join as an Imperial Ally?",
                     () => new CampaignJoinDefenderAlliesEffect(this.actionManager, this.campaignResult, ally).doNext()

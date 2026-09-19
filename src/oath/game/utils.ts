@@ -5,6 +5,7 @@ export type Constructor<T> = new (...args: any[]) => T;
 export type Concrete<T extends AbstractConstructor<any>> = T extends AbstractConstructor<infer U> ? Constructor<U> : never;
 export type Abstract<T extends Constructor<any>> = T extends Constructor<infer U> ? AbstractConstructor<U> : never;
 export type Factory<T, P extends any[] = any[]> = (...args: P) => T;
+export type LooseString<T> = T | (string & {})
 export const isExtended = <T>(constructor: Constructor<any>, type: AbstractConstructor<T>): constructor is Constructor<T> => { return constructor === type || constructor.prototype instanceof type };
 
 export type Enum<E> = Record<keyof E, number | string> & { [k: number]: string; };
@@ -208,7 +209,7 @@ export class MaskProxyHandler<T extends object> implements ProxyHandler<T> {
 }
 
 /** Behaves like the supplied Set, until it's modified and becomes a mask. Returns the values filtered through the MaskProxyManager */
-class MaskedSet<T extends object> implements Set<T> {
+class MaskedSet<T> implements Set<T> {
     masked: boolean;
     set: Set<T>;
     maskProxyManager: MaskProxyManager;
@@ -243,10 +244,36 @@ class MaskedSet<T extends object> implements Set<T> {
         this.mask();
         this.set.clear();
     }
+
+    union<U>(other: ReadonlySetLike<U>): Set<T | U> { return this.set.union(other) }
+
+    intersection<U>(other: ReadonlySetLike<U>): Set<T & U> {
+        return new MaskedSet(this.set.intersection(other), this.maskProxyManager);
+    }
+
+    difference<U>(other: ReadonlySetLike<U>): Set<T> {
+        return new MaskedSet(this.set.difference(other), this.maskProxyManager);
+    }
+
+    symmetricDifference<U>(other: ReadonlySetLike<U>): Set<T | U> {
+        return new MaskedSet(this.set.symmetricDifference(other), this.maskProxyManager);
+    }
+
+    isSubsetOf(other: ReadonlySetLike<unknown>): boolean {
+        return this.set.isSubsetOf(other);
+    }
+
+    isSupersetOf(other: ReadonlySetLike<unknown>): boolean {
+        return this.set.isSupersetOf(other);
+    }
+
+    isDisjointFrom(other: ReadonlySetLike<unknown>): boolean {
+        return this.set.isDisjointFrom(other);
+    }
     
-    *values() { for (const value of this.set.values()) yield this.maskProxyManager.get(value); }
-    *keys() { for (const value of this.set.keys()) yield this.maskProxyManager.get(value); }
-    *entries() { for (const [value, value2] of this.set.entries()) yield [this.maskProxyManager.get(value), this.maskProxyManager.get(value2)] as [T, T]; }
+    *values(): SetIterator<T> { for (const value of this.set.values()) yield this.maskProxyManager.get(value); }
+    *keys(): SetIterator<T> { for (const value of this.set.keys()) yield this.maskProxyManager.get(value); }
+    *entries(): SetIterator<[T, T]> { for (const [value, value2] of this.set.entries()) yield [this.maskProxyManager.get(value), this.maskProxyManager.get(value2)] as [T, T]; }
     
     forEach(callbackfn: (value: T, value2: T, set: Set<T>) => void, thisArg?: any): void { 
         this.set.forEach((value: T, value2: T, set: Set<T>) => callbackfn(this.maskProxyManager.get(value), this.maskProxyManager.get(value2), set), thisArg); 
@@ -256,13 +283,15 @@ class MaskedSet<T extends object> implements Set<T> {
     get [Symbol.toStringTag]() { return this.set[Symbol.toStringTag]; }
 }
 
+
 /** Behaves like the supplied Map, until it's modified and becomes a mask. Returns the values filtered through the MaskProxyManager */
-export class MaskedMap<K, V extends object> implements Map<K, V> {
+export class MaskedMap<K, V> implements Map<K, V> {
     masked: boolean;
     map: Map<K, V>;
     maskProxyManager: MaskProxyManager;
 
     constructor(map: Map<K, V>, maskProxyManager: MaskProxyManager) {
+        this.masked = false;
         this.map = map;
         this.maskProxyManager = maskProxyManager;
     }
@@ -297,9 +326,9 @@ export class MaskedMap<K, V extends object> implements Map<K, V> {
         this.map.clear();
     }
 
-    *values() { for (const value of this.map.values()) yield this.maskProxyManager.get(value); }
-    *keys() { for (const key of this.map.keys()) yield this.maskProxyManager.get(key); }
-    *entries() { for (const [key, value] of this.map.entries()) yield [this.maskProxyManager.get(key), this.maskProxyManager.get(value)] as [K, V]; }
+    *values(): MapIterator<V> { for (const value of this.map.values()) yield this.maskProxyManager.get(value); }
+    *keys(): MapIterator<K> { for (const key of this.map.keys()) yield this.maskProxyManager.get(key); }
+    *entries(): MapIterator<[K, V]> { for (const [key, value] of this.map.entries()) yield [this.maskProxyManager.get(key), this.maskProxyManager.get(value)] as [K, V]; }
     
     forEach(callbackfn: (value: V, key: K, map: Map<K, V>) => void, thisArg?: any): void { 
         this.map.forEach((value: V, key: K, map: Map<K, V>) => callbackfn(this.maskProxyManager.get(value), key, map), thisArg); 

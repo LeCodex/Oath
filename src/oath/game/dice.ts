@@ -53,7 +53,7 @@ export class DefenseDie extends Die<DefenseDieSymbol> {
         for (const [symbol, amount] of symbols.entries()) {
             if (ignore?.has(symbol)) continue;
             if (symbol === DefenseDieSymbol.DoubleShield)
-                mult *= 2;
+                mult *= 2 ** amount;
             else
                 total += amount * symbol;
         }

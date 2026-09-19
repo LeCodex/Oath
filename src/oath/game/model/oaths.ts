@@ -1,5 +1,5 @@
 import { OathType } from "../enums";
-import { OathGameObjectLeaf } from "./gameObject";
+import { OathGameObject, OathGameObjectLeaf } from "./gameObject";
 import type { OwnableObject, WithPowers } from "./interfaces";
 import { OathPlayer } from "./player";
 import { maxInGroup } from "../utils";
@@ -11,14 +11,14 @@ import type { ParseOptions, SerializedNode } from "./utils";
 
 export class Oath {
     constructor(
-        public game: OathGame,
+        public source: OathGameObject,
         public oathType: OathType
     ) { }
     
-    setup() { oathData[this.oathType][0]!(this.game); };
+    setup() { oathData[this.oathType][0]!(this.source.game); };
 
-    getCandidates(evaluation: (player: OathPlayer) => number): Set<OathPlayer> {
-        return new Set(maxInGroup(this.game.players, evaluation));
+    private getCandidates(evaluation: (player: OathPlayer) => number): Set<OathPlayer> {
+        return new Set(maxInGroup(this.source.game.players, evaluation));
     }
 
     getOathkeeperCandidates(): Set<OathPlayer> {
@@ -48,7 +48,7 @@ export class OathkeeperTile extends OathGameObjectLeaf<string> implements Ownabl
     get owner() { return this.typedParent(OathPlayer); }
 
     setType(oathType: OathType) {
-        this.oath = new Oath(this.game, oathType);
+        this.oath = new Oath(this, oathType);
         return this;
     }
     

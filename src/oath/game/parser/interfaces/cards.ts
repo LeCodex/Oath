@@ -1,3 +1,4 @@
+import { LooseString } from "../../utils";
 
 export const DenizenName = {
   Wrestlers: 0,
@@ -267,7 +268,7 @@ export const CardName = {
 }
 
 export const CardNameIndexes = Object.keys(CardName)
-  .reduce((prev, cur: keyof typeof CardName) => {
-    prev[CardName[cur]!] = cur;
+  .reduce((prev, cur: LooseString<keyof typeof CardName>) => {
+    prev[CardName[cur as keyof typeof CardName]!] = cur as keyof typeof CardName;
     return prev;
   }, {} as Record<number, keyof typeof CardName>);

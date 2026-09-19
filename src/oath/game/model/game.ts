@@ -15,7 +15,7 @@ import { MurmurHash3, PRNG } from "../utils";
 import type { NodeGroup, ParseOptions, SerializedNode } from "./utils";
 import { TreeRoot } from "./utils";
 import { parseOathTTSSavefileString, serializeOathGame } from "../parser";
-import type { CardName, PlayerCitizenship } from "../parser/interfaces";
+import { CardName, PlayerCitizenship } from "../parser/interfaces";
 import { Citizenship } from "../parser/interfaces";
 import { Favor, Secret } from "./resources";
 import { Reliquary, ReliquarySlot } from "./reliquary";
@@ -266,7 +266,7 @@ export class OathGame extends TreeRoot<OathGame> implements WithPowers {
             oath: this.oathkeeperTile.oath.oathType,
             suitOrder: ALL_OATH_SUITS,
             sites: [...this.map.sites()].map((e) => ({ name: e.id, facedown: e.facedown, cards: [...e.denizens, ...times(3 - e.denizens.length - e.relics.length, constant({ id: "NONE" as const })), ...e.relics].map((e) => ({ name: e.id })) })),
-            world: this.worldDeck.children.map((e) => ({ name: e.id as keyof typeof CardName })),
+            world: this.worldDeck.children.filter((e) => e.id in CardName).map((e) => ({ name: e.id as keyof typeof CardName })),
             dispossessed: [...this.dispossessed].map((e) => ({ name: e })),
             relics: this.relicDeck.children.map((e) => ({ name: e.id })),
 

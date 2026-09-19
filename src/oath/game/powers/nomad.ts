@@ -385,7 +385,7 @@ export class Convoys extends ActivePower<Denizen> {
     usePower(): void {
         new ChooseRegionAction(
             this.actionManager, this.action.player, "Move a discard on top of your region's discard",
-            (region: Region | undefined) => {
+            (region) => {
                 if (!region) return;
                 const discard = this.action.playerProxy.site.region?.discard.original;
                 if (!discard) return;
@@ -400,8 +400,8 @@ export class Resettle extends ActivePower<Denizen> {
     usePower(): void {
         new ChooseCardsAction(
             this.actionManager, this.action.player, "Choose a Nomad adviser",
-            [this.gameProxy.players.reduce((a, e) => [...a, ...[...e.advisers].filter((e) => e instanceof Denizen && e.suit == OathSuit.Nomad)], [] as Denizen[])],
-            (cards: Denizen[]) => {
+            [this.gameProxy.players.reduce((a, e) => a.concat(...e.advisers.filter((e): e is Denizen => e instanceof Denizen && e.suit == OathSuit.Nomad)), [] as Denizen[])],
+            (cards) => {
                 if (!cards[0]) return;
                 new ChooseSitesAction(
                     this.actionManager, this.action.player, "Move it to a site",

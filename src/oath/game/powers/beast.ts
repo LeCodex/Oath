@@ -498,7 +498,7 @@ export class RovingTerror extends ActivePower<Denizen> {
     usePower(): void {
         new ChooseCardsAction(
             this.actionManager, this.action.player, "Replace another card at a site",
-            [[...this.gameProxy.map.sites()].reduce((a, e) => [...a, ...e.denizens], []).filter((e) => !e.activelyLocked && e !== this.sourceProxy).map((e) => e.original)],
+            [[...this.gameProxy.map.sites()].reduce((a, e) => [...a, ...e.denizens], [] as Denizen[]).filter((e) => !e.activelyLocked && e !== this.sourceProxy).map((e) => e.original)],
             (cards: Denizen[]) => {
                 if (!cards[0]) return;
                 const site = cards[0].site;

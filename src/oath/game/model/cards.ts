@@ -18,6 +18,8 @@ import type { CardPowerName, DenizenPowerName, RelicPowerName, SitePowerName, Vi
 import { Oath } from "./oaths";
 import type { ParseOptions, SerializedNode } from "./utils";
 import type { OathGame } from "./game";
+import type { LooseString } from "../utils";
+import { isEnumKey } from "../utils";
 
 
 export abstract class OathCard extends ResourcesAndWarbands<string> implements HiddenInformation, WithPowers {
@@ -84,9 +86,9 @@ export class Site extends OathCard implements CampaignActionTarget {
     defense = 1;
     force = this;
 
-    constructor(id: SiteName) {
-        const data = sitesData[id];
-        if (!data) throw TypeError(`${id} is not a valid Site id`);
+    constructor(id: LooseString<SiteName>) {
+        if (!(id in sitesData)) throw TypeError(`${id} is not a valid Site id`);
+        const data = sitesData[id as SiteName];
         super(id, data[1]);
         this.capacity = data[0];
         this.startingRelics = data[2] ?? 0;
@@ -178,9 +180,9 @@ export class Relic extends OwnableCard implements RecoverActionTarget, CampaignA
     defense: number;
     get force() { return this.owner; }
 
-    constructor(id: RelicName) {
-        const data = relicsData[id];
-        if (!data) throw TypeError(`${id} is not a valid Relic id`);
+    constructor(id: LooseString<RelicName>) {
+        if (!(id in relicsData)) throw TypeError(`${id} is not a valid Relic id`);
+        const data = relicsData[id as RelicName];
         super(id, data[1]);
         this.defense = data[0];
     }
@@ -212,8 +214,8 @@ export class Denizen extends WorldCard implements AtSite {
     restriction: CardRestriction;
     locked: boolean;
 
-    constructor(id: DenizenName) {
-        const data = denizenData[id];
+    constructor(id: LooseString<DenizenName>) {
+        const data = denizenData[id as DenizenName];
         if (!data) throw TypeError(`${id} is not a valid Denizen id`);
         super(id, data[1]);
         this._suit = data[0];
@@ -271,9 +273,10 @@ export class Vision extends VisionBack {
     declare readonly id: keyof typeof OathType;
     oath: Oath;
 
-    constructor(id: keyof typeof OathType) {
+    constructor(id: LooseString<keyof typeof OathType>) {
+        if (!isEnumKey(id, OathType)) throw TypeError(`${id} is not a valid oath`);
         super(id, []);
-        this.oath = new Oath(this.game, OathType[id]);
+        this.oath = new Oath(this, OathType[id]);
     }
 
     get name() { return `VisionOf${this.key}` }

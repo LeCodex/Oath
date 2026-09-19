@@ -1,4 +1,5 @@
 import { RegionKey } from "../enums";
+import type { LooseString } from "../utils";
 import { isEnumKey } from "../utils";
 import { Container } from "./gameObject";
 import type { OathCard } from "./cards";
@@ -91,7 +92,7 @@ export class WorldDeck extends SearchableDeck<string> {
 export class Discard extends SearchableDeck<RegionKey> {
     declare readonly id: keyof typeof RegionKey;
     
-    constructor(id: keyof typeof RegionKey) {
+    constructor(id: LooseString<keyof typeof RegionKey>) {
         if (!isEnumKey(id, RegionKey)) throw TypeError(`${id} is not a valid region id`)
         super(id);
     }

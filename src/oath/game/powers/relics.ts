@@ -111,7 +111,7 @@ export class CursedCauldronAttack extends AttackerBattlePlan<Relic> {
 export class CursedCauldronDefense extends DefenderBattlePlan<Relic> {
     applyBefore(): void {
         if (!this.player) return;
-        this.action.campaignResult.onAttackWin(new CampaignEndCallback(
+        this.action.campaignResult.onDefenseWin(new CampaignEndCallback(
             () => new ParentToTargetEffect(this.actionManager, this.player, this.playerProxy!.leader.bag.original.get(this.action.campaignResult.loserLoss)).doNext(),
             this.source.name, false
         ));
